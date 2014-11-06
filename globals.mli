@@ -1,5 +1,5 @@
 (*  Copyright 1997 INRIA  *)
-(*  $Id: globals.mli,v 1.15 2008-10-09 13:21:30 doligez Exp $  *)
+(*  $Id$  *)
 
 val debug_flag : bool ref;;
 

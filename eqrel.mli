@@ -1,5 +1,5 @@
 (*  Copyright 2004 INRIA  *)
-(*  $Id: eqrel.mli,v 1.3 2004-10-28 13:51:38 doligez Exp $  *)
+(*  $Id$  *)
 
 val analyse : Expr.expr -> unit;;
 val subsumed : Expr.expr -> bool;;

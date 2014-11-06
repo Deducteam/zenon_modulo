@@ -1,5 +1,5 @@
 (*  Copyright 2004 INRIA  *)
-(*  $Id: coqterm.mli,v 1.13 2010-01-12 16:09:35 doligez Exp $  *)
+(*  $Id$  *)
 
 type coqterm;;
 type coqproof;;
