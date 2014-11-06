@@ -10,7 +10,7 @@ SHELL=/bin/bash
 # Staging directory for package managers
 DESTDIR =
 
-CAMLFLAGS = -warn-error "$(WARN_ERROR)"
+CAMLFLAGS = -annot -warn-error "$(WARN_ERROR)"
 
 CAMLBINFLAGS = $(CAMLFLAGS) $(BIN_DEBUG_FLAGS)
 CAMLBYTFLAGS = $(CAMLFLAGS) $(BYT_DEBUG_FLAGS)
