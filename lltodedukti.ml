@@ -145,7 +145,8 @@ struct
 	-> xget_distincts (xget_distincts distincts e1) e2
       | Enot (e1, _) | Eall (_, _, e1, _) | Eex (_, _, e1, _)
 	-> xget_distincts distincts e1
-      | Etau _ | Elam _ -> assert false (* no tau nor lambda accepted in phrases *) in
+      | Etau _ -> assert false
+      | Elam _ -> assert false (* no tau nor lambda accepted in phrases *) in
     let get_distincts_phrase distincts p =
       match p with
       | Phrase.Hyp (name, e, _) -> xget_distincts distincts e
