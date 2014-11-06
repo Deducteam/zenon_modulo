@@ -143,11 +143,11 @@ let scrorr (e1, e2, proof) =
   let (g, d, rule) = proof in
   g, eor (e1, e2), SCrorr (e1, e2, proof)
 let scrimply (e1, e2, proof) =
-  ignore (ingamma e1 proof);
+  assert (ingamma e1 proof);
   let (g, d, rule) = proof in
   rm e1 g, eimply (e1, e2), SCrimply (e1, e2, proof)
 let scrnot (e, proof) =
-  ignore (ingamma e proof);
+  assert (ingamma e proof);
   let (g, d, rule) = proof in
   rm e g, enot e, SCrnot (e, proof)
 let scrall (e1, v, proof) =
