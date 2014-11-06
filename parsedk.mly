@@ -22,23 +22,50 @@ let rec mk_type_string e = match e with
   | _ -> assert false (* FIXME TODO *)
 ;;
 
+let startwith pref s =
+  String.length pref <= String.length s &&
+    String.sub s 0 (String.length pref) = pref
+;;
+
+exception Unknown_connective of string;;
+exception Bad_arity of string * int;;
+
+(* create an expression application,
+   applications of logical connectives
+   produce the corresponding formulae *)
 let mk_eapp : string * expr list -> expr =
   function
   | "dk_logic.and", [e1; e2] -> eand (e1, e2)
   | "dk_logic.or", [e1; e2] -> eor (e1, e2)
+  | "dk_logic.imp", [e1; e2] -> eimply (e1, e2)
   | "dk_logic.eqv", [e1; e2] -> eequiv (e1, e2)
   | "dk_logic.not", [e1] -> enot (e1)
   | "dk_logic.forall", [_; Elam (x, ty, e, _)] -> eall (x, ty, e)
+  | "dk_logic.forall", [_; _] -> assert false
+  | "dk_logic.forall", l -> raise (Bad_arity ("forall", List.length l))
   | "dk_logic.exists", [_; Elam (x, ty, e, _)] -> eex (x, ty, e)
   | "dk_logic.ebP", [e1] -> eapp ("Is_true", [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
-  | s, args -> eapp (s, args)
+  (* There should not be any other logical connectives *)
+  | s, args ->
+     if (startwith "dk_logic." s)
+     then raise (Unknown_connective s)
+     else eapp (s, args)
 ;;
+
+exception Application_head_is_not_a_var of expr;;
 
 let mk_apply (e, l) =
   match e with
   | Eapp (s, args, _) -> mk_eapp (s, args @ l)
   | Evar (s, _) -> mk_eapp (s, l)
-  | _ -> raise Parse_error
+  | e when l = [] -> e
+  | _ ->
+     Printf.eprintf "Error: application head is not a variable %a @ [%a]"
+       (fun oc -> Print.expr (Print.Chan oc)) e
+       (fun oc -> List.iter (fun e ->
+         Print.expr (Print.Chan oc) e;
+         Printf.fprintf oc ";\n")) l;
+    raise Parse_error
 ;;
 
 let mk_all var ty e =
@@ -145,9 +172,17 @@ term:
 domain:
 | ID COLON typ { ($1, $3) }
 | typ { ("", $1) }
+
 applicative:
-| simple { $1 }
-| applicative simple { mk_apply ($1, [$2]) }
+| applicatives {
+  match List.rev $1 with
+  | [] -> raise Parse_error
+  | head :: tail -> mk_apply (head, tail)
+}
+
+applicatives:
+| simple { [$1] }
+| applicatives simple { $2 :: $1 }
 simple:
 | TYPE { evar "Type" }
 | qid { evar $1 }
