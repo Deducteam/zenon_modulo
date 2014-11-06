@@ -634,7 +634,11 @@ let rec xlltolkrule env rule hyps gamma =
     [c1; c2], [[h]]), [proof] ->
     deduce_inequality e1 e2 v1 v2 c1 c2 false false gamma proof env.distincts
   | Rextension (ext, name, args, cons, hyps), proofs ->
-    scext(name, args, cons, proofs)
+     let prooof =
+       scext(name, args, cons, hyps, proofs) in Lkproof.p_debug_proof "applying extension\n" prooof; 
+     List.iter (Lkproof.p_debug_proof "hypo") proofs;
+     prooof
+
   | Rlemma _, _ -> assert false (* no lemma after use_defs *)
   | Rdefinition _, _ -> assert false (* no definition after use_defs *)
   | _ -> assert false
