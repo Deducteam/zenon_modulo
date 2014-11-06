@@ -197,18 +197,23 @@ let declare_lemma oc name params concl =
 ;;
 
 let declare_theorem oc name params concl phrases =
-  let nconcl =
+  let nconcl, script_prefix =
     match get_goals concl with
-    | [ Enot (e, _) ] -> e
-    | [] -> efalse
+    | [ Enot (e, _) ] -> e, ""
+    | [] ->
+        begin match Coqterm.get_goal phrases with
+        | None -> efalse, ""
+        | Some (Enot (g, _)) -> g, "apply NNPP; intro.\n"
+        | _ -> assert false
+        end
     | _ -> assert false
   in
   fprintf oc "Theorem %s : %a%a.\n" name p_forall params p_expr nconcl;
-  fprintf oc "Proof.\n";
+  fprintf oc "Proof.\n%s" script_prefix;
   Coqterm.print_use_all oc phrases;
 ;;
 
-let getname = Coqterm.getname;;
+let getname e = Coqterm.getname e ;;
 
 let p_name_list oc l =
   p_list " " (fun oc e -> fprintf oc "%s" (getname e)) "" oc l;
@@ -268,7 +273,7 @@ let p_rule oc r =
   let poc fmt = fprintf oc fmt in
   match r with
   | Rconnect (And, e1, e2) ->
-      apply_alpha oc "and" (eand (e1, e2)) e1 e2
+      apply_alpha oc "and " (eand (e1, e2)) e1 e2
   | Rconnect (Or, e1, e2) ->
       apply_beta oc "or" (eor (e1, e2)) e1 e2
   | Rconnect (Imply, e1, e2) ->
@@ -347,14 +352,21 @@ let p_rule oc r =
       let recarg = find_recarg a args in
       poc "assert (%s: %a). " (getname h) p_expr h;
       (* Fix bug 37: do not destruct a constructor value. *)
-      if not (Coqterm.is_constr recarg) then
-        poc "destruct %a; " p_expr (find_recarg a args);
-      poc "simpl; auto.\n"
+      if not (Coqterm.is_constr recarg) then begin
+        poc "destruct %a; " p_expr (find_recarg a args) ;
+        poc "simpl; auto.\n"
+      end else (* Fix bug 59. *)
+        poc "exact %s.\n" (getname c)
   | Rnotequal (Eapp (Evar(f,_), args1, _), Eapp (Evar(g,_), args2, _)) ->
      assert (f = g);
      let f a1 a2 =
-       let eq = eapp (eeq, [a1; a2]) in
-       let neq = enot eq in
+       let eq =
+         match a1, a2 with
+         | Evar ("_", _), _ | _, Evar ("_", _) ->
+             eapp (eeq, [evar "true"; evar "true"])
+         | _ -> eapp (eeq, [a1; a2])
+       in
+       let neq = enot (eapp (eeq, [a1; a2])) in
        poc "cut (%a); [idtac | apply NNPP; zenon_intro %s].\n"
            p_expr eq (getname neq);
      in

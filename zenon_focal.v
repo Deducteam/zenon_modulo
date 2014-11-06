@@ -278,7 +278,7 @@ Definition zenon_focal_falsenotequal_s :=
   fun x c h => zenon_focal_falsenotequal x h c
 .
 Definition zenon_focal_notequalfalse_s :=
-  fun x c h => zenon_focal_equalfalse x h c
+  fun x c h => zenon_focal_notequalfalse x h c
 .
 Definition zenon_focal_not_s :=
   fun A c h => zenon_focal_not A h c

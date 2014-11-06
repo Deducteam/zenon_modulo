@@ -29,3 +29,5 @@ val getname : Expr.expr -> string;;
 val synthesize : string -> string;;
 val constants_used : string list ref;;
 exception Cannot_infer of string;;
+
+val get_goal : Phrase.phrase list -> Expr.expr option;;
