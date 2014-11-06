@@ -752,7 +752,7 @@ and process_rule r =
   | Rconnect (op, e1, e2) -> Rconnect (op, process_expr e1, process_expr e2)
   | Rnotconnect (op, e1, e2) ->
       Rnotconnect (op, process_expr e1, process_expr e2)
-  | Rex (e1, v) -> Rex (process_expr e1, v)
+  | Rex (e1, v) -> Rex (process_expr e1, process_expr v)
   | Rall (e1, e2) -> Rall (process_expr e1, process_expr e2)
   | Rnotex (e1, e2) -> Rnotex (process_expr e1, process_expr e2)
   | Rnotall (e1, v) -> Rnotall (process_expr e1, v)
