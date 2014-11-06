@@ -169,7 +169,10 @@ struct
     | Phrase.Def (DefPseudo (_, _, _, _)) -> assert false
     | Phrase.Def (DefRec (_, _, _, _)) -> assert false
     | Phrase.Sig _ -> assert false
-    | Phrase.Inductive _ -> assert false      (* TODO: to implement *) in
+
+    | Phrase.Inductive _ -> ()      (* TODO: to implement *)
+    in
+
     let definitions = (Hashtbl.create 97 : (string, Expr.expr list * Expr.expr) Hashtbl.t) in
     List.iter (xget_definitions definitions) phrases; 
     definitions
@@ -189,7 +192,7 @@ struct
       | Phrase.Def (DefPseudo (_, _, _, _)) -> assert false
       | Phrase.Def (DefRec (_, _, _, _)) -> assert false
       | Phrase.Sig _ -> assert false
-      | Phrase.Inductive _ -> assert false      (* TODO: to implement *) in
+      | Phrase.Inductive _ -> hyps      (* TODO: to implement *) in
     let hyps = List.fold_left xget_env [] phrases in
     let distincts = get_distincts phrases in 
     let rec get_distinctshyps distincts = 
