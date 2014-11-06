@@ -91,6 +91,8 @@ let rec p_expr oc e =
       poc "(if %a then %a else %a)" p_expr e1 p_expr e2 p_expr e3;
   | Eapp ("$string", [Evar (v, _)], _) ->
       poc "%s" v;
+  | Eapp ("*", [e1; e2], _) ->
+      poc "%a*%a" p_expr e1 p_expr e2;
   | Eapp ("%", [e1; e2], _) ->
       poc "%a%%%a" p_expr e1 p_expr e2;
   | Eapp (f, l, _) ->
@@ -164,18 +166,23 @@ let declare_lemma oc name params concl =
 ;;
 
 let declare_theorem oc name params concl phrases =
-  let nconcl =
+  let nconcl, script_prefix =
     match get_goals concl with
-    | [ Enot (e, _) ] -> e
-    | [] -> efalse
+    | [ Enot (e, _) ] -> e, ""
+    | [] ->
+        begin match Coqterm.get_goal phrases with
+        | None -> efalse, ""
+        | Some (Enot (g, _)) -> g, "apply NNPP; intro.\n"
+        | _ -> assert false
+        end
     | _ -> assert false
   in
   fprintf oc "Theorem %s : %a%a.\n" name p_forall params p_expr nconcl;
-  fprintf oc "Proof.\n";
+  fprintf oc "Proof.\n%s" script_prefix;
   Coqterm.print_use_all oc phrases;
 ;;
 
-let getname = Coqterm.getname;;
+let getname e = Coqterm.getname e ;;
 
 let p_name_list oc l =
   p_list " " (fun oc e -> fprintf oc "%s" (getname e)) "" oc l;
@@ -235,7 +242,7 @@ let p_rule oc r =
   let poc fmt = fprintf oc fmt in
   match r with
   | Rconnect (And, e1, e2) ->
-      apply_alpha oc "and" (eand (e1, e2)) e1 e2
+      apply_alpha oc "and " (eand (e1, e2)) e1 e2
   | Rconnect (Or, e1, e2) ->
       apply_beta oc "or" (eor (e1, e2)) e1 e2
   | Rconnect (Imply, e1, e2) ->
@@ -311,13 +318,24 @@ let p_rule oc r =
         | h1::t1, h2::t2 -> if h1 = vv then h2 else find_recarg t1 t2
         | _ -> assert false
       in
-      poc "assert (%s: %a). destruct %a; simpl; auto.\n"
-          (getname h) p_expr h p_expr (find_recarg a args);
+      let recarg = find_recarg a args in
+      poc "assert (%s: %a). " (getname h) p_expr h;
+      (* Fix bug 37: do not destruct a constructor value. *)
+      if not (Coqterm.is_constr recarg) then begin
+        poc "destruct %a; " p_expr (find_recarg a args) ;
+        poc "simpl; auto.\n"
+      end else (* Fix bug 59. *)
+        poc "exact %s.\n" (getname c)
   | Rnotequal (Eapp (f, args1, _), Eapp (g, args2, _)) ->
      assert (f = g);
      let f a1 a2 =
-       let eq = eapp ("=", [a1; a2]) in
-       let neq = enot eq in
+       let eq =
+         match a1, a2 with
+         | Evar ("_", _), _ | _, Evar ("_", _) ->
+             eapp ("=", [evar "true"; evar "true"])
+         | _ -> eapp ("=", [a1; a2])
+       in
+       let neq = enot (eapp ("=", [a1; a2])) in
        poc "cut (%a); [idtac | apply NNPP; zenon_intro %s].\n"
            p_expr eq (getname neq);
      in
@@ -354,14 +372,14 @@ let p_rule oc r =
       let c1 = apply p a in
       let c2 = eapp ("=", [a; b]) in
       let h = apply p b in
-      poc "apply (zenon_congruence_lr_s _ %a _ _ %s %s). zenon_intro %s.\n"
-          p_expr p (getname c1) (getname c2) (getname h);
+      poc "apply (zenon_congruence_lr_s _ %a %a %a %s %s). zenon_intro %s.\n"
+          p_expr p p_expr a p_expr b (getname c1) (getname c2) (getname h);
   | RcongruenceRL (p, a, b) ->
       let c1 = apply p a in
       let c2 = eapp ("=", [b; a]) in
       let h = apply p b in
-      poc "apply (zenon_congruence_rl_s _ %a _ _ %s %s). zenon_intro %s.\n"
-          p_expr p (getname c1) (getname c2) (getname h);
+      poc "apply (zenon_congruence_rl_s _ %a %a %a %s %s). zenon_intro %s.\n"
+          p_expr p p_expr a p_expr b (getname c1) (getname c2) (getname h);
   | Rroot _ -> assert false
 ;;
 

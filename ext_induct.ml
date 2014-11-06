@@ -84,7 +84,7 @@ let parse_type t =
 module HE = Hashtbl.Make (Expr);;
 let tblsize = 997;;
 let eqs = (HE.create tblsize : expr HE.t);;
-let matches = (HE.create tblsize : ((expr -> expr) * expr list) HE.t);;
+let matches = (HE.create tblsize : ((expr -> expr) * bool * expr list) HE.t);;
 
 let rec make_case accu e =
   match e with
@@ -104,7 +104,7 @@ let compare_cases (cs1, _, _) (cs2, _, _) =
 
 let normalize_cases l = List.sort compare_cases (List.map (make_case []) l);;
 
-let make_match_redex e g ctx ee cases =
+let make_match_redex e g ctx is_t ee cases =
   let mknode c a cases =
     let aa =
       try
@@ -125,7 +125,12 @@ let make_match_redex e g ctx ee cases =
         else List.map2 (fun v x -> (v, x)) args aa
       in
       let newbody = if subs = [] then body else substitute subs body in
-      let hyp = ctx newbody in
+      let hyp =
+        if is_t then
+          ctx (eapp ("Is_true", [newbody]))
+        else
+          ctx newbody
+      in
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "match_redex", [e; hyp]);
@@ -145,28 +150,28 @@ let make_match_redex e g ctx ee cases =
 let get_matching e =
   match e with
   | Eapp (s, [Eapp ("$match", ee :: cases, _); e2], _) when Eqrel.any s ->
-     Some ((fun x -> eapp (s, [x; e2])), ee, cases)
+     Some ((fun x -> eapp (s, [x; e2])), false, ee, cases)
   | Eapp (s, [e1; Eapp ("$match", ee :: cases, _)], _) when Eqrel.any s ->
-     Some ((fun x -> eapp (s, [e1; x])), ee, cases)
+     Some ((fun x -> eapp (s, [e1; x])), false, ee, cases)
   | Enot (Eapp (s, [Eapp ("$match", ee :: cases, _); e2], _), _)
     when Eqrel.any s ->
-     Some ((fun x -> enot (eapp (s, [x; e2]))), ee, cases)
+     Some ((fun x -> enot (eapp (s, [x; e2]))), false, ee, cases)
   | Enot (Eapp (s, [e1; Eapp ("$match", ee :: cases, _)], _), _)
     when Eqrel.any s ->
-     Some ((fun x -> enot (eapp (s, [e1; x]))), ee, cases)
+     Some ((fun x -> enot (eapp (s, [e1; x]))), false, ee, cases)
   | Eapp ("$match", ee :: cases, _) ->
-     Some ((fun x -> x), ee, cases)
+     Some ((fun x -> x), false, ee, cases)
   | Enot (Eapp ("$match", ee :: cases, _), _) ->
-     Some ((fun x -> enot (x)), ee, cases)
+     Some ((fun x -> enot (x)), false, ee, cases)
   (* FIXME these last 4 should only be done when ext_focal is active *)
   | Eapp ("Is_true", [Eapp ("$match", ee :: cases, _)], _) ->
-     Some ((fun x -> eapp ("Is_true", [x])), ee, cases)
+     Some ((fun x -> eapp ("Is_true", [x])), false, ee, cases)
   | Eapp ("Is_true**$match", ee :: cases, _) ->
-     Some ((fun x -> eapp ("Is_true", [x])), ee, cases)
+     Some ((fun x -> x), true, ee, cases)
   | Enot (Eapp ("Is_true", [Eapp ("$match", ee :: cases, _)], _), _) ->
-     Some ((fun x -> enot (eapp ("Is_true", [x]))), ee, cases)
+     Some ((fun x -> enot (eapp ("Is_true", [x]))), false, ee, cases)
   | Enot (Eapp ("Is_true**$match", ee :: cases, _), _) ->
-     Some ((fun x -> enot (eapp ("Is_true", [x]))), ee, cases)
+     Some ((fun x -> enot (x)), true, ee, cases)
   | _ -> None
 ;;
 
@@ -178,7 +183,7 @@ let get_unders constr =
   with Not_found -> assert false
 ;;
 
-let make_match_branches ctx e cases =
+let make_match_branches e cases =
   match cases with
   | [] -> Error.warn "empty pattern-matching"; raise Empty
   | _ ->
@@ -214,10 +219,11 @@ let get_type cases =
   | _ -> raise Empty
 ;;
 
-let make_match_congruence e g ctx ee cases rhs =
+let make_match_congruence e g ctx is_t ee cases rhs =
   let x = Expr.newvar () in
   (* FIXME could recover the type as in mknode below *)
-  let p = elam (x, "", ctx (eapp ("$match", x :: cases))) in
+  let key = if is_t then "Is_true**$match" else "$match" in
+  let p = elam (x, "", ctx (eapp (key, x :: cases))) in
   Node {
     nconc = [e; eapp ("=", [ee; rhs])];
     nrule = CongruenceLR (p, ee, rhs);
@@ -228,14 +234,15 @@ let make_match_congruence e g ctx ee cases rhs =
 ;;
 
 let newnodes_match_cases e g =
-  let mknode ctx ee cases =
-    let br = make_match_branches ctx ee cases in
+  let mknode ctx is_t ee cases =
+    let br = make_match_branches ee cases in
     let tycon = get_type cases in
     let (args, cons, schema) = Hashtbl.find type_table tycon in
     let tyargs = List.fold_left (fun s _ -> " _" ^ s) "" args in
     let x = Expr.newvar () in
+    let key = if is_t then "Is_true**$match" else "$match" in
     let mctx = elam (x, sprintf "(%s%s)" tycon tyargs,
-                     ctx (eapp ("$match", x :: cases)))
+                     ctx (eapp (key, x :: cases)))
     in
     let ty = evar tycon in
     [ Node {
@@ -247,22 +254,24 @@ let newnodes_match_cases e g =
     }]
   in
   match get_matching e with
-  | Some (ctx, ee, cases) when constr_head ee ->
-     make_match_redex e g ctx ee cases
-  | Some (ctx, ee, cases) ->
+  | Some (ctx, is_t, ee, cases) when constr_head ee ->
+     make_match_redex e g ctx is_t ee cases
+  | Some (ctx, is_t, ee, cases) ->
      let l =
-       List.map (make_match_congruence e g ctx ee cases) (HE.find_all eqs ee)
+       List.map (make_match_congruence e g ctx is_t ee cases)
+                (HE.find_all eqs ee)
      in
-     if l <> [] then l else mknode ctx ee cases
+     if l <> [] then l else mknode ctx is_t ee cases
   | None -> []
 ;;
 
 let newnodes_match_cases_eq e g =
   match e with
   | Eapp ("=", [e1; e2], _) when constr_head e2 ->
-     let mknode (ctx, cases) =
+     let mknode (ctx, is_t, cases) =
        let x = Expr.newvar () in
-       let p = elam (x, "", ctx (eapp ("$match", x :: cases))) in
+       let key = if is_t then "Is_true**$match" else "$match" in
+       let p = elam (x, "", ctx (eapp (key, x :: cases))) in
        Node {
          nconc = [apply p e1; e];
          nrule = CongruenceLR (p, e1, e2);
@@ -820,8 +829,8 @@ let add_formula e =
   | _ -> ()
   end;
   begin match get_matching e with
-  | Some (ctx, ee, cases) when not (constr_head ee) ->
-      HE.add matches ee (ctx, cases)
+  | Some (ctx, is_t, ee, cases) when not (constr_head ee) ->
+      HE.add matches ee (ctx, is_t, cases)
   | _ -> ()
   end;
 ;;
@@ -839,7 +848,7 @@ let remove_formula e =
   | _ -> ()
   end;
   begin match get_matching e with
-  | Some (ctx, ee, cases) when not (constr_head ee) ->
+  | Some (ctx, is_t, ee, cases) when not (constr_head ee) ->
      HE.remove matches ee
   | _ -> ()
   end;
@@ -893,7 +902,13 @@ let p_rule_coq oc r =
   | Rextension (_, "zenon_induct_induction_notall", [Evar (ty, _); p], [c], hs)
     ->
      fprintf oc "apply %s.\n" (getname c);
-     fprintf oc "apply %s_ind; [" ty;
+     let (args, constrs, schema) = Hashtbl.find type_table ty in
+     let unders =
+       let l1 = List.map (fun _ -> "_") args in
+       let l2 = List.map (fun _ -> "_") constrs in
+       String.concat " " ("_" :: l1 @ l2)
+     in
+     fprintf oc "refine (%s %s); [" schema unders;
      let p_case oc h =
        match h with
        | [h] -> fprintf oc "apply NNPP; zenon_intro %s" (getname h);

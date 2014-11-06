@@ -25,6 +25,7 @@ type coqterm =
   | Cmatch of coqterm * (string * string list * coqterm) list
   | Cifthenelse of coqterm * coqterm * coqterm
   | Cfix of string * string * coqterm
+  | Cannot of coqterm * coqterm
 ;;
 
 type coqproof =
@@ -68,13 +69,16 @@ let is_goal e =
 ;;
 
 let induct_map = ref [];;
+let constructor_table = (Hashtbl.create 100 : (string, unit) Hashtbl.t);;
 
 let init_induct phrases =
   induct_map := [];
+  Hashtbl.clear constructor_table;
   let add_induct p =
     match p with
     | Phrase.Inductive (name, args, cons, schema) ->
        induct_map := (name, (args, cons, schema)) :: !induct_map;
+       List.iter (fun (c, _) -> Hashtbl.add constructor_table c ()) cons;
     | Phrase.Hyp _ | Phrase.Def _ | Phrase.Sig _ | Phrase.Rew _ -> ()
   in
   List.iter add_induct phrases;
@@ -85,8 +89,13 @@ let get_induct name =
   with Not_found -> assert false
 ;;
 
+let is_constr e =
+  match e with
+  | Eapp ("@", Evar (f, _) :: _, _) | Eapp (f, _, _)
+    when Hashtbl.mem constructor_table f -> true
+  | _ -> false
+;;
 
-let getv e = Cvar (getname e);;
 
 exception Cannot_infer of string;;
 
@@ -155,6 +164,11 @@ and trcase env accu e =
   | _ -> assert false
 ;;
 
+(*
+let getv env e = Cannot (Cvar (getname e), trexpr env e);;
+*)
+let getv env e = Cvar (getname e);;
+
 let tropt env e = if !Globals.short_flag then Cwild else trexpr env e;;
 let trpred env v ty p = Clam (v, cty ty, trexpr env p);;
 
@@ -189,65 +203,65 @@ let rec trtree env node =
   let tr_subtree_1 = tr_subtree_1 env in
   let tr_subtree_2 = tr_subtree_2 env in
   match rule with
-  | Rfalse -> getv (efalse)
-  | Rnottrue -> Capp (Cvar "zenon_nottrue", [getv (enot (etrue))])
-  | Raxiom (p) -> Capp (getv (enot p), [getv p])
+  | Rfalse -> getv env (efalse)
+  | Rnottrue -> Capp (Cvar "zenon_nottrue", [getv env (enot (etrue))])
+  | Raxiom (p) -> Capp (getv env (enot p), [getv env p])
   | Rcut (p) ->
       let (subp, subnp) = tr_subtree_2 hyps in
       let lamp = mklam p subp in
       Clet (getname (enot p), lamp, subnp)
   | Rnoteq (e) ->
-      let e_neq_e = getv (enot (eapp ("=", [e; e]))) in
+      let e_neq_e = getv env (enot (eapp ("=", [e; e]))) in
       Capp (Cvar "zenon_noteq", [Cwild; trexpr e; e_neq_e])
   | Reqsym (e, f) ->
-      let e_eq_f = getv (eapp ("=", [e; f])) in
-      let f_neq_e = getv (enot (eapp ("=", [f; e]))) in
+      let e_eq_f = getv env (eapp ("=", [e; f])) in
+      let f_neq_e = getv env (enot (eapp ("=", [f; e]))) in
       Capp (Cvar "zenon_eqsym", [Cwild; trexpr e; trexpr f; e_eq_f; f_neq_e])
   | Rnotnot (p) ->
       let sub = mklam p (tr_subtree_1 hyps) in
-      Capp (getv (enot (enot p)), [sub])
+      Capp (getv env (enot (enot p)), [sub])
   | Rconnect (And, p, q) ->
       let sub = mklam p (mklam q (tr_subtree_1 hyps)) in
-      Capp (Cvar "zenon_and", [tropt p; tropt q; sub; getv (eand (p, q))])
+      Capp (Cvar "zenon_and", [tropt p; tropt q; sub; getv env (eand (p, q))])
   | Rconnect (Or, p, q) ->
       let (subp, subq) = tr_subtree_2 hyps in
       let lamp = mklam p subp in
       let lamq = mklam q subq in
-      let concl = getv (eor (p, q)) in
+      let concl = getv env (eor (p, q)) in
       Capp (Cvar "zenon_or", [tropt p; tropt q; lamp; lamq; concl])
   | Rconnect (Imply, p, q) ->
       let (subp, subq) = tr_subtree_2 hyps in
       let lamp = mklam (enot p) subp in
       let lamq = mklam q subq in
-      let concl = getv (eimply (p, q)) in
+      let concl = getv env (eimply (p, q)) in
       Capp (Cvar "zenon_imply", [tropt p; tropt q; lamp; lamq; concl])
   | Rconnect (Equiv, p, q) ->
       let (sub1, sub2) = tr_subtree_2 hyps in
       let lam1 = mklam (enot p) (mklam (enot q) sub1) in
       let lam2 = mklam p (mklam q sub2) in
-      let concl = getv (eequiv (p, q)) in
+      let concl = getv env (eequiv (p, q)) in
       Capp (Cvar "zenon_equiv", [tropt p; tropt q; lam1; lam2; concl])
   | Rnotconnect (And, p, q) ->
       let (subp, subq) = tr_subtree_2 hyps in
       let lamp = mklam (enot p) subp in
       let lamq = mklam (enot q) subq in
-      let concl = getv (enot (eand (p, q))) in
+      let concl = getv env (enot (eand (p, q))) in
       Capp (Cvar "zenon_notand", [tropt p; tropt q; lamp; lamq; concl])
   | Rnotconnect (Or, p, q) ->
       let sub = tr_subtree_1 hyps in
       let lam = mklam (enot p) (mklam (enot q) sub) in
-      let concl = getv (enot (eor (p, q))) in
+      let concl = getv env (enot (eor (p, q))) in
       Capp (Cvar "zenon_notor", [tropt p; tropt q; lam; concl])
   | Rnotconnect (Imply, p, q) ->
       let sub = tr_subtree_1 hyps in
       let lam = mklam p (mklam (enot q) sub) in
-      let concl = getv (enot (eimply (p, q))) in
+      let concl = getv env (enot (eimply (p, q))) in
       Capp (Cvar "zenon_notimply", [tropt p; tropt q; lam; concl])
   | Rnotconnect (Equiv, p, q) ->
       let (sub1, sub2) = tr_subtree_2 hyps in
       let lam1 = mklam (enot p) (mklam q sub1) in
       let lam2 = mklam p (mklam (enot q) sub2) in
-      let concl = getv (enot (eequiv (p, q))) in
+      let concl = getv env (enot (eequiv (p, q))) in
       Capp (Cvar "zenon_notequiv", [tropt p; tropt q; lam1; lam2; concl])
   | Rex (Eex (Evar (x, _) as vx, ty, px, _) as exp, z) ->
       let sub = tr_subtree_1 hyps in
@@ -255,7 +269,7 @@ let rec trtree env node =
       let zzn = Index.make_tau_name zz in
       let pzz = substitute [(vx, zz)] px in
       let lam = Clam (zzn, cty ty, mklam pzz sub) in
-      Capp (Cvar "zenon_ex", [cty ty; trpred x ty px; lam; getv exp])
+      Capp (Cvar "zenon_ex", [cty ty; trpred x ty px; lam; getv env exp])
   | Rex _ -> assert false
   | Rnotall (Eall (Evar (x, _) as vx, ty, px, _) as allp, z) ->
       let sub = tr_subtree_1 hyps in
@@ -263,7 +277,7 @@ let rec trtree env node =
       let zzn = Index.make_tau_name (zz) in
       let pzz = substitute [(vx, zz)] px in
       let lam = Clam (zzn, cty ty, mklam (enot (pzz)) sub) in
-      let concl = getv (enot allp) in
+      let concl = getv env (enot allp) in
       Capp (Cvar "zenon_notall", [cty ty; trpred x ty px; lam; concl])
   | Rnotall _ -> assert false
   | Rall (Eall (Evar (x, _) as vx, ty, px, _) as allp, t) ->
@@ -271,7 +285,7 @@ let rec trtree env node =
       let pt = substitute [(vx, t)] px in
       let lam = mklam pt sub in
       let p = trpred x ty px in
-      let concl = getv allp in
+      let concl = getv env allp in
       Capp (Cvar "zenon_all", [cty ty; p; trexpr t; lam; concl])
   | Rall _ -> assert false
   | Rnotex (Eex (Evar (x, _) as vx, ty, px, _) as exp, t) ->
@@ -279,15 +293,15 @@ let rec trtree env node =
       let npt = enot (substitute [(vx, t)] px) in
       let lam = mklam npt sub in
       let p = trpred x ty px in
-      let concl = getv (enot (exp)) in
+      let concl = getv env (enot (exp)) in
       Capp (Cvar "zenon_notex", [cty ty; p; trexpr t; lam; concl])
   | Rnotex _ -> assert false
   | Rpnotp ((Eapp (p, args1, _) as pp),
             (Enot (Eapp (q, args2, _), _) as nqq)) ->
      assert (p = q);
      let args = mk_eq_args (fun x -> eapp (p, x)) [] args1 args2 in
-     let base = getv nqq in
-     Capp (List.fold_right2 (mk_eq_node env) args hyps base, [getv pp])
+     let base = getv env nqq in
+     Capp (List.fold_right2 (mk_eq_node env) args hyps base, [getv env pp])
   | Rpnotp _ -> assert false
   | Rnotequal ((Eapp (f, args1, _) as ff), (Eapp (g, args2, _) as gg)) ->
      assert (f = g);
@@ -297,27 +311,27 @@ let rec trtree env node =
                       [Cwild; Capp (Cvar "refl_equal", [trexpr gg])])
      in
      let neq = enot (eapp ("=", [ff; gg])) in
-     Capp (List.fold_right2 (mk_eq_node env) args hyps base, [getv neq])
+     Capp (List.fold_right2 (mk_eq_node env) args hyps base, [getv env neq])
   | Rnotequal _ -> assert false
   | RcongruenceLR (p, a, b) ->
      let sub = tr_subtree_1 hyps in
      let h = apply p b in
      let lam = mklam h sub in
-     let concl1 = getv (apply p a) in
-     let concl2 = getv (eapp ("=", [a; b])) in
+     let concl1 = getv env (apply p a) in
+     let concl2 = getv env (eapp ("=", [a; b])) in
      Capp (Cvar "zenon_congruence_lr",
            [Cwild; trexpr p; trexpr a; trexpr b; lam; concl1; concl2])
   | RcongruenceRL (p, a, b) ->
      let sub = tr_subtree_1 hyps in
      let h = apply p b in
      let lam = mklam h sub in
-     let concl1 = getv (apply p a) in
-     let concl2 = getv (eapp ("=", [b; a])) in
+     let concl1 = getv env (apply p a) in
+     let concl2 = getv env (eapp ("=", [b; a])) in
      Capp (Cvar "zenon_congruence_rl",
            [Cwild; trexpr p; trexpr a; trexpr b; lam; concl1; concl2])
   | Rdefinition (name, sym, args, body, None, folded, unfolded) ->
       let sub = tr_subtree_1 hyps in
-      Clet (getname unfolded, getv folded, sub)
+      Clet (getname unfolded, getv env folded, sub)
   | Rdefinition (name, sym, args, body, Some v, folded, unfolded) ->
       assert false (* TODO *)
 
@@ -325,7 +339,7 @@ let rec trtree env node =
    to extensions *)
   | Rextension (_, "zenon_induct_discriminate",
                 [], [Eapp ("=", [a; b], _) as e; car], []) ->
-      Capp (Cvar "eq_ind", [trexpr a; trexpr car; Cvar "I"; trexpr b; getv e])
+      Capp (Cvar "eq_ind", [trexpr a; trexpr car; Cvar "I"; trexpr b; getv env e])
   | Rextension (_, "zenon_induct_discriminate", _, _, _) -> assert false
   | Rextension (_, "zenon_induct_discriminate_diff",
                 [], [a; b; car], []) ->
@@ -390,12 +404,12 @@ let rec trtree env node =
      in
      let brs = List.map mkfixcase cstrs in
      let th = mklam h (tr_subtree_1 hyps) in
-     Capp (Cvar schema, typargs @ trexpr p :: brs @ [trexpr a; th; getv c])
+     Capp (Cvar schema, typargs @ trexpr p :: brs @ [trexpr a; th; getv env c])
   | Rextension (_, "zenon_induct_fix", _, _, _) -> assert false
   | Rextension (_, name, args, c, hs) ->
       let metargs = List.map trexpr args in
       let hypargs = List.map2 (mklams env) hs (List.map (trtree env) hyps) in
-      let conargs = List.map getv c in
+      let conargs = List.map (getv env) c in
       Capp (Cvar name, metargs @ hypargs @ conargs)
   | Rlemma (name, _) ->
       let args = Hashtbl.find lemma_env name in
@@ -632,6 +646,8 @@ let pr_oc oc prefix t =
        bprintf b "(fix %s %a:%a:=%a)" f pr_lams lams pr_ty ty pr body
     | Cifthenelse (e1, e2, e3) ->
        bprintf b "(if %a then %a else %a)" pr e1 pr e2 pr e3;
+    | Cannot (e1, e2) ->
+       bprintf b "(%a:%a)" pr e1 pr e2;
 
   and pr_lams b l =
     let f (v, ty) =

@@ -256,6 +256,30 @@ Qed.
 
 Definition zenon_focal_false_s := zenon_focal_false.
 Definition zenon_focal_nottrue_s := zenon_focal_nottrue.
+Definition zenon_focal_trueequal_s :=
+  fun x c h => zenon_focal_trueequal x h c
+.
+Definition zenon_focal_equaltrue_s :=
+  fun x c h => zenon_focal_equaltrue x h c
+.
+Definition zenon_focal_truenotequal_s :=
+  fun x c h => zenon_focal_truenotequal x h c
+.
+Definition zenon_focal_notequaltrue_s :=
+  fun x c h => zenon_focal_equaltrue x h c
+.
+Definition zenon_focal_falseequal_s :=
+  fun x c h => zenon_focal_falseequal x h c
+.
+Definition zenon_focal_equalfalse_s :=
+  fun x c h => zenon_focal_equalfalse x h c
+.
+Definition zenon_focal_falsenotequal_s :=
+  fun x c h => zenon_focal_falsenotequal x h c
+.
+Definition zenon_focal_notequalfalse_s :=
+  fun x c h => zenon_focal_notequalfalse x h c
+.
 Definition zenon_focal_not_s :=
   fun A c h => zenon_focal_not A h c
 .

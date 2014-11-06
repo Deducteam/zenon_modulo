@@ -197,7 +197,8 @@ let mk_string s = evar ("\"" ^ s ^ "\"") ;;
 %nonassoc IDENT FQN
 %right COMMA_
 %nonassoc FORALL EXISTS FUN EQ_GT_ IF THEN ELSE IN
-%right DASH_GT_ LT_DASH_GT_
+%left LT_DASH_GT_
+%right DASH_GT_
 %right BACKSL_SLASH_
 %right SLASH_BACKSL_
 %nonassoc EQ_ LT_GT_

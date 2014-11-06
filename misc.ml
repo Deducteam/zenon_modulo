@@ -130,30 +130,17 @@ let rec list_map4 f l1 l2 l3 l4 =
   | _ -> raise (Invalid_argument "list_map4")
 ;;
 
-let rec list_unique_aux l e accu =
+let rec list_unique_aux cmp l e accu =
   match l with
   | [] -> List.rev (e :: accu)
-  | h :: t when e = h -> list_unique_aux t e accu
-  | h :: t -> list_unique_aux t h (e :: accu)
+  | h :: t when cmp e h = 0 -> list_unique_aux cmp t e accu
+  | h :: t -> list_unique_aux cmp t h (e :: accu)
 ;;
 
-let list_unique l =
-  match l with
+let list_sort_unique cmp l =
+  match List.sort cmp l with
   | [] -> []
-  | h :: t -> list_unique_aux t h []
-;;
-
-let rec list_uniq_aux l e accu =
-  match l with
-  | [] -> List.rev (e :: accu)
-  | h :: t when e == h -> list_uniq_aux t e accu
-  | h :: t -> list_uniq_aux t h (e :: accu)
-;;
-
-let list_uniq l =
-  match l with
-  | [] -> []
-  | h :: t -> list_uniq_aux t h []
+  | h :: t -> list_unique_aux cmp t h []
 ;;
 
 let rec list_indexq_aux x l n =

@@ -21,7 +21,7 @@ let rec mk_quant q vs body =
 
 let cnf_to_formula l =
   let l1 = List.flatten (List.map Expr.get_fv l) in
-  let vs = Misc.list_unique (List.sort String.compare l1) in
+  let vs = Misc.list_sort_unique String.compare l1 in
   let body =
     match l with
     | [] -> assert false
