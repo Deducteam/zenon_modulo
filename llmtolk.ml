@@ -20,6 +20,8 @@ let rec xaddhyp h lkproof =
 and addhyp hyps lkproof =
   List.fold_left (fun pf h -> xaddhyp h pf) lkproof hyps
 
+(* union [l_i] = Union [l_i], [Union[l_i]\l_j]_j*)
+(* length (snd(union l)) = length l *)
 let rec union lists =
   match lists with
   | [] -> [], []
@@ -75,6 +77,7 @@ let sceqfuncbis (e1, e2, proofs, gamma) =
     proof
   | _, _ -> assert false
 
+(* Returns hypotheses and conclusions of rule *)
 let rec hypstoadd rule =
   match rule with
   | Rfalse -> [], [efalse]
@@ -634,13 +637,20 @@ let rec xlltolkrule env rule hyps gamma =
     [c1; c2], [[h]]), [proof] ->
     deduce_inequality e1 e2 v1 v2 c1 c2 false false gamma proof env.distincts
   | Rextension (ext, name, args, cons, hyps), proofs ->
-    scext(name, args, cons, proofs)
+     let prooof =
+       scext(name, args, cons, hyps, proofs) in Lkproof.p_debug_proof "applying extension\n" prooof; 
+     List.iter (Lkproof.p_debug_proof "hypo") proofs;
+     prooof
+
   | Rlemma _, _ -> assert false (* no lemma after use_defs *)
   | Rdefinition _, _ -> assert false (* no definition after use_defs *)
   | _ -> assert false
 
 let rec lltolkrule env proof gamma =
   let hypslist, conclist = hypstoadd proof.rule in
+  (* list = gamma - (conclist inter gamma) *)
+  (* newcontr = conclist - (conclist inter gamma) *)
+  (* newcontr : list of things to be contracted later *)
   let newcontr, list =
     List.fold_left (fun (cs, es) e ->
       if (List.mem e es)
@@ -656,21 +666,48 @@ let rec lltolkrule env proof gamma =
   let maincontr, remainders = union contrs in
   let hyps = List.map2 addhyp remainders prehyps in
   let preproof = xlltolkrule env proof.rule hyps (maincontr@list) in
+  (* Now try to contract requested contrs *)
+  let (newlist, newproof) =
   List.fold_left
     (fun (cs, prf) c ->
       if List.mem c conclist
       then cs, sclcontr (c, prf)
       else c :: cs, prf)
-    (newcontr, preproof) maincontr
+    (newcontr, preproof) maincontr in
+  if !Globals.debug_flag then (
+    (* Display them *)
+    Printf.eprintf
+      "\n\nlltolkrule: LLproof: (%a),\n"
+      (fun oc -> Print.llproof (Print.Chan oc))
+      [{name="mytho"; params = []; proof = proof}];
+
+    Lkproof.p_debug "Gamma = " gamma;
+
+    if newlist = [] then
+      Printf.eprintf "No remaining formula to prove."
+    else
+      Lkproof.p_debug "Remaining formulae to prove:" newlist;
+    (* Lkproof.p_debug "\nNew proof:" newproof; *)
+    Printf.eprintf "lltolkrule: DONE\n\n");
+  (newlist, newproof)
+
+(* Check that the list of remaining formulae to prove l is empty.
+   Print it otherwise *)
+let check_empty_remaining_proofs l =
+  if not (l = []) then (
+    Lkproof.p_debug "Error while translating from LL to LK, : " l;
+    assert false
+  )
 
 let rec lltolk env proof goal righthandside =
   let lkproof2 = match righthandside with
-  | true -> 
+  | true ->
     let l, lkproof = lltolkrule env proof (enot goal :: env.hypotheses) in
-    assert (l = []); lefttoright goal lkproof
-  | false -> 
+    check_empty_remaining_proofs l; (* maincontr subset conclist subset gamma *)
+    lefttoright goal lkproof
+  | false ->
     let l, lkproof = lltolkrule env proof env.hypotheses in
-    assert (l = []); lkproof in
+    check_empty_remaining_proofs l; lkproof in
   let _, lkproof3 = 
     List.fold_left
       (fun (conc, rule) stmt ->

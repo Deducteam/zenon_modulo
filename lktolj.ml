@@ -148,12 +148,12 @@ let rec ladapt proof (u, v) =
       let sz = substitute [(svar, v)] se in
       sclex (eex (svar, ty, se), v, ladapt proof (z, sz))
     | SCaxiom (a), _ when equal u a -> adaptaxiom (rm u g) v u
+    | SCext _, _
     | SClnot _, _ | SClimply _, _ | SClor _, _ | SCland _, _
     | SClcontr _, _ | SCcut _, _ | SClex _, _ | SClall _, _
     | SCrweak _, _ | SCrnot _, _ | SCrand _, _ | SCrimply _, _
     | SCrorl _, _ | SCrorr _, _ | SCrall _, _ | SCrex _, _
       -> applytohyps (fun proof -> ladapt proof (u, v)) proof
-    | SCext _, _
     | SCeqfunc _, _ | SCeqprop _, _
     | SCaxiom _, _ | SCfalse, _
     | SCtrue, _ | SCeqref _, _
@@ -341,6 +341,8 @@ let rec lltoljrule lkproof =
     | SCcnot (e, _), [l], [(g, c, _) as proof] ->
       List.remove_assoc (enot e) l,
       scrnot (List.assoc (enot e) l, proof)
+    | SCext (extension_name, args, conc, hyps, proofs), assocs, assocs_proofs ->
+       assert false
     | _, _, _ -> assert false in
   let ljg, _, _ = ljprf in
   assert (List.length lkg = List.length ljg);

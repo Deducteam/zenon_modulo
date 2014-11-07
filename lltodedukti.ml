@@ -145,7 +145,8 @@ struct
 	-> xget_distincts (xget_distincts distincts e1) e2
       | Enot (e1, _) | Eall (_, _, e1, _) | Eex (_, _, e1, _)
 	-> xget_distincts distincts e1
-      | Etau _ | Elam _ -> assert false (* no tau nor lambda accepted in phrases *) in
+      | Etau _ -> assert false
+      | Elam _ -> assert false (* no tau nor lambda accepted in phrases *) in
     let get_distincts_phrase distincts p =
       match p with
       | Phrase.Hyp (name, e, _) -> xget_distincts distincts e
@@ -168,7 +169,10 @@ struct
     | Phrase.Def (DefPseudo (_, _, _, _)) -> assert false
     | Phrase.Def (DefRec (_, _, _, _)) -> assert false
     | Phrase.Sig _ -> assert false
-    | Phrase.Inductive _ -> assert false      (* TODO: to implement *) in
+
+    | Phrase.Inductive _ -> ()      (* TODO: to implement *)
+    in
+
     let definitions = (Hashtbl.create 97 : (string, Expr.expr list * Expr.expr) Hashtbl.t) in
     List.iter (xget_definitions definitions) phrases; 
     definitions
@@ -188,7 +192,7 @@ struct
       | Phrase.Def (DefPseudo (_, _, _, _)) -> assert false
       | Phrase.Def (DefRec (_, _, _, _)) -> assert false
       | Phrase.Sig _ -> assert false
-      | Phrase.Inductive _ -> assert false      (* TODO: to implement *) in
+      | Phrase.Inductive _ -> hyps      (* TODO: to implement *) in
     let hyps = List.fold_left xget_env [] phrases in
     let distincts = get_distincts phrases in 
     let rec get_distinctshyps distincts = 
