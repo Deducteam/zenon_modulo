@@ -312,6 +312,18 @@ struct
          | _ -> assert false;
        in
        itereq ([], ts, us)
+    | Lkproof.SCext (ext, name, args, [conc], [[hyp]], [proof]) ->
+       assert (goal = efalse);
+       (* Create a fresh variable for hypothesis *)
+       let var = new_hypo () in
+       let dkvar = Dk.mk_var var in
+       Dk.mk_app
+         (Dk.mk_var (ext ^ "." ^ name))
+         (List.map trexpr args @ [
+             Dk.mk_lam dkvar
+                        (Dk.mk_prf (trexpr hyp))
+                        (trproof (proof, efalse, (hyp, dkvar) :: gamma)) ; trhyp conc]
+         )
     | _ -> assert false
 
 end

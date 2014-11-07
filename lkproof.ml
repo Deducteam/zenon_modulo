@@ -26,7 +26,7 @@ type lkrule =
 | SCrall of expr * expr * lkproof
 | SCrex of expr * expr * lkproof
 | SCcnot of expr * lkproof
-| SCext of string * expr list * expr list * expr list list * lkproof list
+| SCext of string * string * expr list * expr list * expr list list * lkproof list
 
 and lkproof =
   expr list * expr * lkrule
@@ -168,7 +168,7 @@ let sccnot (e, proof) =
   assert (List.mem (enot e) g);
   rm (enot e) g, e, SCcnot (e, proof)
 let scconc (g, c, rule) = c
-let scext (name, args, cons, hyps, proofs) =
+let scext (ext, name, args, cons, hyps, proofs) =
   let gammas = List.map
     (fun (g, _, _) -> g)
     proofs in
@@ -177,7 +177,7 @@ let scext (name, args, cons, hyps, proofs) =
     gammas hyps
   in
   let new_gamma = List.flatten gammas_weak in
-  new_gamma @ cons, efalse, SCext (name, args, cons, hyps, proofs)
+  new_gamma @ cons, efalse, SCext (ext, name, args, cons, hyps, proofs)
 
 let hypsofrule lkrule =
   match lkrule with
@@ -205,7 +205,7 @@ let hypsofrule lkrule =
   | SCrall (e1, e2, proof) -> [proof]
   | SCrex (e1, e2, proof) -> [proof]
   | SCcnot (e, proof) -> [proof]
-  | SCext (_, _, _, _, proofs) -> proofs
+  | SCext (_, _, _, _, _, proofs) -> proofs
 
 let applytohyps f lkproof =
   let g, c, lkrule = lkproof in
@@ -242,7 +242,7 @@ let applytohyps f lkproof =
   | SCrall (e1, e2, proof) -> scrall (e1, e2, f proof)
   | SCrex (e1, e2, proof) -> screx (e1, e2, f proof)
   | SCcnot (e, proof) -> sccnot (e, f proof)
-  | SCext (name, args, cons, hyps, proofs) -> scext (name, args, cons, hyps, List.map f proofs)
+  | SCext (ext, name, args, cons, hyps, proofs) -> scext (ext, name, args, cons, hyps, List.map f proofs)
 
 let new_var =
   let r = ref 0 in

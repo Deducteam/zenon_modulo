@@ -23,7 +23,7 @@ type lkrule =
 | SCrall of Expr.expr * Expr.expr * lkproof
 | SCrex of Expr.expr * Expr.expr * lkproof
 | SCcnot of Expr.expr * lkproof
-| SCext of string * Expr.expr list * Expr.expr list * Expr.expr list list * lkproof list
+| SCext of string * string * Expr.expr list * Expr.expr list * Expr.expr list list * lkproof list
 
 and lkproof =
   Expr.expr list * Expr.expr * lkrule
@@ -56,7 +56,7 @@ val scrnot  : Expr.expr * lkproof -> lkproof;;
 val scrall : Expr.expr * Expr.expr * lkproof -> lkproof;;
 val screx : Expr.expr * Expr.expr * lkproof -> lkproof;;
 val sccnot : Expr.expr * lkproof -> lkproof;;
-val scext : string * Expr.expr list * Expr.expr list * Expr.expr list list * lkproof list -> lkproof;;
+val scext : string * string * Expr.expr list * Expr.expr list * Expr.expr list list * lkproof list -> lkproof;;
 
 val scconc : lkproof -> Expr.expr;;
 

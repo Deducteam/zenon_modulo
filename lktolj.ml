@@ -341,8 +341,15 @@ let rec lltoljrule lkproof =
     | SCcnot (e, _), [l], [(g, c, _) as proof] ->
       List.remove_assoc (enot e) l,
       scrnot (List.assoc (enot e) l, proof)
-    | SCext (extension_name, args, conc, hyps, proofs), assocs, assocs_proofs ->
-       assert false
+    | SCext (ext, name, args, concs, hyps, _), assocs, proofs ->
+       (match (hyps, assocs, proofs, concs) with
+        | ([], [], [], _) -> List.map (fun x -> (x, x)) lkg, lkproof
+        | ([[hyp]], [assoc], [proof], [conc]) when List.assoc hyp assoc = hyp ->
+           (conc, conc) :: (List.remove_assoc hyp assoc), scext (ext, name, args, concs, hyps, [proof])
+        | _ ->
+           Printf.eprintf "\n\nI don't know how to constructivize extension rule %s/%s.\n" ext name;
+           assert false
+       )
     | _, _, _ -> assert false in
   let ljg, _, _ = ljprf in
   assert (List.length lkg = List.length ljg);
