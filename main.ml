@@ -110,7 +110,7 @@ let argspec = [
   "-icoq", Arg.Unit (fun () -> input_format := I_focal),
         "              read input file in Coq format";
   "-idedukti", Arg.Unit (fun () -> input_format := I_dk),
-        "              read input file in Dedukti format";
+            "          read input file in Dedukti format";
   "-ifocal", Arg.Unit (fun () -> input_format := I_focal),
           "            read input file in Focal format";
   "-itptp", Arg.Unit (fun () -> input_format := I_tptp),
@@ -133,13 +133,13 @@ let argspec = [
             "<t>[smhd] limit CPU time to <t> second/minute/hour/day"
             ^ " (5m)";
   "-intuitionnistic", Arg.Unit (fun () -> intuitionnistic := true),
-            "          minimize the use of classical connectives";
+                   "   minimize the use of classical connectives";
   "-keepclassical", Arg.Unit (fun () -> keepclassical := true),
-            "          don't make the proof constructive";
+                 "     don't make the proof constructive";
   "-odedukti", Arg.Unit (fun () -> proof_level := Proof_dedukti),
             "          print the proof in Dedukti script format";
   "-odeduktiterm", Arg.Unit (fun () -> proof_level := Proof_deduktiterm),
-            "          print the proof in Dedukti term format";
+                "      print the proof in Dedukti term format";
   "-ocoq", Arg.Unit (fun () -> proof_level := Proof_coq),
         "              print the proof in Coq script format";
   "-ocoqterm", Arg.Unit (fun () -> proof_level := Proof_coqterm),
