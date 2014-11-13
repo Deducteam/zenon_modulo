@@ -98,13 +98,18 @@ struct
          Dk.mk_app2 (trhyp ap) (trexpr t) in
        trproof
          (lkrule, goal, (substitute [(x, t)] p, traux) :: gamma)
-    | Lkproof.SClex (Eex (x, ty, p, _) as ep, v, lkrule) ->
+    | Lkproof.SClex (Eex (x, s, p, _) as ep, v, lkrule) ->
+       let ty =
+         if s = "zenon_U"
+         then Dk.mk_termtype
+         else (Dk.mk_term (Dk.mk_var s))
+       in
        let q = substitute [(x, v)] p in
        let var = new_hypo () in
        let dkvar = Dk.mk_var var in
        Dk.mk_app3 (trhyp ep)
          (trexpr goal)
-         (Dk.mk_lam (trexpr v) Dk.mk_termtype
+         (Dk.mk_lam (trexpr v) ty
 	    (Dk.mk_lam dkvar
 	       (Dk.mk_prf (trexpr q))
 	       (trproof  (lkrule, goal, (q,dkvar) :: gamma))))
@@ -154,18 +159,28 @@ struct
        let dkvar = Dk.mk_var var in
        Dk.mk_lam dkvar (Dk.mk_prf (trexpr e))
          (trproof (lkrule, efalse, (e, dkvar) :: gamma))
-    | Lkproof.SCrall (Eall (x, ty, p, _), v, lkrule) ->
+    | Lkproof.SCrall (Eall (x, s, p, _), v, lkrule) ->
+       let ty =
+         if s = "zenon_U"
+         then Dk.mk_termtype
+         else (Dk.mk_term (Dk.mk_var s))
+       in
        let q = substitute [(x, v)] p in
-       Dk.mk_lam (trexpr v) Dk.mk_termtype
+       Dk.mk_lam (trexpr v) ty
          (trproof (lkrule, q, gamma))
-    | Lkproof.SCrex (Eex (x, ty, p, _), t, lkrule) ->
+    | Lkproof.SCrex (Eex (x, s, p, _), t, lkrule) ->
+       let ty =
+         if s = "zenon_U"
+         then Dk.mk_termtype
+         else (Dk.mk_term (Dk.mk_var s))
+       in
        let prop = new_prop () in
        let dkprop = Dk.mk_var prop in
        let var = new_hypo () in
        let dkvar = Dk.mk_var var in
        Dk.mk_lam dkprop Dk.mk_proptype
          (Dk.mk_lam dkvar
-	    (Dk.mk_pi (trexpr x) (Dk.mk_termtype)
+	    (Dk.mk_pi (trexpr x) ty
 	       (Dk.mk_arrow (Dk.mk_prf (trexpr p)) (Dk.mk_prf dkprop)))
 	    (Dk.mk_app3 dkvar (trexpr t) (trproof (lkrule, substitute [(x, t)] p, gamma))))
     | Lkproof.SCcnot (e, lkrule) -> assert false

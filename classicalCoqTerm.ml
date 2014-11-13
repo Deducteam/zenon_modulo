@@ -63,6 +63,7 @@ let mk_truec = dnot Coqtrue
 let mk_falsec = dnot Coqfalse
 let mk_eqc t1 t2 = dnot (Coqeq (t1, t2))
 let mk_equiv p q = Coqequiv (p, q)
+let mk_term t = t
 
 let mk_decl t term = Coqdecl (t, term)
 let mk_deftype t termtype term = Coqdeftype (t, termtype, term)

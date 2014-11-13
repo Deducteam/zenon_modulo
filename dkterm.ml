@@ -18,6 +18,7 @@ type term =
   | Dkimply
   | DkforallTerm
   | Dkforall
+  | DkexistsTerm
   | Dkexists
   | Dktrue
   | Dkfalse
@@ -26,7 +27,9 @@ type term =
   | Dkandc
   | Dkorc
   | Dkimplyc
+  | DkforallcTerm
   | Dkforallc
+  | DkexistscTerm
   | Dkexistsc
   | Dktruec
   | Dkfalsec
@@ -64,7 +67,12 @@ let mk_forall x s p =
   else
     let ty = mk_var s in
     mk_app3 Dkforall ty (mk_lam x (mk_term ty) p)
-let mk_exists x ty p = mk_app2 Dkexists (mk_lam x Dktermtype p)
+let mk_exists x s p =
+  if s = "zenon_U" then
+    mk_app2 DkexistsTerm (mk_lam x Dktermtype p)
+  else
+    let ty = mk_var s in
+    mk_app3 Dkexists ty (mk_lam x (mk_term ty) p)
 let mk_true = Dktrue
 let mk_false = Dkfalse
 let mk_eq t1 t2 = mk_app3 Dkeq t1 t2
@@ -72,8 +80,18 @@ let mk_notc term = mk_app2 Dknotc term
 let mk_andc p q = mk_app3 Dkandc p q
 let mk_orc p q = mk_app3 Dkorc p q
 let mk_implyc p q = mk_app3 Dkimplyc p q
-let mk_forallc x s p = mk_app2 Dkforallc (mk_lam x Dktermtype p)
-let mk_existsc x s p = mk_app2 Dkexistsc (mk_lam x Dktermtype p)
+let mk_forallc x s p =
+    if s = "zenon_U" then
+    mk_app2 DkforallcTerm (mk_lam x Dktermtype p)
+  else
+    let ty = mk_var s in
+    mk_app3 Dkforallc ty (mk_lam x (mk_term ty) p)
+let mk_existsc x s p =
+    if s = "zenon_U" then
+    mk_app2 DkexistscTerm (mk_lam x Dktermtype p)
+  else
+    let ty = mk_var s in
+    mk_app3 Dkexistsc ty (mk_lam x (mk_term ty) p)
 let mk_truec = Dktruec
 let mk_falsec = Dkfalsec
 let mk_eqc t1 t2 = mk_app3 Dkeqc t1 t2
@@ -109,7 +127,8 @@ let rec print_term out term =
   | Dkimply -> fprintf out "logic.imply"
   | Dkforall -> fprintf out "dk_logic.forall"
   | DkforallTerm -> fprintf out "logic.forall"
-  | Dkexists -> fprintf out "logic.exists"
+  | Dkexists -> fprintf out "dk_logic.exists"
+  | DkexistsTerm -> fprintf out "logic.exists"
   | Dktrue -> fprintf out "logic.True"
   | Dkfalse -> fprintf out "logic.False"
   | Dkeq -> fprintf out "logic.equal"
@@ -117,8 +136,10 @@ let rec print_term out term =
   | Dkandc -> fprintf out "logic.andc"
   | Dkorc -> fprintf out "logic.orc"
   | Dkimplyc -> fprintf out "logic.implyc"
-  | Dkforallc -> fprintf out "logic.forallc"
-  | Dkexistsc -> fprintf out "logic.existsc"
+  | Dkforallc -> fprintf out "dk_logic.forallc"
+  | DkforallcTerm -> fprintf out "logic.forallc"
+  | Dkexistsc -> fprintf out "dk_logic.existsc"
+  | DkexistscTerm -> fprintf out "logic.existsc"
   | Dktruec -> fprintf out "logic.Truec"
   | Dkfalsec -> fprintf out "logic.Falsec"
   | Dkeqc -> fprintf out "logic.equalc"

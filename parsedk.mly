@@ -40,10 +40,10 @@ let mk_eapp : string * expr list -> expr =
   | "dk_logic.imp", [e1; e2] -> eimply (e1, e2)
   | "dk_logic.eqv", [e1; e2] -> eequiv (e1, e2)
   | "dk_logic.not", [e1] -> enot (e1)
-  | "dk_logic.forall", [_; Elam (x, ty, e, _)] -> eall (x, ty, e)
+  | "dk_logic.forall", [ty; Elam (x, _, e, _)] -> eall (x, mk_type_string ty, e)
   | "dk_logic.forall", [_; _] -> assert false
   | "dk_logic.forall", l -> raise (Bad_arity ("forall", List.length l))
-  | "dk_logic.exists", [_; Elam (x, ty, e, _)] -> eex (x, ty, e)
+  | "dk_logic.exists", [ty; Elam (x, _, e, _)] -> eex (x, mk_type_string ty, e)
   | "dk_logic.ebP", [e1] -> eapp ("Is_true", [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
   (* There should not be any other logical connectives *)
   | s, args ->
