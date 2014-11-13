@@ -313,6 +313,7 @@ struct
        in
        itereq ([], ts, us)
     | Lkproof.SCext (ext, name, args, [conc], [[hyp]], [proof]) ->
+       let ext = if ext = "" then "focal" else ext in
        assert (goal = efalse);
        (* Create a fresh variable for hypothesis *)
        let var = new_hypo () in
