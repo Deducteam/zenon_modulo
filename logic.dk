@@ -1,4 +1,7 @@
 #NAME logic.
+type : Type.
+term : type -> Type.
+
 Term : Type.
 Prop: Type.
 prf: Prop -> Type.

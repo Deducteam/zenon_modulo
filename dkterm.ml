@@ -16,6 +16,7 @@ type term =
   | Dkand
   | Dkor
   | Dkimply
+  | DkforallTerm
   | Dkforall
   | Dkexists
   | Dktrue
@@ -31,6 +32,7 @@ type term =
   | Dkfalsec
   | Dkeqc
   | Dkequiv
+  | Dkterm
 
 type line =
   | Dkdecl of term * term
@@ -48,6 +50,7 @@ let mk_app2 t1 t2 = mk_app t1 [t2]
 let mk_app3 t1 t2 t3 = mk_app t1 [t2; t3]
 let mk_arrow t1 t2 = Dkarrow (t1, t2)
 let mk_prf t = mk_app2 Dkprf t
+let mk_term ty = mk_app2 Dkterm ty
 let mk_termtype = Dktermtype
 let mk_proptype = Dkproptype
 let mk_anyterm = Dkanyterm
@@ -55,8 +58,13 @@ let mk_not term = mk_app2 Dknot term
 let mk_and p q = mk_app3 Dkand p q
 let mk_or p q = mk_app3 Dkor p q
 let mk_imply p q = mk_app3 Dkimply p q
-let mk_forall x p = mk_app2 Dkforall (mk_lam x Dktermtype p)
-let mk_exists x p = mk_app2 Dkexists (mk_lam x Dktermtype p)
+let mk_forall x s p =
+  if s = "zenon_U" then
+    mk_app2 DkforallTerm (mk_lam x Dktermtype p)
+  else
+    let ty = mk_var s in
+    mk_app3 Dkforall ty (mk_lam x (mk_term ty) p)
+let mk_exists x ty p = mk_app2 Dkexists (mk_lam x Dktermtype p)
 let mk_true = Dktrue
 let mk_false = Dkfalse
 let mk_eq t1 t2 = mk_app3 Dkeq t1 t2
@@ -64,8 +72,8 @@ let mk_notc term = mk_app2 Dknotc term
 let mk_andc p q = mk_app3 Dkandc p q
 let mk_orc p q = mk_app3 Dkorc p q
 let mk_implyc p q = mk_app3 Dkimplyc p q
-let mk_forallc x p = mk_app2 Dkforallc (mk_lam x Dktermtype p)
-let mk_existsc x p = mk_app2 Dkexistsc (mk_lam x Dktermtype p)
+let mk_forallc x s p = mk_app2 Dkforallc (mk_lam x Dktermtype p)
+let mk_existsc x s p = mk_app2 Dkexistsc (mk_lam x Dktermtype p)
 let mk_truec = Dktruec
 let mk_falsec = Dkfalsec
 let mk_eqc t1 t2 = mk_app3 Dkeqc t1 t2
@@ -99,7 +107,8 @@ let rec print_term out term =
   | Dkand -> fprintf out "logic.and"
   | Dkor -> fprintf out "logic.or"
   | Dkimply -> fprintf out "logic.imply"
-  | Dkforall -> fprintf out "logic.forall"
+  | Dkforall -> fprintf out "dk_logic.forall"
+  | DkforallTerm -> fprintf out "logic.forall"
   | Dkexists -> fprintf out "logic.exists"
   | Dktrue -> fprintf out "logic.True"
   | Dkfalse -> fprintf out "logic.False"
@@ -114,6 +123,7 @@ let rec print_term out term =
   | Dkfalsec -> fprintf out "logic.Falsec"
   | Dkeqc -> fprintf out "logic.equalc"
   | Dkequiv -> fprintf out "logic.equiv"
+  | Dkterm -> fprintf out "logic.term"
 
 and print_term_p out term =
   match term with

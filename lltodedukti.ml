@@ -2,63 +2,16 @@ open Printf
 open Expr
 open Llproof
 open Namespace
+open Termsig
 
-module Translate (Out : Ljtodk.TermSig) =
+module Translate (Out : TermSig) =
 struct
   
   module LjToDk = Ljtodk.Translate(Out)
-    
-  let rec trexpr e =
-    match e with
-    | Eand (Eimply (e1, e2, _), Eimply (e3, e4, _), _)
-        when (equal e3 e2 && equal e4 e1) -> Out.mk_equiv (trexpr e1) (trexpr e2)
-    | Enot (Enot (Enot (Enot (Enot (e, _), _), _), _), _) ->
-       Out.mk_notc (trexpr e)
-    | Enot (Enot ( Eand (
-      Enot (Enot (e1, _), _), Enot (Enot (e2, _), _), _), _), _) ->
-       Out.mk_andc (trexpr e1) (trexpr e2)
-    | Enot (Enot ( Eor (
-      Enot (Enot (e1, _), _), Enot (Enot (e2, _), _), _), _), _) ->
-       Out.mk_orc (trexpr e1) (trexpr e2)
-    | Enot (Enot ( Eimply (
-      Enot (Enot (e1, _), _), Enot (Enot (e2, _), _), _), _), _) ->
-       Out.mk_implyc (trexpr e1) (trexpr e2)
-    | Enot (Enot (Etrue, _), _) -> Out.mk_truec
-    | Enot (Enot (Efalse, _), _) -> Out.mk_falsec
-    | Enot (Enot (
-      Eall (e1, s, Enot (Enot (e2, _), _), _), _), _) ->
-       Out.mk_forallc (trexpr e1) (trexpr e2)
-    | Enot (Enot (
-      Eex (e1, s, Enot (Enot (e2, _), _), _), _), _) ->
-       Out.mk_existsc (trexpr e1) (trexpr e2)
-    | Enot (Enot (Eapp ("=", [e1;e2], _), _), _) ->
-       Out.mk_eqc (trexpr e1) (trexpr e2)
-    | Evar (v, _) when Mltoll.is_meta v ->
-       Out.mk_anyterm
-    | Evar (v, _) ->
-       Out.mk_var v
-    | Eapp ("$string", [Evar (v, _)], _) ->
-       Out.mk_var ("S"^v)
-    | Eapp ("$string", _, _) -> assert false
-    | Eapp ("=", [e1;e2], _) ->
-       Out.mk_eq (trexpr e1) (trexpr e2)
-    | Eapp (s, args, _) ->
-       Out.mk_app (Out.mk_var s) (List.map trexpr args)
-    | Enot (e, _) ->
-       Out.mk_not (trexpr e)
-    | Eand (e1, e2, _) ->
-       Out.mk_and (trexpr e1) (trexpr e2)
-    | Eor (e1, e2, _) ->
-       Out.mk_or (trexpr e1) (trexpr e2)
-    | Eimply (e1, e2, _) ->
-       Out.mk_imply (trexpr e1) (trexpr e2)
-    | Etrue -> Out.mk_true
-    | Efalse -> Out.mk_false
-    | Eall (e1, s, e2, _) ->
-       Out.mk_forall (trexpr e1) (trexpr e2)
-    | Eex (e1, s, e2, _) ->
-       Out.mk_exists (trexpr e1) (trexpr e2)
-    | Elam _ | Eequiv _ | Emeta _ | Etau _ -> assert false
+
+  module TrExpr = Exprtodk.Translate(Out)
+
+  let trexpr = TrExpr.trexpr
 
   (* *** COLLECT FREE VARIABLES *** *)
 
@@ -226,7 +179,7 @@ struct
 
   let print_declarations oc freevars =
     let xprint_declarations (sym, ty) = 
-      let line = Out.mk_decl (LjToDk.trexpr (evar sym)) ty in
+      let line = Out.mk_decl (trexpr (evar sym)) ty in
       Out.print_line oc line in
     List.iter xprint_declarations freevars
 
@@ -235,11 +188,11 @@ struct
       let varstypes =
 	List.map (
 	  fun e -> match e with
-	  | Evar (v, _) -> let t = List.assoc v freevars in LjToDk.trexpr e, t
+	  | Evar (v, _) -> let t = List.assoc v freevars in trexpr e, t
 	  | _ -> assert false) params in
       let vars, types = List.split varstypes in
       let line = Out.mk_rewrite varstypes 
-	(Out.mk_app (Out.mk_var sym) vars) (LjToDk.trexpr body) in
+	(Out.mk_app (Out.mk_var sym) vars) (trexpr body) in
       Out.print_line oc line in
     Hashtbl.iter xprint_definitions definitions
 
@@ -271,7 +224,7 @@ struct
     let term = LjToDk.trproof (ljproof, ljconc, []) in
     let rec line =
       Out.mk_deftype (Out.mk_var "conjecture_proof")
-        (Out.mk_prf (LjToDk.trexpr ljconc)) term in
+        (Out.mk_prf (trexpr ljconc)) term in
     Out.print_line oc line
 
 end

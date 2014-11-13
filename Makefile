@@ -30,7 +30,9 @@ SOURCES = version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
           parsezen.mly lexzen.mll parsetptp.mly lextptp.mll \
           parsecoq.mly lexcoq.mll parsedk.mly lexdk.mll tptp.ml \
           coqterm.ml lltocoq.ml \
-          dkterm.ml classicalCoqTerm.ml lkproof.ml llmtolk.ml lktolj.ml lltollm.ml ljtodk.ml lltodedukti.ml \
+          dkterm.ml classicalCoqTerm.ml termsig.ml \
+          exprtodk.ml lkproof.ml llmtolk.ml lktolj.ml\
+          lltollm.ml ljtodk.ml lltodedukti.ml \
           enum.ml isar_case.ml lltoisar.ml \
           ext_focal.ml ext_tla.ml ext_recfun.ml \
           ext_equiv.ml ext_induct.ml \

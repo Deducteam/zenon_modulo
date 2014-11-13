@@ -21,8 +21,8 @@ val mk_not : term -> term
 val mk_and : term -> term -> term
 val mk_or : term -> term -> term
 val mk_imply : term -> term -> term
-val mk_forall : term -> term -> term
-val mk_exists : term -> term -> term
+val mk_forall : term -> string -> term -> term
+val mk_exists : term -> string -> term -> term
 val mk_true : term
 val mk_false : term
 val mk_eq : term -> term -> term
@@ -30,8 +30,8 @@ val mk_notc : term -> term
 val mk_andc : term -> term -> term
 val mk_orc : term -> term -> term
 val mk_implyc : term -> term -> term
-val mk_forallc : term -> term -> term
-val mk_existsc : term -> term -> term
+val mk_forallc : term -> string -> term -> term
+val mk_existsc : term -> string -> term -> term
 val mk_truec : term
 val mk_falsec : term
 val mk_eqc : term -> term -> term
