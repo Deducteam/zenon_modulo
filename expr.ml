@@ -568,6 +568,6 @@ type goalness = int;;
 type var_declaration =
   | Type of string
   | Var of string * string
-  | Hyp of string * expr
+  | Hyp of string * string
 
 let var_declarations = ref [];;

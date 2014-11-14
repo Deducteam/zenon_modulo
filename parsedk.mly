@@ -105,7 +105,7 @@ let add_global_hyp id hyp =
 
 
 %}
-%token <string> ID QID
+%token <string> ID QID STRING
 %token TYPE COLON DOT ARROW DOUBLE_ARROW LONG_ARROW DEF
 %token LPAREN RPAREN EOF
 
@@ -156,7 +156,7 @@ proofheaders:
       { $3; add_global_ty $2 }
   | BEGIN_VAR ID COLON typ END_VAR proofheaders
       { $6; add_global_var $2 $4 }
-  | BEGIN_HYP ID COLON term END_HYP proofheaders
+  | BEGIN_HYP ID COLON STRING END_HYP proofheaders
       { $6; add_global_hyp $2 $4 }
 
 qid:

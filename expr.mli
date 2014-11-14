@@ -113,6 +113,6 @@ val print_stats : out_channel -> unit;;
 type var_declaration =
   | Type of string
   | Var of string * string
-  | Hyp of string * expr
+  | Hyp of string * string
 
 val var_declarations : var_declaration list ref;;

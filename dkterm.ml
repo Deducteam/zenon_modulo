@@ -172,6 +172,16 @@ let print_env out env =
       print_type e2
   | _ -> List.iter (print_type out) env
 
+let print_var_decl out = function
+  | Expr.Type t ->
+     fprintf out "(%s : cc.uT) " t
+  | Expr.Var (v, t)
+  | Expr.Hyp (v, t) ->
+     fprintf out "(%s : %s) " v t
+
+let print_var_decls out =
+  List.iter (print_var_decl out)
+
 let print_line out line =
   match line with
   | Dkdecl (t, term) ->
@@ -179,12 +189,14 @@ let print_line out line =
       print_term t
       print_term term
   | Dkdeftype (t, typeterm, term) ->
-    fprintf out "%a: %a:= %a.\n"
+    fprintf out "%a %a: %a:= %a.\n"
       print_term t
+      print_var_decls !(Expr.var_declarations)
       print_term typeterm
       print_term term
   | Dkprelude (name) -> fprintf out "#NAME %s.\n" name
   | Dkrewrite (env, t1, t2) ->
     fprintf out "[%a] " print_env env;
     fprintf out "%a " print_term t1;
-    fprintf out "--> %a.\n" print_term t2;
+    fprintf out "--> %a.\n" print_term t2
+
