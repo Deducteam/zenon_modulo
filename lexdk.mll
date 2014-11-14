@@ -33,7 +33,6 @@ rule token = parse
 | ")" { RPAREN }
 
 | "(;_MUST_USE_;)"        { MUSTUSE }
-| "Parameter"             { PARAMETER }
 
 | "%%begin-auto-proof"                      { BEGINPROOF }
 | "%%type:"                                 { BEGIN_TY }

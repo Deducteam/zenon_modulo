@@ -109,7 +109,6 @@ let add_global_hyp id hyp =
 %token TYPE COLON DOT ARROW DOUBLE_ARROW LONG_ARROW DEF
 %token LPAREN RPAREN EOF
 
-%token PARAMETER
 %token MUSTUSE
 %token BEGINPROOF
 %token BEGIN_TY
