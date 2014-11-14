@@ -222,8 +222,13 @@ struct
     let ljproof = Lktolj.lktolj lkproof in
     let ljconc = Lkproof.scconc ljproof in
     let term = LjToDk.trproof (ljproof, ljconc, []) in
+    let thm_name =
+      if thm.name = ""
+      then "conjecture_proof"
+      else thm.name
+    in
     let rec line =
-      Out.mk_deftype (Out.mk_var "conjecture_proof")
+      Out.mk_deftype (Out.mk_var thm_name)
         (Out.mk_prf (trexpr ljconc)) term in
     Out.print_line oc line
 
