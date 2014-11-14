@@ -60,7 +60,7 @@ let mk_apply (e, l) =
   | Evar (s, _) -> mk_eapp (s, l)
   | e when l = [] -> e
   | _ ->
-     Printf.eprintf "Error: application head is not a variable %a @ [%a]"
+     Printf.eprintf "Error: application head is not a variable %a @ [%a]\n"
        (fun oc -> Print.expr (Print.Chan oc)) e
        (fun oc -> List.iter (fun e ->
          Print.expr (Print.Chan oc) e;
