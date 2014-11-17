@@ -36,6 +36,7 @@ type term =
   | Dkeqc
   | Dkequiv
   | Dkterm
+  | Dknnpp
 
 type line =
   | Dkdecl of term * term
@@ -101,6 +102,7 @@ let mk_decl t term = Dkdecl (t, term)
 let mk_deftype t termtype term = Dkdeftype (t, termtype, term)
 let mk_prelude name = Dkprelude (name)
 let mk_rewrite env t1 t2 = Dkrewrite (env, t1, t2)
+let mk_nnpp a = mk_app2 Dknnpp a
 
 let print_var out var = fprintf out "%s" var
 
@@ -145,6 +147,7 @@ let rec print_term out term =
   | Dkeqc -> fprintf out "logic.equalc"
   | Dkequiv -> fprintf out "logic.equiv"
   | Dkterm -> fprintf out "logic.term"
+  | Dknnpp -> fprintf out "classic.nnpp"
 
 and print_term_p out term =
   match term with

@@ -82,11 +82,14 @@ DKTS = $(DKPROPS:.p=.dkt)
 
 .PHONY: all byt bin coq
 
-all: byt bin zenon coq logic.dko
+all: byt bin zenon coq logic.dko classic.dko
 
 coq: $(COQOBJ)
 
 logic.dko: logic.dk
+	dkcheck -e $<
+
+classic.dko: classic.dk
 	dkcheck -e $<
 
 byt: zenon.byt

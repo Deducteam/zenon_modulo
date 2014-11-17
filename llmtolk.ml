@@ -272,38 +272,34 @@ let rec lefttoright e proof =
   if not (useful ne proof)
   then scrweak (e, clean ne proof)
   else
-    if !Globals.keepclassical = false
-    then match e with
+    match e with
     | Enot (f, _) ->
-      optimize (scrnot (f, rmdblnot f proof))
+       optimize (scrnot (f, rmdblnot f proof))
     | _ ->
-      assert (equal c efalse);
-      assert (ingamma ne proof);
-      match rule with
-      | SClnot (f, prf)
-	  when (equal f e) -> prf
-      | SClcontr (f, _)
-	  when (equal ne f) -> sccnot (e, proof)
-      | SClimply (a, b, prf1, prf2)
-	  when (not (useful ne prf1)) ->
-	sclimply (a, b, clean ne prf1, lefttoright e prf2)
-      | SCcut (a, prf1, prf2)
-	  when (not (useful ne prf1)) ->
-	sccut (a, clean ne prf1, lefttoright e prf2)
-      | SClnot _ | SCcut _ | SClimply _
-      | SCext _ ->
-	sccnot (e, proof)
-      | SCaxiom _ | SCfalse ->
-	scfalse (rm efalse (rm ne g), e)
-      | SClcontr _ | SClor _ | SCland _ | SClex _ | SClall _
-	-> applytohyps (lefttoright e) proof
-      | SCrex _ | SCrall _ | SCrand _ | SCrorr _ | SCrorl _
-      | SCrimply _ | SCrnot _ | SCeqfunc _ | SCeqprop _
-      | SCeqsym _ | SCeqref _ | SCtrue | SCcnot _ | SCrweak _
-	-> assert false
-    else match e with
-    | Enot (f, _) -> scrnot (f, rmdblnot f proof)
-    | _ -> sccnot (e, proof)
+       assert (equal c efalse);
+       assert (ingamma ne proof);
+       match rule with
+       | SClnot (f, prf)
+	    when (equal f e) -> prf
+       | SClcontr (f, _)
+	    when (equal ne f) -> sccnot (e, proof)
+       | SClimply (a, b, prf1, prf2)
+	    when (not (useful ne prf1)) ->
+	  sclimply (a, b, clean ne prf1, lefttoright e prf2)
+       | SCcut (a, prf1, prf2)
+	    when (not (useful ne prf1)) ->
+	  sccut (a, clean ne prf1, lefttoright e prf2)
+       | SClnot _ | SCcut _ | SClimply _
+       | SCext _ ->
+	  sccnot (e, proof)
+       | SCaxiom _ | SCfalse ->
+		      scfalse (rm efalse (rm ne g), e)
+       | SClcontr _ | SClor _ | SCland _ | SClex _ | SClall _
+						     -> applytohyps (lefttoright e) proof
+       | SCrex _ | SCrall _ | SCrand _ | SCrorr _ | SCrorl _
+       | SCrimply _ | SCrnot _ | SCeqfunc _ | SCeqprop _
+       | SCeqsym _ | SCeqref _ | SCtrue | SCcnot _ | SCrweak _
+						     -> assert false
 
 and righttoleft e proof =
   let g, c, rule = proof in

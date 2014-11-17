@@ -183,7 +183,15 @@ struct
 	    (Dk.mk_pi (trexpr x) ty
 	       (Dk.mk_arrow (Dk.mk_prf (trexpr p)) (Dk.mk_prf dkprop)))
 	    (Dk.mk_app3 dkvar (trexpr t) (trproof (lkrule, substitute [(x, t)] p, gamma))))
-    | Lkproof.SCcnot (e, lkrule) -> assert false
+    | Lkproof.SCcnot (e, lkrule) ->
+       if !Globals.keepclassical = false then assert false;
+       let var = new_hypo () in
+       let dkvar = Dk.mk_var var in
+       Dk.mk_app2
+	 (Dk.mk_nnpp (trexpr e))
+	 (Dk.mk_lam 
+	    dkvar (Dk.mk_prf (Dk.mk_not (trexpr e))) 
+	    (trproof (lkrule, efalse, (enot e, dkvar) :: gamma)))
     | Lkproof.SClcontr (e, lkrule) ->
        trproof (lkrule, goal, gamma)
     | Lkproof.SCrweak (e, lkrule) ->

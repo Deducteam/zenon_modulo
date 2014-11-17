@@ -1,0 +1,2 @@
+#NAME classic.
+nnpp : A : logic.Prop -> (logic.prf (logic.imply (logic.not (logic.not A)) A)).

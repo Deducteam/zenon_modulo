@@ -219,9 +219,12 @@ struct
       Lltollm.lltollm_proof definitions lemmas thm.proof,
       Lltollm.lltollm_env definitions env in
     let lkproof = Llmtolk.lltolk newenv newproof newgoal righthandside in
-    let ljproof = Lktolj.lktolj lkproof in
-    let ljconc = Lkproof.scconc ljproof in
-    let term = LjToDk.trproof (ljproof, ljconc, []) in
+    let proof = 
+      if !Globals.keepclassical = false
+      then Lktolj.lktolj lkproof
+      else lkproof in
+    let conc = Lkproof.scconc proof in
+    let term = LjToDk.trproof (proof, conc, []) in
     let thm_name =
       if thm.name = ""
       then "conjecture_proof"
@@ -229,7 +232,7 @@ struct
     in
     let rec line =
       Out.mk_deftype (Out.mk_var thm_name)
-        (Out.mk_prf (trexpr ljconc)) term in
+        (Out.mk_prf (trexpr conc)) term in
     Out.print_line oc line
 
 end

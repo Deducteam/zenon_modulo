@@ -37,6 +37,7 @@ val mk_falsec : term
 val mk_eqc : term -> term -> term
 val mk_equiv : term -> term -> term
 val mk_term : term -> term
+val mk_nnpp : term -> term
 
 val mk_decl : term -> term -> line
 val mk_deftype : term -> term -> term -> line
