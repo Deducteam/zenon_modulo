@@ -233,7 +233,11 @@ struct
     let rec line =
       Out.mk_deftype (Out.mk_var thm_name)
         (Out.mk_prf (trexpr conc)) term in
-    Out.print_line oc line
+    if contextoutput
+    then
+      Out.print_line oc line
+    else
+      Out.print_term oc term
 
 end
 
