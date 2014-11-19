@@ -220,7 +220,7 @@ struct
       Lltollm.lltollm_proof definitions lemmas thm.proof,
       Lltollm.lltollm_env definitions env in
     let gamma =
-      if contexoutput
+      if contextoutput
       then []
       else
         List.fold_left
