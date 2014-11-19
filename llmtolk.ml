@@ -410,7 +410,7 @@ let rec rmcongruence s x e a b =
     | Etau _ | Elam _ | Emeta _ | Eequiv _ ->
     assert false
 
-let rec xlltolkrule env rule hyps gamma =
+let xlltolkrule distincts rule hyps gamma =
   match rule, hyps with
   | Rfalse, [] ->
     scfalse (gamma, efalse)
@@ -610,8 +610,8 @@ let rec xlltolkrule env rule hyps gamma =
   | Rextension ("", "zenon_stringequal", [s1; s2], [c], []), [] ->
     let v1 = eapp ("$string", [s1]) in
     let v2 = eapp ("$string", [s2]) in
-    let n1 = List.assoc v1 env.distincts in
-    let n2 = List.assoc v2 env.distincts in
+    let n1 = List.assoc v1 distincts in
+    let n2 = List.assoc v2 distincts in
     let c = eapp ("=", [v1; v2]) in
     if n1 < n2
     then righttoleft c (scaxiom (c, rm (enot c) gamma))
@@ -619,19 +619,19 @@ let rec xlltolkrule env rule hyps gamma =
   | Rextension (
     "", "zenon_stringdiffll", [e1; v1; e2; v2],
     [c1; c2], [[h]]), [proof] ->
-    deduce_inequality e1 e2 v1 v2 c1 c2 true true gamma proof env.distincts
+    deduce_inequality e1 e2 v1 v2 c1 c2 true true gamma proof distincts
   | Rextension (
     "", "zenon_stringdifflr", [e1; v1; e2; v2],
     [c1; c2], [[h]]), [proof] ->
-    deduce_inequality e1 e2 v1 v2 c1 c2 true false gamma proof env.distincts
+    deduce_inequality e1 e2 v1 v2 c1 c2 true false gamma proof distincts
   | Rextension (
     "", "zenon_stringdiffrl", [e1; v1; e2; v2],
     [c1; c2], [[h]]), [proof] ->
-    deduce_inequality e1 e2 v1 v2 c1 c2 false true gamma proof env.distincts
+    deduce_inequality e1 e2 v1 v2 c1 c2 false true gamma proof distincts
   | Rextension (
     "", "zenon_stringdiffrr", [e1; v1; e2; v2],
     [c1; c2], [[h]]), [proof] ->
-    deduce_inequality e1 e2 v1 v2 c1 c2 false false gamma proof env.distincts
+    deduce_inequality e1 e2 v1 v2 c1 c2 false false gamma proof distincts
   | Rextension (ext, name, args, cons, hyps), proofs ->
      let prooof =
        scext(ext, name, args, cons, hyps, proofs) in Lkproof.p_debug_proof "applying extension\n" prooof;
@@ -642,7 +642,7 @@ let rec xlltolkrule env rule hyps gamma =
   | Rdefinition _, _ -> assert false (* no definition after use_defs *)
   | _ -> assert false
 
-let rec lltolkrule env proof gamma =
+let rec lltolkrule distincts proof gamma =
   let hypslist, conclist = hypstoadd proof.rule in
   (* list = gamma - (conclist inter gamma) *)
   (* newcontr = conclist - (conclist inter gamma) *)
@@ -656,12 +656,12 @@ let rec lltolkrule env proof gamma =
 	e :: cs, es)
       ([], gamma) conclist in
   let contrshyps =
-    List.map2 (lltolkrule env) proof.hyps
+    List.map2 (lltolkrule distincts) proof.hyps
       (List.map (List.rev_append list) hypslist) in
   let contrs, prehyps = List.split contrshyps in
   let maincontr, remainders = union contrs in
   let hyps = List.map2 addhyp remainders prehyps in
-  let preproof = xlltolkrule env proof.rule hyps (maincontr@list) in
+  let preproof = xlltolkrule distincts proof.rule hyps (maincontr@list) in
   (* Now try to contract requested contrs *)
   let (newlist, newproof) =
   List.fold_left
@@ -698,11 +698,11 @@ let check_empty_remaining_proofs l =
 let rec lltolk env proof goal righthandside =
   let lkproof2 = match righthandside with
   | true ->
-    let l, lkproof = lltolkrule env proof (enot goal :: env.hypotheses) in
+    let l, lkproof = lltolkrule env.distincts proof (enot goal :: env.hypotheses) in
     check_empty_remaining_proofs l; (* maincontr subset conclist subset gamma *)
     lefttoright goal lkproof
   | false ->
-    let l, lkproof = lltolkrule env proof env.hypotheses in
+    let l, lkproof = lltolkrule env.distincts proof env.hypotheses in
     check_empty_remaining_proofs l; lkproof in
   let _, lkproof3 = 
     List.fold_left
