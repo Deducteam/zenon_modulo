@@ -1,4 +1,4 @@
 type env = {hypotheses : Expr.expr list;
 	    distincts : (Expr.expr * int) list;}
 
-val lltolk : env -> Llproof.prooftree -> Expr.t -> bool -> Lkproof.lkproof
+val lltolk : env -> Llproof.prooftree -> Expr.t -> bool -> bool -> Lkproof.lkproof

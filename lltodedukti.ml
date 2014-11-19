@@ -139,7 +139,7 @@ struct
     let xget_env hyps p =
       match p with
       | Phrase.Hyp (name, e, _) when name = goal_name -> hyps
-      | Phrase.Hyp (name, e, _) -> e :: hyps
+      | Phrase.Hyp (name, e, _) -> (Some name, e) :: hyps
       | Phrase.Def (DefReal (_, sym, params, body, None)) -> hyps
       | Phrase.Def (DefReal (_, sym, params, body, Some _)) -> assert false
       | Phrase.Def (DefPseudo (_, _, _, _)) -> assert false
@@ -151,11 +151,10 @@ struct
     let rec get_distinctshyps distincts = 
       match distincts with
       | (x, n) :: (y, m) :: l ->
-	enot (eapp ("=", [y; x])) :: (get_distinctshyps ((x, n) :: l))
+	(None, enot (eapp ("=", [y; x]))) :: (get_distinctshyps ((x, n) :: l))
 	@ (get_distinctshyps ((y, m) :: l))
       | _ -> [] in
-    {Llmtolk.hypotheses = ((get_distinctshyps distincts)@hyps); 
-     Llmtolk.distincts = distincts}
+    (((get_distinctshyps distincts)@hyps), distincts)
 
   let rec get_goal phrases =
     match phrases with
@@ -212,19 +211,33 @@ struct
 	print_declarations oc freevars;
         print_definitions oc freevars definitions
       end;
-    let env = get_env phrases in
+    let hyps, distincts = get_env phrases in
+    let env = { Llmtolk.hypotheses = List.map snd hyps;
+                Llmtolk.distincts = distincts } in
     let goal, righthandside = get_goal phrases in
     let newgoal, newproof, newenv = 
       Lltollm.lltollm_expr definitions goal, 
       Lltollm.lltollm_proof definitions lemmas thm.proof,
       Lltollm.lltollm_env definitions env in
-    let lkproof = Llmtolk.lltolk newenv newproof newgoal righthandside in
+    let gamma =
+      if contexoutput
+      then []
+      else
+        List.fold_left
+          (fun l -> function
+               | (Some name, expr) ->
+                  (Lltollm.lltollm_expr definitions expr, Out.mk_var name) :: l
+               | _ -> l)
+          []
+          hyps
+    in
+    let lkproof = Llmtolk.lltolk newenv newproof newgoal righthandside contextoutput in
     let proof = 
       if !Globals.keepclassical = false
       then Lktolj.lktolj lkproof
       else lkproof in
     let conc = Lkproof.scconc proof in
-    let term = LjToDk.trproof (proof, conc, []) in
+    let term = LjToDk.trproof (proof, conc, gamma) in
     let thm_name =
       if thm.name = ""
       then "conjecture_proof"

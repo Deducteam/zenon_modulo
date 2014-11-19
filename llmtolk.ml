@@ -695,7 +695,7 @@ let check_empty_remaining_proofs l =
     assert false
   )
 
-let rec lltolk env proof goal righthandside =
+let rec lltolk env proof goal righthandside contextoutput =
   let lkproof2 = match righthandside with
   | true ->
     let l, lkproof = lltolkrule env.distincts proof (enot goal :: env.hypotheses) in
@@ -704,10 +704,15 @@ let rec lltolk env proof goal righthandside =
   | false ->
     let l, lkproof = lltolkrule env.distincts proof env.hypotheses in
     check_empty_remaining_proofs l; lkproof in
-  let _, lkproof3 = 
-    List.fold_left
-      (fun (conc, rule) stmt ->
-	eimply (stmt, conc),
-	scrimply (stmt, conc, rule))  
-      (goal, lkproof2) env.hypotheses in
+  let _, lkproof3 =
+    if contextoutput
+    then
+      List.fold_left
+        (fun (conc, rule) stmt ->
+         eimply (stmt, conc),
+	 scrimply (stmt, conc, rule))
+        (goal, lkproof2) env.hypotheses
+    else
+      (goal, lkproof2)
+  in
   lkproof3
