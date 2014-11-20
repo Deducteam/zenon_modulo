@@ -626,16 +626,26 @@ let rec pp_expr e =
   | Elam (v, t, e, _) -> elam (v, t, pp_expr e)
 ;;
 
-let built_in_defs =
+let built_in_defs () =
   let x = Expr.newvar () in
   let y = Expr.newvar () in
   let xy = Expr.newvar () in
   let tx = Expr.newvar () in
   let ty = Expr.newvar () in
-  let case = eapp ("$match-case", [evar ("Datatypes.pair"); x]) in
+  let dk = !(Globals.input_format) = Globals.I_dk in
+  let pair_str =
+    if dk then "dk_tuple.pair" else "Datatypes.pair"
+  in
+  let prod_str =
+    if dk then "dk_tuple.prod" else "Datatypes.prod"
+  in
+  let list_file =
+    if dk then "dk_list" else "List"
+  in
+  let case = eapp ("$match-case", [evar (pair_str); x]) in
   [
     Def (DefReal ("pair", "basics.pair", [tx; ty; x; y],
-                  eapp ("Datatypes.pair", [tx; ty; x; y]), None));
+                  eapp (pair_str, [tx; ty; x; y]), None));
     Def (DefReal ("fst", "basics.fst", [tx; ty; xy],
                   eapp ("$match", [xy; elam (x, "", elam (y, "", case))]),
                   None));
@@ -643,12 +653,12 @@ let built_in_defs =
                   eapp ("$match", [xy; elam (y, "", elam (x, "", case))]),
                   None));
     Inductive ("basics.list__t", ["A"], [
-                 ("List.nil", []);
-                 ("List.cons", [Param "A"; Self]);
+                 (list_file ^ ".nil", []);
+                 (list_file ^ ".cons", [Param "A"; Self]);
                ],
                "@List.list_ind");
-    Inductive ("Datatypes.prod", ["A"; "B"],
-               [ ("Datatypes.pair", [Param "A"; Param "B"]) ],
+    Inductive (prod_str, ["A"; "B"],
+               [ (pair_str, [Param "A"; Param "B"]) ],
                "@Datatypes.prod_ind");
     Inductive ("basics.bool__t", [],
                [ ("true", []); ("false", []) ], "basics.bool__t_ind");
@@ -677,7 +687,7 @@ let preprocess l =
     | Sig _ -> x
     | Inductive _ -> x
   in
-  built_in_defs @ List.map f l
+  built_in_defs () @ List.map f l
 ;;
 
 let add_phrase p = ();;

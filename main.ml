@@ -20,14 +20,6 @@ type proof_level =
 ;;
 let proof_level = ref Proof_none;;
 
-type input_format =
-  | I_zenon
-  | I_focal
-  | I_dk
-  | I_tptp
-;;
-let input_format = ref I_zenon;;
-
 let include_path = ref [Config.libdir];;
 
 let opt_level = ref 1;;

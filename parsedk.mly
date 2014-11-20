@@ -27,14 +27,31 @@ let startwith pref s =
     String.sub s 0 (String.length pref) = pref
 ;;
 
-exception Unknown_connective of string;;
+exception Unknown_builtin of string;;
 exception Bad_arity of string * int;;
+
+let rec mk_pat (constr : string) (arity : int) (body : expr) : expr =
+  if arity = 0
+  then eapp ("$match-case", [evar constr; body])
+  else
+    (match body with
+     | Elam (x, ty, e, _) ->
+        elam (x, ty, mk_pat constr (arity - 1) e)
+     | _ -> failwith "Bad pattern : not a lambda")
+;;
 
 (* create an expression application,
    applications of logical connectives
    produce the corresponding formulae *)
 let mk_eapp : string * expr list -> expr =
   function
+  | "dk_tuple.pair", [t1; t2; e1; e2] ->
+     eapp ("@", [evar "dk_tuple.pair"; t1; t2; e1; e2])
+  | "dk_tuple.match__pair", [t1; t2; x; rt; pat; fail] ->
+     eapp ("$match", x :: mk_pat "dk_tuple.pair" 2 pat :: [])
+
+  | "dk_fail.fail", [t] -> eapp ("dk_fail.fail", [t])
+
   | "dk_logic.and", [e1; e2] -> eand (e1, e2)
   | "dk_logic.or", [e1; e2] -> eor (e1, e2)
   | "dk_logic.imp", [e1; e2] -> eimply (e1, e2)
@@ -48,8 +65,8 @@ let mk_eapp : string * expr list -> expr =
   | "dk_logic.eP", [e] -> e                        (* eP is ignored *)
   (* There should not be any other logical connectives *)
   | s, args ->
-     if (startwith "dk_logic." s)
-     then raise (Unknown_connective s)
+     if (startwith "dk_" s)
+     then raise (Unknown_builtin s)
      else eapp (s, args)
 ;;
 
@@ -59,6 +76,10 @@ let mk_apply (e, l) =
   match e with
   | Eapp (s, args, _) -> mk_eapp (s, args @ l)
   | Evar (s, _) -> mk_eapp (s, l)
+  | Elam (x, ty, body, _) ->
+     (match l with
+      | [] -> e
+      | arg :: tail -> substitute_2nd [(x, arg)] body)
   | e when l = [] -> e
   | _ ->
      Printf.eprintf "Error: application head is not a variable %a @ [%a]\n"

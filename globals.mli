@@ -23,3 +23,11 @@ val stored_lemmas : int ref;;
 val num_expr : int ref;;
 val intuitionnistic : bool ref;;
 val keepclassical : bool ref;;
+
+type input_format =
+  | I_zenon
+  | I_focal
+  | I_dk
+  | I_tptp
+;;
+val input_format : input_format ref;;

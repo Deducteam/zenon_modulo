@@ -22,4 +22,12 @@ let top_num_forms = ref 0;;
 let stored_lemmas = ref 0;;
 let num_expr = ref 0;;
 let intuitionnistic = ref false;;
-let keepclassical = ref false;
+let keepclassical = ref false;;
+
+type input_format =
+  | I_zenon
+  | I_focal
+  | I_dk
+  | I_tptp
+;;
+let input_format = ref I_zenon;;
