@@ -72,22 +72,24 @@ let mk_eapp : string * expr list -> expr =
 
 exception Application_head_is_not_a_var of expr;;
 
-let mk_apply (e, l) =
-  match e with
-  | Eapp (s, args, _) -> mk_eapp (s, args @ l)
-  | Evar (s, _) -> mk_eapp (s, l)
-  | Elam (x, ty, body, _) ->
-     (match l with
-      | [] -> e
-      | arg :: tail -> substitute_2nd [(x, arg)] body)
-  | e when l = [] -> e
-  | _ ->
-     Printf.eprintf "Error: application head is not a variable %a @ [%a]\n"
-       (fun oc -> Print.expr (Print.Chan oc)) e
-       (fun oc -> List.iter (fun e ->
-         Print.expr (Print.Chan oc) e;
-         Printf.fprintf oc ";\n")) l;
-    raise Parse_error
+let rec mk_apply (e, l) =
+  match l with
+  | [] -> e
+  | arg :: tail ->
+     begin
+       match e with
+       | Eapp (s, args, _) -> mk_eapp (s, args @ l)
+       | Evar (s, _) -> mk_eapp (s, l)
+       | Elam (x, ty, body, _) ->
+          mk_apply (substitute_2nd [(x, arg)] body, tail)
+       | _ ->
+          Printf.eprintf "Error: application head is not a variable %a @ [%a]\n"
+                         (fun oc -> Print.expr (Print.Chan oc)) e
+                         (fun oc -> List.iter (fun e ->
+                                            Print.expr (Print.Chan oc) e;
+                                            Printf.fprintf oc ";\n")) l;
+          raise Parse_error
+     end
 ;;
 
 let mk_all var ty e =
