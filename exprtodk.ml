@@ -66,6 +66,7 @@ struct
        Dk.mk_exists (trexpr e1) s (trexpr e2)
     | Eequiv _ -> assert false                  (* Should have been unfolded earlier *)
     | Etau _ -> assert false                    (* Should have been unfolded *)
-    | Elam _ -> assert false                    (* Not first order *)
+    | Elam (e1, s, e2, _) ->
+       Dk.mk_lam (trexpr e1) (Dk.mk_var s) (trexpr e2)
     | Emeta _ -> assert false                   (* Meta are forbidden earlier *)
 end
