@@ -67,7 +67,10 @@ let mk_eapp : string * expr list -> expr =
   | s, args ->
      if (startwith "dk_" s)
      then raise (Unknown_builtin s)
-     else eapp (s, args)
+     else
+       (if args = []
+        then evar s
+        else eapp (s, args))
 ;;
 
 exception Application_head_is_not_a_var of expr;;
