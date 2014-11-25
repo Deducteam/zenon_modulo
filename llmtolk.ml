@@ -340,12 +340,16 @@ let rec xrmcongruence s x t a b =
     if s
     then scaxiom (eapp ("=", [a; b]), [])
     else sceqsym (b, a, [])
-  | Evar _ | Etau _ -> sceqref (t, [eq])
   | Eapp (f, args, _) ->
     sceqfuncbis (
       substitute [(x, a)] t, substitute [(x, b)] t,
       List.map (fun t -> xrmcongruence s x t a b) args, [eq])
-  | _ -> assert false
+  | Evar _ | Etau _ -> sceqref (t, [eq])
+  | _ ->
+     let print_expr out = Print.expr (Print.Chan out) in
+     Printf.eprintf "Warning: unexpected use of xrmcongruence %b (%a) (%a) (%a) (%a).\n"
+                    s print_expr x print_expr t print_expr a print_expr b;
+     sceqref (t, [eq])
 
 let rec rmcongruence s x e a b =
   let eq =
