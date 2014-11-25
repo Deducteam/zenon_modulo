@@ -637,10 +637,7 @@ let xlltolkrule distincts rule hyps gamma =
     [c1; c2], [[h]]), [proof] ->
     deduce_inequality e1 e2 v1 v2 c1 c2 false false gamma proof distincts
   | Rextension (ext, name, args, cons, hyps), proofs ->
-     let prooof =
-       scext(ext, name, args, cons, hyps, proofs) in Lkproof.p_debug_proof "applying extension\n" prooof;
-     List.iter (Lkproof.p_debug_proof "hypo") proofs;
-     prooof
+     scext(ext, name, args, cons, hyps, proofs)
 
   | Rlemma _, _ -> assert false (* no lemma after use_defs *)
   | Rdefinition _, _ -> assert false (* no definition after use_defs *)
