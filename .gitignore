@@ -23,6 +23,7 @@ checksum.ml
 lexcoq.ml
 lexdk.ml
 lextptp.ml
+lexsmtlib.ml
 lexzen.ml
 parsecoq.ml
 parsecoq.mli
@@ -30,6 +31,8 @@ parsedk.ml
 parsedk.mli
 parsetptp.ml
 parsetptp.mli
+parsesmtlib.ml
+parsesmtlib.mli
 parsezen.ml
 parsezen.mli
 test_dedukti/
@@ -42,3 +45,4 @@ dktest/*.dk
 statistics*
 .merlin
 *.annot
+.svn

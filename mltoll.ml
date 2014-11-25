@@ -21,7 +21,7 @@ let get_type m =
   match m with
   | Eall (v, t, e, _)
   | Eex (v, t, e, _)
-     -> t
+     -> Type.to_string t
   | _ -> assert false
 ;;
 
@@ -99,8 +99,11 @@ let expr_tbl = HE.create 9997;;
 let rec xtr_expr a =
   match a with
   | Evar (v, _) -> a
-  | Emeta (e, _) -> evar (make_meta_name e)
-  | Eapp ("$scope", lam :: tau :: vals, _) -> tr_expr (apply lam tau)
+  | Emeta (Eall(_, t, _, _) as e, _)
+  | Emeta (Eex(_, t, _, _) as e, _)
+    -> tvar (make_meta_name e) t
+  | Emeta(_) -> assert false
+  | Eapp (Evar("$scope",_), lam :: tau :: vals, _) -> tr_expr (apply lam tau)
   | Eapp (s, args, _) -> eapp (s, List.map tr_expr args)
 
   | Enot (p, _) -> enot (tr_expr p)
@@ -122,8 +125,8 @@ and tr_expr a = memo expr_tbl xtr_expr a
 let tr_rule r =
   match r with
   | Close (p) -> LL.Raxiom (tr_expr p)
-  | Close_refl ("=", e) -> LL.Rnoteq (tr_expr e)
-  | Close_sym ("=", e, f) -> LL.Reqsym (tr_expr e, tr_expr f)
+  | Close_refl (Evar("=",_), e) -> LL.Rnoteq (tr_expr e)
+  | Close_sym (Evar("=",_), e, f) -> LL.Reqsym (tr_expr e, tr_expr f)
   | False -> LL.Rfalse
   | NotTrue -> LL.Rnottrue
   | NotNot (p) -> LL.Rnotnot (tr_expr p)
@@ -160,28 +163,28 @@ let tr_rule r =
      let h = eex (v, t, enot p) in
      LL.Rextension ("", "zenon_notallex", [lam], [c], [[h]])
   | Ext ("", "stringequal", [v1; v2]) ->
-     let c = eapp ("=", [eapp ("$string", [v1]); eapp ("$string", [v2])]) in
+     let c = eapp (eeq, [eapp (estring, [v1]); eapp (estring, [v2])]) in
      LL.Rextension ("", "zenon_stringequal", [v1; v2], [c], [])
 
   | Ext ("", "stringdiffll", [e1; v1; e2; v2]) ->
-     let c1 = eapp ("=", [e1; v1]) in
-     let c2 = eapp ("=", [e2; v2]) in
-     let h = enot (eapp ("=", [e1; e2])) in
+     let c1 = eapp (eeq, [e1; v1]) in
+     let c2 = eapp (eeq, [e2; v2]) in
+     let h = enot (eapp (eeq, [e1; e2])) in
      LL.Rextension ("", "zenon_stringdiffll", [e1; v1; e2; v2], [c1; c2], [[h]])
   | Ext ("", "stringdifflr", [e1; v1; e2; v2]) ->
-     let c1 = eapp ("=", [e1; v1]) in
-     let c2 = eapp ("=", [v2; e2]) in
-     let h = enot (eapp ("=", [e1; e2])) in
+     let c1 = eapp (eeq, [e1; v1]) in
+     let c2 = eapp (eeq, [v2; e2]) in
+     let h = enot (eapp (eeq, [e1; e2])) in
      LL.Rextension ("", "zenon_stringdifflr", [e1; v1; e2; v2], [c1; c2], [[h]])
   | Ext ("", "stringdiffrl", [e1; v1; e2; v2]) ->
-     let c1 = eapp ("=", [v1; e1]) in
-     let c2 = eapp ("=", [e2; v2]) in
-     let h = enot (eapp ("=", [e1; e2])) in
+     let c1 = eapp (eeq, [v1; e1]) in
+     let c2 = eapp (eeq, [e2; v2]) in
+     let h = enot (eapp (eeq, [e1; e2])) in
      LL.Rextension ("", "zenon_stringdiffrl", [e1; v1; e2; v2], [c1; c2], [[h]])
   | Ext ("", "stringdiffrr", [e1; v1; e2; v2]) ->
-     let c1 = eapp ("=", [v1; e1]) in
-     let c2 = eapp ("=", [v2; e2]) in
-     let h = enot (eapp ("=", [e1; e2])) in
+     let c1 = eapp (eeq, [v1; e1]) in
+     let c2 = eapp (eeq, [v2; e2]) in
+     let h = enot (eapp (eeq, [e1; e2])) in
      LL.Rextension ("", "zenon_stringdiffrl", [e1; v1; e2; v2], [c1; c2], [[h]])
 
   (* derived rules, handled by translate_derived: *)
@@ -234,7 +237,7 @@ let rec get_params accu p =
   | Eall (v, t, e, _) -> get_params accu e
   | Eex (v, t, e, _) -> get_params accu e
   | Etau (v, t, _, _) ->
-     merge [(t, p)] accu
+     merge [(Type.to_string t, p)] accu
   | Elam (v, t, e, _) -> get_params accu e
 ;;
 
@@ -268,10 +271,10 @@ let make_lemma llprf extras mlprf =
 let is_derived = function
   | Close _ -> false
 
-  | Close_refl ("=", _) -> false
+  | Close_refl (Evar("=",_), _) -> false
   | Close_refl (_, _) -> true
 
-  | Close_sym ("=", _, _) -> false
+  | Close_sym (Evar("=",_), _, _) -> false
   | Close_sym _ -> true
 
   | False | NotTrue
@@ -475,7 +478,7 @@ let rec get_actuals env var =
 let rec find_diff x f1 f2 =
   assert (not (Expr.equal f1 f2));
   match f1, f2 with
-  | Eapp (s1, args1, _), Eapp (s2, args2, _) when s1 = s2 ->
+  | Eapp (s1, args1, _), Eapp (s2, args2, _) when compare s1 s2 = 0 ->
      let (args, l, r) = find_diff_list x args1 args2 in
      eapp (s1, args), l, r
   | Enot (g1, _), Enot (g2, _) ->
@@ -643,9 +646,9 @@ let make_direct_nsym r a b n0 =
 
 let make_direct_sym_neq a b n0 =
   (* apply symmetry of inequality: a!=b / b!=a / (n0) *)
-  let beb = eapp ("=", [b; b]) in
-  let naeb = enot (eapp ("=", [a; b])) in
-  let n1 = make_clr "=" b in
+  let beb = eapp (eeq, [b; b]) in
+  let naeb = enot (eapp (eeq, [a; b])) in
+  let n1 = make_clr eeq b in
   let n2 = make_pnp beb naeb [n0; n1] in
   let n3 = n1 in
   let n4 = make_cut beb n2 n3 in
@@ -654,8 +657,8 @@ let make_direct_sym_neq a b n0 =
 
 let make_direct_sym_eq a b n0 =
   (* apply symmetry of equality: a=b / b=a / (n0) *)
-  let aeb = eapp ("=", [a; b]) in
-  let bea = eapp ("=", [b; a]) in
+  let aeb = eapp (eeq, [a; b]) in
+  let bea = eapp (eeq, [b; a]) in
   let n1 = make_cl aeb in
   let n2 = make_direct_sym_neq b a n1 in
   let n3 = make_cut bea n0 n2 in
@@ -681,11 +684,11 @@ let gethyps3 p =
 ;;
 
 let expand_trans r a b c d n1 n2 =
-  let cea = eapp ("=", [c; a]) in
+  let cea = eapp (eeq, [c; a]) in
   let ncea = enot (cea) in
   let rca = eapp (r, [c; a]) in
   let nrca = enot (rca) in
-  let bed = eapp ("=", [b; d]) in
+  let bed = eapp (eeq, [b; d]) in
   let rcb = eapp (r, [c; b]) in
   let rcd = eapp (r, [c; d]) in
   let nrcd = enot (rcd) in
@@ -697,7 +700,7 @@ let expand_trans r a b c d n1 n2 =
   let n4a = make_cl cea in
   let n4b = make_direct_sym_neq a c n4a in
   let n4c = make_nn cea n4b in
-  let n5 = make_clr "=" c in
+  let n5 = make_clr eeq c in
   let n6 = make_cl bed in
   let n7 = make_pnp rcb nrcd [n5; n6] in
   let n8 = make_direct_trans r c a b n7 in
@@ -705,13 +708,13 @@ let expand_trans r a b c d n1 n2 =
   let n10 = make_nand ncea nrca n4c n9 in
   let n11 = n6 in
   let n12 = make_pnp rab nrcd [n10; n11] in
-  let n13 = make_cls "=" c a in
+  let n13 = make_cls eeq c a in
   let n14 = make_nn cea n13 in
   let n15 = make_cl rcd in
   let n16 = make_direct_trans r c a d n15 in
   let n17 = make_nn rca n16 in
   let n18 = make_nand ncea nrca n14 n17 in
-  let n19 = make_clr "=" d in
+  let n19 = make_clr eeq d in
   let n20 = make_pnp rad nrcd [n18; n19] in
   let n21 = make_direct_trans r a b d n20 in
   let n22 = make_cut rbd n21 n2 in
@@ -735,8 +738,8 @@ let expand_transeq r a b c d n1 n2 n3 =
   let nrcd = enot (rcd) in
   let nrcb = enot (rcb) in
   let nrad = enot (rad) in
-  let aeb = eapp ("=", [a; b]) in
-  let n4 = make_clr "=" c in
+  let aeb = eapp (eeq, [a; b]) in
+  let n4 = make_clr eeq c in
   let n5 = make_cl rcd in
   let n6 = make_direct_trans r c b d n5 in
   let n7 = make_cut rbd n6 n3 in
@@ -746,7 +749,7 @@ let expand_transeq r a b c d n1 n2 n3 =
   let n11 = make_pnp rca nrcb [n9; n10] in
   let n12 = make_cut rcb n8 n11 in
   let n13 = make_direct_sym_neq a c n1 in
-  let n14 = make_clr "=" d in
+  let n14 = make_clr eeq d in
   let n15 = make_pnp rad nrcd [n13; n14] in
   let n16 = n10 in
   let n17 = make_direct_sym_neq b a n16 in
@@ -771,8 +774,8 @@ let expand_transeq_sym r a b c d n1 n2 n3 =
 ;;
 
 let expand_trans_equal a b c d n1 n2 =
-  let aeb = eapp ("=", [a; b]) in
-  let nced = enot (eapp ("=", [c; d])) in
+  let aeb = eapp (eeq, [a; b]) in
+  let nced = enot (eapp (eeq, [c; d])) in
   let n3 = make_direct_sym_neq a c n1 in
   let n4 = make_pnp aeb nced [n3; n2] in
   n4
@@ -816,15 +819,15 @@ let rec refute_scope e tau va =
      let e2 = enot (substitute [(v, etau (v, t, enot e1))] e1) in
      let n0 = refute_scope e2 tau va in
      option_map (make_nall e) n0
-  | Eapp ("=", [e1; e2], _) when Expr.equal e1 tau && Expr.equal e2 va ->
+  | Eapp (Evar("=",_), [e1; e2], _) when Expr.equal e1 tau && Expr.equal e2 va ->
      Some (make_cl e)
-  | Eapp ("=", [e1; e2], _) when Expr.equal e1 va && Expr.equal e2 tau ->
-     Some (make_cls "=" e1 e2)
-  | Eapp ("TLA.in", [e1; Eapp ("TLA.addElt", [e2; e3], _)], _)
+  | Eapp (Evar("=",_), [e1; e2], _) when Expr.equal e1 va && Expr.equal e2 tau ->
+     Some (make_cls eeq e1 e2)
+  | Eapp (Evar("TLA.in",_) as f, [e1; Eapp (Evar("TLA;addElt",_), [e2; e3], _)], _)
     when Expr.equal e1 tau && Expr.equal e2 va ->
-     let _n0 = refute_scope (eapp ("TLA.in", [e1; e3])) tau va in
+     let _n0 = refute_scope (eapp (f, [e1; e3])) tau va in
      assert false (* FIXME TODO *)
-  | Eapp ("TLA.in", [e1; Evar ("TLA.emptyset", _)], _) when Expr.equal e1 tau ->
+  | Eapp (Evar("TLA.in",_), [e1; Evar ("TLA.emptyset", _)], _) when Expr.equal e1 tau ->
      Some (make_node [e] (Ext ("tla", "in_emptyset", [e; tau])) [] [])
   | _ -> None
 ;;
@@ -834,7 +837,7 @@ let mk_tuple l =
   | [] -> assert false
   | [x] -> x
   | h :: t ->
-     let f x y = eapp ("Datatypes.pair", [x; y]) in
+     let f x y = eapp (evar "Datatypes.pair", [x; y]) in
      List.fold_left f h t
 ;;
 
@@ -914,7 +917,7 @@ and translate_derived p =
       let n3 = make_cut exyz n2 n1 in
       to_llproof n3
   | NotExPartial _ -> assert false
-  | Close_sym ("=", a, b) -> assert false
+  | Close_sym (Evar("=",_), a, b) -> assert false
   | Close_sym (s, a, b) ->
       let sym_hyp = Eqrel.get_sym_hyp s in
       let pab = eapp (s, [a; b]) in
@@ -925,7 +928,7 @@ and translate_derived p =
       let n4 = make_alls sym_hyp [a; b] n3 in
       let (n, ext) = to_llproof n4 in
       (n, union [sym_hyp] ext)
-  | Close_refl ("=", _) -> assert false
+  | Close_refl (Evar("=",_), _) -> assert false
   | Close_refl (s, a) ->
       let refl_hyp = Eqrel.get_refl_hyp s in
       let paa = eapp (s, [a; a]) in
@@ -933,16 +936,16 @@ and translate_derived p =
       let n2 = make_all refl_hyp a n1 in
       let (n, ext) = to_llproof n2 in
       (n, union [refl_hyp] ext)
-  | P_NotP_sym ("=", (Eapp ("=", [a; b], _) as aeb),
-                     Enot (Eapp ("=", [c; d], _), _)) ->
+  | P_NotP_sym (Evar("=",_), (Eapp (Evar("=",_), [a; b], _) as aeb),
+                     Enot (Eapp (Evar("=",_), [c; d], _), _)) ->
       let (n1, n2) = gethyps2 p in
-      let ndec = enot (eapp ("=", [d; c])) in
+      let ndec = enot (eapp (eeq, [d; c])) in
       let n3 = make_pnp aeb ndec [n2; n1] in
       let n4 = make_direct_sym_neq c d n3 in
       to_llproof n4
   | P_NotP_sym (s, (Eapp (s1, [a; b], _) as pab),
                 (Enot (Eapp (s2, [c; d], _), _) as npcd)) ->
-      assert (s = s1 && s = s2);
+      assert (compare s s1 = 0 && compare s s2 = 0);
       let (n1, n2) = gethyps2 p in
       let sym_hyp = Eqrel.get_sym_hyp s in
       let pba = eapp (s, [b; a]) in
@@ -958,37 +961,37 @@ and translate_derived p =
       let refl_hyp = Eqrel.get_refl_hyp s in
       let paa = eapp (s, [a; a]) in
       let npab = enot (eapp (s, [a; b])) in
-      let n2 = make_clr "=" a in
+      let n2 = make_clr eeq a in
       let n3 = make_pnp paa npab [n2; n1] in
       let n4 = make_all refl_hyp a n3 in
       let (n, ext) = to_llproof n4 in
       (n, union [refl_hyp] ext)
-  | Trans (Eapp ("=", [a; b], _), Enot (Eapp ("=", [c; d], _), _)) ->
+  | Trans (Eapp (Evar("=",_), [a; b], _), Enot (Eapp (Evar("=",_), [c; d], _), _)) ->
       let (n1, n2) = gethyps2 p in
       let n3 = expand_trans_equal a b c d n1 n2 in
       to_llproof n3
-  | Trans_sym (Eapp ("=", [a; b], _), Enot (Eapp ("=", [c; d], _), _)) ->
+  | Trans_sym (Eapp (Evar("=",_), [a; b], _), Enot (Eapp (Evar("=",_), [c; d], _), _)) ->
       let (n1, n2) = gethyps2 p in
       let n3 = expand_trans_equal a b d c n1 n2 in
       let n4 = make_direct_sym_neq c d n3 in
       to_llproof n4
-  | TransEq (a, b, Enot (Eapp ("=", [c; d], _), _)) ->
+  | TransEq (a, b, Enot (Eapp (Evar("=",_), [c; d], _), _)) ->
       let (n1, n2, n3) = gethyps3 p in
       let n4 = expand_trans_equal a b c d n1 n3 in
       to_llproof n4
-  | TransEq_sym (a, b, Enot (Eapp ("=", [c; d], _), _)) ->
+  | TransEq_sym (a, b, Enot (Eapp (Evar("=",_), [c; d], _), _)) ->
       let (n1, n2, n3) = gethyps3 p in
       let n4 = expand_trans_equal a b d c n1 n3 in
       let n5 = make_direct_sym_neq c d n4 in
       to_llproof n5
   | Trans (Eapp (s1, [a; b], _), Enot (Eapp (s2, [c; d], _), _)) ->
-      assert (s1 = s2);
+      assert (compare s1 s2 = 0);
       let (n1, n2) = gethyps2 p in
       let n3 = expand_trans s1 a b c d n1 n2 in
       let (n, ext) = to_llproof n3 in
       (n, union [Eqrel.get_trans_hyp s1] ext)
   | Trans_sym (Eapp (s1, [a; b], _), Enot (Eapp (s2, [c; d], _), _)) ->
-      assert (s1 = s2);
+      assert (compare s1 s2 = 0);
       let (n1, n2) = gethyps2 p in
       let n3 = expand_trans_sym s1 a b c d n1 n2 in
       let (n, ext) = to_llproof n3 in
@@ -1023,7 +1026,7 @@ and translate_derived p =
        | _ -> assert false
      in
      let n1 = make_conglr lam tau va n_eq in
-     let n2 = make_cut (eapp ("=", [tau; va])) n1 n0 in
+     let n2 = make_cut (eapp (eeq, [tau; va])) n1 n0 in
      to_llproof n2
   | Miniscope (lam, tau, []) ->
      to_llproof (gethyps1 p)
@@ -1077,21 +1080,21 @@ and translate_pseudo_def_base p def_hyp s args folded unfolded =
         make_node [def_hyp] (Equiv (a, b)) [[nunf]; [q]] [n0; n2]
       else
         make_node [def_hyp] (Equiv (a, b)) [[nq]; [unf]] [n2; n0]
-  | Eapp ("=", [_; _], _) when Expr.equal folded (enot def_hyp) ->
+  | Eapp (Evar("=",_), [_; _], _) when Expr.equal folded (enot def_hyp) ->
       make_node [folded; def_hyp] (Close def_hyp) [] []
-  | Eapp ("=", [xx; yy], _) ->
+  | Eapp (Evar("=",_), [xx; yy], _) ->
      let make_cong = match def_hyp with
-       | Eapp ("=", [Eapp (s1, _, _); body], _)
-       | Eapp ("=", [Evar (s1, _); body], _)
+       | Eapp (Evar("=",_), [Eapp (Evar(s1,_), _, _); body], _)
+       | Eapp (Evar("=",_), [Evar (s1, _); body], _)
          when s1 = s -> make_conglr
-       | Eapp ("=", [body; Eapp (s1, _, _)], _)
-       | Eapp ("=", [body; Evar (s1, _)], _)
+       | Eapp (Evar("=",_), [body; Eapp (Evar(s1,_), _, _)], _)
+       | Eapp (Evar("=",_), [body; Evar (s1, _)], _)
          when s1 = s -> make_congrl
        | _ -> assert false
      in
      let x = Expr.newvar () in
      let (ctx, a, b) = find_diff x folded unfolded in
-     make_cong (elam (x, "", ctx)) a b n0
+     make_cong (elam (x, Type.atomic "", ctx)) a b n0
   | _ -> assert false
 
 and translate_rec_def p eqn s args folded unfolded =
@@ -1101,7 +1104,7 @@ and translate_rec_def p eqn s args folded unfolded =
   in
   let x = Expr.newvar () in
   let (ctx, a, b) = find_diff x folded unfolded in
-  let p = elam (x, "", ctx) in
+  let p = elam (x, Type.atomic "", ctx) in
   let eq = add_argument eqn (mk_tuple args) in
   make_node [apply p a] (Ext ("recfun", "unfold", [p; a; b; eq]))
             [[apply p b]] [n0]

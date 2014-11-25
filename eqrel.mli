@@ -4,14 +4,14 @@
 val analyse : Expr.expr -> unit;;
 val subsumed : Expr.expr -> bool;;
 
-val refl : string -> bool;;
-val sym : string -> bool;;
-val trans : string -> bool;;
-val any : string -> bool;;
+val refl : Expr.expr -> bool;;
+val sym : Expr.expr -> bool;;
+val trans : Expr.expr -> bool;;
+val any : Expr.expr -> bool;;
 
-val get_refl_hyp : string -> Expr.expr;;
-val get_sym_hyp : string -> Expr.expr;;
-val get_trans_hyp : string -> Expr.expr;;
+val get_refl_hyp : Expr.expr -> Expr.expr;;
+val get_sym_hyp : Expr.expr -> Expr.expr;;
+val get_trans_hyp : Expr.expr -> Expr.expr;;
 
 val get_proof : Expr.expr -> Mlproof.proof * Expr.expr list;;
 

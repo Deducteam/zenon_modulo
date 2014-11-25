@@ -38,28 +38,28 @@ let type_table =
 let is_constr s = Hashtbl.mem constructor_table s;;
 let constr_head e =
   match e with
-  | Eapp ("@", Evar (s, _) :: _, _) when is_constr s -> true
-  | Eapp (s, _, _) | Evar (s, _) when is_constr s -> true
+  | Eapp (Evar("@",_), Evar (s, _) :: _, _) when is_constr s -> true
+  | Eapp (Evar(s,_), _, _) | Evar (s, _) when is_constr s -> true
   | _ -> false
 ;;
 
 let get_constr e =
   match e with
-  | Eapp ("@", Evar (s, _) :: _, _) -> s
-  | Eapp (s, _, _) | Evar (s, _) -> s
+  | Eapp (Evar("@",_), Evar (s, _) :: _, _) -> s
+  | Eapp (Evar(s,_), _, _) | Evar (s, _) -> s
   | _ -> assert false
 ;;
 
 let get_args e =
   match e with
-  | Eapp ("@", Evar (s, _) :: a, _) ->
+  | Eapp (Evar("@",_), Evar (s, _) :: a, _) ->
      begin try
        let desc = Hashtbl.find constructor_table s in
        let (params, _, _) = Hashtbl.find type_table desc.cd_type in
        list_nth_tail a (List.length params)
      with Not_found -> assert false
      end
-  | Eapp (s, a, _) -> a
+  | Eapp (Evar(s,_), a, _) -> a
   | Evar (s, _) -> []
   | _ -> assert false
 ;;
@@ -88,7 +88,7 @@ let matches = (HE.create tblsize : ((expr -> expr) * bool * expr list) HE.t);;
 
 let rec make_case accu e =
   match e with
-  | Eapp ("$match-case", [Evar (constr, _); body], _) ->
+  | Eapp (Evar("$match-case",_), [Evar (constr, _); body], _) ->
      (constr, List.rev accu, body)
   | Elam (v, _, body, _) ->
      make_case (v :: accu) body
@@ -127,7 +127,7 @@ let make_match_redex e g ctx is_t ee cases =
       let newbody = if subs = [] then body else substitute subs body in
       let hyp =
         if is_t then
-          ctx (eapp ("Is_true", [newbody]))
+          ctx (eapp (evar "Is_true", [newbody]))
         else
           ctx newbody
       in
@@ -141,36 +141,36 @@ let make_match_redex e g ctx is_t ee cases =
     with Not_found | Higher_order -> []
   in
   match ee with
-  | Eapp ("@", Evar (c, _) :: a, _) -> mknode c a cases
-  | Eapp (c, a, _) -> mknode c a cases
+  | Eapp (Evar("@",_), Evar (c, _) :: a, _) -> mknode c a cases
+  | Eapp (Evar(c,_), a, _) -> mknode c a cases
   | Evar (c, _) -> mknode c [] cases
   | _ -> assert false
 ;;
 
 let get_matching e =
   match e with
-  | Eapp (s, [Eapp ("$match", ee :: cases, _); e2], _) when Eqrel.any s ->
+  | Eapp (s, [Eapp (Evar("$match",_), ee :: cases, _); e2], _) when Eqrel.any s ->
      Some ((fun x -> eapp (s, [x; e2])), false, ee, cases)
-  | Eapp (s, [e1; Eapp ("$match", ee :: cases, _)], _) when Eqrel.any s ->
+  | Eapp (s, [e1; Eapp (Evar("$match",_), ee :: cases, _)], _) when Eqrel.any s ->
      Some ((fun x -> eapp (s, [e1; x])), false, ee, cases)
-  | Enot (Eapp (s, [Eapp ("$match", ee :: cases, _); e2], _), _)
+  | Enot (Eapp (s, [Eapp (Evar("$match",_), ee :: cases, _); e2], _), _)
     when Eqrel.any s ->
      Some ((fun x -> enot (eapp (s, [x; e2]))), false, ee, cases)
-  | Enot (Eapp (s, [e1; Eapp ("$match", ee :: cases, _)], _), _)
+  | Enot (Eapp (s, [e1; Eapp (Evar("$match",_), ee :: cases, _)], _), _)
     when Eqrel.any s ->
      Some ((fun x -> enot (eapp (s, [e1; x]))), false, ee, cases)
-  | Eapp ("$match", ee :: cases, _) ->
+  | Eapp (Evar("$match",_), ee :: cases, _) ->
      Some ((fun x -> x), false, ee, cases)
-  | Enot (Eapp ("$match", ee :: cases, _), _) ->
+  | Enot (Eapp (Evar("$match",_), ee :: cases, _), _) ->
      Some ((fun x -> enot (x)), false, ee, cases)
   (* FIXME these last 4 should only be done when ext_focal is active *)
-  | Eapp ("Is_true", [Eapp ("$match", ee :: cases, _)], _) ->
-     Some ((fun x -> eapp ("Is_true", [x])), false, ee, cases)
-  | Eapp ("Is_true**$match", ee :: cases, _) ->
+  | Eapp (Evar("Is_true",_), [Eapp (Evar("$match",_), ee :: cases, _)], _) ->
+     Some ((fun x -> eapp (evar "Is_true", [x])), false, ee, cases)
+  | Eapp (Evar("Is_true**$match",_), ee :: cases, _) ->
      Some ((fun x -> x), true, ee, cases)
-  | Enot (Eapp ("Is_true", [Eapp ("$match", ee :: cases, _)], _), _) ->
-     Some ((fun x -> enot (eapp ("Is_true", [x]))), false, ee, cases)
-  | Enot (Eapp ("Is_true**$match", ee :: cases, _), _) ->
+  | Enot (Eapp (Evar("Is_true",_), [Eapp (Evar("$match",_), ee :: cases, _)], _), _) ->
+     Some ((fun x -> enot (eapp (evar"Is_true", [x]))), false, ee, cases)
+  | Enot (Eapp (Evar("Is_true**$match",_), ee :: cases, _), _) ->
      Some ((fun x -> enot (x)), true, ee, cases)
   | _ -> None
 ;;
@@ -190,7 +190,7 @@ let make_match_branches e cases =
       let c = normalize_cases cases in
       let f (constr, vars, body) =
         let rvars = List.map (fun _ -> Expr.newvar ()) vars in
-        let pattern = eapp ("@", evar constr :: (get_unders constr) @ rvars) in
+        let pattern = eapp (evar "@", evar constr :: (get_unders constr) @ rvars) in
 (*
         let pattern =
           match rvars with
@@ -198,7 +198,7 @@ let make_match_branches e cases =
           | _ -> eapp (constr, rvars)
         in
 *)
-        let shape = enot (eapp ("=", [e; pattern])) in
+        let shape = enot (eapp (eeq, [e; pattern])) in
         [enot (all_list rvars shape)]
       in
       List.map f c
@@ -207,7 +207,7 @@ let make_match_branches e cases =
 let rec get_match_case branches =
   match branches with
   | [] -> raise Not_found
-  | [Eapp ("=", [_; e2], _) as shape; _] :: t when Index.member shape -> e2
+  | [Eapp (Evar("=",_), [_; e2], _) as shape; _] :: t when Index.member shape -> e2
   | _ :: t -> get_match_case t
 ;;
 
@@ -223,9 +223,9 @@ let make_match_congruence e g ctx is_t ee cases rhs =
   let x = Expr.newvar () in
   (* FIXME could recover the type as in mknode below *)
   let key = if is_t then "Is_true**$match" else "$match" in
-  let p = elam (x, "", ctx (eapp (key, x :: cases))) in
+  let p = elam (x, Type.atomic "", ctx (eapp (evar key, x :: cases))) in
   Node {
-    nconc = [e; eapp ("=", [ee; rhs])];
+    nconc = [e; eapp (eeq, [ee; rhs])];
     nrule = CongruenceLR (p, ee, rhs);
     nprio = Arity;
     ngoal = g;
@@ -241,8 +241,8 @@ let newnodes_match_cases e g =
     let tyargs = List.fold_left (fun s _ -> " _" ^ s) "" args in
     let x = Expr.newvar () in
     let key = if is_t then "Is_true**$match" else "$match" in
-    let mctx = elam (x, sprintf "(%s%s)" tycon tyargs,
-                     ctx (eapp (key, x :: cases)))
+    let mctx = elam (x, Type.atomic (sprintf "(%s%s)" tycon tyargs),
+                     ctx (eapp (evar key, x :: cases)))
     in
     let ty = evar tycon in
     [ Node {
@@ -267,11 +267,11 @@ let newnodes_match_cases e g =
 
 let newnodes_match_cases_eq e g =
   match e with
-  | Eapp ("=", [e1; e2], _) when constr_head e2 ->
+  | Eapp (Evar("=",_), [e1; e2], _) when constr_head e2 ->
      let mknode (ctx, is_t, cases) =
        let x = Expr.newvar () in
        let key = if is_t then "Is_true**$match" else "$match" in
-       let p = elam (x, "", ctx (eapp (key, x :: cases))) in
+       let p = elam (x, Type.atomic "", ctx (eapp (evar key, x :: cases))) in
        Node {
          nconc = [apply p e1; e];
          nrule = CongruenceLR (p, e1, e2);
@@ -289,12 +289,12 @@ let make_induction_branch ty targs p (con, args) =
     match args with
     | Param s :: t ->
        let x = Expr.newvar () in
-       eall (x, "", f (x :: vars) t)
+       eall (x, Type.atomic "", f (x :: vars) t)
     | Self :: t ->
        let x = Expr.newvar () in
-       eall (x, ty, eimply (apply p x, f (x :: vars) t))
+       eall (x, Type.atomic ty, eimply (apply p x, f (x :: vars) t))
     | [] ->
-       let v = eapp ("@", evar con :: List.rev vars) in
+       let v = eapp (evar "@", evar con :: List.rev vars) in
        apply p v
   in
   [enot (f targs args)]
@@ -302,13 +302,13 @@ let make_induction_branch ty targs p (con, args) =
 
 let newnodes_induction e g =
   match e with
-  | Enot (Eall (_, "", _, _), _) -> []
+  | Enot (Eall (_, t, _, _), _) when Type.to_string t = "" -> []
   | Enot (Eall (v, ty, body, _), _) ->
      begin try
-       let (tycon, targs) = parse_type ty in
+       let (tycon, targs) = parse_type (Type.to_string ty) in
        let (args, cons, schema) = Hashtbl.find type_table tycon in
        let p = elam (v, ty, body) in
-       let br = List.map (make_induction_branch ty targs p) cons in
+       let br = List.map (make_induction_branch (Type.to_string ty) targs p) cons in
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "induction_notall",
@@ -319,13 +319,13 @@ let newnodes_induction e g =
        }]
      with Not_found -> []
      end
-  | Eex (_, "", _, _) -> []
+  | Eex (_, t, _, _) when Type.to_string t = "" -> []
   | Eex (v, ty, Enot (body, _), _) ->
      begin try
-       let (tycon, targs) = parse_type ty in
+       let (tycon, targs) = parse_type (Type.to_string ty) in
        let (args, cons, schema) = Hashtbl.find type_table tycon in
        let p = elam (v, ty, body) in
-       let br = List.map (make_induction_branch ty targs p) cons in
+       let br = List.map (make_induction_branch (Type.to_string ty) targs p) cons in
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "induction_exnot",
@@ -338,11 +338,11 @@ let newnodes_induction e g =
      end
   | Eex (v, ty, body, _) ->
      begin try
-       let (tycon, targs) = parse_type ty in
+       let (tycon, targs) = parse_type (Type.to_string ty) in
        let (args, cons, schema) = Hashtbl.find type_table tycon in
        let np = elam (v, ty, enot (body)) in
        let p = elam (v, ty, body) in
-       let br = List.map (make_induction_branch ty targs np) cons in
+       let br = List.map (make_induction_branch (Type.to_string ty) targs np) cons in
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "induction_ex",
@@ -359,23 +359,23 @@ let newnodes_induction e g =
 let rec make_lambdas args e =
   match args with
   | [] -> e
-  | h :: t -> elam (h, "", make_lambdas t e)
+  | h :: t -> elam (h, Type.atomic "", make_lambdas t e)
 ;;
 
 let make_case_expr constr args e =
-  make_lambdas args (eapp ("$match-case", [evar (constr); e]))
+  make_lambdas args (eapp (evar "$match-case", [evar (constr); e]))
 ;;
 
 let newnodes_injective e g =
   match e with
-  | Eapp ("=", [e1; e2], _)
+  | Eapp (Evar("=",_), [e1; e2], _)
     when constr_head e1 && constr_head e2 && get_constr e1 = get_constr e2 ->
      begin try
        let args1 = get_args e1 in
        let args2 = get_args e2 in
        let ty = evar ((Hashtbl.find constructor_table (get_constr e1)).cd_type)
        in
-       let branch = List.map2 (fun x y -> eapp ("=", [x; y])) args1 args2 in
+       let branch = List.map2 (fun x y -> eapp (eeq, [x; y])) args1 args2 in
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "injection", [e; ty]);
@@ -387,14 +387,14 @@ let newnodes_injective e g =
      | Invalid_argument "List.map2" -> raise Empty
      | Not_found -> assert false
      end
-  | Eapp ("=", [e1; e2], _) when constr_head e1 && constr_head e2 ->
+  | Eapp (Evar("=",_), [e1; e2], _) when constr_head e1 && constr_head e2 ->
      assert (get_constr e1 <> get_constr e2);
      let constr = get_constr e1 in
      let args = List.map (fun _ -> evar "_") (get_args e1) in
      let cas1 = make_case_expr constr args etrue in
      let cas2 = make_case_expr "_" [] efalse in
      let x = newvar () in
-     let caract = elam (x, "", eapp ("$match", [x; cas1; cas2])) in
+     let caract = elam (x, Type.atomic "", eapp (evar "$match", [x; cas1; cas2])) in
       [ Node {
         nconc = [e];
         nrule = Ext ("induct", "discriminate", [e; caract]);
@@ -402,16 +402,16 @@ let newnodes_injective e g =
         ngoal = g;
         nbranches = [| |];
       }; Stop ]
-  | Enot (Eapp ("=", [e1; Eapp ("$any-induct", [Evar (ty, _); e2], _)], _), _)
-  | Enot (Eapp ("=", [Eapp ("$any-induct", [Evar (ty, _); e2], _); e1], _), _)
+  | Enot (Eapp (Evar("=",_), [e1; Eapp (Evar("$any-induct",_), [Evar (ty, _); e2], _)], _), _)
+  | Enot (Eapp (Evar("=",_), [Eapp (Evar("$any-induct",_), [Evar (ty, _); e2], _); e1], _), _)
     when constr_head e1 && get_constr e1 <> get_constr e2 ->
      let constr = get_constr e2 in
      let args = List.map (fun _ -> evar "_") (get_args e2) in
      let cas1 = make_case_expr constr args etrue in
      let cas2 = make_case_expr "_" [] efalse in
      let x = newvar () in
-     let caract = elam (x, "", eapp ("$match", [x; cas1; cas2])) in
-     let h = enot (eapp ("=", [e2; e1])) in
+     let caract = elam (x, Type.atomic "", eapp (evar "$match", [x; cas1; cas2])) in
+     let h = enot (eapp (eeq, [e2; e1])) in
      [ Node {
       nconc = [];
        nrule = Ext ("induct", "discriminate_diff", [e2; e1; caract]);
@@ -419,7 +419,7 @@ let newnodes_injective e g =
        ngoal = g;
        nbranches = [| [h] |];
      } ]
-  | Eapp ("=", [el; er], _) when constr_head el || constr_head er ->
+  | Eapp (Evar("=",_), [el; er], _) when constr_head el || constr_head er ->
      let (e1, e2) = if constr_head el then (el, er) else (er, el) in
      assert (not (constr_head e2));
      let constr = get_constr e1 in
@@ -431,8 +431,8 @@ let newnodes_injective e g =
        with Not_found -> assert false
      in
      if is_multiconstr then begin
-       let any = eapp ("$any-induct", [evar (desc.cd_type); e1]) in
-       let h = enot (eapp ("=", [e1; any])) in
+       let any = eapp (evar "$any-induct", [evar (desc.cd_type); e1]) in
+       let h = enot (eapp (eeq, [e1; any])) in
        [ Node {
          nconc = [];
          nrule = Ext ("induct", "discriminate_meta", []);
@@ -451,7 +451,7 @@ let newnodes_constr_eq e g =
     let mk_node accu ee =
       if Expr.equal e0 ee then accu
       else begin
-        let eqn = eapp ("=", [e0; ee]) in
+        let eqn = eapp (eeq, [e0; ee]) in
         Node {
           nconc = [];
           nrule = Cut eqn;
@@ -466,12 +466,12 @@ let newnodes_constr_eq e g =
   in
   let l1 =
     match e with
-    | Eapp ("=", [e1; e2], _) when constr_head e1 -> mk_nodes e1
+    | Eapp (Evar("=",_), [e1; e2], _) when constr_head e1 -> mk_nodes e1
     | _ -> []
   in
   let l2 =
     match e with
-    | Eapp ("=", [e1; e2], _) when constr_head e2 -> mk_nodes e2
+    | Eapp (Evar("=",_), [e1; e2], _) when constr_head e2 -> mk_nodes e2
     | _ -> []
   in
   l1 @ l2
@@ -488,68 +488,68 @@ let newnodes_fix e g =
     }; Stop]
   in
   match e with
-  | Eapp ("Is_true",
-          [Eapp ("$fix", (Elam (f, _, body, _) as r) :: args, _) as fix], _) ->
+  | Eapp (Evar("Is_true",_),
+          [Eapp (Evar("$fix",_) as f', (Elam (f, _, body, _) as r) :: args, _) as fix], _) ->
      begin try
-       let xbody = substitute_2nd [(f, eapp ("$fix", [r]))] body in
+       let xbody = substitute_2nd [(f', eapp (f, [r]))] body in
        let e2 = List.fold_left apply xbody args in
-       let ctx = elam (f, "", eapp ("Is_true", [f])) in
+       let ctx = elam (f, Type.atomic "", eapp (evar "Is_true", [f])) in
        let unfolded = apply ctx e2 in
        mknode unfolded ctx fix
      with Higher_order -> []
      end
-  | Enot (Eapp ("Is_true",
-                [Eapp ("$fix", (Elam (f, _, body, _) as r) :: args, _) as fix],
+  | Enot (Eapp (Evar("Is_true",_),
+                [Eapp (Evar("$fix",_) as f', (Elam (f, _, body, _) as r) :: args, _) as fix],
                 _), _) ->
      begin try
-       let xbody = substitute_2nd [(f, eapp ("$fix", [r]))] body in
+       let xbody = substitute_2nd [(f, eapp (f', [r]))] body in
        let e2 = List.fold_left apply xbody args in
-       let ctx = elam (f, "", enot (eapp ("Is_true", [f]))) in
+       let ctx = elam (f, Type.atomic "", enot (eapp (evar "Is_true", [f]))) in
        let unfolded = apply ctx e2 in
        mknode unfolded ctx fix
      with Higher_order -> []
      end
-  | Eapp (s, [Eapp ("$fix", (Elam (f, _, body, _) as r) :: args, _) as fix;
+  | Eapp (s, [Eapp (Evar("$fix",_) as f', (Elam (f, _, body, _) as r) :: args, _) as fix;
               e1], _)
     when Eqrel.any s ->
      begin try
-       let xbody = substitute_2nd [(f, eapp ("$fix", [r]))] body in
+       let xbody = substitute_2nd [(f, eapp (f', [r]))] body in
        let e2 = List.fold_left apply xbody args in
-       let ctx = elam (f, "", eapp (s, [f; e1])) in
+       let ctx = elam (f, Type.atomic "", eapp (s, [f; e1])) in
        let unfolded = apply ctx e2 in
        mknode unfolded ctx fix
      with Higher_order -> []
      end
-  | Eapp (s, [e1; Eapp ("$fix", (Elam (f, _, body, _) as r) :: args, _) as fix],
+  | Eapp (s, [e1; Eapp (Evar("$fix",_) as f', (Elam (f, _, body, _) as r) :: args, _) as fix],
           _)
     when Eqrel.any s ->
      begin try
-       let xbody = substitute_2nd [(f, eapp ("$fix", [r]))] body in
+       let xbody = substitute_2nd [(f, eapp (f', [r]))] body in
        let e2 = List.fold_left apply xbody args in
-       let ctx = elam (f, "", eapp (s, [e1; f])) in
+       let ctx = elam (f, Type.atomic "", eapp (s, [e1; f])) in
        let unfolded = apply ctx e2 in
        mknode unfolded ctx fix
      with Higher_order -> []
      end
-  | Enot (Eapp (s, [Eapp ("$fix", (Elam (f, _, body, _) as r) :: args, _) as fix;
+  | Enot (Eapp (s, [Eapp (Evar("$fix",_) as f', (Elam (f, _, body, _) as r) :: args, _) as fix;
                     e1], _), _)
     when Eqrel.any s ->
      begin try
-       let xbody = substitute_2nd [(f, eapp ("$fix", [r]))] body in
+       let xbody = substitute_2nd [(f, eapp (f', [r]))] body in
        let e2 = List.fold_left apply xbody args in
-       let ctx = elam (f, "", enot (eapp (s, [f; e1]))) in
+       let ctx = elam (f, Type.atomic "", enot (eapp (s, [f; e1]))) in
        let unfolded = apply ctx e2 in
        mknode unfolded ctx fix
      with Higher_order -> []
      end
   | Enot (Eapp (s, [e1;
-                    Eapp ("$fix", (Elam (f, _, body, _) as r) :: args,_) as fix],
+                    Eapp (Evar("$fix",_) as f', (Elam (f, _, body, _) as r) :: args,_) as fix],
                 _),_)
     when Eqrel.any s ->
      begin try
-       let xbody = substitute_2nd [(f, eapp ("$fix", [r]))] body in
+       let xbody = substitute_2nd [(f, eapp (f', [r]))] body in
        let e2 = List.fold_left apply xbody args in
-       let ctx = elam (f, "", enot (eapp (s, [e1; f]))) in
+       let ctx = elam (f, Type.atomic "", enot (eapp (s, [e1; f]))) in
        let unfolded = apply ctx e2 in
        mknode unfolded ctx fix
      with Higher_order -> []
@@ -571,7 +571,7 @@ let make_inst m term g = assert false;;
 let rec get_decreasing_arg e env =
   match e with
   | Elam (v, t, body, _) -> get_decreasing_arg body ((v, t) :: env)
-  | Eapp ("$match", v :: _, _) ->
+  | Eapp (Evar("$match",_), v :: _, _) ->
      (try List.assoc v env
       with Not_found -> assert false)
   | _ -> assert false
@@ -585,8 +585,8 @@ let to_llproof tr_expr mlp args =
   let add = List.flatten (List.map snd argl) in
   match mlp.mlrule with
   | Ext ("induct", "injection",
-         [Eapp ("=", [Eapp ("@", Evar (g, _) :: args1, _) as xx;
-                      Eapp ("@", Evar (_, _) :: args2, _) as yy], _) as con;
+         [Eapp (Evar("=",_), [Eapp (Evar("@",_), Evar (g, _) :: args1, _) as xx;
+                              Eapp (Evar("@",_), Evar (_, _) :: args2, _) as yy], _) as con;
           Evar (ty, _)]) ->
      let n_under =
        try
@@ -606,7 +606,7 @@ let to_llproof tr_expr mlp args =
        match args1, args2 with
        | [], [] -> accu
        | a1 :: t1, a2 :: t2 ->
-          let hyp = tr_expr (eapp ("=", [a1; a2])) in
+          let hyp = tr_expr (eapp (eeq, [a1; a2])) in
           if List.exists (Expr.equal hyp) accu.conc then begin
             let (_, cons, schema) =
               try Hashtbl.find type_table ty with Not_found -> assert false
@@ -614,12 +614,12 @@ let to_llproof tr_expr mlp args =
             let mk_case (name, args) =
               let params = List.map (fun _ -> Expr.newvar ()) args in
               let result = if name <> g then a1 else List.nth params i in
-              let body = eapp ("$match-case", [evar (name); result]) in
-              List.fold_right (fun v e -> elam (v, "", e)) params body
+              let body = eapp (evar "$match-case", [evar (name); result]) in
+              List.fold_right (fun v e -> elam (v, Type.atomic "", e)) params body
             in
             let cases = List.map mk_case cons in
             let x = Expr.newvar () in
-            let proj = elam (x, "", eapp ("$match", x :: cases)) in
+            let proj = elam (x, Type.atomic "", eapp (evar "$match", x :: cases)) in
             let node = {
               conc = union tc (diff accu.conc [hyp]);
               rule = Rextension ("", "zenon_induct_f_equal",
@@ -633,8 +633,8 @@ let to_llproof tr_expr mlp args =
      in
      (f args1 args2 0 subproof, add)
   | Ext ("induct", "injection",
-         [Eapp ("=", [Eapp (g, args1, _) as xx;
-                      Eapp (_, args2, _) as yy], _) as con;
+         [Eapp (Evar("=",_), [Eapp (Evar(g,_), args1, _) as xx;
+                              Eapp (_, args2, _) as yy], _) as con;
           Evar (ty, _)]) ->
      let tc = List.map tr_expr mlp.mlconc in
      let subproof =
@@ -646,7 +646,7 @@ let to_llproof tr_expr mlp args =
        match args1, args2 with
        | [], [] -> accu
        | a1 :: t1, a2 :: t2 ->
-          let hyp = tr_expr (eapp ("=", [a1; a2])) in
+          let hyp = tr_expr (eapp (eeq, [a1; a2])) in
           if List.exists (Expr.equal hyp) accu.conc then begin
             let (_, cons, schema) =
               try Hashtbl.find type_table ty with Not_found -> assert false
@@ -654,12 +654,12 @@ let to_llproof tr_expr mlp args =
             let mk_case (name, args) =
               let params = List.map (fun _ -> Expr.newvar ()) args in
               let result = if name <> g then a1 else List.nth params i in
-              let body = eapp ("$match-case", [evar (name); result]) in
-              List.fold_right (fun v e -> elam (v, "", e)) params body
+              let body = eapp (evar "$match-case", [evar (name); result]) in
+              List.fold_right (fun v e -> elam (v, Type.atomic "", e)) params body
             in
             let cases = List.map mk_case cons in
             let x = Expr.newvar () in
-            let proj = elam (x, "", eapp ("$match", x :: cases)) in
+            let proj = elam (x, Type.atomic "", eapp (evar "$match", x :: cases)) in
             let node = {
               conc = union tc (diff accu.conc [hyp]);
               rule = Rextension ("", "zenon_induct_f_equal",
@@ -702,14 +702,14 @@ let to_llproof tr_expr mlp args =
      (node, add)
   | Ext ("induct", "fix",
          [folded; unfolded; ctx;
-          Eapp ("$fix", (Elam (f, _, body, _) as r)
+          Eapp (Evar("$fix",_) as f', (Elam (f, _, body, _) as r)
                         :: a :: args, _)]) ->
      begin try
-       let (tname, _) = parse_type (get_decreasing_arg body []) in
+       let (tname, _) = parse_type (Type.to_string (get_decreasing_arg body [])) in
        let nx = Expr.newvar () in
-       let foldx = elam (nx, "", eapp ("$fix", [r; nx] @ args)) in
-       let xbody = substitute_2nd [(f, eapp ("$fix", [r]))] body in
-       let unfx = elam (nx, "", List.fold_left apply xbody (nx :: args)) in
+       let foldx = elam (nx, Type.atomic "", eapp (f', [r; nx] @ args)) in
+       let xbody = substitute_2nd [(f, eapp (f', [r]))] body in
+       let unfx = elam (nx, Type.atomic "", List.fold_left apply xbody (nx :: args)) in
        let node = {
          conc = List.map tr_expr mlp.mlconc;
          rule = Rextension ("induct", "zenon_induct_fix",
@@ -817,13 +817,13 @@ let postprocess l = l;;
 
 let add_formula e =
   begin match e with
-  | Eapp ("=", [e1; e2], _) when constr_head e2 ->
+  | Eapp (Evar("=",_), [e1; e2], _) when constr_head e2 ->
       HE.add eqs e1 e2;
       Hashtbl.add constr_expr (get_constr e2) e2;
   | _ -> ()
   end;
   begin match e with
-  | Eapp ("=", [e1; e2], _) when constr_head e1 ->
+  | Eapp (Evar("=",_), [e1; e2], _) when constr_head e1 ->
       Hashtbl.add constr_expr (get_constr e1) e1;
   | _ -> ()
   end;
@@ -836,13 +836,13 @@ let add_formula e =
 
 let remove_formula e =
   begin match e with
-  | Eapp ("=", [e1; e2], _) when constr_head e2 ->
+  | Eapp (Evar("=",_), [e1; e2], _) when constr_head e2 ->
       HE.remove eqs e1;
       Hashtbl.remove constr_expr (get_constr e2);
   | _ -> ()
   end;
   begin match e with
-  | Eapp ("=", [e1; e2], _) when constr_head e1 ->
+  | Eapp (Evar("=",_), [e1; e2], _) when constr_head e1 ->
       Hashtbl.remove constr_expr (get_constr e1);
   | _ -> ()
   end;
@@ -875,7 +875,7 @@ let p_rule_coq oc r =
   | Rextension (_, "zenon_induct_discriminate", [], [conc; _], []) ->
       poc "discriminate %s.\n" (getname conc);
   | Rextension (_, "zenon_induct_discriminate_diff", [], [e1; e2; _], []) ->
-      let h = enot (eapp ("=", [e1; e2])) in
+      let h = enot (eapp (eeq, [e1; e2])) in
       poc "assert (%a) as %s. discriminate.\n" p_expr h (getname h);
   | Rextension (_, "zenon_induct_cases", [Evar (ty, _); ctx; e1], [c], hs) ->
      poc "case_eq (%a); [\n    " p_expr e1;
@@ -885,9 +885,9 @@ let p_rule_coq oc r =
           let (vs, e) = get_params body in
           let vv = Expr.newvar () in
           (vv :: vs, substitute [(v, vv)] e)
-       | Enot (Eapp ("=", [_; Evar (v, _)], _), _)
-       | Enot (Eapp ("=", [_; Eapp ("@", Evar (v, _) :: _, _)], _), _)
-       | Enot (Eapp ("=", [_; Eapp (v, _, _)], _), _)
+       | Enot (Eapp (Evar("=",_), [_; Evar (v, _)], _), _)
+       | Enot (Eapp (Evar("=",_), [_; Eapp (Evar("@",_), Evar (v, _) :: _, _)], _), _)
+       | Enot (Eapp (Evar("=",_), [_; Eapp (Evar(v,_), _, _)], _), _)
         -> ([], case)
        | Enot (body, _) -> get_params body
        | _ -> assert false
@@ -925,7 +925,7 @@ let p_rule_coq oc r =
        fprintf oc "intro zenon_tmp; rewrite zenon_tmp in *; auto\n";
      in
      begin match a with
-     | Eapp (s, _, _) | Evar (s, _) when List.mem_assoc s cstrs ->
+     | Eapp (Evar(s,_), _, _) | Evar (s, _) when List.mem_assoc s cstrs ->
         p_list "" p_case "  | " oc (List.filter (fun (x, _) -> x = s) cstrs);
      | _ ->
         p_list "" p_case "  | " oc cstrs;
@@ -942,6 +942,7 @@ Extension.register {
   Extension.make_inst = make_inst;
   Extension.add_formula = add_formula;
   Extension.remove_formula = remove_formula;
+  Extension.iter_open = (fun _ -> false);
   Extension.preprocess = preprocess;
   Extension.add_phrase = add_phrase;
   Extension.postprocess = postprocess;

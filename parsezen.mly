@@ -37,7 +37,7 @@ let mk_elam (vars, typ, body) =
 ;;
 
 let mk_pattern constr vars body =
-  mk_elam (vars, "", eapp ("$match-case", [evar constr; body]))
+  mk_elam (vars, Type.atomic "", eapp (evar "$match-case", [evar constr; body]))
 ;;
 
 let hyp_counter = ref 0;;
@@ -115,8 +115,8 @@ phrase:
 
 expr:
   | IDENT                                { evar $1 }
-  | STRING                               { eapp ("$string", [mk_string $1]) }
-  | OPEN IDENT expr_list CLOSE           { eapp ($2, $3) }
+  | STRING                               { eapp (evar "$string", [mk_string $1]) }
+  | OPEN IDENT expr_list CLOSE           { eapp (evar $2, $3) }
   | OPEN NOT expr CLOSE                  { enot ($3) }
   | OPEN AND expr expr_list CLOSE        { mkand $3 $4 }
   | OPEN OR expr expr_list CLOSE         { mkor $3 $4 }
@@ -131,10 +131,10 @@ expr:
   | OPEN EX mlambda CLOSE                { mk_eex $3 }
   | mlambda                              { mk_elam $1 }
   | OPEN TAU lambda CLOSE                { etau $3 }
-  | OPEN EQUAL expr expr CLOSE           { eapp ("=", [$3; $4]) }
-  | OPEN MATCH expr case_list CLOSE      { eapp ("$match", $3 :: $4) }
-  | OPEN LET id_expr_list_expr CLOSE     { eapp ("$let", $3) }
-  | OPEN FIX mlambda expr_list CLOSE     { eapp ("$fix", mk_elam $3 :: $4) }
+  | OPEN EQUAL expr expr CLOSE           { eapp (eeq, [$3; $4]) }
+  | OPEN MATCH expr case_list CLOSE      { eapp (evar "$match", $3 :: $4) }
+  | OPEN LET id_expr_list_expr CLOSE     { eapp (evar "$let", $3) }
+  | OPEN FIX mlambda expr_list CLOSE     { eapp (evar "$fix", mk_elam $3 :: $4) }
 ;
 
 expr_list:
@@ -143,13 +143,13 @@ expr_list:
 ;
 
 lambda:
-  | OPEN OPEN IDENT STRING CLOSE expr CLOSE      { (evar $3, $4, $6) }
-  | OPEN OPEN IDENT CLOSE expr CLOSE             { (evar $3, univ_name, $5) }
+  | OPEN OPEN IDENT STRING CLOSE expr CLOSE      { (evar $3, Type.atomic $4, $6) }
+  | OPEN OPEN IDENT CLOSE expr CLOSE             { (evar $3, Type.atomic univ_name, $5) }
 ;
 
 mlambda:
-  | OPEN OPEN ident_list STRING CLOSE expr CLOSE { ($3, $4, $6) }
-  | OPEN OPEN ident_list CLOSE expr CLOSE        { ($3, univ_name, $5) }
+  | OPEN OPEN ident_list STRING CLOSE expr CLOSE { ($3, Type.atomic $4, $6) }
+  | OPEN OPEN ident_list CLOSE expr CLOSE        { ($3, Type.atomic univ_name, $5) }
 ;
 
 ident_list:
@@ -184,7 +184,7 @@ id_expr_list_expr:
   | IDENT expr id_expr_list_expr
       { match $3 with
         | [] -> assert false
-        | body :: vals -> elam (evar ($1), "", body) :: $2 :: vals
+        | body :: vals -> elam (evar ($1), Type.atomic "", body) :: $2 :: vals
       }
 ;
 

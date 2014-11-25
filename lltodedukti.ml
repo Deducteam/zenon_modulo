@@ -31,11 +31,12 @@ struct
       match e with
       | Evar (s, _) -> if not (List.mem s env) then add_sig s 0 t
       | Emeta  _ | Etrue | Efalse -> ()
-      | Eapp ("$string", [Evar (s, _)], _) ->
+      | Eapp (Evar("$string", _), [Evar (s, _)], _) ->
          add_sig ("S"^s) 0 (Typ Out.mk_termtype)
-      | Eapp (s, args, _) ->
+      | Eapp (Evar(s, _), args, _) ->
          add_sig s (List.length args) t;
         List.iter (get_sig (Typ Out.mk_termtype) env) args;
+      | Eapp _ -> assert false
       | Eand (e1, e2, _) | Eor (e1, e2, _)
       | Eimply (e1, e2, _) | Eequiv (e1, e2, _)
         -> get_sig (Typ Out.mk_proptype) env e1;
@@ -87,7 +88,7 @@ struct
     let rec xget_distincts distincts e =
       match e with
       | Evar _ | Emeta  _ | Etrue | Efalse -> distincts
-      | Eapp ("$string", [Evar (s, _)], _) ->
+      | Eapp (Evar("$string", _), [Evar (s, _)], _) ->
 	if not (List.mem_assoc e distincts)
 	then (e, (List.length distincts) + 1) :: distincts
 	else distincts
@@ -151,7 +152,7 @@ struct
     let rec get_distinctshyps distincts = 
       match distincts with
       | (x, n) :: (y, m) :: l ->
-	(None, enot (eapp ("=", [y; x]))) :: (get_distinctshyps ((x, n) :: l))
+	(None, enot (eapp (evar "=", [y; x]))) :: (get_distinctshyps ((x, n) :: l))
 	@ (get_distinctshyps ((y, m) :: l))
       | _ -> [] in
     (((get_distinctshyps distincts)@hyps), distincts)

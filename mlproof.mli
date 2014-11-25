@@ -5,8 +5,8 @@ open Expr;;
 
 type rule =
   | Close of expr               (* p, -p  /  (.)                [p]*)
-  | Close_refl of string * expr (* -r(a,a)  /  (.)              [r a]*)
-  | Close_sym of string * expr * expr
+  | Close_refl of expr * expr (* -r(a,a)  /  (.)              [r a]*)
+  | Close_sym of expr * expr * expr
                                 (* r(a,b), -r(b,a)  /  (.)      [r a b]*)
   | False                       (* false  /  (.)                []*)
   | NotTrue                     (* -true  /  (.)                []*)
@@ -26,7 +26,7 @@ type rule =
   | NotEquiv of expr * expr     (* -(p<=>q)  /  -p, q | p, -q   [p q]*)
   | P_NotP of expr * expr
       (* P(a0, .. an), -P(b0, .. bn)  /  a0!=b0 | .. an!=bn     [P(..) -P(..)]*)
-  | P_NotP_sym of string * expr * expr
+  | P_NotP_sym of expr * expr * expr
       (* r(a,b), -r(c,d)  /  b!=c  |  a!=d                      [r r(.) -r(.)]*)
   | NotEqual of expr * expr
       (* F(a0, .. an)!=F(b0, .. bn)  /  a0!=b0 | .. an!=bn      [F(a..) F(b.)]*)
@@ -34,11 +34,11 @@ type rule =
       (* folded  /  unfolded                                    [def fld unf]*)
   | ConjTree of expr            (* p1/\p2/\..  /  p1, p2, ..    [conj]*)
   | DisjTree of expr            (* p1\/p2\/..  /  p1 | p2 | ..  [disj]*)
-  | AllPartial of expr * string * int
+  | AllPartial of expr * expr * int
                                 (* Ax.p(x)  /  Axyz.p(s(xyz))   [Axpx s ar]*)
-  | NotExPartial of expr * string * int
+  | NotExPartial of expr * expr * int
                                 (* -Ex.p(x)  /  -Exyz.p(s(xyz)) [-Expx s ar]*)
-  | Refl of string * expr * expr
+  | Refl of expr * expr * expr
                                 (* -r(a,b)  /  a!=b             [r a b]*)
   | Trans of expr * expr
       (* r(a,b),-r(c,d)  /  c!=a,-r(c,a) | b!=d,-r(b,d)         [rab -rcd]*)
@@ -81,8 +81,8 @@ val iter : (proof -> unit) -> proof -> unit;;
 val make_node : expr list -> rule -> expr list list -> proof list -> proof;;
 
 val make_cl : expr -> proof;;
-val make_clr : string -> expr -> proof;;
-val make_cls : string -> expr -> expr -> proof;;
+val make_clr : expr -> expr -> proof;;
+val make_cls : expr -> expr -> expr -> proof;;
 val make_f : proof;;
 val make_nt : proof;;
 val make_nn : expr -> proof -> proof;;
@@ -99,13 +99,18 @@ val make_nand : expr -> expr -> proof -> proof -> proof;;
 val make_eqv : expr -> expr -> proof -> proof -> proof;;
 val make_neqv : expr -> expr -> proof -> proof -> proof;;
 val make_pnp : expr -> expr -> proof list -> proof;;
-val make_pnps : string -> expr -> expr -> proof -> proof -> proof;;
+val make_pnps : expr -> expr -> expr -> proof -> proof -> proof;;
 val make_neql : expr -> expr -> proof list -> proof;;
 val make_conglr : expr -> expr -> expr -> proof -> proof;;
 val make_congrl : expr -> expr -> expr -> proof -> proof;;
 val make_def : definition -> expr -> expr -> proof -> proof;;
 
 val make_cut : expr -> proof -> proof -> proof;;
+
+val make_open : expr list -> proof;;
+val is_open_node : proof -> bool;;
+val is_open_proof : proof -> bool;;
+
 
 (*
   These are not provided because they are derived rules

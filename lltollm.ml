@@ -16,7 +16,7 @@ let rec lltollm_expr defs e =
   | Evar (v, _) when Hashtbl.mem defs v ->
     let (params, body) = Hashtbl.find defs v in
     lltollm_expr defs body
-  | Eapp (s, args, _) when Hashtbl.mem defs s ->
+  | Eapp (Evar(s, _), args, _) when Hashtbl.mem defs s ->
     let exprs = List.map (lltollm_expr defs) args in
     let (params, body) = Hashtbl.find defs s in
     lltollm_expr defs (substitute (List.combine params exprs) body)

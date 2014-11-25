@@ -36,12 +36,12 @@ val get_head : expr -> head;;
 exception No_head;;
 
 val add_trans : expr -> unit;;
-val find_trans_left : string -> head -> (expr * goalness) list;;
-val find_trans_right : string -> head -> (expr * goalness) list;;
+val find_trans_left : expr -> head -> (expr * goalness) list;;
+val find_trans_right : expr -> head -> (expr * goalness) list;;
 
 val add_negtrans : expr -> unit;;
-val find_negtrans_left : string -> head -> (expr * goalness) list;;
-val find_negtrans_right : string -> head -> (expr * goalness) list;;
+val find_negtrans_left : expr -> head -> (expr * goalness) list;;
+val find_negtrans_right : expr -> head -> (expr * goalness) list;;
 
 val find_all_negtrans_left : head -> (expr * goalness) list;;
 val find_all_negtrans_right : head -> (expr * goalness) list;;

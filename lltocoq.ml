@@ -13,7 +13,7 @@ let get_diff e1 e2 =
   let rec spin x y =
     if Expr.equal x y then () else
     match x, y with
-    | Eapp (s1, args1, _), Eapp (s2, args2, _)
+    | Eapp (Evar(s1,_), args1, _), Eapp (Evar(s2,_), args2, _)
       when s1 = s2 && List.length args1 = List.length args2 ->
        List.iter2 spin args1 args2
     | Emeta (e1, _), Emeta (e2, _)
@@ -49,7 +49,7 @@ let rec p_list init printer sep oc l =
 ;;
 
 let p_type oc t =
-  match t with
+  match Type.to_string t with
   | t when t = univ_name -> fprintf oc "%s" t;
   | "" -> fprintf oc "_";
   | s -> fprintf oc "%s" s;
@@ -70,6 +70,26 @@ let p_binding oc (v, t) =
 
 let p_id_list oc l = p_list " " (fun oc x -> fprintf oc "%s" x) "" oc l;;
 
+let is_infix_op s = match s with
+    | "$coq_div" | "=="
+    | "$less" | "$lesseq" | "$greater" | "$greatereq" | "="
+    | "$sum" | "$product" | "$difference" -> true
+    | s -> false
+
+let to_infix = function
+    | "$less" -> "<"
+    | "$lesseq" -> "<="
+    | "$greater" -> ">"
+    | "$greatereq" -> ">="
+    | "=" -> "="
+    | "$sum" -> "+"
+    | "$product" -> "*"
+    | "$difference" -> "-"
+    | "$uminus" -> "-"
+    | "$coq_div" -> "#"
+    | "==" -> "=="
+    | s -> s
+
 let rec p_expr oc e =
   let poc fmt = fprintf oc fmt in
   match e with
@@ -77,26 +97,31 @@ let rec p_expr oc e =
       poc "%s" (Coqterm.synthesize v);
   | Evar (v, _) ->
       poc "%s" v;
-  | Eapp ("=", [e1; e2], _) ->
+  | Eapp (Evar("$coq_scope",_), [Evar(s,_); e], _) ->
+      poc "(%a)%%%s" p_expr e s;
+  | Eapp (Evar("=",_), [e1; e2], _) ->
       poc "(%a = %a)" p_expr e1 p_expr e2;
-  | Eapp ("=", l, _) ->
-      p_expr oc (eapp ("@eq _", l));
-  | Eapp ("$match", e1 :: l, _) ->
+  | Eapp (Evar("=",_), l, _) ->
+      p_expr oc (eapp (evar "@eq _", l));
+  | Eapp (Evar("$match",_), e1 :: l, _) ->
       poc "match %a with%a end" p_expr e1 p_cases l;
-  | Eapp ("$fix", Elam (Evar (f, _), _, body, _) :: l, _) ->
+  | Eapp (Evar("$fix",_), Elam (Evar (f, _), _, body, _) :: l, _) ->
       let bindings, expr = decompose_lambda body in
       poc "((fix %s%a := %a)%a)" f (p_list " " p_binding "") bindings
           p_expr expr (p_list " " p_expr "") l
-  | Eapp ("FOCAL.ifthenelse", [e1; e2; e3], _) ->
+  | Eapp (Evar("FOCAL.ifthenelse",_), [e1; e2; e3], _) ->
       poc "(if %a then %a else %a)" p_expr e1 p_expr e2 p_expr e3;
-  | Eapp ("$string", [Evar (v, _)], _) ->
+  | Eapp (Evar("$string",_), [Evar (v, _)], _) ->
       poc "%s" v;
-  | Eapp ("*", [e1; e2], _) ->
+  | Eapp (Evar("*",_), [e1; e2], _) ->
       poc "%a*%a" p_expr e1 p_expr e2;
-  | Eapp ("%", [e1; e2], _) ->
+  | Eapp (Evar("%",_), [e1; e2], _) ->
       poc "%a%%%a" p_expr e1 p_expr e2;
-  | Eapp (f, l, _) ->
-      poc "(%s%a)" f p_expr_list l;
+  | Eapp(Evar(op, _), [a; b], _) when is_infix_op op ->
+      poc "(%a %s %a)" p_expr a (to_infix op) p_expr b
+  | Eapp (Evar(f,_), l, _) ->
+      poc "(%s%a)" (to_infix f) p_expr_list l;
+  | Eapp (_) -> assert false
   | Enot (e, _) ->
       poc "(~%a)" p_expr e;
   | Eand (e1, e2, _) ->
@@ -129,11 +154,16 @@ and p_cases oc l = p_list " " (p_case []) "" oc l;
 
 and p_case accu oc e =
   match e with
-  | Eapp ("$match-case", [Evar (constr, _); body], _) ->
+  | Eapp (Evar("$match-case",_), [Evar (constr, _); body], _) ->
      fprintf oc "| %s%a => %a" constr p_id_list (List.rev accu) p_expr body;
   | Elam (Evar (v, _), _, body, _) ->
      p_case (v :: accu) oc body
   | _ -> assert false
+;;
+
+(* Fix to correctly print arithemtic in Coq *)
+let pp_expr oc e = p_expr oc e
+let p_expr_list oc l = p_list " " p_expr "" oc l
 ;;
 
 let rec p_nand oc l =
@@ -145,7 +175,7 @@ let rec p_nand oc l =
 let rec p_bound_vars oc l =
   match l with
   | (ty, arg) :: t ->
-     fprintf oc " (%a : %a)" p_expr arg p_type ty;
+     fprintf oc " (%a : %a)" pp_expr arg p_type ty;
      p_bound_vars oc t;
   | [] -> ()
 ;;
@@ -309,7 +339,7 @@ let p_rule oc r =
   | Rdefinition (_, s, a, b, Some v, c, h) ->
       let args =
         match get_diff c h with
-        | Eapp (ss, args, _) when ss = s -> args
+        | Eapp (Evar(ss,_), args, _) when ss = s -> args
         | _ -> assert false
       in
       let vv = evar v in
@@ -326,31 +356,26 @@ let p_rule oc r =
         poc "simpl; auto.\n"
       end else (* Fix bug 59. *)
         poc "exact %s.\n" (getname c)
-  | Rnotequal (Eapp (f, args1, _), Eapp (g, args2, _)) ->
+  | Rnotequal (Eapp (Evar(f, _), args1, _), Eapp (Evar(g, _), args2, _)) ->
      assert (f = g);
      let f a1 a2 =
-       let eq =
-         match a1, a2 with
-         | Evar ("_", _), _ | _, Evar ("_", _) ->
-             eapp ("=", [evar "true"; evar "true"])
-         | _ -> eapp ("=", [a1; a2])
-       in
-       let neq = enot (eapp ("=", [a1; a2])) in
+       let eq = eapp (eeq, [a1; a2]) in
+       let neq = enot eq in
        poc "cut (%a); [idtac | apply NNPP; zenon_intro %s].\n"
            p_expr eq (getname neq);
      in
      List.iter2 f (List.rev args1) (List.rev args2);
      poc "congruence.\n";
   | Rnotequal _ -> assert false
-  | Rpnotp ((Eapp (f, args1, _) as ff), Enot ((Eapp (g, args2, _) as gg), _)) ->
+  | Rpnotp ((Eapp (Evar(f,_), args1, _) as ff), Enot ((Eapp (Evar(g,_), args2, _) as gg), _)) ->
      assert (f = g);
-     poc "cut (%a = %a).\n" p_expr ff p_expr gg;
+     poc "cut (%a <-> %a).\n" p_expr ff p_expr gg;
      poc "intro %s_pnotp.\n" Namespace.dummy_prefix;
      poc "apply %s.\n" (getname (enot gg));
-     poc "rewrite <- %s_pnotp.\n" Namespace.dummy_prefix;
+     poc "try rewrite <- %s_pnotp.\n" Namespace.dummy_prefix;
      poc "exact %s.\n" (getname ff);
      let f a1 a2 =
-       let eq = eapp ("=", [a1; a2]) in
+       let eq = eapp (eeq, [a1; a2]) in
        let neq = enot eq in
        poc "cut (%a); [idtac | apply NNPP; zenon_intro %s].\n"
            p_expr eq (getname neq);
@@ -359,24 +384,24 @@ let p_rule oc r =
      poc "congruence.\n";
   | Rpnotp _ -> assert false
   | Rnoteq e ->
-      poc "apply %s. apply refl_equal.\n" (getname (enot (eapp ("=", [e; e]))));
+      poc "apply %s. apply refl_equal.\n" (getname (enot (eapp (eeq, [e; e]))));
   | Reqsym (e, f) ->
       poc "apply %s. apply sym_equal. exact %s.\n"
-          (getname (enot (eapp ("=", [f; e]))))
-          (getname (eapp ("=", [e; f])));
+          (getname (enot (eapp (eeq, [f; e]))))
+          (getname (eapp (eeq, [e; f])));
   | Rnottrue ->
       poc "exact (%s I).\n" (getname (enot (etrue)));
   | Rfalse ->
       poc "exact %s.\n" (getname efalse);
   | RcongruenceLR (p, a, b) ->
       let c1 = apply p a in
-      let c2 = eapp ("=", [a; b]) in
+      let c2 = eapp (eeq, [a; b]) in
       let h = apply p b in
       poc "apply (zenon_congruence_lr_s _ %a %a %a %s %s). zenon_intro %s.\n"
           p_expr p p_expr a p_expr b (getname c1) (getname c2) (getname h);
   | RcongruenceRL (p, a, b) ->
       let c1 = apply p a in
-      let c2 = eapp ("=", [b; a]) in
+      let c2 = eapp (eeq, [b; a]) in
       let h = apply p b in
       poc "apply (zenon_congruence_rl_s _ %a %a %a %s %s). zenon_intro %s.\n"
           p_expr p p_expr a p_expr b (getname c1) (getname c2) (getname h);
@@ -403,6 +428,7 @@ let rec p_lemmas oc l =
   | [] -> ()
   | lem :: t ->
      let params = List.filter (fun (ty, v) -> notmeta v) lem.params in
+     let params = List.map (fun (ty, v) -> Type.atomic ty, v) params in
      declare_lemma oc lem.name params lem.proof.conc;
      p_script_lemma oc (List.length params) lem.proof;
      fprintf oc "(* end of lemma %s *)\n" lem.name;
@@ -414,6 +440,7 @@ let p_theorem oc phrases l =
   | [] -> assert false
   | thm :: lemmas ->
      let params = List.filter (fun (ty, v) -> notmeta v) thm.params in
+     let params = List.map (fun (ty, v) -> Type.atomic ty, v) params in
      declare_theorem oc thm.name params thm.proof.conc phrases;
      p_lemmas oc (List.rev lemmas);
      p_script_thm oc thm.proof;

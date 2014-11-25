@@ -113,14 +113,14 @@ let rec is_nat x limit =
   match x with
   | _ when limit < 0 -> false
   | Evar ("0", _) -> true
-  | Eapp ("TLA.fapply", [Evar ("TLA.Succ", _); y], _) -> is_nat y (limit - 1)
+  | Eapp (Evar("TLA.fapply",_), [Evar ("TLA.Succ", _); y], _) -> is_nat y (limit - 1)
   | _ -> false
 ;;
 
 let rec get_nat x =
   match x with
   | Evar ("0", _) -> 0
-  | Eapp ("TLA.fapply", [Evar ("TLA.Succ", _); y], _) -> 1 + get_nat y
+  | Eapp (Evar("TLA.fapply",_), [Evar ("TLA.Succ", _); y], _) -> 1 + get_nat y
   | _ -> assert false
 ;;
 
@@ -139,29 +139,30 @@ let rec p_expr env dict oc e =
       poc "(CHOOSE x : TRUE)";
   | Evar (v, _) ->
       poc "%s" (tr_constant v);
-  | Eapp ("$string", [Evar (s, _)], _) when String.length s >= 2 ->
+  | Eapp (Evar("$string",_), [Evar (s, _)], _) when String.length s >= 2 ->
       poc "''%s''" (String.sub s 1 (String.length s - 2))
-  | Eapp ("$string", _, _) -> assert false
-  | Eapp ("TLA.set", l, _) ->
+  | Eapp (Evar("$string",_), _, _) -> assert false
+  | Eapp (Evar("TLA.set",_), l, _) ->
       poc "{%a}" (p_expr_list env dict) l;
-  | Eapp ("TLA.tuple", l, _) ->
+  | Eapp (Evar("TLA.tuple",_), l, _) ->
       poc "<<%a>>" (p_expr_list env dict) l;
-  | Eapp ("TLA.record", l, _) ->
+  | Eapp (Evar("TLA.record",_), l, _) ->
       poc "(%a)" (p_list dict "" (p_record_field env) " @@ ") (make_pairs l)
-  | Eapp ("TLA.recordset", l, _) ->
+  | Eapp (Evar("TLA.recordset",_), l, _) ->
       poc "[%a]" (p_list dict "" (p_recordset_field env) ", ") (make_pairs l)
-  | Eapp ("TLA.CASE", l, _) ->
+  | Eapp (Evar("TLA.CASE",_), l, _) ->
       poc "(CASE %a)" (p_case_arms env dict) l;
-  | Eapp ("TLA.fapply", [Evar ("TLA.Succ", _); x], _) when is_nat x 14 ->
+  | Eapp (Evar("TLA.fapply",_), [Evar ("TLA.Succ", _); x], _) when is_nat x 14 ->
       poc "%d" (get_nat e)
-  | Eapp ("TLA.fapply", [f; x], _) ->
+  | Eapp (Evar("TLA.fapply",_), [f; x], _) ->
       poc "(%a[%a])" (p_expr env dict) f (p_expr env dict) x
-  | Eapp (f, [e1; e2], _) when is_infix f ->
+  | Eapp (Evar(f,_), [e1; e2], _) when is_infix f ->
       poc "(%a%s%a)" (p_expr env dict) e1 (tr_infix f) (p_expr env dict) e2;
-  | Eapp (f, [], _) -> poc "%s" f;
-  | Eapp (f, l, _) ->
+  | Eapp (Evar(f,_), [], _) -> poc "%s" f;
+  | Eapp (Evar(f,_), l, _) ->
       poc "%s(%a)" (tr_prefix f) (p_expr_list env dict) l;
-  | Enot (Eapp ("=", [e1; e2], _), _) ->
+  | Eapp(_) -> assert false
+  | Enot (Eapp (Evar("=",_), [e1; e2], _), _) ->
       poc "(%a~=%a)" (p_expr env dict) e1 (p_expr env dict) e2;
   | Enot (e1, _) ->
       poc "(~%a)" (p_expr env dict) e1;
@@ -266,8 +267,8 @@ let p_is dict oc h =
   | Enot (Eall (v, t, e1, _), _) -> unary "~(\\\\A x : " (elam (v, t, e1)) "(x))"
   | Enot (Eex (v, t, e1, _), _) -> unary "~(\\\\E x : " (elam (v, t, e1)) "(x))"
   | Enot (Enot (e1, _), _) -> unary "~~" e1 ""
-  | Eapp ("=", [e1; e2], _) -> binary "" e1 "=" e2 ""
-  | Enot (Eapp ("=", [e1; e2], _), _) -> binary "" e1 "~=" e2 ""
+  | Eapp (Evar("=",_), [e1; e2], _) -> binary "" e1 "=" e2 ""
+  | Enot (Eapp (Evar("=",_), [e1; e2], _), _) -> binary "" e1 "~=" e2 ""
   | Enot (e1, _) -> unary "~" e1 ""
   | _ -> unary "" h ""
 ;;
@@ -287,7 +288,7 @@ let p_sequent hyps i dict oc hs =
   List.fold_left (fun dict h -> p_assume hyps i dict oc h) dict hs
 ;;
 
-let tla_succ n = eapp ("TLA.fapply", [evar "TLA.Succ"; n]);;
+let tla_succ n = eapp (evar "TLA.fapply", [evar "TLA.Succ"; n]);;
 let tla_zero = evar "0";;
 let tla_one = tla_succ tla_zero;;
 
@@ -357,7 +358,7 @@ let rec p_tree hyps i dict oc proof =
   | Rextension (_, "zenon_stringequal", _, _, _) -> assert false
   | Rextension (_, "zenon_stringdiffll", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let s1nes2 = enot (eapp ("=", [s1; s2])) in
+     let s1nes2 = enot (eapp (eeq, [s1; s2])) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
      iprintf i oc "by auto\n";
      iprintf i oc "have %s: \"%a\"" (hname hyps h) (p_expr dict) h;
@@ -368,7 +369,7 @@ let rec p_tree hyps i dict oc proof =
   | Rextension (_, "zenon_stringdiffll", _, _, _) -> assert false
   | Rextension (_, "zenon_stringdifflr", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let s1nes2 = enot (eapp ("=", [s1; s2])) in
+     let s1nes2 = enot (eapp (eeq, [s1; s2])) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
      iprintf i oc "by auto\n";
      iprintf i oc "have %s: \"%a\"" (hname hyps h) (p_expr dict) h;
@@ -379,7 +380,7 @@ let rec p_tree hyps i dict oc proof =
   | Rextension (_, "zenon_stringdifflr", _, _, _) -> assert false
   | Rextension (_, "zenon_stringdiffrl", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let s1nes2 = enot (eapp ("=", [s1; s2])) in
+     let s1nes2 = enot (eapp (eeq, [s1; s2])) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
      iprintf i oc "by auto\n";
      iprintf i oc "have %s: \"%a\"" (hname hyps h) (p_expr dict) h;
@@ -390,7 +391,7 @@ let rec p_tree hyps i dict oc proof =
   | Rextension (_, "zenon_stringdiffrl", _, _, _) -> assert false
   | Rextension (_, "zenon_stringdiffrr", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let s1nes2 = enot (eapp ("=", [s1; s2])) in
+     let s1nes2 = enot (eapp (eeq, [s1; s2])) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
      iprintf i oc "by auto\n";
      iprintf i oc "have %s: \"%a\"" (hname hyps h) (p_expr dict) h;
@@ -421,7 +422,7 @@ let rec p_tree hyps i dict oc proof =
                     |"zenon_record_domain"),
                 [p; olde; newe], [c], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let eqn = eapp ("=", [olde; newe]) in
+     let eqn = eapp (eeq, [olde; newe]) in
      iprintf i oc "have %s: \"%a\"" (hname hyps eqn) (p_expr dict) eqn;
      let dict2 = p_is dict oc eqn in
      iprintf i oc "by auto\n";
@@ -437,12 +438,12 @@ let rec p_tree hyps i dict oc proof =
      let t = match proof.hyps with [t] -> t | _ -> assert false in
      let (r, fld, idx, len) =
        match olde with
-       | Eapp ("TLA.fapply", [Eapp ("TLA.record", l, _) as r; field], _) ->
+       | Eapp (Evar("TLA.fapply",_), [Eapp (Evar("TLA.record",_), l, _) as r; field], _) ->
           r, field, (Misc.list_indexq field l) / 2 + 1, (List.length l) / 2
        | _ -> assert false
      in
-     let indom = eapp ("TLA.in", [fld; eapp ("TLA.DOMAIN", [r])]) in
-     let eqn = eapp ("=", [olde; newe]) in
+     let indom = eapp (evar "TLA.in", [fld; eapp (evar "TLA.DOMAIN", [r])]) in
+     let eqn = eapp (eeq, [olde; newe]) in
      let eqx = eand (indom, eqn) in
      iprintf i oc "have %s: \"%a\"" (hname hyps eqx) (p_expr dict) eqx;
      let dict = p_is dict oc eqx in
@@ -477,19 +478,19 @@ let rec p_tree hyps i dict oc proof =
      in
      p_simple_hyp h0;
      p_simple_hyp h1;
-     let isseq = eapp ("TLA.isASeq", [e2]) in
+     let isseq = eapp (evar "TLA.isASeq", [e2]) in
      iprintf i oc "have %s: \"%a\" by auto\n"
              (hname hyps isseq) (p_expr dict2) isseq;
      let print_hyp (dict2, n) h =
        if List.memq h t.conc then begin
          let inlen =
-           eapp ("TLA.in", [n; eapp ("arith.natrange",
-                                     [tla_one; eapp ("TLA.Len", [e2])])])
+           eapp (evar "TLA.in", [n; eapp (evar "arith.natrange",
+                                     [tla_one; eapp (evar "TLA.Len", [e2])])])
          in
          iprintf i oc "have %s: \"%a\" by auto\n"
                  (hname hyps inlen) (p_expr dict2) inlen;
-         let hh = eapp ("TLA.in", [eapp ("TLA.fapply", [e1; n]);
-                                   eapp ("TLA.fapply", [e2; n])])
+         let hh = eapp (evar "TLA.in", [eapp (evar "TLA.fapply", [e1; n]);
+                                   eapp (evar "TLA.fapply", [e2; n])])
          in
          iprintf i oc "have %s: \"%a\"" (hname hyps hh) (p_expr dict2) hh;
          let dict3 = p_is dict2 oc hh in
@@ -571,22 +572,22 @@ let rec p_tree hyps i dict oc proof =
      p_simple_hyp h0;
      p_simple_hyp h1;
      let args =
-       match e2 with Eapp ("TLA.recordset", args, _) -> args | _ -> assert false
+       match e2 with Eapp (Evar("TLA.recordset",_), args, _) -> args | _ -> assert false
      in
      let l_args = mk_pairs args in
-     let doms = eapp ("TLA.tuple", List.map fst l_args) in
-     let rngs = eapp ("TLA.tuple", List.map snd l_args) in
+     let doms = eapp (evar "TLA.tuple", List.map fst l_args) in
+     let rngs = eapp (evar "TLA.tuple", List.map snd l_args) in
      let dict3 = p_let dict2 i oc doms in
      let dict4 = p_let dict3 i oc rngs in
      let print_hyp (dict4, n) h =
        if List.memq h t.conc then begin
-         let indom = eapp ("TLA.in", [n; eapp ("TLA.DOMAIN", [doms])]) in
+         let indom = eapp (evar "TLA.in", [n; eapp (evar "TLA.DOMAIN", [doms])]) in
          iprintf i oc "have %s: \"%a\" by auto\n"
                  (hname hyps indom) (p_expr dict4) indom;
          let hh =
-           eapp ("TLA.in",
-                 [eapp ("TLA.fapply", [e1; eapp ("TLA.fapply", [doms; n])]);
-                  eapp ("TLA.fapply", [rngs; n])])
+           eapp (evar "TLA.in",
+                 [eapp (evar "TLA.fapply", [e1; eapp (evar "TLA.fapply", [doms; n])]);
+                  eapp (evar "TLA.fapply", [rngs; n])])
          in
          iprintf i oc "have %s: \"%a\"" (hname hyps hh) (p_expr dict4) hh;
          let dict5 = p_is dict4 oc hh in
@@ -736,34 +737,34 @@ let rec p_tree hyps i dict oc proof =
      let t = match proof.hyps with [t] -> t | _ -> assert false in
      p_tree hyps i dict3 oc t;
   | Rdefinition _ -> assert false
-  | Rnotequal (Eapp (f, args1, _) as e1, (Eapp (g, args2, _) as e2)) ->
+  | Rnotequal (Eapp (Evar(f,_) as f', args1, _) as e1, (Eapp (Evar(g,_), args2, _) as e2)) ->
      assert (f = g);
-     let e = enot (eapp ("=", [e1; e2])) in
+     let e = enot (eapp (eeq, [e1; e2])) in
      iprintf i oc "show FALSE\n";
      iprintf i oc "proof (rule zenon_noteq [of \"%a\"])\n" (p_expr dict) e2;
      let pr d x y z = p_sub_equal hyps (iinc i) d oc x y z in
      let dict2 = list_fold_left3 pr dict args1 args2 proof.hyps in
-     let mk l = enot (eapp ("=", [eapp (f, l); e2])) in
+     let mk l = enot (eapp (eeq, [eapp (f', l); e2])) in
      p_subst hyps i dict2 oc mk args1 args2 [] e;
   | Rnotequal _ -> assert false
-  | Rpnotp (Eapp (p, args1, _) as pp, (Enot (Eapp (q, args2, _), _) as np)) ->
+  | Rpnotp (Eapp (Evar(p,_) as p', args1, _) as pp, (Enot (Eapp (Evar(q,_), args2, _), _) as np)) ->
      assert (p = q);
      iprintf i oc "show FALSE\n";
      iprintf i oc "proof (rule notE [OF %s])\n" (hname hyps np);
      let pr d x y z = p_sub_equal hyps (iinc i) d oc x y z in
      let dict2 = list_fold_left3 pr dict args1 args2 proof.hyps in
-     let mk l = eapp (p, l) in
+     let mk l = eapp (p', l) in
      p_subst hyps i dict2 oc mk args1 args2 [] pp;
   | Rpnotp _ -> assert false
   | Rnoteq e1 ->
-     let neq = enot (eapp ("=", [e1; e1])) in
+     let neq = enot (eapp (eeq, [e1; e1])) in
      let n_neq = hname hyps neq in
      iprintf i oc "show FALSE\n";
      iprintf i oc "by (rule zenon_noteq [OF %s])\n" n_neq;
   | Reqsym (e1, e2) ->
-     let eq = eapp ("=", [e1; e2]) in
+     let eq = eapp (eeq, [e1; e2]) in
      let n_eq = hname hyps eq in
-     let neq = enot (eapp ("=", [e2; e1])) in
+     let neq = enot (eapp (eeq, [e2; e1])) in
      let n_neq = hname hyps neq in
      iprintf i oc "show FALSE\n";
      iprintf i oc "by (rule zenon_eqsym [OF %s %s])\n" n_eq n_neq;
@@ -775,7 +776,7 @@ let rec p_tree hyps i dict oc proof =
      iprintf i oc "by (rule %s)\n" (hname hyps efalse);
   | RcongruenceLR (p, a, b) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let h0 = eapp ("=", [a; b]) in
+     let h0 = eapp (eeq, [a; b]) in
      let h1 = apply p a in
      let c = apply p b in
      iprintf i oc "have %s: \"%a\"" (hname hyps c) (p_expr dict) c;
@@ -785,7 +786,7 @@ let rec p_tree hyps i dict oc proof =
      p_tree hyps i dict2 oc t;
   | RcongruenceRL (p, a, b) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let h0 = eapp ("=", [b; a]) in
+     let h0 = eapp (eeq, [b; a]) in
      let h1 = apply p a in
      let c = apply p b in
      iprintf i oc "have %s: \"%a\"" (hname hyps c) (p_expr dict) c;
@@ -847,14 +848,14 @@ and p_delta hyps i dict oc lem neg lam e conc sub =
   p_tree hyps i dict2 oc t;
 
 and p_sub_equal hyps i dict oc e1 e2 prf =
-  let eq = eapp ("=", [e1; e2]) in
+  let eq = eapp (eeq, [e1; e2]) in
   if Expr.equal e1 e2 || List.exists (Expr.equal eq) prf.conc
   then dict
   else begin
     let n_eq = enot (eq) in
     iprintf i oc "have %s: \"%a\"" (hname hyps eq) (p_expr dict) eq;
     let dict2 = p_is dict oc eq in
-    let rev_eq = eapp ("=", [e2; e1]) in
+    let rev_eq = eapp (eeq, [e2; e1]) in
     if List.exists (Expr.equal rev_eq) prf.conc then begin
       iprintf i oc "by (rule sym [OF %s])\n" (hname hyps rev_eq);
     end else begin
@@ -877,12 +878,12 @@ and p_subst hyps i dict oc mk l1 l2 rl2 prev =
      else begin
        let newrl2 = h2 :: rl2 in
        let x = newvar () in
-       let p = elam (x, "", mk (List.rev_append rl2 (x :: t1))) in
+       let p = elam (x, Type.atomic "", mk (List.rev_append rl2 (x :: t1))) in
        let e = apply p h2 in
        let n_e = hname hyps e in
        iprintf (iinc i) oc "have %s: \"%a\"" n_e (p_expr dict) e;
        let dict2 = p_is dict oc e in
-       let eq = eapp ("=", [h1; h2]) in
+       let eq = eapp (eeq, [h1; h2]) in
        iprintf (iinc i) oc "by (rule subst [where P=\"%a\", OF %s], fact %s)\n"
                (p_expr dict2) p (hname hyps eq) (hname hyps prev);
        p_subst hyps i dict2 oc mk t1 t2 newrl2 e;

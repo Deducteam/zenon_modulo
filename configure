@@ -37,6 +37,17 @@ else
   exit 2
 fi
 
+if check ocamlfind; then
+    OCAMLLIB=" -I `ocamlfind query zarith`"
+    if [ ! $? -eq 0 ]; then
+        echo 'Cannot find library zarith' >&2
+        exit 2
+    fi
+else
+    echo 'Cannot find ocamlfind in path' &>2
+    exit 2
+fi
+
 if check convert; then CONVERT=convert; else CONVERT=:; fi
 if check coqc; then COQC=coqc; else COQC=:; fi
 if check coqdep; then COQDEP=coqdep; else COQDEP=:; fi
@@ -122,8 +133,8 @@ echo "BIN_DEBUG_FLAGS=$BIN_DEBUG_FLAGS" >>.config_var
 echo "SUM=$SUM" >>.config_var
 echo "CONVERT=$CONVERT" >>.config_var
 echo "GS=$GS" >>.config_var
-echo "CAMLBYT=$OCAMLC" >>.config_var
-echo "CAMLBIN=$OCAMLOPT" >>.config_var
+echo "CAMLBYT=$OCAMLC$OCAMLLIB" >>.config_var
+echo "CAMLBIN=$OCAMLOPT$OCAMLLIB" >>.config_var
 echo "CAMLLEX=ocamllex" >>.config_var
 echo "CAMLYACC=ocamlyacc" >>.config_var
 echo "CAMLDEP=ocamldep" >>.config_var

@@ -12,11 +12,15 @@ let symbol = ref None;;
 let leaves = ref [];;
 let typ = ref "";;
 
+let get_name = function
+    | Evar(s, _) -> s
+    | _ -> assert false
+
 let rec check_pattern env sym e =
   match e with
   | Eapp (s, [(Evar _ as x); (Evar _ as y)], _)
   | Enot (Eapp (s, [(Evar _ as x); (Evar _ as y)], _), _)
-    when s = sym ->
+    when compare s sym = 0 ->
       if List.mem_assoc x env && List.mem_assoc y env then ()
       else raise Wrong_shape;
   | _ -> raise Wrong_shape;
@@ -75,12 +79,12 @@ let subexprs = ref [];;
 let rec do_conj path env e =
   match e with
   | Eand (e1, e2, _) -> do_conj (L::path) env e1; do_conj (R::path) env e2;
-  | Eall (v, t, e1, _) -> do_conj path ((v,t)::env) e1;
+  | Eall (v, t, e1, _) -> do_conj path ((v,Type.to_string t)::env) e1;
   | Enot (Eor (e1, e2, _), _) ->
       do_conj (L::path) env (enot e1); do_conj (R::path) env (enot e2);
   | Enot (Eimply (e1, e2, _), _) ->
       do_conj (L::path) env e1; do_conj (R::path) env (enot e2);
-  | Enot (Eex (v, t, e1, _), _) -> do_conj path ((v,t)::env) (enot e1);
+  | Enot (Eex (v, t, e1, _), _) -> do_conj path ((v,Type.to_string t)::env) (enot e1);
   | Enot (Enot (e1, _), _) -> do_conj path env e1;
   | Eequiv (e1, e2, _) ->
       do_conj (L::path) env (eimply (e1, e2));
@@ -175,7 +179,7 @@ type info = {
   mutable trans_hyp : Expr.expr option;
 };;
 
-let tbl = (Hashtbl.create 97 : (string, info) Hashtbl.t);;
+let tbl = (Hashtbl.create 97 : (Expr.t, info) Hashtbl.t);;
 
 let get_record s =
   try Hashtbl.find tbl s
@@ -222,7 +226,7 @@ let subsumed_subexpr e (path, env, sb, typ) =
 let subsumed e = List.for_all (subsumed_subexpr e) (get_subexprs e);;
 
 let eq_origin = Some (etrue, [], []);;
-Hashtbl.add tbl "=" {
+Hashtbl.add tbl (eeq) {
   refl = eq_origin;
   sym = eq_origin;
   trans = eq_origin;
@@ -271,9 +275,9 @@ type origin = Expr.expr * direction list * int list;;
 type hyp_kind =
   | Refl of origin
   | Sym of origin
-  | Sym2 of string * origin * origin   (* symbol, refl, transsym *)
+  | Sym2 of Expr.expr * origin * origin   (* symbol, refl, transsym *)
   | Trans of origin
-  | Trans2 of string * origin * origin (* symbol, refl, transsym *)
+  | Trans2 of Expr.expr * origin * origin (* symbol, refl, transsym *)
 ;;
 
 module HE = Hashtbl.Make (Expr);;
@@ -282,13 +286,13 @@ let hyps_tbl =
 ;;
 
 let get_refl_hyp s =
-  assert (s <> "=");
+  assert (get_name s <> "=");
   let r = Hashtbl.find tbl s in
   match r.refl_hyp with
   | Some e -> e
   | None ->
       let vx = evar "x" in
-      let result = eall (vx, r.typ, eapp (s, [vx; vx])) in
+      let result = eall (vx, Type.atomic r.typ, eapp (s, [vx; vx])) in
       r.refl_hyp <- Some result;
       begin match r.refl with
       | Some (e, dirs, vars) -> HE.add hyps_tbl result (Refl ((e, dirs, vars)))
@@ -298,13 +302,13 @@ let get_refl_hyp s =
 ;;
 
 let get_sym_hyp s =
-  assert (s <> "=");
+  assert (get_name s <> "=");
   let r = Hashtbl.find tbl s in
   match r.sym_hyp with
   | Some e -> e
   | None ->
       let vx = evar "x" and vy = evar "y" in
-      let result = eall (vx, r.typ, eall (vy, r.typ,
+      let result = eall (vx, Type.atomic r.typ, eall (vy, Type.atomic r.typ,
                      eimply (eapp (s, [vx; vy]), eapp (s, [vy; vx]))))
       in
       r.sym_hyp <- Some result;
@@ -319,13 +323,13 @@ let get_sym_hyp s =
 ;;
 
 let get_trans_hyp s =
-  assert (s <> "=");
+  assert (get_name s <> "=");
   let r = Hashtbl.find tbl s in
   match r.trans_hyp with
   | Some e -> e
   | None ->
       let vx = evar "x" and vy = evar "y" and vz = evar "z" in
-      let result = eall (vx, r.typ, eall (vy, r.typ, eall (vz, r.typ,
+      let result = eall (vx, Type.atomic r.typ, eall (vy, Type.atomic r.typ, eall (vz, Type.atomic r.typ,
                      eimply (eapp (s, [vx; vy]),
                        eimply (eapp (s, [vy; vz]), eapp (s, [vx; vz]))))))
       in
@@ -550,7 +554,7 @@ let get_proof e =
 
 let print_rels oc =
   let f k r =
-    Printf.fprintf oc " %s:%s%s%s%s" k
+    Printf.fprintf oc " %s:%s%s%s%s" (get_name k)
                    (if r.refl = None then "" else "R")
                    (if r.sym = None then "" else "S")
                    (if r.trans = None then "" else "T")

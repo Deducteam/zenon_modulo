@@ -12,7 +12,7 @@ let pos () = (Parsing.symbol_start_pos (), Parsing.symbol_end_pos ())
 let rec mk_type_string e = match e with
   | Evar (s, _) -> s
   | Emeta _ -> assert false
-  | Eapp (s, args, _) ->
+  | Eapp (Evar(s, _), args, _) ->
      let inside =
        List.fold_left (fun s a -> sprintf "%s %s" s (mk_type_string a)) s args
      in
@@ -32,7 +32,7 @@ exception Bad_arity of string * int;;
 
 let rec mk_pat (constr : string) (arity : int) (body : expr) : expr =
   if arity = 0
-  then eapp ("$match-case", [evar constr; body])
+  then eapp (evar "$match-case", [evar constr; body])
   else
     (match body with
      | Elam (x, ty, e, _) ->
@@ -46,22 +46,22 @@ let rec mk_pat (constr : string) (arity : int) (body : expr) : expr =
 let mk_eapp : string * expr list -> expr =
   function
   | "dk_tuple.pair", [t1; t2; e1; e2] ->
-     eapp ("@", [evar "dk_tuple.pair"; t1; t2; e1; e2])
+     eapp (evar "@", [evar "dk_tuple.pair"; t1; t2; e1; e2])
   | "dk_tuple.match__pair", [t1; t2; x; rt; pat; fail] ->
-     eapp ("$match", x :: mk_pat "dk_tuple.pair" 2 pat :: [])
+     eapp (evar "$match", x :: mk_pat "dk_tuple.pair" 2 pat :: [])
 
-  | "dk_fail.fail", [t] -> eapp ("dk_fail.fail", [t])
+  | "dk_fail.fail", [t] -> eapp (evar "dk_fail.fail", [t])
 
   | "dk_logic.and", [e1; e2] -> eand (e1, e2)
   | "dk_logic.or", [e1; e2] -> eor (e1, e2)
   | "dk_logic.imp", [e1; e2] -> eimply (e1, e2)
   | "dk_logic.eqv", [e1; e2] -> eequiv (e1, e2)
   | "dk_logic.not", [e1] -> enot (e1)
-  | "dk_logic.forall", [ty; Elam (x, _, e, _)] -> eall (x, mk_type_string ty, e)
+  | "dk_logic.forall", [ty; Elam (x, _, e, _)] -> eall (x, Type.atomic (mk_type_string ty), e)
   | "dk_logic.forall", [_; _] -> assert false
   | "dk_logic.forall", l -> raise (Bad_arity ("forall", List.length l))
-  | "dk_logic.exists", [ty; Elam (x, _, e, _)] -> eex (x, mk_type_string ty, e)
-  | "dk_logic.ebP", [e1] -> eapp ("Is_true", [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
+  | "dk_logic.exists", [ty; Elam (x, _, e, _)] -> eex (x, Type.atomic (mk_type_string ty), e)
+  | "dk_logic.ebP", [e1] -> eapp (evar "Is_true", [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
   | "dk_logic.eP", [e] -> e                        (* eP is ignored *)
   (* There should not be any other logical connectives *)
   | s, args ->
@@ -70,7 +70,7 @@ let mk_eapp : string * expr list -> expr =
      else
        (if args = []
         then evar s
-        else eapp (s, args))
+        else eapp (evar s, args))
 ;;
 
 exception Application_head_is_not_a_var of expr;;
@@ -81,7 +81,7 @@ let rec mk_apply (e, l) =
   | arg :: tail ->
      begin
        match e with
-       | Eapp (s, args, _) -> mk_eapp (s, args @ l)
+       | Eapp (Evar(s, _), args, _) -> mk_eapp (s, args @ l)
        | Evar (s, _) -> mk_eapp (s, l)
        | Elam (x, ty, body, _) ->
           mk_apply (substitute_2nd [(x, arg)] body, tail)
@@ -96,15 +96,15 @@ let rec mk_apply (e, l) =
 ;;
 
 let mk_all var ty e =
-  eall (evar var, ty, e)
+  eall (evar var, Type.atomic ty, e)
 ;;
 
 let mk_ex var ty e =
-  eex (evar var, ty, e)
+  eex (evar var, Type.atomic ty, e)
 ;;
 
 let mk_lam var ty e =
-  elam (evar var, ty, e)
+  elam (evar var, Type.atomic ty, e)
 ;;
 
 let rec get_params e =
@@ -114,22 +114,6 @@ let rec get_params e =
       (v :: p, e1)
   | _ -> ([], e)
 ;;
-
-let add_global_ty id =
-  Expr.var_declarations :=
-    Expr.Type id :: !Expr.var_declarations
-;;
-
-let add_global_var id ty =
-  Expr.var_declarations :=
-    Expr.Var (id, ty) :: !Expr.var_declarations
-;;
-
-let add_global_hyp id hyp =
-  Expr.var_declarations :=
-    Expr.Hyp (id, hyp) :: !Expr.var_declarations
-;;
-
 
 %}
 %token <string> ID QID STRING
@@ -178,12 +162,6 @@ proofheaders:
       { () }
   | BEGINHEADER proofheaders
       { $2 }
-  | BEGIN_TY ID proofheaders
-      { $3; add_global_ty $2 }
-  | BEGIN_VAR ID COLON typ END_VAR proofheaders
-      { $6; add_global_var $2 $4 }
-  | BEGIN_HYP ID COLON STRING END_HYP proofheaders
-      { $6; add_global_hyp $2 $4 }
 
 qid:
 | QID { $1 }

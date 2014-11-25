@@ -2,15 +2,17 @@
 Version.add "$Id$";;
 
 open Misc;;
+open Type;;
 open Namespace;;
 
 let ( =%= ) = ( = );;
 let ( = ) = ();;
 
+type etype = Type.t
 type expr =
   | Evar of string * private_info
   | Emeta of expr * private_info
-  | Eapp of string * expr list * private_info
+  | Eapp of expr * expr list * private_info
 
   | Enot of expr * private_info
   | Eand of expr * expr * private_info
@@ -20,10 +22,10 @@ type expr =
   | Etrue
   | Efalse
 
-  | Eall of expr * string * expr * private_info
-  | Eex of expr * string * expr * private_info
-  | Etau of expr * string * expr * private_info
-  | Elam of expr * string * expr * private_info
+  | Eall of expr * etype * expr * private_info
+  | Eex of expr * etype * expr * private_info
+  | Etau of expr * etype * expr * private_info
+  | Elam of expr * etype * expr * private_info
 
 and private_info = {
   hash : int;
@@ -32,6 +34,7 @@ and private_info = {
   size : int;
   taus : int;           (* depth of tau nesting *)
   metas : expr list;
+  typ : etype option;
 };;
 
 type definition =
@@ -81,17 +84,18 @@ and k_tau   = 0x4ae7fad
 and k_lam   = 0x24adcb3
 ;;
 
-let mkpriv skel fv sz taus metas = {
+let mkpriv skel fv sz taus metas typ = {
   hash = Hashtbl.hash (skel, fv);
   skel_hash = skel;
   free_vars = fv;
   size = sz;
   taus = taus;
   metas = metas;
+  typ = typ;
 };;
 
-let priv_true = mkpriv k_true [] 1 0 [];;
-let priv_false = mkpriv k_false [] 1 0 [];;
+let priv_true = mkpriv k_true [] 1 0 [] (Some type_bool);;
+let priv_false = mkpriv k_false [] 1 0 [] (Some type_bool);;
 
 let get_priv = function
   | Evar (_, h) -> h
@@ -118,6 +122,30 @@ let get_fv e = (get_priv e).free_vars;;
 let get_size e = (get_priv e).size;;
 let get_taus e = (get_priv e).taus;;
 let get_metas e = (get_priv e).metas;;
+let get_type e = (get_priv e).typ;;
+
+let get_meta_type = function
+    | Eall (_, t, _, _) | Eex (_, t, _, _) -> t
+    | _ -> assert false
+;;
+
+let get_name = function
+    | Evar (s, _) -> s
+    | _ -> assert false
+;;
+
+let rec type_of_expr = function
+    | Evar(s, _) -> atomic s
+    | Etau(Evar(s, _), _, _, _) -> atomic ("tau_" ^ s)
+    | Emeta(Eall(Evar(s, _), _, _, _), _)
+    | Emeta(Eex(Evar(s, _), _, _, _), _) -> atomic ("meta_" ^ s)
+    | Eapp(Evar("!>",_), t :: l, _) ->
+            mk_poly (List.map get_name l) (type_of_expr t)
+    | Eapp(Evar("->",_), ret :: args, _) ->
+            mk_arrow (List.map type_of_expr args) (type_of_expr ret)
+    | Eapp(Evar(constr, _), args, _) ->
+            mk_constr constr (List.map type_of_expr args)
+    | _ -> assert false
 
 let rec str_union l1 l2 =
   match l1, l2 with
@@ -134,24 +162,43 @@ let rec remove x l =
   | _, h::t -> h :: (remove x t)
 ;;
 
+let t_eq a b = match a, b with
+    | Some t, Some t' -> Type.equal t t'
+    | None, None -> true | _ -> false
+
+let extract_args t args =
+    let n = match t with
+    | None -> 0
+    | Some t -> Type.nbind t
+    in
+    let aux e = match get_type e with
+        | None -> None
+        | Some t when Type.equal type_type t -> Some (type_of_expr e)
+        | Some t -> raise (Type.Mismatch(type_type, t))
+    in
+    let l1, l2 = Type.ksplit n args in
+    (List.map aux l1) @ (List.map get_type l2)
+
 let combine x y = x + y * 131 + 1;;
 
-let priv_var s = mkpriv 0 [s] 1 0 [];;
+let priv_var s = mkpriv 0 [s] 1 0 [] None;;
+let priv_tvar s t = mkpriv 0 [s] 1 0 [] (Some t);;
 let priv_meta e =
-  mkpriv (combine k_meta (get_skel e)) [] 1 0 [e]
+  mkpriv (combine k_meta (get_skel e)) [] 1 0 [e] (Some (get_meta_type e))
 ;;
 let priv_app s args =
   let comb_skel accu e = combine (get_skel e) accu in
-  let skel = combine k_app (List.fold_left comb_skel (Hashtbl.hash s) args) in
+  let skel = combine k_app (List.fold_left comb_skel (get_hash s) args) in
   let fv = List.fold_left (fun a e -> str_union a (get_fv e)) [] args in
   let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
   let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
   let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
-  mkpriv skel fv sz taus metas
+  let typ = type_app_opt (get_name s, get_type s) (extract_args (get_type s) args) in
+  mkpriv skel fv sz taus metas typ
 ;;
 let priv_not e =
   mkpriv (combine k_not (get_skel e)) (get_fv e) (get_size e + 1)
-         (get_taus e) (get_metas e)
+         (get_taus e) (get_metas e) (bool_app_opt [get_type e])
 ;;
 let priv_and e1 e2 =
   mkpriv (combine k_and (combine (get_skel e1) (get_skel e2)))
@@ -159,6 +206,7 @@ let priv_and e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (bool_app_opt [get_type e1; get_type e2])
 ;;
 let priv_or e1 e2 =
   mkpriv (combine k_or (combine (get_skel e1) (get_skel e2)))
@@ -166,6 +214,7 @@ let priv_or e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (bool_app_opt [get_type e1; get_type e2])
 ;;
 let priv_imply e1 e2 =
   mkpriv (combine k_imply (combine (get_skel e1) (get_skel e2)))
@@ -173,6 +222,7 @@ let priv_imply e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (bool_app_opt [get_type e1; get_type e2])
 ;;
 let priv_equiv e1 e2 =
   mkpriv (combine k_equiv (combine (get_skel e1) (get_skel e2)))
@@ -180,24 +230,28 @@ let priv_equiv e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (bool_app_opt [get_type e1; get_type e2])
 ;;
 let priv_all v t e =
   mkpriv (combine k_all (combine (Hashtbl.hash t) (get_skel e)))
          (remove v (get_fv e)) (1 + get_size e) (get_taus e) (get_metas e)
+         (bool_app_opt [get_type e])
 ;;
 let priv_ex v t e =
   mkpriv (combine k_ex (combine (Hashtbl.hash t) (get_skel e)))
          (remove v (get_fv e)) (1 + get_size e) (get_taus e) (get_metas e)
+         (bool_app_opt [get_type e])
 ;;
 let priv_tau v t e =
   mkpriv (combine k_tau (combine (Hashtbl.hash t) (get_skel e)))
          (remove v (get_fv e)) 1 (1 + get_taus e) (get_metas e)
+         (Some t)
 ;;
 let priv_lam v t e =
   mkpriv (combine k_lam (combine (Hashtbl.hash t) (get_skel e)))
          (remove v (get_fv e)) 1 (get_taus e) (get_metas e)
+         (get_type e)
 ;;
-
 
 module HashedExpr = struct
   type t = expr;;
@@ -272,12 +326,17 @@ module HashedExpr = struct
     || m1 && m2 && equal_in_env [v1] [v2] f1 f2
   ;;
 
-  let equal e1 e2 =
+  let opt_equal a b = match a, b with
+  | None, None -> true
+  | Some t1, Some t2 -> Type.equal t1 t2
+  | _ -> false
+
+  let equal e1 e2 = (t_eq (get_type e1) (get_type e2)) &&
     match e1, e2 with
-    | Evar (v1, _), Evar (v2, _) -> v1 =%= v2
+    | Evar (v1, _), Evar (v2, _) -> v1 =%= v2 && opt_equal (get_type e1) (get_type e2)
     | Emeta (f1, _), Emeta (f2, _) -> f1 == f2
     | Eapp (sym1, args1, _), Eapp (sym2, args2, _) ->
-        sym1 =%= sym2 && List.length args1 =%= List.length args2
+        sym1 == sym2 && List.length args1 =%= List.length args2
         && List.for_all2 (==) args1 args2
     | Enot (f1, _), Enot (f2, _) -> f1 == f2
     | Eand (f1, g1, _), Eand (f2, g2, _)
@@ -333,7 +392,9 @@ let print_stats oc =
   ;;
 *)
 
+
 let evar (s) = he_merge (Evar (s, priv_var s));;
+let tvar s t = he_merge (Evar (s, priv_tvar s t));;
 let emeta (e) = he_merge (Emeta (e, priv_meta e));;
 let eapp (s, args) = he_merge (Eapp (s, args, priv_app s args));;
 let enot (e) = he_merge (Enot (e, priv_not e));;
@@ -348,27 +409,37 @@ let eex (v, t, e) = he_merge (Eex (v, t, e, priv_ex v t e));;
 let etau (v, t, e) = he_merge (Etau (v, t, e, priv_tau v t e));;
 let elam (v, t, e) = he_merge (Elam (v, t, e, priv_lam v t e));;
 
+let exor (e1,e2) = eor (eand (e1, enot e2), eand (enot e1, e2));;
+
+let eeq = evar "=";;
+let estring = evar "$string";;
+
 let rec all_list vs body =
   match vs with
   | [] -> body
-  | h::t -> eall (h, "", all_list t body)
+  | h::t -> eall (h, atomic "", all_list t body)
 ;;
 
 let rec ex_list vs body =
   match vs with
   | [] -> body
-  | h::t -> eex (h, "", ex_list t body)
+  | h::t -> eex (h, atomic "", ex_list t body)
 ;;
 
 type t = expr;;
 let hash = get_hash;;
 let equal = (==);;
 let compare x y =
-  match compare (hash x) (hash y) with
+  match Pervasives.compare (hash x) (hash y) with
   | 0 -> if equal x y then 0 else Pervasives.compare x y
   | x when x < 0 -> -1
   | _ -> 1
 ;;
+let compare_type x y = match (get_type x), (get_type y) with
+    | Some t, Some t' -> Type.compare t t'
+    | None, None -> 0
+    | None, _ -> -1
+    | _, None -> +1
 
 (************************)
 
@@ -441,6 +512,11 @@ let disj vars map =
   List.for_all irrelevant vars
 ;;
 
+let substitute_type map t =
+    let map = List.filter (function (Evar(_), e) -> get_type e =%= Some type_type | _ -> false) map in
+    let map = List.map (function (Evar(s,_), e) -> (s, type_of_expr e) | _ -> assert false) map in
+    Type.substitute map t
+
 let rec substitute map e =
   match e with
   | _ when disj (get_fv e) map -> e
@@ -454,33 +530,92 @@ let rec substitute map e =
   | Eequiv (f, g, _) -> eequiv (substitute map f, substitute map g)
   | Etrue | Efalse -> e
   | Eall (v, t, f, _) ->
+      let t = substitute_type map t in
       let map1 = rm_binding v map in
-      if conflict v map1 then
-        let nv = newvar () in
+      let nv =
+          if conflict v map1 then
+            tvar (newname ()) t
+          else
+            tvar (get_name v) t
+      in
+      if v <> nv then
         eall (nv, t, substitute ((v, nv) :: map1) f)
       else
         eall (v, t, substitute map1 f)
   | Eex (v, t, f, _) ->
+      let t = substitute_type map t in
       let map1 = rm_binding v map in
-      if conflict v map1 then
-        let nv = newvar () in
+      let nv =
+          if conflict v map1 then
+            tvar (newname ()) t
+          else
+            tvar (get_name v) t
+      in
+      if v <> nv then
         eex (nv, t, substitute ((v, nv) :: map1) f)
       else
         eex (v, t, substitute map1 f)
   | Etau (v, t, f, _) ->
+      let t = substitute_type map t in
       let map1 = rm_binding v map in
-      if conflict v map1 then
-        let nv = newvar () in
+      let nv =
+          if conflict v map1 then
+            tvar (newname ()) t
+          else
+            tvar (get_name v) t
+      in
+      if v <> nv then
         etau (nv, t, substitute ((v, nv) :: map1) f)
       else
         etau (v, t, substitute map1 f)
   | Elam (v, t, f, _) ->
+      let t = substitute_type map t in
       let map1 = rm_binding v map in
-      if conflict v map1 then
-        let nv = newvar () in
+      let nv =
+          if conflict v map1 then
+            tvar (newname ()) t
+          else
+            tvar (get_name v) t
+      in
+      if v <> nv then
         elam (nv, t, substitute ((v, nv) :: map1) f)
       else
         elam (v, t, substitute map1 f)
+;;
+
+let rec substitute_meta map e =
+  match e with
+  | Evar (v, _) -> e
+  | Emeta (e', _) -> let (meta, v) = map in if e' == meta then v else e
+  | Eapp (s, args, _) -> eapp (s, List.map (substitute_meta map) args)
+  | Enot (f, _) -> enot (substitute_meta map f)
+  | Eand (f, g, _) -> eand (substitute_meta map f, substitute_meta map g)
+  | Eor (f, g, _) -> eor (substitute_meta map f, substitute_meta map g)
+  | Eimply (f, g, _) -> eimply (substitute_meta map f, substitute_meta map g)
+  | Eequiv (f, g, _) -> eequiv (substitute_meta map f, substitute_meta map g)
+  | Etrue | Efalse -> e
+  | Eall (v, t, f, _) -> eall (v, t, substitute_meta map f)
+  | Eex (v, t, f, _) -> eex (v, t, substitute_meta map f)
+  | Etau (v, t, f, _) -> etau (v, t, substitute_meta map f)
+  | Elam (v, t, f, _) -> elam (v, t, substitute_meta map f)
+;;
+
+let rec substitute_expr map e =
+  match e with
+  | _ when e == (fst map) -> snd map
+  | Evar (v, _) -> e
+  | Emeta (e', _) -> e
+  | Eapp (s, args, _) -> eapp (s, List.map (substitute_expr map) args)
+  | Enot (f, _) -> enot (substitute_expr map f)
+  | Eand (f, g, _) -> eand (substitute_expr map f, substitute_expr map g)
+  | Eor (f, g, _) -> eor (substitute_expr map f, substitute_expr map g)
+  | Eimply (f, g, _) -> eimply (substitute_expr map f, substitute_expr map g)
+  | Eequiv (f, g, _) -> eequiv (substitute_expr map f, substitute_expr map g)
+  | Etrue | Efalse -> e
+  | Eall (v, t, f, _) -> eall (v, t, substitute_expr map f)
+  | Eex (v, t, f, _) -> eex (v, t, substitute_expr map f)
+  | Etau (v, t, f, _) -> etau (v, t, substitute_expr map f)
+  | Elam (v, t, f, _) -> elam (v, t, substitute_expr map f)
 ;;
 
 let rec substitute_2nd map e =
@@ -490,10 +625,10 @@ let rec substitute_2nd map e =
   | Eapp (s, args, _) ->
      let acts = List.map (substitute_2nd map) args in
      begin try
-      let lam = List.assq (evar s) map in
+      let lam = List.assq (evar (get_name s)) map in
       match lam, acts with
       | Elam (v, _, body, _), [a] -> substitute [(v,a)] body
-      | Evar (v, _), _ -> eapp (v, acts)
+      | Evar (v, _), _ -> eapp (lam, acts)
       | Eapp (s1, args1, _), _ -> eapp (s1, args1 @ acts)
       | _ -> raise Higher_order
      with Not_found -> eapp (s, acts)
@@ -543,14 +678,14 @@ let apply f a =
 let add_argument f a =
   match f with
   | Elam _ -> apply f a
-  | Evar (s, _) -> eapp (s, [a])
+  | Evar (s, _) -> eapp (f, [a])
   | Eapp (s, args, _) -> eapp (s, args @ [a])
   | _ -> raise Higher_order
 ;;
 
 let rec remove_scope e =
   match e with
-  | Eapp ("$scope", e1 :: t :: vals, _) -> remove_scope (apply e1 t)
+  | Eapp (f, e1 :: t :: vals, _) when get_name f =%= "$scope" -> remove_scope (apply e1 t)
   | Eapp (f, args, _) -> e
   | Enot (e1, _) -> enot (remove_scope e1)
   | Eand (e1, e2, _) -> eand (remove_scope e1, remove_scope e2)
@@ -564,10 +699,3 @@ let rec remove_scope e =
 ;;
 
 type goalness = int;;
-
-type var_declaration =
-  | Type of string
-  | Var of string * string
-  | Hyp of string * string
-
-let var_declarations = ref [];;

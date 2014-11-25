@@ -1,6 +1,7 @@
 open Printf
 
 type var = string
+type ty = Type.t
 
 type term =
   | Dkvar of var
@@ -9,8 +10,6 @@ type term =
   | Dkapp of term list
   | Dkarrow of term * term
   | Dkprf
-  | Dktermtype
-  | Dkproptype
   | Dkanyterm
   | Dknot
   | Dkand
@@ -44,36 +43,37 @@ type line =
   | Dkprelude of string
   | Dkrewrite of (term * term) list * term * term
 
+let term_of_ty ty = Dkvar (Type.to_string ty)
 let mk_var var = Dkvar var
-let mk_lam var t term = Dklam (var, t, term)
+let mk_lam var ty term = Dklam (var, ty, term)
 let mk_lams vars types e =
   List.fold_left2 (fun term var t -> mk_lam var t term) e (List.rev vars) (List.rev types)
-let mk_pi var t term = Dkpi (var, t, term)
 let mk_app t ts = Dkapp (t :: ts)
 let mk_app2 t1 t2 = mk_app t1 [t2]
 let mk_app3 t1 t2 t3 = mk_app t1 [t2; t3]
 let mk_arrow t1 t2 = Dkarrow (t1, t2)
 let mk_prf t = mk_app2 Dkprf t
 let mk_term ty = mk_app2 Dkterm ty
-let mk_termtype = Dktermtype
-let mk_proptype = Dkproptype
+let mk_pi var ty term = Dkpi (var, mk_term (term_of_ty ty), term)
+let mk_termtype = mk_var "logic.Term"
+let mk_proptype = mk_var "logic.Prop"
 let mk_anyterm = Dkanyterm
 let mk_not term = mk_app2 Dknot term
 let mk_and p q = mk_app3 Dkand p q
 let mk_or p q = mk_app3 Dkor p q
 let mk_imply p q = mk_app3 Dkimply p q
-let mk_forall x s p =
-  if s = "zenon_U" then
-    mk_app2 DkforallTerm (mk_lam x Dktermtype p)
+let mk_forall x ty p =
+  if Type.to_string ty = "zenon_U" then
+    mk_app2 DkforallTerm (mk_lam x mk_termtype p)
   else
-    let ty = mk_var s in
-    mk_app3 Dkforall ty (mk_lam x (mk_term ty) p)
-let mk_exists x s p =
-  if s = "zenon_U" then
-    mk_app2 DkexistsTerm (mk_lam x Dktermtype p)
+    let t = term_of_ty ty in
+    mk_app3 Dkforall t (mk_lam x t p)
+let mk_exists x ty p =
+  if Type.to_string ty = "zenon_U" then
+    mk_app2 DkexistsTerm (mk_lam x mk_termtype p)
   else
-    let ty = mk_var s in
-    mk_app3 Dkexists ty (mk_lam x (mk_term ty) p)
+    let t = term_of_ty ty in
+    mk_app3 Dkexists t (mk_lam x t p)
 let mk_true = Dktrue
 let mk_false = Dkfalse
 let mk_eq t1 t2 = mk_app3 Dkeq t1 t2
@@ -81,18 +81,18 @@ let mk_notc term = mk_app2 Dknotc term
 let mk_andc p q = mk_app3 Dkandc p q
 let mk_orc p q = mk_app3 Dkorc p q
 let mk_implyc p q = mk_app3 Dkimplyc p q
-let mk_forallc x s p =
-    if s = "zenon_U" then
-    mk_app2 DkforallcTerm (mk_lam x Dktermtype p)
+let mk_forallc x ty p =
+    if Type.to_string ty = "zenon_U" then
+    mk_app2 DkforallcTerm (mk_lam x mk_termtype p)
   else
-    let ty = mk_var s in
-    mk_app3 Dkforallc ty (mk_lam x (mk_term ty) p)
-let mk_existsc x s p =
-    if s = "zenon_U" then
-    mk_app2 DkexistscTerm (mk_lam x Dktermtype p)
+    let t = term_of_ty ty in
+    mk_app3 Dkforallc t (mk_lam x t p)
+let mk_existsc x ty p =
+    if Type.to_string ty = "zenon_U" then
+    mk_app2 DkexistscTerm (mk_lam x mk_termtype p)
   else
-    let ty = mk_var s in
-    mk_app3 Dkexistsc ty (mk_lam x (mk_term ty) p)
+    let t = term_of_ty ty in
+    mk_app3 Dkexistsc t (mk_lam x t p)
 let mk_truec = Dktruec
 let mk_falsec = Dkfalsec
 let mk_eqc t1 t2 = mk_app3 Dkeqc t1 t2
@@ -120,8 +120,6 @@ let rec print_term out term =
     fprintf out "%a -> %a"
       print_term_p t1 print_term_p t2
   | Dkprf -> fprintf out "logic.prf"
-  | Dktermtype -> fprintf out "logic.Term"
-  | Dkproptype -> fprintf out "logic.Prop"
   | Dkanyterm -> fprintf out "logic.anyterm"
   | Dknot -> fprintf out "logic.not"
   | Dkand -> fprintf out "logic.and"
@@ -175,16 +173,6 @@ let print_env out env =
       print_type e2
   | _ -> List.iter (print_type out) env
 
-let print_var_decl out = function
-  | Expr.Type t ->
-     fprintf out "(%s : cc.uT) " t
-  | Expr.Var (v, t)
-  | Expr.Hyp (v, t) ->
-     fprintf out "(%s : %s) " v t
-
-let print_var_decls out =
-  List.iter (print_var_decl out)
-
 let print_line out line =
   match line with
   | Dkdecl (t, term) ->
@@ -192,9 +180,8 @@ let print_line out line =
       print_term t
       print_term term
   | Dkdeftype (t, typeterm, term) ->
-    fprintf out "%a %a: %a:= %a.\n"
+    fprintf out "%a : %a:= %a.\n"
       print_term t
-      print_var_decls !(Expr.var_declarations)
       print_term typeterm
       print_term term
   | Dkprelude (name) -> fprintf out "#NAME %s.\n" name

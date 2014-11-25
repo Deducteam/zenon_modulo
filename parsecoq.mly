@@ -13,11 +13,11 @@ let rec mk_type_string e =
   match e with
   | Evar (s, _) -> s
   | Emeta _ -> assert false
-  | Eapp ("*", [e1; e2], _) ->
+  | Eapp (Evar("*",_), [e1; e2], _) ->
      sprintf "(%s*%s)" (mk_type_string e1) (mk_type_string e2)
-  | Eapp ("%", [e1; e2], _) ->
+  | Eapp (Evar("%",_), [e1; e2], _) ->
      sprintf "((%s)%%%s)" (mk_type_string e1) (mk_type_string e2)
-  | Eapp (s, args, _) ->
+  | Eapp (Evar(s,_), args, _) ->
      let inside =
        List.fold_left (fun s a -> sprintf "%s %s" s (mk_type_string a)) s args
      in
@@ -32,12 +32,12 @@ let mk_eapp (s, args) =
   | "and", [e1; e2] -> eand (e1, e2)
   | "or", [e1; e2] -> eor (e1, e2)
   | "not", [e1] -> enot (e1)
-  | _ -> eapp (s, args)
+  | _ -> eapp (evar s, args)
 ;;
 
 let mk_apply (e, l) =
   match e with
-  | Eapp (s, args, _) -> mk_eapp (s, args @ l)
+  | Eapp (Evar(s,_), args, _) -> mk_eapp (s, args @ l)
   | Evar (s, _) -> mk_eapp (s, l)
   | _ -> raise Parse_error
 ;;
@@ -46,27 +46,27 @@ let rec mk_arobas_apply (id, l) =
   match l with
   | Evar ("_", _) :: t -> mk_arobas_apply (id, t)
   | [] -> evar (id)
-  | _ -> eapp (id, l)
+  | _ -> eapp (evar id, l)
 ;;
 
 let mk_all bindings body =
-  let f (var, ty) e = eall (evar var, ty, e) in
+  let f (var, ty) e = eall (evar var, Type.atomic ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_ex bindings body =
-  let f (var, ty) e = eex (evar var, ty, e) in
+  let f (var, ty) e = eex (evar var, Type.atomic ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_lam bindings body =
-  let f (var, ty) e = elam (evar var, ty, e) in
+  let f (var, ty) e = elam (evar var, Type.atomic ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_fix ident ty bindings body =
-  let f (var, ty) e = elam (evar var, ty, e) in
-  (ident, eapp ("$fix", [ List.fold_right f ((ident, ty) :: bindings) body ]))
+  let f (var, ty) e = elam (evar var, Type.atomic ty, e) in
+  (ident, eapp (evar "$fix", [ List.fold_right f ((ident, ty) :: bindings) body ]))
 ;;
 
 let rec get_params e =
@@ -85,7 +85,7 @@ let mk_let_fix (id, def) body = mk_let id def body;;
 
 let mk_pattern (constr, args) body =
   let bindings = List.map (fun v -> (v, "")) args in
-  mk_lam bindings (eapp ("$match-case", [evar (constr); body]))
+  mk_lam bindings (eapp (evar "$match-case", [evar (constr); body]))
 ;;
 
 let mk_inductive name bindings constrs =
@@ -99,7 +99,7 @@ let mk_inductive name bindings constrs =
 ;;
 
 let mk_pairs e l =
-  let f x y = eapp ("@", [evar "Datatypes.pair"; evar "_"; evar "_"; x; y]) in
+  let f x y = eapp (evar "@", [evar "Datatypes.pair"; evar "_"; evar "_"; x; y]) in
   List.fold_left f e l
 ;;
 
@@ -259,10 +259,10 @@ expr:
       { mk_let $2 $6 $8 }
 
   | MATCH expr WITH pat_expr_list END
-      { eapp ("$match", $2 :: $4) }
+      { eapp (evar "$match", $2 :: $4) }
 
   | IF expr THEN expr ELSE expr
-      { eapp ("FOCAL.ifthenelse", [$2; $4; $6]) }
+      { eapp (evar "FOCAL.ifthenelse", [$2; $4; $6]) }
 
   | expr DASH_GT_ expr
       { eimply ($1, $3) }
@@ -277,9 +277,9 @@ expr:
       { eand ($1, $3) }
 
   | expr EQ_ expr
-      { eapp ("=", [$1; $3]) }
+      { eapp (eeq, [$1; $3]) }
   | expr LT_GT_ expr
-      { enot (eapp ("=", [$1; $3])) }
+      { enot (eapp (eeq, [$1; $3])) }
 
   | TILDE_ expr
       { enot ($2) }
@@ -306,17 +306,17 @@ expr1:
   | IDENT
       { evar ($1) }
   | NUM
-      { eapp ($1, []) }
+      { eapp (evar $1, []) }
   /* Added F. Pessaux, Makes Zenon parsing strings and considering them like
      simple atoms. */
   | STRING
-      { eapp ("$string", [mk_string $1]) }
+      { eapp (estring, [mk_string $1]) }
   | LPAREN_ expr comma_expr_list RPAREN_
       { mk_pairs $2 $3 }
   | LPAREN_ expr STAR_ expr RPAREN_
-      { eapp ("*", [$2; $4]) }
+      { eapp (evar "*", [$2; $4]) }
   | LPAREN_ expr PERCENT_ IDENT RPAREN_
-      { eapp ("%", [$2; evar ($4)]) }
+      { eapp (evar "%", [$2; evar ($4)]) }
   | LPAREN_ expr RPAREN_
       { $2 }
   | TRUE

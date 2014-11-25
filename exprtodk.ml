@@ -35,20 +35,20 @@ struct
     | Enot (Enot (
       Eex (e1, s, Enot (Enot (e2, _), _), _), _), _) ->
        Dk.mk_existsc (trexpr e1) s (trexpr e2)
-    | Enot (Enot (Eapp ("=", [e1;e2], _), _), _) ->
+    | Enot (Enot (Eapp (Evar("=", _), [e1;e2], _), _), _) ->
        Dk.mk_eqc (trexpr e1) (trexpr e2)
     (* Terms *)
     | Evar (v, _) when Mltoll.is_meta v ->
        Dk.mk_anyterm
     | Evar (v, _) ->
        Dk.mk_var v
-    | Eapp ("$string", [Evar (v, _)], _) ->
+    | Eapp (Evar("$string", _), [Evar (v, _)], _) ->
        Dk.mk_var ("S"^v)
-    | Eapp ("$string", _, _) -> assert false
-    | Eapp ("=", [e1;e2], _) ->
+    | Eapp (Evar("$string", _), _, _) -> assert false
+    | Eapp (Evar("=", _), [e1;e2], _) ->
        Dk.mk_eq (trexpr e1) (trexpr e2)
-    | Eapp (s, args, _) ->
-       Dk.mk_app (Dk.mk_var s) (List.map trexpr args)
+    | Eapp (t, args, _) ->
+       Dk.mk_app (trexpr t) (List.map trexpr args)
     (* Intuitionistic connectors *)
     | Enot (e, _) ->
        Dk.mk_not (trexpr e)
@@ -67,6 +67,8 @@ struct
     | Eequiv _ -> assert false                  (* Should have been unfolded earlier *)
     | Etau _ -> assert false                    (* Should have been unfolded *)
     | Elam (e1, s, e2, _) ->
-       Dk.mk_lam (trexpr e1) (Dk.mk_var s) (trexpr e2)
+       Dk.mk_lam (trexpr e1)
+                 (Dk.mk_var (Type.to_string s))
+                 (trexpr e2)
     | Emeta _ -> assert false                   (* Meta are forbidden earlier *)
 end

@@ -18,6 +18,7 @@ type t = {
   make_inst : Expr.expr -> Expr.expr -> Expr.goalness -> Node.node list;
   add_formula : Expr.expr -> unit;
   remove_formula : Expr.expr -> unit;
+  iter_open : Mlproof.proof -> bool;
   preprocess : Phrase.phrase list -> Phrase.phrase list;
   add_phrase : Phrase.phrase -> unit;
   postprocess : Llproof.proof -> Llproof.proof;
@@ -43,6 +44,7 @@ val make_inst :
 ;;
 val add_formula : Expr.expr -> unit;;
 val remove_formula : Expr.expr -> unit;;
+val iter_open : Mlproof.proof -> bool;;
 val preprocess : Phrase.phrase list -> Phrase.phrase list;;
 val add_phrase : Phrase.phrase -> unit;;
 val postprocess : Llproof.proof -> Llproof.proof;;

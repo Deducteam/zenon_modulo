@@ -18,10 +18,12 @@ type params = {
   fail : unit -> branch_state;
   progress : unit -> unit;
   end_progress : string -> unit;
+  iter : (Mlproof.proof list -> Mlproof.proof list) -> Mlproof.proof list -> Mlproof.proof list;
 };;
 
-val prove : params -> definition list -> (expr * int) list -> Mlproof.proof;;
+val prove : params -> definition list -> (expr * int) list -> Mlproof.proof list;;
 val default_params : params;;
+val open_params : int option -> params;;
 
 val newnodes_absurd : rule;;
 val newnodes_closure : rule;;

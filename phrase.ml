@@ -49,7 +49,8 @@ let rec check_body env s e =
   match e with
   | Evar (v, _) -> v <> s || List.mem e env
   | Emeta _ -> assert false
-  | Eapp (ss, args, _) -> ss <> s && List.for_all (check_body env s) args
+  | Eapp (Evar(ss,_), args, _) -> ss <> s && List.for_all (check_body env s) args
+  | Eapp(_) -> assert false
   | Enot (f, _) -> check_body env s f
   | Eand (f1, f2, _) | Eor (f1, f2, _) | Eimply (f1, f2, _) | Eequiv (f1, f2, _)
     -> check_body env s f1 && check_body env s f2
@@ -63,21 +64,21 @@ let rec check_body env s e =
 let rec is_def predef env e =
   match e with
   | Eall (v, t, f, _) -> is_def predef (v::env) f
-  | Eequiv (Eapp (s, args, _), body, _) when not (List.mem s predef) ->
+  | Eequiv (Eapp (Evar(s,_), args, _), body, _) when not (List.mem s predef) ->
      check_args env args && check_body [] s body
-  | Eequiv (body, Eapp (s, args, _), _) when not (List.mem s predef) ->
+  | Eequiv (body, Eapp (Evar(s,_), args, _), _) when not (List.mem s predef) ->
      check_args env args && check_body [] s body
   | Eequiv (Evar (s, _), body, _) when not (List.mem s predef) ->
      env = [] && check_body [] s body
   | Eequiv (body, Evar (s, _), _) when not (List.mem s predef) ->
      env = [] && check_body [] s body
-  | Eapp ("=", [Evar (s, _); body], _) when not (List.mem s predef) ->
+  | Eapp (Evar("=",_), [Evar (s, _); body], _) when not (List.mem s predef) ->
      env = [] && check_body [] s body
-  | Eapp ("=", [body; Evar (s, _)], _) when not (List.mem s predef) ->
+  | Eapp (Evar("=",_), [body; Evar (s, _)], _) when not (List.mem s predef) ->
      env = [] && check_body [] s body
-  | Eapp ("=", [Eapp (s, args, _); body], _) when not (List.mem s predef) ->
+  | Eapp (Evar("=",_), [Eapp (Evar(s,_), args, _); body], _) when not (List.mem s predef) ->
      check_args env args && check_body [] s body
-  | Eapp ("=", [body; Eapp (s, args, _)], _) when not (List.mem s predef) ->
+  | Eapp (Evar("=",_), [body; Eapp (Evar(s,_), args, _)], _) when not (List.mem s predef) ->
      check_args env args && check_body [] s body
   | _ -> false
 ;;
@@ -85,24 +86,24 @@ let rec is_def predef env e =
 let rec make_def predef orig env e =
   match e with
   | Eall (v, t, f, _) -> make_def predef orig (v::env) f
-  | Eequiv (Eapp (s, args, _), body, _)
+  | Eequiv (Eapp (Evar(s,_), args, _), body, _)
     when not (List.mem s predef) && check_args env args ->
       DefPseudo (orig, s, extract_args args, body)
-  | Eequiv (body, Eapp (s, args, _), _) when
+  | Eequiv (body, Eapp (Evar(s,_), args, _), _) when
     not (List.mem s predef) && check_args env args ->
       DefPseudo (orig, s, extract_args args, body)
   | Eequiv (Evar (s, _), body, _) when not (List.mem s predef) ->
       DefPseudo (orig, s, [], body)
   | Eequiv (body, Evar (s, _), _) when not (List.mem s predef) ->
       DefPseudo (orig, s, [], body)
-  | Eapp ("=", [Evar (s, _); body], _) when not (List.mem s predef) ->
+  | Eapp (Evar("=",_), [Evar (s, _); body], _) when not (List.mem s predef) ->
       DefPseudo (orig, s, [], body)
-  | Eapp ("=", [body; Evar (s, _)], _) when not (List.mem s predef) ->
+  | Eapp (Evar("=",_), [body; Evar (s, _)], _) when not (List.mem s predef) ->
       DefPseudo (orig, s, [], body)
-  | Eapp ("=", [Eapp (s, args, _); body], _)
+  | Eapp (Evar("=",_), [Eapp (Evar(s,_), args, _); body], _)
     when not (List.mem s predef) && check_args env args ->
       DefPseudo (orig, s, extract_args args, body)
-  | Eapp ("=", [body; Eapp (s, args, _)], _)
+  | Eapp (Evar("=",_), [body; Eapp (Evar(s,_), args, _)], _)
     when not (List.mem s predef) && check_args env args ->
       DefPseudo (orig, s, extract_args args, body)
   | _ -> assert false
@@ -112,7 +113,8 @@ let rec free_syms env accu e =
   match e with
   | Evar (v, _) -> if List.mem e env then accu else v :: accu
   | Emeta _ -> assert false
-  | Eapp (s, args, _) -> List.fold_left (free_syms env) (s::accu) args
+  | Eapp (Evar(s,_), args, _) -> List.fold_left (free_syms env) (s ::accu) args
+  | Eapp (_) -> assert false
   | Enot (f, _) -> free_syms env accu f
   | Eand (f, g, _) -> free_syms env (free_syms env accu f) g
   | Eor (f, g, _) -> free_syms env (free_syms env accu f) g

@@ -66,20 +66,20 @@ let rec rm a list =
 let scaxiom (e, g) = e :: g, e, SCaxiom e
 let scfalse (g, e) = efalse :: g, e, SCfalse
 let sctrue (g) = g, etrue, SCtrue
-let sceqref (a, g) = g, eapp ("=", [a; a]), SCeqref (a)
+let sceqref (a, g) = g, eapp (evar "=", [a; a]), SCeqref (a)
 let sceqsym (a, b, g) =
-  eapp ("=", [a; b]) :: g, eapp ("=", [b; a]), SCeqsym (a, b)
+  eapp (evar "=", [a; b]) :: g, eapp (evar "=", [b; a]), SCeqsym (a, b)
 let sceqprop (e1, e2, g) =
   match e1, e2 with
   | Eapp (p, ts, _), Eapp (q, us, _) when p = q ->
-    e1 :: g @ List.map2 (fun t u -> eapp ("=", [t; u])) ts us, e2,
+    e1 :: g @ List.map2 (fun t u -> eapp (evar "=", [t; u])) ts us, e2,
     SCeqprop (e1, e2)
   | _, _ -> assert false
 let sceqfunc (e1, e2, g) =
   match e1, e2 with
   | Eapp (p, ts, _), Eapp (q, us, _) when p = q ->
-    g @ List.map2 (fun t u -> eapp ("=", [t; u])) ts us,
-    eapp ("=", [e1; e2]), SCeqfunc (e1, e2)
+    g @ List.map2 (fun t u -> eapp (evar "=", [t; u])) ts us,
+    eapp (evar "=", [e1; e2]), SCeqfunc (e1, e2)
   | _, _ -> assert false
 let scrweak (e, proof) =
   let g, c, rule = proof in

@@ -51,8 +51,10 @@ rule token = parse
   | ")"              { CLOSE }
   | "["              { LBRACKET }
   | "]"              { RBRACKET }
+  | ">"              { RANGL }
   | ","              { COMMA }
   | ":"              { COLON }
+  | "*"              { STAR }
   | "."              { DOT }
   | "?"              { EX }
   | "!"              { ALL }
@@ -70,18 +72,21 @@ rule token = parse
   | "include"        { INCLUDE }
   | "cnf"            { INPUT_CLAUSE }
   | "fof"            { INPUT_FORMULA }
+  | "tff"            { INPUT_TFF_FORMULA }
   | "$true"          { TRUE }
   | "$false"         { FALSE }
+  | "$tType"         { TTYPE }
   | "\'"             { single_quoted (Buffer.create 20) lexbuf }
   | "\""             { double_quoted (Buffer.create 20) lexbuf }
-  | lowerid idchar * { LIDENT (Lexing.lexeme lexbuf) }
   | upperid idchar * { UIDENT (Lexing.lexeme lexbuf) }
+  | '$'? lowerid idchar * { LIDENT (Lexing.lexeme lexbuf) }
 
   | ['+' '-']? ['0' - '9']+
-       ('.' ['0' - '9']+)?
-       (['E' 'e'] ['+' '-']? ['0' - '9']+)?
-    { LIDENT (Lexing.lexeme lexbuf) }
-  | ['+' '-']? ['0' - '9']+ '/' ['0' - '9']+ { LIDENT (Lexing.lexeme lexbuf) }
+        { INT (Lexing.lexeme lexbuf) }
+  | ['+' '-']? ['0' - '9']+ '/' ['0' - '9']+
+        { RAT (Lexing.lexeme lexbuf) }
+  | ['+' '-']? ['0' - '9']+ '.' ['0' - '9']+ (['E' 'e'] ['+' '-']? ['0' - '9']+)?
+        { REAL (Lexing.lexeme lexbuf) }
 
   | eof              { EOF }
   | _                {
