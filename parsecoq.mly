@@ -303,11 +303,11 @@ expr:
   | expr1
       { $1 }
 
-  | LBRACE_BAR_ record_expr_list RBRACE_BAR_ 
-      { mk_eapp ("Datatypes.record", (List.sort compare_record $2)) }
+  | LBRACE_BAR_ record_expr semi_record_expr_list RBRACE_BAR_ 
+      { eapp ("Record", $2 :: $3) }
 
   | expr PERIOD_LPAREN_ IDENT RPAREN_ 
-      { mk_eapp ("Record.select", [$1; evar ($3)]) }
+      { eapp ("$select", [evar $3; $1]) }
 ;
 
 fix:
@@ -350,13 +350,16 @@ comma_expr_list:
       { $2 :: $3 }
 ;
 
-record_expr_list:
+record_expr:
+  | IDENT COLON_EQ_ expr
+	  { eapp ("Record_field", [evar $1; $3]) }
+;
+
+semi_record_expr_list:
   | /* empty */
 	 { [] }
-  | IDENT COLON_EQ_ expr
-	  { [mk_eapp ($1, [$3])] }
-  | IDENT COLON_EQ_ expr SEMI_ record_expr_list 
-	  { mk_eapp ($1, [$3]) :: $5 }
+  | SEMI_ record_expr semi_record_expr_list 
+	  { $2 :: $3 }
 ;
 
 pat_expr_list:

@@ -16,97 +16,72 @@ open Mlproof;;
 open Node;;
 open Phrase;;
 
-exception Not_eapp;;
-exception Not_label;;
-exception Not_record;;
 
-let get_var_sym x = 
-  match x with 
-  | Evar (sym, _) -> sym
-  | _ -> raise Not_label
-;;
-
-let is_eapp_sym x = 
-  match x with 
-  | Eapp (sym, _, _) -> true
+let is_field_label l f = 
+  match f with 
+  | Eapp ("Record_field", [l1; v], _) when (Expr.equal l l1) 
+    -> true 
   | _ -> false
 ;;
 
-let get_eapp_sym x = 
-  match x with 
-  | Eapp (sym, _, _) -> sym
-  | _ -> raise Not_eapp
+let get_field_value f = 
+  match f with 
+  | Eapp ("Record_field", [l; v], _) 
+    -> v
+  | _ -> assert false
 ;;
 
-let get_eapp_value x = 
-  match x with 
-  | Eapp (_, [e], _) -> e 
-  | _ -> raise Not_eapp
-;;
-
-let is_label sym r = 
+let get_value l r = 
   match r with 
-  | Eapp ("Datatypes.record", args, _) -> 
-     List.exists (fun x -> sym = (get_eapp_sym x)) args
-  | _ -> false
-;;
-
-let get_value sym r =
-  try 
-    match r with 
-    | Eapp ("Datatypes.record", args, _) -> 
-       let field = 
-	 List.find (fun x -> sym = (get_eapp_sym x)) args
-       in
-       get_eapp_value field
-    | _ -> raise Not_eapp
-  with
-  | Not_eapp | Not_found -> raise Not_found
+  | Eapp ("Record", args, _) 
+    -> get_field_value (List.find (is_field_label l) args)
+  | _ -> assert false
 ;;
 
 let istrue e = eapp ("Is_true", [e]);;
 let isfalse e = enot (eapp ("Is_true", [e]));;
 
-let select e = 
-  try 
-    match e with 
-    | Eapp ("Record.select", [r; sym], _) -> 
-       Some ((get_value (get_var_sym sym) r), 1)
-    | Enot (Eapp ("Record.select", [r; sym], _), _) -> 
-       Some ((enot (get_value (get_var_sym sym) r)), 1)
-    | Eapp ("Is_true**Record.select", [r; sym], _) -> 
-       Some (istrue (get_value (get_var_sym sym) r), 2)
-    | Enot (Eapp ("Is_true**Record.select", [r; sym], _), _) -> 
-       Some ((isfalse (get_value (get_var_sym sym) r)), 2)
-    | _ -> None
-  with 
-  | Not_eapp | Not_found | Not_record -> None
-;;
-
-let print_ e = Print.expr_soft (Print.Chan stdout) e
-;;
-
 let newnodes_select e g = 
-  match select e with
-    | Some (value, 1) -> 
-       [ Node { 
-	     nconc = [e];
-	     nrule = Ext ("record", "select", []);
-	     nprio = Arity;
-	     ngoal = g;
-	     nbranches = [| [value] |];
-       } ]
-    | Some (value, 2) -> 
-       [ Node { 
-	     nconc = [e];
-	     nrule = Ext ("record", "istrue_select", []);
-	     nprio = Arity;
-	     ngoal = g;
-	     nbranches = [| [value] |];
-       } ]
-    | None -> []
+  match e with 
+  | Eapp ("$select" , [l; r], _) -> 
+     let value = get_value l r in 
+     [ Node { 
+	   nconc = [e];
+	   nrule = Ext ("Record", "$select", []);
+	   nprio = Arity;
+	   ngoal = g;
+	   nbranches = [| [value] |];
+     } ]
+  | Enot (Eapp ("$select" , [l; r], _), _) -> 
+     let value = get_value l r in 
+     [ Node { 
+	   nconc = [e];
+	   nrule = Ext ("Record", "$select", []);
+	   nprio = Arity;
+	   ngoal = g;
+	   nbranches = [| [enot value] |];
+     } ]
+  | Eapp ("Is_true**$select", [l; r], _) -> 
+     let value = get_value l r in 
+     [ Node { 
+	   nconc = [e];
+	   nrule = Ext ("Record", "Is_true**$select", []);
+	   nprio = Arity;
+	   ngoal = g;
+	   nbranches = [| [istrue value] |];
+     } ]
+  | Enot (Eapp ("Is_true**$select", [l; r], _), _) -> 
+     let value = get_value l r in 
+     [ Node { 
+	   nconc = [e];
+	   nrule = Ext ("Record", "Is_true**$select", []);
+	   nprio = Arity;
+	   ngoal = g;
+	   nbranches = [| [isfalse value] |];
+     } ]
+  | _ -> []
 ;;
-
+       
 let newnodes e g _ = 
     newnodes_select e g
 ;;
