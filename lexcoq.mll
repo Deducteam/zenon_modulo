@@ -78,10 +78,12 @@ rule token = parse
   | "]"                     { RBRACK_ }
   | "^"                     { HAT_ }
   | "{"                     { LBRACE_ }
+  | "{|"                    { LBRACE_BAR_ }
   | "|"                     { BAR_ }
   | "|-"                    { BAR_DASH_ }
   | "||"                    { BAR_BAR_ }
   | "}"                     { RBRACE_ }
+  | "|}"                    { RBRACE_BAR_ }
   | "~"                     { TILDE_ }
 
   | "(*_MUST_USE_*)"        { MUSTUSE }
@@ -112,10 +114,7 @@ rule token = parse
   | "with"                  { WITH }
 
   | idstart idchar * ('.' idstart idchar *) * {
-        Buffer.reset idbuf;
-        Buffer.add_string idbuf (Lexing.lexeme lexbuf);
-        ident lexbuf;
-        IDENT (Buffer.contents idbuf)
+        IDENT (Lexing.lexeme lexbuf)
       }
   | ['0' - '9'] +
       { IDENT (Lexing.lexeme lexbuf) }
@@ -171,17 +170,3 @@ and string = parse
   | "\"" {
       STRING (Buffer.contents stringbuf)
     }
-
-and ident = parse
-  | ".(" idstart idchar * ('.' idstart idchar *) * {
-      Buffer.add_string idbuf (Lexing.lexeme lexbuf);
-      ident lexbuf;
-      ident_close lexbuf;
-    }
-  | "" { () }
-
-and ident_close = parse
-  | ")" { Buffer.add_string idbuf (Lexing.lexeme lexbuf); }
-  | _ { let msg = sprintf "bad character %C" (Lexing.lexeme_char lexbuf 0) in
-        raise (Error.Lex_error msg);
-      }

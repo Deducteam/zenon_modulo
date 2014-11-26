@@ -104,6 +104,11 @@ let mk_pairs e l =
 ;;
 
 let mk_string s = evar ("\"" ^ s ^ "\"") ;;
+
+let compare_record r1 r2 = 
+  let f x = match x with | Eapp (sym, _, _) -> sym | _ -> assert false in
+  Pervasives.compare (f r1) (f r2)
+;;
 %}
 
 %token <string> IDENT
@@ -154,10 +159,12 @@ let mk_string s = evar ("\"" ^ s ^ "\"") ;;
 %token RBRACK_
 %token HAT_
 %token LBRACE_
+%token LBRACE_BAR_
 %token BAR_
 %token BAR_DASH_
 %token BAR_BAR_
 %token RBRACE_
+%token RBRACE_BAR_
 %token TILDE_
 
 %token MUSTUSE
@@ -295,6 +302,12 @@ expr:
 
   | expr1
       { $1 }
+
+  | LBRACE_BAR_ record_expr_list RBRACE_BAR_ 
+      { mk_eapp ("Datatypes.record", (List.sort compare_record $2)) }
+
+  | expr PERIOD_LPAREN_ IDENT RPAREN_ 
+      { mk_eapp ("Record.select", [evar ($3); $1]) }
 ;
 
 fix:
@@ -335,6 +348,15 @@ comma_expr_list:
       { [$2] }
   | COMMA_ expr comma_expr_list
       { $2 :: $3 }
+;
+
+record_expr_list:
+  | /* empty */
+	 { [] }
+  | IDENT COLON_EQ_ expr
+	  { [mk_eapp ($1, [$3])] }
+  | IDENT COLON_EQ_ expr SEMI_ record_expr_list 
+	  { mk_eapp ($1, [$3]) :: $5 }
 ;
 
 pat_expr_list:
@@ -394,10 +416,10 @@ hyp_def:
       { let (params, expr) = get_params $4 in
         Def (DefReal ($2, $2, params, expr, None)) }
   | DEFINITION IDENT compact_args COLON_ typ COLON_EQ_ expr PERIOD_
-      {
-       let compact_params = $3 in
-       let (other_params, expr) = get_params $7 in
-       Def (DefReal ($2, $2, (compact_params @ other_params), expr, None))
+      { 
+        let compact_params = $3 in
+        let (other_params, expr) = get_params $7 in
+        Def (DefReal ($2, $2, (compact_params @ other_params), expr, None))
       }
   | FIXPOINT IDENT compact_args LBRACE_ STRUCT IDENT RBRACE_
              COLON_ typ COLON_EQ_ expr PERIOD_
@@ -464,7 +486,6 @@ junk:
   | LPAREN_RPAREN_ junk               { () }
   | PERIOD_ junk                      { () }
   | COLON_ junk                       { () }
-  | PERIOD_LPAREN_ junk RPAREN_ junk  { () }
   | LPAREN_ junk RPAREN_ junk         { () }
 ;
 

@@ -25,7 +25,7 @@ SOURCES = version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
           coqterm.ml lltocoq.ml \
           enum.ml isar_case.ml lltoisar.ml \
           ext_focal.ml ext_tla.ml ext_recfun.ml \
-          ext_equiv.ml ext_induct.ml \
+          ext_equiv.ml ext_induct.ml ext_record.ml \
           prove.ml checksum.dummy versionnum.ml main.ml zenon.ml
 
 COQSRC = zenon.v zenon_coqbool.v zenon_equiv.v zenon_induct.v zenon_focal.v
