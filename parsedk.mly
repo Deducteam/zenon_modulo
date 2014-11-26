@@ -9,16 +9,13 @@ open Printf
 
 let pos () = (Parsing.symbol_start_pos (), Parsing.symbol_end_pos ())
 
-let rec mk_type_string e = match e with
-  | Evar (s, _) -> s
+let rec mk_type e = match e with
+  | Evar (s, _) -> Type.atomic s
   | Emeta _ -> assert false
   | Eapp (Evar(s, _), args, _) ->
-     let inside =
-       List.fold_left (fun s a -> sprintf "%s %s" s (mk_type_string a)) s args
-     in
-     sprintf "(%s)" inside
+     Type.mk_constr s (List.map mk_type args)
   | Eimply (e1, e2, _) ->
-     sprintf "(%s -> %s)" (mk_type_string e1) (mk_type_string e2)
+     Type.mk_arrow [mk_type e1] (mk_type e2)
   | _ -> assert false (* FIXME TODO *)
 ;;
 
@@ -57,10 +54,10 @@ let mk_eapp : string * expr list -> expr =
   | "dk_logic.imp", [e1; e2] -> eimply (e1, e2)
   | "dk_logic.eqv", [e1; e2] -> eequiv (e1, e2)
   | "dk_logic.not", [e1] -> enot (e1)
-  | "dk_logic.forall", [ty; Elam (x, _, e, _)] -> eall (x, Type.atomic (mk_type_string ty), e)
+  | "dk_logic.forall", [ty; Elam (x, _, e, _)] -> eall (x, mk_type ty, e)
   | "dk_logic.forall", [_; _] -> assert false
   | "dk_logic.forall", l -> raise (Bad_arity ("forall", List.length l))
-  | "dk_logic.exists", [ty; Elam (x, _, e, _)] -> eex (x, Type.atomic (mk_type_string ty), e)
+  | "dk_logic.exists", [ty; Elam (x, _, e, _)] -> eex (x, mk_type ty, e)
   | "dk_logic.ebP", [e1] -> eapp (evar "Is_true", [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
   | "dk_logic.eP", [e] -> e                        (* eP is ignored *)
   (* There should not be any other logical connectives *)
@@ -96,7 +93,7 @@ let rec mk_apply (e, l) =
 ;;
 
 let mk_all var ty e =
-  eall (evar var, Type.atomic ty, e)
+  eall (evar var, ty, e)
 ;;
 
 let mk_ex var ty e =
@@ -104,7 +101,7 @@ let mk_ex var ty e =
 ;;
 
 let mk_lam var ty e =
-  elam (evar var, Type.atomic ty, e)
+  elam (evar var, ty, e)
 ;;
 
 let rec get_params e =
@@ -192,7 +189,7 @@ simple:
 | qid { evar $1 }
 | LPAREN term RPAREN { $2 }
 typ:
-| applicative { mk_type_string $1 }
+| applicative { mk_type $1 }
 
 hyp_def:
 | ID COLON term DOT { Phrase.Hyp ($1, $3, 1) }

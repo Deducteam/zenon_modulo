@@ -9,21 +9,18 @@ open Expr;;
 open Namespace;;
 open Phrase;;
 
-let rec mk_type_string e =
+let rec mk_type e =
   match e with
-  | Evar (s, _) -> s
+  | Evar (s, _) -> Type.atomic s
   | Emeta _ -> assert false
   | Eapp (Evar("*",_), [e1; e2], _) ->
-     sprintf "(%s*%s)" (mk_type_string e1) (mk_type_string e2)
+     Type.atomic (sprintf "(%s*%s)" (Type.to_string (mk_type e1)) (Type.to_string (mk_type e2)))
   | Eapp (Evar("%",_), [e1; e2], _) ->
-     sprintf "((%s)%%%s)" (mk_type_string e1) (mk_type_string e2)
+     Type.atomic (sprintf "((%s)%%%s)" (Type.to_string (mk_type e1)) (Type.to_string (mk_type e2)))
   | Eapp (Evar(s,_), args, _) ->
-     let inside =
-       List.fold_left (fun s a -> sprintf "%s %s" s (mk_type_string a)) s args
-     in
-     sprintf "(%s)" inside
+     Type.mk_constr s (List.map mk_type args)
   | Eimply (e1, e2, _) ->
-     sprintf "(%s -> %s)" (mk_type_string e1) (mk_type_string e2)
+     Type.mk_arrow [mk_type e1] (mk_type e2)
   | _ -> assert false (* FIXME TODO *)
 ;;
 
@@ -50,22 +47,22 @@ let rec mk_arobas_apply (id, l) =
 ;;
 
 let mk_all bindings body =
-  let f (var, ty) e = eall (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = eall (evar var, ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_ex bindings body =
-  let f (var, ty) e = eex (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = eex (evar var, ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_lam bindings body =
-  let f (var, ty) e = elam (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = elam (evar var, ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_fix ident ty bindings body =
-  let f (var, ty) e = elam (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = elam (evar var, ty, e) in
   (ident, eapp (evar "$fix", [ List.fold_right f ((ident, ty) :: bindings) body ]))
 ;;
 
@@ -84,7 +81,7 @@ let mk_let id expr body =
 let mk_let_fix (id, def) body = mk_let id def body;;
 
 let mk_pattern (constr, args) body =
-  let bindings = List.map (fun v -> (v, "")) args in
+  let bindings = List.map (fun v -> (v, Type.atomic "")) args in
   mk_lam bindings (eapp (evar "$match-case", [evar (constr); body]))
 ;;
 
@@ -371,13 +368,13 @@ binding_list:
   | /* empty */
       { [] }
   | IDENT binding_list
-      { ($1, "") :: $2 }
+      { ($1, Type.atomic "") :: $2 }
   | LPAREN_ simplebinding RPAREN_ binding_list
       { $2 @ $4 }
 ;
 
 typ:
-  | expr                   { mk_type_string $1 }
+  | expr                   { mk_type $1 }
 ;
 
 /* normal identifier or unparsed  expression */

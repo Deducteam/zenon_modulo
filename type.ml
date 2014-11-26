@@ -177,7 +177,9 @@ let type_app_base t l = match t with
 
 let type_eq = function
     | [a; b] when is_type_num a && is_type_num b -> type_bool
-    | [a; b] -> if equal a b then type_bool else raise (Mismatch (a, b))
+    | [a; b] -> if equal a b || equal (atomic "") a || equal (atomic "") b
+               then type_bool
+               else raise (Mismatch (a, b))
     | _ -> raise Not_enough_args
 
 let type_app (b, t) args =
