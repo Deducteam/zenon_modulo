@@ -307,7 +307,7 @@ expr:
       { mk_eapp ("Datatypes.record", (List.sort compare_record $2)) }
 
   | expr PERIOD_LPAREN_ IDENT RPAREN_ 
-      { mk_eapp ("Record.select", [evar ($3); $1]) }
+      { mk_eapp ("Record.select", [$1; evar ($3)]) }
 ;
 
 fix:

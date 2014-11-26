@@ -64,17 +64,20 @@ let get_value sym r =
   | Not_eapp | Not_found -> raise Not_found
 ;;
 
+let istrue e = eapp ("Is_true", [e]);;
+let isfalse e = enot (eapp ("Is_true", [e]));;
+
 let select e = 
   try 
     match e with 
-    | Eapp ("Record.select", [sym; r], _) -> 
+    | Eapp ("Record.select", [r; sym], _) -> 
        Some ((get_value (get_var_sym sym) r), 1)
-    | Enot (Eapp ("Record.select", [sym; r], _), _) -> 
+    | Enot (Eapp ("Record.select", [r; sym], _), _) -> 
        Some ((enot (get_value (get_var_sym sym) r)), 1)
-    | Eapp ("Is_true**Record.select", [sym; r], _) -> 
-       Some ((get_value (get_var_sym sym) r), 2)
-    | Enot (Eapp ("Is_true**Record.select", [sym; r], _), _) -> 
-       Some ((enot (get_value (get_var_sym sym) r)), 2)
+    | Eapp ("Is_true**Record.select", [r; sym], _) -> 
+       Some (istrue (get_value (get_var_sym sym) r), 2)
+    | Enot (Eapp ("Is_true**Record.select", [r; sym], _), _) -> 
+       Some ((isfalse (get_value (get_var_sym sym) r)), 2)
     | _ -> None
   with 
   | Not_eapp | Not_found | Not_record -> None
