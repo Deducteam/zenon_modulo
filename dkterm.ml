@@ -21,6 +21,7 @@ type term =
   | Dkexists
   | Dktrue
   | Dkfalse
+  | DkeqTerm
   | Dkeq
   | Dknotc
   | Dkandc
@@ -32,6 +33,7 @@ type term =
   | Dkexistsc
   | Dktruec
   | Dkfalsec
+  | DkeqcTerm
   | Dkeqc
   | Dkequiv
   | Dkterm
@@ -76,7 +78,12 @@ let mk_exists x ty p =
     mk_app3 Dkexists t (mk_lam x t p)
 let mk_true = Dktrue
 let mk_false = Dkfalse
-let mk_eq t1 t2 = mk_app3 Dkeq t1 t2
+
+let mk_eq oty t1 t2 =
+  match oty with
+  | None -> mk_app3 DkeqTerm t1 t2
+  | Some ty -> mk_app Dkeq [term_of_ty ty; t1; t2]
+
 let mk_notc term = mk_app2 Dknotc term
 let mk_andc p q = mk_app3 Dkandc p q
 let mk_orc p q = mk_app3 Dkorc p q
@@ -95,7 +102,10 @@ let mk_existsc x ty p =
     mk_app3 Dkexistsc t (mk_lam x t p)
 let mk_truec = Dktruec
 let mk_falsec = Dkfalsec
-let mk_eqc t1 t2 = mk_app3 Dkeqc t1 t2
+let mk_eqc oty t1 t2 =
+  match oty with
+  | None -> mk_app3 DkeqcTerm t1 t2
+  | Some ty -> mk_app Dkeqc [term_of_ty ty; t1; t2]
 let mk_equiv p q = mk_app3 Dkequiv p q
 
 let mk_decl t term = Dkdecl (t, term)
@@ -131,7 +141,8 @@ let rec print_term out term =
   | DkexistsTerm -> fprintf out "logic.exists"
   | Dktrue -> fprintf out "logic.True"
   | Dkfalse -> fprintf out "logic.False"
-  | Dkeq -> fprintf out "logic.equal"
+  | DkeqTerm -> fprintf out "logic.equal"
+  | Dkeq -> fprintf out "dk_logic.equal"
   | Dknotc -> fprintf out "logic.noc"
   | Dkandc -> fprintf out "logic.andc"
   | Dkorc -> fprintf out "logic.orc"
@@ -142,7 +153,8 @@ let rec print_term out term =
   | DkexistscTerm -> fprintf out "logic.existsc"
   | Dktruec -> fprintf out "logic.Truec"
   | Dkfalsec -> fprintf out "logic.Falsec"
-  | Dkeqc -> fprintf out "logic.equalc"
+  | DkeqcTerm -> fprintf out "logic.equalc"
+  | Dkeqc -> fprintf out "dk_logic.equalc"
   | Dkequiv -> fprintf out "logic.equiv"
   | Dkterm -> fprintf out "logic.term"
   | Dknnpp -> fprintf out "classic.nnpp"

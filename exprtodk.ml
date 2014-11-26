@@ -8,6 +8,27 @@ open Termsig
 module Translate(Dk : TermSig) =
 struct
 
+  (* Like Expr.get_type but returns None on atomic ""  *)
+  let get_ty e1 =
+    match get_type e1 with
+    | Some t when Type.to_string t = "" -> None
+    | oty -> oty
+
+  (* Given two exprs e1 and e2 (assumed to be of the same type),
+     return that type if possible *)
+  let get_equal_ty e1 e2 : Type.t option =
+    match (get_ty e1, get_ty e2) with
+    | None, None ->
+       let print_expr out = Print.expr (Print.Chan out) in
+       Printf.eprintf "Equality type not found (%a, %a).\n"
+                      print_expr e1 print_expr e2;
+       None
+    | None, Some ty
+    | Some ty, None -> Some ty
+    | Some ty1, Some ty2 ->
+       assert (Type.equal ty1 ty2);
+       Some ty1
+
   (* Translation function from expressions *)
   let rec trexpr e =
     match e with
@@ -36,7 +57,7 @@ struct
       Eex (e1, s, Enot (Enot (e2, _), _), _), _), _) ->
        Dk.mk_existsc (trexpr e1) s (trexpr e2)
     | Enot (Enot (Eapp (Evar("=", _), [e1;e2], _), _), _) ->
-       Dk.mk_eqc (trexpr e1) (trexpr e2)
+       Dk.mk_eqc (get_equal_ty e1 e2) (trexpr e1) (trexpr e2)
     (* Terms *)
     | Evar (v, _) when Mltoll.is_meta v ->
        Dk.mk_anyterm
@@ -46,7 +67,7 @@ struct
        Dk.mk_var ("S"^v)
     | Eapp (Evar("$string", _), _, _) -> assert false
     | Eapp (Evar("=", _), [e1;e2], _) ->
-       Dk.mk_eq (trexpr e1) (trexpr e2)
+       Dk.mk_eq (get_equal_ty e1 e2) (trexpr e1) (trexpr e2)
     | Eapp (t, args, _) ->
        Dk.mk_app (trexpr t) (List.map trexpr args)
     (* Intuitionistic connectors *)

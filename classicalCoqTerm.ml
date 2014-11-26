@@ -51,7 +51,7 @@ let mk_forall x ty p = Coqforall ([[x], Some Coqtermtype], p)
 let mk_exists x ty p = Coqexists (x, Some Coqtermtype, p)
 let mk_true = Coqtrue
 let mk_false = Coqfalse
-let mk_eq t1 t2 = Coqeq (t1, t2)
+let mk_eq _ t1 t2 = Coqeq (t1, t2)
 
 let dnot t = Coqnot (Coqnot t)
 
@@ -63,7 +63,7 @@ let mk_forallc x ty p = dnot (Coqforall ([[x], Some Coqtermtype], dnot p))
 let mk_existsc x ty p = dnot (Coqexists (x, Some Coqtermtype, dnot p))
 let mk_truec = dnot Coqtrue
 let mk_falsec = dnot Coqfalse
-let mk_eqc t1 t2 = dnot (Coqeq (t1, t2))
+let mk_eqc _ t1 t2 = dnot (Coqeq (t1, t2))
 let mk_equiv p q = Coqequiv (p, q)
 let mk_term t = t
 let mk_nnpp t = assert false
