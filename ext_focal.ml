@@ -292,14 +292,14 @@ let newnodes_istrue e g =
           ngoal = g;
           nbranches = [| [eapp ("=", [e1; evar "false"])] |];
       } ]
-  | Eapp ("Is_true", [Eapp (s, [Eapp (s2, args, _)], _)], _) 
-       when Index.has_def s2 ->
-     let ctx x = eapp ("Is_true", [eapp (s, [x])]) in
-     mk_unfold ctx s2 (Some args)
-  | Enot (Eapp ("Is_true", [Eapp (s, [Eapp (s2, args, _)], _)], _), _) 
-       when Index.has_def s2 ->
-     let ctx x = enot (eapp ("Is_true", [eapp (s, [x])])) in
-     mk_unfold ctx s2 (Some args)  
+| Eapp ("Is_true", [Eapp (s, [Eapp (s2, args, _)], _)], _) 
+	 when Index.has_def s2 ->
+       let ctx x = eapp ("Is_true", [eapp (s, [x])]) in
+       mk_unfold ctx s2 (Some args)
+    | Enot (Eapp ("Is_true", [Eapp (s, [Eapp (s2, args, _)], _)], _), _) 
+	 when Index.has_def s2 ->
+       let ctx x = enot (eapp ("Is_true", [eapp (s, [x])])) in
+       mk_unfold ctx s2 (Some args)  
   | Eapp ("Is_true", [Eapp (s, args, _)], _) when Index.has_def s ->
      let ctx x = eapp ("Is_true", [x]) in
      mk_unfold ctx s (Some args)

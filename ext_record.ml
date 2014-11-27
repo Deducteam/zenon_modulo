@@ -16,6 +16,33 @@ open Mlproof;;
 open Node;;
 open Phrase;;
 
+exception Record_error;;
+
+let arity_warning s =
+  Error.warn (sprintf "defined symbol %s is used with wrong arity" s)
+;;
+
+let higher_order_warning s =
+  Error.warn (sprintf "symbol %s is used in higher-order substitution" s);
+;;
+
+let get_label rf = 
+  match rf with 
+  | Eapp ("Record_field", [Evar (l, _); v], _) 
+    -> l
+  | _ -> raise Record_error
+;;
+
+let compare_label rf1 rf2 = 
+  String.compare (get_label rf1) (get_label rf2)
+;;
+
+let contains_sub big sub = 
+  let length = String.length sub in 
+  if (String.length big) > length then
+    (String.sub big 0 length) = sub
+  else false
+;;
 
 let is_field_label l f = 
   match f with 
@@ -28,57 +55,94 @@ let get_field_value f =
   match f with 
   | Eapp ("Record_field", [l; v], _) 
     -> v
-  | _ -> assert false
+  | _ -> raise Record_error
 ;;
 
 let get_value l r = 
   match r with 
-  | Eapp ("Record", args, _) 
+  | Eapp (sym, args, _) when contains_sub sym "Record_"
     -> get_field_value (List.find (is_field_label l) args)
-  | _ -> assert false
+  | _ -> raise Record_error
 ;;
 
 let istrue e = eapp ("Is_true", [e]);;
 let isfalse e = enot (eapp ("Is_true", [e]));;
 
 let newnodes_select e g = 
-  match e with 
-  | Eapp ("$select" , [l; r], _) -> 
-     let value = get_value l r in 
-     [ Node { 
-	   nconc = [e];
-	   nrule = Ext ("Record", "$select", []);
-	   nprio = Arity;
-	   ngoal = g;
-	   nbranches = [| [value] |];
-     } ]
-  | Enot (Eapp ("$select" , [l; r], _), _) -> 
-     let value = get_value l r in 
-     [ Node { 
-	   nconc = [e];
-	   nrule = Ext ("Record", "$select", []);
-	   nprio = Arity;
-	   ngoal = g;
-	   nbranches = [| [enot value] |];
-     } ]
-  | Eapp ("Is_true**$select", [l; r], _) -> 
-     let value = get_value l r in 
-     [ Node { 
-	   nconc = [e];
-	   nrule = Ext ("Record", "Is_true**$select", []);
-	   nprio = Arity;
-	   ngoal = g;
-	   nbranches = [| [istrue value] |];
-     } ]
-  | Enot (Eapp ("Is_true**$select", [l; r], _), _) -> 
-     let value = get_value l r in 
-     [ Node { 
-	   nconc = [e];
-	   nrule = Ext ("Record", "Is_true**$select", []);
-	   nprio = Arity;
-	   ngoal = g;
-	   nbranches = [| [isfalse value] |];
-     } ]
+  let mk_unfold ctx p args =
+    try
+      let (d, params, body) = Index.get_def p in
+      let prio = match d with DefRec _ -> Inst e | _ -> Prop in
+      match params, args, body with
+      | [], Some aa, Evar (b, _) ->
+         let unfolded = ctx (eapp (b, aa)) in
+         [ Node {
+           nconc = [e];
+           nrule = Definition (d, e, unfolded);
+           nprio = prio;
+           ngoal = g;
+           nbranches = [| [unfolded] |];
+         }; Stop ]
+      | _ ->
+         let aa = match args with None -> [] | Some l -> l in
+         let subst = List.map2 (fun x y -> (x,y)) params aa in
+         let unfolded = ctx (substitute_2nd subst body) in
+         [ Node {
+           nconc = [e];
+           nrule = Definition (d, e, unfolded);
+           nprio = prio;
+           ngoal = g;
+           nbranches = [| [unfolded] |];
+         }; Stop ]
+    with
+    | Higher_order -> higher_order_warning p; []
+    | Invalid_argument "List.map2" -> arity_warning p; []
+    | Not_found -> assert false
+  in
+  try
+    match e with 
+    | Eapp (sym , [l; r], _) 
+	 when contains_sub sym "$select_" -> 
+       let value = get_value l r in 
+       [ Node { 
+	     nconc = [e];
+	     nrule = Ext ("Record", "$select", []);
+	     nprio = Arity;
+	     ngoal = g;
+	     nbranches = [| [value] |];
+       }; Stop ]
+    | Enot (Eapp (sym , [l; r], _), _) 
+	 when contains_sub sym "$select_" -> 
+       let value = get_value l r in 
+       [ Node { 
+	     nconc = [e];
+	     nrule = Ext ("Record", "$select", []);
+	     nprio = Arity;
+	     ngoal = g;
+	     nbranches = [| [enot value] |];
+       }; Stop ]
+    | Eapp (sym, [l; r], _) 
+	 when contains_sub sym "Is_true**$select_" -> 
+       let value = get_value l r in 
+       [ Node { 
+	     nconc = [e];
+	     nrule = Ext ("Record", "Is_true_$select", []);
+	     nprio = Arity;
+	     ngoal = g;
+	     nbranches = [| [istrue value] |];
+       }; Stop ]
+    | Enot (Eapp (sym, [l; r], _), _) 
+	 when contains_sub sym "Is_true**$select_" -> 
+       let value = get_value l r in 
+       [ Node { 
+	     nconc = [e];
+	     nrule = Ext ("Record", "Is_true_$select", []);
+	     nprio = Arity;
+	     ngoal = g;
+	     nbranches = [| [isfalse value] |];
+       }; Stop ]
+  with 
+  | Record_error -> []
   | _ -> []
 ;;
        
@@ -95,7 +159,12 @@ let postprocess l = l;;
 let to_llproof tr_expr mlp args = assert false;;
 let declare_context_coq oc =
   fprintf oc "Require Import zenon_record.\n";;
-let p_rule_coq oc r = ();;
+
+let p_rule_coq oc r = 
+  let poc fmt = fprintf oc fmt in 
+
+;;
+
 let predef () = [];;
 
 Extension.register {

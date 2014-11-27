@@ -103,6 +103,24 @@ let mk_pairs e l =
   List.fold_left f e l
 ;;
 
+let get_label rf = 
+  match rf with 
+  | Eapp ("Record_field", [Evar (l, _); v], _) 
+    -> l
+  | _ -> assert false
+;;
+
+let compare_label rf1 rf2 = 
+  String.compare (get_label rf1) (get_label rf2)
+;;
+
+let mk_record l = 
+  let labels = String.concat "_" (List.map get_label l) in
+  let name = "Record_"^labels in 
+  let sorted_l = List.sort compare_label l in 
+  eapp (name, sorted_l)
+;;
+
 let mk_string s = evar ("\"" ^ s ^ "\"") ;;
 
 let compare_record r1 r2 = 
@@ -303,11 +321,11 @@ expr:
   | expr1
       { $1 }
 
-  | LBRACE_BAR_ record_expr semi_record_expr_list RBRACE_BAR_ 
-      { eapp ("Record", $2 :: $3) }
+  | LBRACE_BAR_ record_expr_list RBRACE_BAR_ 
+      { mk_record $2 }
 
   | expr PERIOD_LPAREN_ IDENT RPAREN_ 
-      { eapp ("$select", [evar $3; $1]) }
+      { eapp ("$select_"^$3, [evar $3; $1]) }
 ;
 
 fix:
@@ -350,16 +368,13 @@ comma_expr_list:
       { $2 :: $3 }
 ;
 
-record_expr:
-  | IDENT COLON_EQ_ expr
-	  { eapp ("Record_field", [evar $1; $3]) }
-;
-
-semi_record_expr_list:
+record_expr_list:
   | /* empty */
 	 { [] }
-  | SEMI_ record_expr semi_record_expr_list 
-	  { $2 :: $3 }
+  | IDENT COLON_EQ_ expr
+	  { [eapp ("Record_field", [evar $1; $3])] }
+  | IDENT COLON_EQ_ expr SEMI_ record_expr_list 
+	  { eapp ("Record_field", [evar $1; $3]) :: $5 }
 ;
 
 pat_expr_list:
