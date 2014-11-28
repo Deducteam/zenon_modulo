@@ -20,6 +20,7 @@ val atomic : string -> t
 val mk_poly : string list -> t -> t
 val mk_constr : string -> t list -> t
 val mk_arrow : t list -> t -> t
+val mk_arrow_opt : t list option -> t -> t option
 
 val equal : t -> t -> bool
 val compare : t -> t -> int
@@ -52,3 +53,5 @@ val find2 : ('a -> 'b -> bool) -> 'a list -> 'b list -> 'a * 'b
 (* Defined types *)
 val add_defs : (string * t) list -> unit
 val get_defs : unit -> (string * t) list
+
+val get_args : t option -> t list option

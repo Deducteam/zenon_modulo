@@ -252,3 +252,12 @@ let add_defs l =
 
 let get_defs () = !defs
 
+let mk_arrow_opt args return =
+  match args with
+  | None -> None
+  | Some args -> Some (mk_arrow args return)
+
+(* Destruct arrow type *)
+let get_args = function
+  | Some (_, Arrow (l, ret)) -> Some (List.map (fun t -> ([], t)) l)
+  | _ -> None
