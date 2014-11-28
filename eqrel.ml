@@ -10,7 +10,7 @@ type direction = L | R;;
 
 let symbol = ref None;;
 let leaves = ref [];;
-let typ = ref "";;
+let typ = ref None;;
 
 let get_name = function
     | Evar(s, _) -> s
@@ -66,12 +66,12 @@ let rec do_disj env e =
 let get_leaves path env e =
   symbol := None;
   leaves := [];
-  typ := "";
+  typ := None;
   try
     do_disj env e;
     (List.rev path, env, !leaves, !typ)
   with Wrong_shape ->
-    (List.rev path, env, [], "")
+    (List.rev path, env, [], None)
 ;;
 
 let subexprs = ref [];;
@@ -79,12 +79,12 @@ let subexprs = ref [];;
 let rec do_conj path env e =
   match e with
   | Eand (e1, e2, _) -> do_conj (L::path) env e1; do_conj (R::path) env e2;
-  | Eall (v, t, e1, _) -> do_conj path ((v,Type.to_string t)::env) e1;
+  | Eall (v, t, e1, _) -> do_conj path ((v, Some t)::env) e1;
   | Enot (Eor (e1, e2, _), _) ->
       do_conj (L::path) env (enot e1); do_conj (R::path) env (enot e2);
   | Enot (Eimply (e1, e2, _), _) ->
       do_conj (L::path) env e1; do_conj (R::path) env (enot e2);
-  | Enot (Eex (v, t, e1, _), _) -> do_conj path ((v,Type.to_string t)::env) (enot e1);
+  | Enot (Eex (v, t, e1, _), _) -> do_conj path ((v, Some t)::env) (enot e1);
   | Enot (Enot (e1, _), _) -> do_conj path env e1;
   | Eequiv (e1, e2, _) ->
       do_conj (L::path) env (eimply (e1, e2));
@@ -173,7 +173,7 @@ type info = {
   mutable sym : (Expr.expr * direction list * int list) option;
   mutable trans : (Expr.expr * direction list * int list) option;
   mutable transsym : (Expr.expr * direction list * int list) option;
-  mutable typ : string;
+  mutable typ : Type.t option;
   mutable refl_hyp : Expr.expr option;
   mutable sym_hyp : Expr.expr option;
   mutable trans_hyp : Expr.expr option;
@@ -185,7 +185,7 @@ let get_record s =
   try Hashtbl.find tbl s
   with Not_found ->
     let result = {refl = None; sym = None; trans = None;
-                  transsym = None; typ = "";
+                  transsym = None; typ = None;
                   refl_hyp = None; sym_hyp = None; trans_hyp = None}
     in
     Hashtbl.add tbl s result;
@@ -231,7 +231,7 @@ Hashtbl.add tbl (eeq) {
   sym = eq_origin;
   trans = eq_origin;
   transsym = eq_origin;
-  typ = "";
+  typ = None;
   refl_hyp = None;
   sym_hyp = None;
   trans_hyp = None;
@@ -291,8 +291,9 @@ let get_refl_hyp s =
   match r.refl_hyp with
   | Some e -> e
   | None ->
-      let vx = evar "x" in
-      let result = eall (vx, Type.atomic r.typ, eapp (s, [vx; vx])) in
+      let typ = match r.typ with Some t -> t | None -> assert false in
+      let vx = tvar "x" typ in
+      let result = eall (vx, typ, eapp (s, [vx; vx])) in
       r.refl_hyp <- Some result;
       begin match r.refl with
       | Some (e, dirs, vars) -> HE.add hyps_tbl result (Refl ((e, dirs, vars)))
@@ -307,8 +308,9 @@ let get_sym_hyp s =
   match r.sym_hyp with
   | Some e -> e
   | None ->
-      let vx = evar "x" and vy = evar "y" in
-      let result = eall (vx, Type.atomic r.typ, eall (vy, Type.atomic r.typ,
+      let typ = match r.typ with Some t -> t | None -> assert false in
+      let vx = tvar "x" typ and vy = tvar "y" typ in
+      let result = eall (vx, typ, eall (vy, typ,
                      eimply (eapp (s, [vx; vy]), eapp (s, [vy; vx]))))
       in
       r.sym_hyp <- Some result;
@@ -328,8 +330,9 @@ let get_trans_hyp s =
   match r.trans_hyp with
   | Some e -> e
   | None ->
-      let vx = evar "x" and vy = evar "y" and vz = evar "z" in
-      let result = eall (vx, Type.atomic r.typ, eall (vy, Type.atomic r.typ, eall (vz, Type.atomic r.typ,
+      let typ = match r.typ with Some t -> t | None -> assert false in
+      let vx = tvar "x" typ and vy = tvar "y" typ and vz = tvar "z" typ in
+      let result = eall (vx, typ, eall (vy, typ, eall (vz, typ,
                      eimply (eapp (s, [vx; vy]),
                        eimply (eapp (s, [vy; vz]), eapp (s, [vx; vz]))))))
       in
