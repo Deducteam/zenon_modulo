@@ -110,6 +110,7 @@ val type_of_expr : expr -> Type.t;;
 
 (* gensym *)
 val newvar : unit -> expr;;
+val newtvar : etype -> expr;;
 val newname : unit -> string;;
 
 val size : expr -> int;;

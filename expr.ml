@@ -193,7 +193,20 @@ let priv_app s args =
   let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
   let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
   let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
-  let typ = type_app_opt (get_name s, get_type s) (extract_args (get_type s) args) in
+  let typ = try
+      type_app_opt (get_name s, get_type s) (extract_args (get_type s) args)
+    with
+    | Type.Function_expected as e ->
+       Printf.eprintf "\nError: %s : %s was expected to have a function type.\n"
+                      (get_name s)
+                      (match get_type s with None -> "?" | Some t -> Type.to_string t);
+       raise e
+    | Type.Mismatch _ as e ->
+       Printf.eprintf "\nError: Applying %s : %s leads to type mismatch.\n"
+                      (get_name s)
+                      (match get_type s with None -> "?" | Some t -> Type.to_string t);
+       raise e
+  in
   mkpriv skel fv sz taus metas typ
 ;;
 let priv_not e =
@@ -487,6 +500,7 @@ let newname () =
 ;;
 
 let newvar () = evar (newname ());;
+let newtvar ty = tvar (newname ()) ty;;
 
 let rec rm_binding v map =
   match map with
