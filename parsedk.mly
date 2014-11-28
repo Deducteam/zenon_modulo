@@ -21,6 +21,8 @@ let rec mk_type e = match e with
   (* (eT (Arrow t1 t2)) is convertible with (eT t1 -> eT t2) *)
   | Eapp (Evar ("cc.eT", _), [Eapp (Evar ("cc.Arrow", _), [t1; t2], _)], _) ->
      arr (mk_type (eps t1)) (mk_type (eps t2))
+  | Eapp (Evar ("cc.eT", _), [Evar ("dk_builtins.prop", _)], _) ->
+     Type.type_bool
   | Eapp (Evar  (s, _), args, _) ->
      Type.mk_constr s (List.map mk_type args)
   | Eimply (e1, e2, _) ->
