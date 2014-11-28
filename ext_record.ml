@@ -15,6 +15,7 @@ open Misc;;
 open Mlproof;;
 open Node;;
 open Phrase;;
+open Llproof;;
 
 exception Record_error;;
 
@@ -106,7 +107,7 @@ let newnodes_select e g =
        let value = get_value l r in 
        [ Node { 
 	     nconc = [e];
-	     nrule = Ext ("Record", "$select", []);
+	     nrule = Ext ("record", "select", [e; l; r]);
 	     nprio = Arity;
 	     ngoal = g;
 	     nbranches = [| [value] |];
@@ -116,7 +117,7 @@ let newnodes_select e g =
        let value = get_value l r in 
        [ Node { 
 	     nconc = [e];
-	     nrule = Ext ("Record", "$select", []);
+	     nrule = Ext ("record", "not_select", [e; l; r]);
 	     nprio = Arity;
 	     ngoal = g;
 	     nbranches = [| [enot value] |];
@@ -126,7 +127,7 @@ let newnodes_select e g =
        let value = get_value l r in 
        [ Node { 
 	     nconc = [e];
-	     nrule = Ext ("Record", "Is_true_$select", []);
+	     nrule = Ext ("record", "istrue_select", [e; l; r]);
 	     nprio = Arity;
 	     ngoal = g;
 	     nbranches = [| [istrue value] |];
@@ -136,7 +137,7 @@ let newnodes_select e g =
        let value = get_value l r in 
        [ Node { 
 	     nconc = [e];
-	     nrule = Ext ("Record", "Is_true_$select", []);
+	     nrule = Ext ("record", "not_istrue_select", [e; l; r]);
 	     nprio = Arity;
 	     ngoal = g;
 	     nbranches = [| [isfalse value] |];
@@ -156,13 +157,49 @@ let remove_formula e = ();;
 let preprocess l = l;;
 let add_phrase x = ();;
 let postprocess l = l;;
-let to_llproof tr_expr mlp args = assert false;;
+
+
+let to_llargs tr_expr r =
+  match r with
+  | Ext ("record", "select", [e; l; r]) -> 
+     let h = tr_expr (get_value l r) in 
+     let c = tr_expr e in 
+     ("zenon_record_select", [tr_expr e], [c], [ [h] ])
+  | Ext ("record", "not_select", [e; l; r]) -> 
+     let h = tr_expr (enot (get_value l r)) in 
+     let c = tr_expr e in 
+     ("zenon_record_not_select", [tr_expr e], [c], [ [h] ])
+  | Ext ("record", "istrue_select", [e; l; r]) -> 
+     let h = tr_expr (istrue (get_value l r)) in 
+     let c = tr_expr e in 
+     ("zenon_record_istrue_select", [tr_expr e], [c], [ [h] ])
+  | Ext ("record", "not_istrue_select", [e; l; r]) -> 
+     let h = tr_expr (isfalse (get_value l r)) in 
+     let c = tr_expr e in 
+     ("zenon_record_not_istrue_select", [tr_expr e], [c], [ [h] ])
+  | Ext (x, y, _) ->
+     Printf.eprintf "unknown extension rule %s/%s\n" x y;
+     assert false
+  | _ -> assert false
+;;
+
+let to_llproof tr_expr mlp args =
+  let (name, meta, con, hyp) = to_llargs tr_expr mlp.mlrule in
+  let (subs, exts) = List.split (Array.to_list args) in
+  let ext = List.fold_left Expr.union [] exts in
+  let extras = Expr.diff ext mlp.mlconc in
+  let nn = {
+      Llproof.conc = List.map tr_expr mlp.mlconc;
+      Llproof.rule = Llproof.Rextension ("record", name, meta, con, hyp);
+      Llproof.hyps = subs;
+    }
+  in (nn, extras)
+;;
+
 let declare_context_coq oc =
   fprintf oc "Require Import zenon_record.\n";;
 
-let p_rule_coq oc r = 
-  let poc fmt = fprintf oc fmt in 
-
+let p_rule_coq oc r = ()
 ;;
 
 let predef () = [];;
