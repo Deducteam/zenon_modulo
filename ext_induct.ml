@@ -238,10 +238,9 @@ let newnodes_match_cases e g =
     let br = make_match_branches ee cases in
     let tycon = get_type cases in
     let (args, cons, schema) = Hashtbl.find type_table tycon in
-    let tyargs = List.fold_left (fun s _ -> " _" ^ s) "" args in
     let x = Expr.newvar () in
     let key = if is_t then "Is_true**$match" else "$match" in
-    let mctx = elam (x, Type.atomic (sprintf "(%s%s)" tycon tyargs),
+    let mctx = elam (x, Type.mk_constr tycon (List.map (fun s -> Type.atomic ("_" ^ s)) args),
                      ctx (eapp (evar key, x :: cases)))
     in
     let ty = evar tycon in
