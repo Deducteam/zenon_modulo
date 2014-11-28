@@ -9,14 +9,23 @@ open Printf
 
 let pos () = (Parsing.symbol_start_pos (), Parsing.symbol_end_pos ())
 
+let eps ty = eapp (evar "cc.eT", [ty]);;
+let arr ty1 ty2 = Type.mk_arrow [ty1] ty2;;
+
 let rec mk_type e = match e with
+  (* dk_logic.Prop is the type of proposition (aka Prop, $o or Type.type_bool,
+     not to be confused with basics.bool__t which types boolean terms). *)
+  | Evar ("dk_logic.Prop", _) -> Type.type_bool
   | Evar (s, _) -> Type.atomic s
   | Emeta _ -> assert false
-  | Eapp (Evar(s, _), args, _) ->
+  (* (eT (Arrow t1 t2)) is convertible with (eT t1 -> eT t2) *)
+  | Eapp (Evar ("cc.eT", _), [Eapp (Evar ("cc.Arrow", _), [t1; t2], _)], _) ->
+     arr (mk_type (eps t1)) (mk_type (eps t2))
+  | Eapp (Evar  (s, _), args, _) ->
      Type.mk_constr s (List.map mk_type args)
   | Eimply (e1, e2, _) ->
-     Type.mk_arrow [mk_type e1] (mk_type e2)
-  | _ -> assert false (* FIXME TODO *)
+     arr (mk_type e1) (mk_type e2)
+  | _ -> assert false (* FIXME TO-DO *)
 ;;
 
 let startwith pref s =
@@ -54,10 +63,10 @@ let mk_eapp : string * expr list -> expr =
   | "dk_logic.imp", [e1; e2] -> eimply (e1, e2)
   | "dk_logic.eqv", [e1; e2] -> eequiv (e1, e2)
   | "dk_logic.not", [e1] -> enot (e1)
-  | "dk_logic.forall", [ty; Elam (x, _, e, _)] -> eall (x, mk_type ty, e)
+  | "dk_logic.forall", [_; Elam (x, ty, e, _)] -> eall (x, ty, e)
   | "dk_logic.forall", [_; _] -> assert false
   | "dk_logic.forall", l -> raise (Bad_arity ("forall", List.length l))
-  | "dk_logic.exists", [ty; Elam (x, _, e, _)] -> eex (x, mk_type ty, e)
+  | "dk_logic.exists", [_; Elam (x, ty, e, _)] -> eex (x, ty, e)
   | "dk_logic.ebP", [e1] -> eapp (evar "Is_true", [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
   | "dk_logic.eP", [e] -> e                        (* eP is ignored *)
   (* There should not be any other logical connectives *)
@@ -94,10 +103,6 @@ let rec mk_apply (e, l) =
 
 let mk_all var ty e =
   eall (evar var, ty, e)
-;;
-
-let mk_ex var ty e =
-  eex (evar var, Type.atomic ty, e)
 ;;
 
 let mk_lam var ty e =
@@ -138,7 +143,7 @@ let rec get_params e =
 
 file:
 | body EOF                       { $1 }
-| proof_head body ENDPROOF EOF   { $2 }
+| proof_head body ENDPROOF EOF   { let (n, l) = $2 in (n, List.rev_append ($1) l) }
 
 body:
 | ID COLON term DOT
@@ -146,19 +151,29 @@ body:
         [Phrase.Hyp (Namespace.goal_name, Expr.enot $3, 0),
          false]) }
 | dep_hyp_def body
-              { let (n, l) = $2 in (n, $1 :: l) }
+              { let (n, l) = $2 in (n, List.rev_append ($1) l) }
 
 proof_head:
 | BEGINPROOF proofheaders BEGINNAME proofheaders
-             { $3 }
+             { $2 @ $4 }
 | BEGINPROOF proofheaders
-             { "theorem" }
+             { [] }
 
 proofheaders:
   | /* empty */
-      { () }
+      { [] }
   | BEGINHEADER proofheaders
       { $2 }
+  | BEGIN_TY ID proofheaders
+      { $3 }
+  | BEGIN_VAR ID COLON typ END_VAR proofheaders
+              { (Phrase.Def (DefReal ("Typing declaration",
+                                      $2,
+                                      [],
+                                      elam (evar $2, $4, etrue), None)), true)
+                :: $6 }
+  | BEGIN_HYP ID COLON STRING END_HYP proofheaders
+      { $6 }
 
 qid:
 | QID { $1 }
@@ -192,35 +207,55 @@ typ:
 | applicative { mk_type $1 }
 
 hyp_def:
-| ID COLON term DOT { Phrase.Hyp ($1, $3, 1) }
-| ID COLON term DEF term DOT
+| ID COLON term DOT { [Phrase.Hyp ($1, $3, 1)] }
+| ID COLON typ DEF term DOT
      {
-       let compact_params = [] in
        let (other_params, expr) = get_params $5 in
-       Phrase.Def (DefReal ($1,
-                            $1,
-                            compact_params @ other_params,
-                            expr,
-                            None))
+       [ Phrase.Def (DefReal ("Typing declaration",
+                              $1,
+                              [],
+                              elam (evar $1, $3, etrue),
+                              None));
+         Phrase.Def (DefReal ($1,
+                              $1,
+                              other_params,
+                              expr,
+                              None)) ]
      }
-| ID compact_args COLON term DEF term DOT
+| ID compact_args COLON typ DEF term DOT
      {
-       let compact_params = $2 in
        let (other_params, expr) = get_params $6 in
-       Phrase.Def (DefReal ($1,
-                            $1,
-                            compact_params @ other_params,
-                            expr,
-                            None))
+       let args_tys = List.map
+                        (fun t ->
+                         match get_type t with
+                         | None -> assert false
+                         | Some ty -> ty)
+                      $2
+       in
+       [ Phrase.Def (DefReal ("Typing declaration",
+                              $1,
+                              [],
+                              elam (evar $1, Type.mk_arrow args_tys $4, etrue),
+                              None));
+         Phrase.Def (DefReal ($1,
+                              $1,
+                              $2 @ other_params,
+                              expr,
+                              None)) ]
      }
 
 compact_args:
-| LPAREN ID COLON term RPAREN { [evar $2] }
-| LPAREN ID COLON term RPAREN compact_args
-          { (evar $2) :: $6 }
+| LPAREN ID COLON typ RPAREN
+         {
+           (* Arguments of definitions.
+              These variables must be typed now
+              because they are bound now. *)
+           [tvar $2 $4] }
+| LPAREN ID COLON typ RPAREN compact_args
+         { (tvar $2 $4) :: $6 }
 
 dep_hyp_def:
-| MUSTUSE hyp_def            { ($2, true) }
-| hyp_def                    { ($1, false) }
+| MUSTUSE hyp_def            { List.map (fun a -> (a, true)) $2 }
+| hyp_def                    { List.map (fun a -> (a, false)) $1 }
 
 %%

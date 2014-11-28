@@ -20,6 +20,7 @@ rule token = parse
 | space { token lexbuf } (* skip blanks *)
 | '\n' { Lexing.new_line lexbuf; token lexbuf }
 | "(;" { comment (pos lexbuf) [] lexbuf }
+| '\"' { string lexbuf }
 | "Type" { TYPE }
 | id as id { ID(id) }
 | qid as qid { QID(qid) }
@@ -34,6 +35,11 @@ rule token = parse
 | "(;_MUST_USE_;)"        { MUSTUSE }
 
 | "%%begin-auto-proof"                      { BEGINPROOF }
+| "%%type:"                                 { BEGIN_TY }
+| "%%begin-variable:"                       { BEGIN_VAR }
+| "%%begin-hypothesis:"                     { BEGIN_HYP }
+| "%%end-variable"                          { END_VAR }
+| "%%end-hypothesis"                        { END_HYP }
 | "%%name:" space* (id as name) space*      { BEGINNAME name }
 | "%%" id ":"                               { BEGINHEADER }
 | "%%end-auto-proof"                        { ENDPROOF }
@@ -46,3 +52,9 @@ and comment current stack = parse
 | '\n' { Lexing.new_line lexbuf; comment current stack lexbuf }
 | eof { raise (Error.Lex_error "This comment is not closed") }
 | _ { comment current stack lexbuf }
+
+and string = parse
+| '\n' { Lexing.new_line lexbuf; add_char '\n'; string lexbuf }
+| '\"' { STRING(!current_string) }
+| eof { raise (Error.Lex_error "This string is not closed") }
+| _ as c { add_char c; string lexbuf }

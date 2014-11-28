@@ -35,7 +35,11 @@ let mk_arrow args ret =
     if List.length args = 0 then
         base (aux ret)
     else
-        base (Arrow (List.map aux args, aux ret))
+      match aux ret with
+      | Arrow (l, b) ->
+         base (Arrow (List.map aux args @ l, b))
+      | b ->
+         base (Arrow (List.map aux args, b))
 
 (* Usual types *)
 let type_bool = base Bool

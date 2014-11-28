@@ -298,7 +298,7 @@ let parse_file f =
       | I_dk ->
           let (name, result) = Parsedk.file Lexdk.token lexbuf in
           closer ();
-          (name, result)
+          (name, Typer.phrasebl result)
       | I_zenon ->
           let zphrases = Parsezen.file Lexzen.token lexbuf in
           closer ();
