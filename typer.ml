@@ -38,14 +38,22 @@ let inference_failed env e =
 let eps ty = Type.mk_constr "cc.eT" [ty];;
 let arr ty1 ty2 = Type.mk_arrow [ty1] ty2;;
 let t_bool = Type.atomic "basics.bool__t";;
+let bool1 = eps t_bool;;
+let bool2 = arr bool1 bool1;;
+let bool3 = arr bool1 bool2;;
 let t_prop = Type.type_bool;;
 
 (* Env of builtin constants *)
 (* TODO: move it to extensions *)
 let base_env =
   [
-    ("Is_true", arr (eps t_bool) t_prop);
-    ("basics._tilda__tilda_", arr (eps t_bool) (eps t_bool));
+    ("Is_true", arr bool1 t_prop);
+    ("true", bool1);
+    ("false", bool1);
+    ("basics._tilda__tilda_", bool2);
+    ("basics._amper__amper_", bool3);
+    ("basics._bar__bar_", bool3);
+    ("basics._bar__lt__gt__bar_", bool3)
   ]
 ;;
 
@@ -59,6 +67,32 @@ let rec rec_expr env = function
          v
      )
   | Emeta (t, _) -> emeta (rec_expr env t)
+  | Eapp (Evar ("@", _),
+          [Evar ("dk_tuple.pair", _); ty1; ty2; e1; e2], _) as e ->
+     let prod =
+       eps (Type.mk_constr "dk_tuple.prod"
+                           [type_of_expr ty1;
+                            type_of_expr ty2])
+     in
+     force_type prod e
+  | Eapp (Evar ("@", _), _, _) ->
+     assert false
+  | Eapp (Evar ("$match", _),
+          [p;
+           Elam (Evar (x, _),
+                 Elam (Evar (y, _),
+                       Eapp (Evar ("$match-case", _),
+                             [Evar ("dk_tuple.pair", _); body],
+                             _),
+                       _),
+                 _)],
+          _) as e ->
+     let newenv = x :: y :: env in
+     (match get_type (rec_expr newenv body) with
+      | Some ty -> force_type ty e
+      | None -> Printf.eprintf "\nUntyped pattern body %a.\n"
+                              print_expr body;
+               assert false)
   | Eapp (f, args, _) ->
      eapp (rec_expr env f, List.map (rec_expr env) args)
   | Enot (e, _) ->
