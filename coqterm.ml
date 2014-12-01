@@ -774,8 +774,6 @@ let get_signatures ps ext_decl =
   let rec get_sig r env e =
     match e with
     | Evar ("_", _) -> ()
-    | Eapp (Evar(s, _), [], _) when Arith.is_num_string s -> ()
-    | Evar (s, _) when is_nat s || Arith.is_num e -> ()
     | Evar (s, _) -> if not (List.mem s env) then add_sig s 0 r;
     | Emeta _ | Etrue | Efalse -> ()
     | Eapp (Evar(s,_), args, _) ->
@@ -886,7 +884,7 @@ let declare_hyp oc h =
   match h with
   | Phrase.Hyp (name, _, _) when name = goal_name -> ()
   | Phrase.Hyp (name, stmt, _) ->
-      pr_oc oc (sprintf "Parameter %s : " name) (trexpr [] (Arith.coqify stmt));
+      pr_oc oc (sprintf "Parameter %s : " name) (trexpr [] stmt);
       fprintf oc ".\n";
   | Phrase.Def (DefReal (name, sym, [], body, None)) ->
       let prefix = sprintf "Definition %s := " sym in

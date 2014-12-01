@@ -161,11 +161,7 @@ and p_case accu oc e =
   | _ -> assert false
 ;;
 
-(* Fix to correctly print arithemtic in Coq *)
-let pp_expr oc e = p_expr oc e
-let p_expr oc e = p_expr oc (Arith.coqify e)
-let p_expr_list oc l = p_list " " p_expr "" oc l
-;;
+let pp_expr oc e = p_expr oc e;;
 
 let rec p_nand oc l =
   match l with

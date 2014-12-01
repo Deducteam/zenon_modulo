@@ -2,7 +2,6 @@
 
 open Type
 open Expr
-open Arith
 
 exception Type_error of string
 exception Type_found of etype
@@ -194,13 +193,6 @@ let rec type_tff_app env is_pred e = match e with
     | Eapp(Evar("$int", _), [], _) -> eapp (tvar "Int" type_type, []), env
     | Eapp(Evar("$rat", _), [], _) -> eapp (tvar "Rat" type_type, []), env
     | Eapp(Evar("$real", _), [], _) -> eapp (tvar "Real" type_type, []), env
-    (* Term typechecking *)
-    | Eapp(Evar("$int", _), [Evar (v, _)], _) ->
-            mk_int v, env
-    | Eapp(Evar("$rat", _), [Evar (v, _)], _) ->
-            mk_rat v, env
-    | Eapp(Evar("$real", _), [Evar (v, _)], _) ->
-            mk_real v, env
     | Eapp(Evar("=", _), [a; b], _) ->
             let a', env' = type_tff_term env a in
             let b', env'' = type_tff_term env' b in

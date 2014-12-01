@@ -13,8 +13,6 @@ parsecoq.ml
 parsecoq.mli
 parsetptp.ml
 parsetptp.mli
-parsesmtlib.ml
-parsesmtlib.mli
 parsezen.ml
 parsezen.mli
 lexcoq.ml
