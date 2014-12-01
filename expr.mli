@@ -3,12 +3,12 @@
 
 type private_info;;
 
-type etype = Type.t;;
-
 type expr = private
   | Evar of string * private_info
   | Emeta of expr * private_info    (* expr = Eall (...)  or   Eex (...) *)
   | Eapp of expr * expr list * private_info   (* expr = Evar (...) *)
+
+  | Earrow of expr list * expr * private_info (* args -> ret *)
 
   | Enot of expr * private_info
   | Eand of expr * expr * private_info
@@ -36,16 +36,15 @@ type t = expr;;
 
 val equal : t -> t -> bool;;
 val compare : t -> t -> int;;
-val compare_type : Type.t -> Type.t -> int;;
 val hash : t -> int;;
 
-val get_type : expr -> etype;;
-val extract_args : etype option -> expr list -> etype list;;
+val get_type : expr -> expr;;
 
 val evar : string -> expr;;
-val tvar : string -> etype -> expr;;
+val tvar : string -> expr -> expr;;
 val emeta : expr -> expr;;
 val eapp : expr * expr list -> expr;;
+val earrow : expr list -> expr -> expr;;
 
 val enot : expr -> expr;;
 val eand : expr * expr -> expr;;
@@ -98,15 +97,14 @@ val occurs_as_meta : expr -> expr -> bool;;
 
 exception Higher_order;;
 val substitute : (expr * expr) list -> expr -> expr;;
-val substitute_type : (expr * expr) list -> etype -> etype;;
+(*
 val substitute_meta : (expr * expr) -> expr -> expr;;
 val substitute_expr : (expr * expr) -> expr -> expr;;
+*)
 val substitute_2nd : (expr * expr) list -> expr -> expr;;
 val apply : expr -> expr -> expr;;
 val add_argument : expr -> expr -> expr;;
 val remove_scope : expr -> expr;;
-
-val type_of_expr : expr -> Type.t;;
 
 (* gensym *)
 val newvar : unit -> expr;;

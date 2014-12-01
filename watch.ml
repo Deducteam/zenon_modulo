@@ -81,7 +81,7 @@ let rec check_unused name e =
           && (String.length v < 1 || v.[0] <> '_')
           && not (List.mem v (get_fv e1))
        then begin
-         Error.warn (sprintf "unused variable (%s : %s) in %s" v (Type.to_string (get_type var)) name);
+         Error.warn (sprintf "unused variable %s in %s" v name);
        end;
        check_unused name e1;
   | Eall _ | Eex _ | Etau _ | Elam _ -> assert false

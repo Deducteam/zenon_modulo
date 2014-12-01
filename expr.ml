@@ -12,6 +12,8 @@ type expr =
   | Emeta of expr * private_info
   | Eapp of expr * expr list * private_info
 
+  | Earrow of expr list * expr * private_info
+
   | Enot of expr * private_info
   | Eand of expr * expr * private_info
   | Eor of expr * expr * private_info
@@ -73,6 +75,7 @@ let k_true  = 0xb063cd7
 and k_false = 0xd5ab9f0
 and k_meta  = 0x33d092c
 and k_app   = 0x33b9c25
+and k_arrow = 0x0123456 (* TODO: fixme *)
 and k_not   = 0x7c3e7d2
 and k_and   = 0xccdc15b
 and k_or    = 0x49b55b9
@@ -131,6 +134,8 @@ let get_priv = function
   | Evar (_, h) -> h
   | Emeta (_, h) -> h
   | Eapp (_, _, h) -> h
+
+  | Earrow (_, _, h) -> h
 
   | Enot (_, h) -> h
   | Eand (_, _, h) -> h
@@ -197,13 +202,15 @@ let prop_app l =
         aux l
 
 let priv_var s t = mkpriv 0 [s] 1 0 [] t;;
-
-let mk_arrow l ret =
-    assert (List.for_all (fun e -> type_type == get_type e) (ret :: l));
-    let t = make_list type_type [] (List.length l + 1) in
-    let v = priv_var "<-" t in
-    Eapp(v, ret :: l, ())
-
+let rec priv_arrow args ret =
+  let comb_skel accu e = combine (get_skel e) accu in
+  let skel = combine k_app (List.fold_left comb_skel (get_hash ret) args) in
+  let fv = List.fold_left (fun a e -> str_union a (get_fv e)) [] args in
+  let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
+  let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
+  let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
+  mkpriv skel fv sz taus metas type_type
+;;
 let priv_meta e =
   mkpriv (combine k_meta (get_skel e)) [] 1 0 [e] (get_meta_type e)
 ;;
@@ -258,11 +265,6 @@ let priv_tau v e =
          (remove v (get_fv e)) 1 (1 + get_taus e) (get_metas e)
          (get_type v)
 ;;
-let priv_lam v e =
-  mkpriv (combine k_lam (combine (get_hash (get_type v)) (get_skel e)))
-         (remove v (get_fv e)) 1 (get_taus e) (get_metas e)
-         (mk_arrow [get_type v] (get_type e))
-;;
 
 module HashedExpr = struct
   type t = expr;;
@@ -307,8 +309,13 @@ module HashedExpr = struct
       match e1, e2 with
       | Evar _, Evar _ -> same_binding env1 e1 env2 e2
       | Emeta (n1, _), Emeta (n2, _) -> n1 == n2
+      | Earrow (args1, ret1, _), Earrow (args2, ret2, _) ->
+          equal_in_env env1 env2 ret1 ret2
+          && List.length args1 =%= List.length args2
+          && List.for_all2 (equal_in_env env1 env2) args1 args2
       | Eapp (sym1, args1, _), Eapp (sym2, args2, _) ->
-          sym1 =%= sym2 && List.length args1 =%= List.length args2
+          equal_in_env env1 env2 sym1 sym2
+          && List.length args1 =%= List.length args2
           && List.for_all2 (equal_in_env env1 env2) args1 args2
       | Enot (f1, _), Enot (f2, _) -> equal_in_env env1 env2 f1 f2
       | Eand (f1, g1, _), Eand (f2, g2, _)
@@ -342,10 +349,13 @@ module HashedExpr = struct
   | Some t1, Some t2 -> Type.equal t1 t2
   | _ -> false
 
-  let equal e1 e2 = (t_eq (get_type e1) (get_type e2)) &&
+  let equal e1 e2 = get_type e1 == get_type e2 &&
     match e1, e2 with
     | Evar (v1, _), Evar (v2, _) -> v1 =%= v2 && get_type e1 == get_type e2
     | Emeta (f1, _), Emeta (f2, _) -> f1 == f2
+    | Earrow(args1, ret1, _), Earrow(args2, ret2, _) ->
+        ret1 == ret2 && List.length args1 =%= List.length args2
+        && List.for_all2 (==) args1 args2
     | Eapp (sym1, args1, _), Eapp (sym2, args2, _) ->
         sym1 == sym2 && List.length args1 =%= List.length args2
         && List.for_all2 (==) args1 args2
@@ -404,9 +414,11 @@ let print_stats oc =
 *)
 
 let evar s = he_merge (Evar (s, priv_var s type_none));;
-let tvar s t = he_merge (Evar (s, priv_tvar s t));;
+let tvar s t = he_merge (Evar (s, priv_var s t));;
 let emeta (e) = he_merge (Emeta (e, priv_meta e));;
-let eapp (s, args) = he_merge (Eapp (s, args, priv_app s args));;
+let earrow args ret =
+    assert (List.for_all (fun e -> type_type == get_type e) (ret :: args));
+    he_merge (Earrow (args, ret, priv_arrow args ret));;
 let enot (e) = he_merge (Enot (e, priv_not e));;
 let eand (e1, e2) = he_merge (Eand (e1, e2, priv_and e1 e2));;
 let eor (e1, e2) = he_merge (Eor (e1, e2, priv_or e1 e2));;
@@ -417,10 +429,18 @@ let eequiv (e1, e2) = he_merge (Eequiv (e1, e2, priv_equiv e1 e2));;
 let eall (v, e) = he_merge (Eall (v, e, priv_all v e));;
 let eex (v, e) = he_merge (Eex (v, e, priv_ex v e));;
 let etau (v, e) = he_merge (Etau (v, e, priv_tau v e));;
-let elam (v, e) = he_merge (Elam (v, e, priv_lam v e));;
 
 let exor (e1,e2) = eor (eand (e1, enot e2), eand (enot e1, e2));;
 
+let priv_lam v e =
+  mkpriv (combine k_lam (combine (get_hash (get_type v)) (get_skel e)))
+         (remove v (get_fv e)) 1 (get_taus e) (get_metas e)
+         (earrow [get_type v] (get_type e))
+
+let elam (v, e) = he_merge (Elam (v, e, priv_lam v e))
+;;
+
+let eeq = evar "=";;
 let estring = evar "$string";;
 
 let rec all_list vs body =
@@ -475,19 +495,21 @@ let size = get_size;;
 let has_metas e = get_metas e <> [];;
 let count_metas e = List.length (get_metas e);;
 
-let cursym = ref var_prefix;;
+let cursym = ref (Bytes.of_string var_prefix)
 
 let rec incr_sym n =
-  if n >= String.length !cursym
-  then cursym := !cursym ^ "a"
-  else match !cursym.[n] with
-  | 'z' -> !cursym.[n] <- 'a'; incr_sym (n+1)
-  | c -> !cursym.[n] <- Char.chr (1 + Char.code c)
+  assert (n <= String.length !cursym);
+  if (n =%= Bytes.length !cursym) then begin
+      cursym := Bytes.extend !cursym 0 1;
+      Bytes.set !cursym n 'a'
+  end else match Bytes.get !cursym n with
+  | 'z' -> Bytes.set !cursym n 'a'; incr_sym (n+1)
+  | c -> Bytes.set !cursym n (Char.chr (1 + Char.code c))
 ;;
 
 let newname () =
   incr_sym (String.length var_prefix);
-  String.copy !cursym
+  Bytes.to_string !cursym
 ;;
 
 let newvar () = evar (newname ());;
@@ -577,6 +599,7 @@ and substitute map e =
   | _ when disj (get_fv e) map -> e
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
+  | Earrow(args, ret, _) -> earrow (List.map (substitute map) args) (substitute map ret)
   | Eapp (s, args, _) -> eapp (s, List.map (substitute map) args)
   | Enot (f, _) -> enot (substitute map f)
   | Eand (f, g, _) -> eand (substitute map f, substitute map g)
@@ -590,10 +613,12 @@ and substitute map e =
   | Elam (v, f, _) -> aux elam map v f
 ;;
 
+(*
 let rec substitute_meta map e =
   match e with
   | Evar (v, _) -> e
   | Emeta (e', _) -> let (meta, v) = map in if e' == meta then v else e
+  | Earrow(args, ret, _) -> earrow (List.map (substitute_meta map) args) (substitute_meta map ret)
   | Eapp (s, args, _) -> eapp (s, List.map (substitute_meta map) args)
   | Enot (f, _) -> enot (substitute_meta map f)
   | Eand (f, g, _) -> eand (substitute_meta map f, substitute_meta map g)
@@ -612,6 +637,7 @@ let rec substitute_expr map e =
   | _ when e == (fst map) -> snd map
   | Evar (v, _) -> e
   | Emeta (e', _) -> e
+  | Earrow(args, ret, _) -> earrow (List.map (substitute_expr map) args) (substitute_expr map ret)
   | Eapp (s, args, _) -> eapp (s, List.map (substitute_expr map) args)
   | Enot (f, _) -> enot (substitute_expr map f)
   | Eand (f, g, _) -> eand (substitute_expr map f, substitute_expr map g)
@@ -624,11 +650,13 @@ let rec substitute_expr map e =
   | Etau (v, f, _) -> etau (v, substitute_expr map f)
   | Elam (v, f, _) -> elam (v, substitute_expr map f)
 ;;
+*)
 
 let rec substitute_2nd map e =
   match e with
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
+  | Earrow _ -> assert false
   | Eapp (s, args, _) ->
      let acts = List.map (substitute_2nd map) args in
      begin try
@@ -693,6 +721,7 @@ let add_argument f a =
 let rec remove_scope e =
   match e with
   | Eapp (f, e1 :: t :: vals, _) when get_name f =%= "$scope" -> remove_scope (apply e1 t)
+  | Earrow _ -> assert false
   | Eapp (f, args, _) -> e
   | Enot (e1, _) -> enot (remove_scope e1)
   | Eand (e1, e2, _) -> eand (remove_scope e1, remove_scope e2)
