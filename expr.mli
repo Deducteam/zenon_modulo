@@ -123,3 +123,4 @@ val get_fv : expr -> string list;;
 type goalness = int;;
 
 val print_stats : out_channel -> unit;;
+val force_type : etype -> expr -> expr;;

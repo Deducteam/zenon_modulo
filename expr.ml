@@ -713,3 +713,19 @@ let rec remove_scope e =
 ;;
 
 type goalness = int;;
+
+let force_type ty e =
+  let priv = get_priv e in
+  let h = {priv with typ = Some ty} in
+  match e with
+  | Evar (s, _) -> Evar (s, h)
+  | Emeta (e, _) -> Emeta (e, h)
+  | Eapp (e, l, _) -> Eapp (e, l, h)
+
+  | Enot (e, _) -> Enot (e, h)
+  | Eand (a, b, _) -> Eand (a, b, h)
+  | Eor (a, b, _) -> Eor (a, b, h)
+  | Eimply (a, b, _) -> Eimply (a, b, h)
+  | Eequiv (a, b, _) -> Eequiv (a, b, h)
+  | Etrue -> Etrue
+  | Efalse -> Efalse
