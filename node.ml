@@ -113,8 +113,8 @@ let rec can_instantiate m e =
   | Eequiv (e1, e2, _)
     -> can_instantiate m e1 && can_instantiate m e2
   | Etrue | Efalse -> true
-  | Eall (v, t, e1, _) | Eex (v, t, e1, _) | Etau (v, t, e1, _)
-  | Elam (v, t, e1, _)
+  | Eall (v, e1, _) | Eex (v, e1, _) | Etau (v, e1, _)
+  | Elam (v, e1, _)
     -> can_instantiate m e1
 ;;
 

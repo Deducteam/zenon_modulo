@@ -533,7 +533,7 @@ let to_llargs tr_expr r =
       let he2 = tr_expr (eapp (r, [e; e2])) in
       let concl = tr_expr a in
       let v1 = newvar () and v2 = newvar () in
-      let rf = elam (v1, Type.atomic "", elam (v2, Type.atomic "", eapp (r, [v1; v2]))) in
+      let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_l", List.map tr_expr [rf; c; t; e; e2],
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "ite_rel_r",
@@ -545,7 +545,7 @@ let to_llargs tr_expr r =
       let he2 = tr_expr (eapp (r, [e1; e])) in
       let concl = tr_expr a in
       let v1 = newvar () and v2 = newvar () in
-      let rf = elam (v1, Type.atomic "", elam (v2, Type.atomic "", eapp (r, [v1; v2]))) in
+      let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_r", List.map tr_expr [rf; e1; c; t; e],
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "ite_rel_nl",
@@ -558,7 +558,7 @@ let to_llargs tr_expr r =
       let he2 = tr_expr (enot (eapp (r, [e; e2]))) in
       let concl = tr_expr a in
       let v1 = newvar () and v2 = newvar () in
-      let rf = elam (v1, Type.atomic "", elam (v2, Type.atomic "", eapp (r, [v1; v2]))) in
+      let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_nl", List.map tr_expr [rf; c; t; e; e2],
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "ite_rel_nr",
@@ -571,7 +571,7 @@ let to_llargs tr_expr r =
       let he2 = tr_expr (enot (eapp (r, [e1; e]))) in
       let concl = tr_expr a in
       let v1 = newvar () and v2 = newvar () in
-      let rf = elam (v1, Type.atomic "", elam (v2, Type.atomic "", eapp (r, [v1; v2]))) in
+      let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_nr", List.map tr_expr [rf; e1; c; t; e],
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "istrue_true", [e1]) ->
@@ -615,15 +615,15 @@ let rec pp_expr e =
   | Eequiv (e1, e2, _) -> eequiv (pp_expr e1, pp_expr e2)
   | Etrue -> e
   | Efalse -> e
-  | Eall (v, t, e, _) -> eall (v, t, pp_expr e)
-  | Eex (v, t, e, _) -> eex (v, t, pp_expr e)
-  | Etau (v, t, e, _) -> etau (v, t, pp_expr e)
+  | Eall (v, e, _) -> eall (v, pp_expr e)
+  | Eex (v, e, _) -> eex (v, pp_expr e)
+  | Etau (v, e, _) -> etau (v, pp_expr e)
 (*
   | Elam (v, t, e, _) when occurs "basics.list__t" t ->
       let t1 = replace_first "basics.list__t" "List.list" t in
       elam (v, t1, pp_expr e)
 *)
-  | Elam (v, t, e, _) -> elam (v, t, pp_expr e)
+  | Elam (v, e, _) -> elam (v, pp_expr e)
 ;;
 
 let built_in_defs =
@@ -646,10 +646,10 @@ let built_in_defs =
     Def (DefReal ("pair", "basics.pair", [tx; ty; x; y],
                   eapp (evar "Datatypes.pair", [tx; ty; x; y]), None));
     Def (DefReal ("fst", "basics.fst", [tx; ty; xy],
-                  eapp (evar "$match", [xy; elam (x, Type.atomic "", elam (y, Type.atomic "", case))]),
+                  eapp (evar "$match", [xy; elam (x, elam (y, case))]),
                   None));
     Def (DefReal ("snd", "basics.snd", [tx; ty; xy],
-                  eapp (evar "$match", [xy; elam (y, Type.atomic "", elam (x, Type.atomic "", case))]),
+                  eapp (evar "$match", [xy; elam (y, elam (x, case))]),
                   None));
     Inductive ("basics.list__t", ["A"], [
                  ("List.nil", []);
@@ -706,10 +706,10 @@ let rec process_expr e =
   | Eequiv (e1, e2, _) -> eequiv (process_expr e1, process_expr e2)
   | Etrue -> e
   | Efalse -> e
-  | Eall (e1, t, e2, _) -> eall (process_expr e1, t, process_expr e2)
-  | Eex (e1, t, e2, _) -> eex (process_expr e1, t, process_expr e2)
-  | Etau (e1, t, e2, _) -> etau (process_expr e1, t, process_expr e2)
-  | Elam (e1, t, e2, _) -> elam (process_expr e1, t, process_expr e2)
+  | Eall (e1, e2, _) -> eall (process_expr e1, process_expr e2)
+  | Eex (e1, e2, _) -> eex (process_expr e1, process_expr e2)
+  | Etau (e1, e2, _) -> etau (process_expr e1, process_expr e2)
+  | Elam (e1, e2, _) -> elam (process_expr e1, process_expr e2)
 ;;
 
 let rec process_expr_set accu l =

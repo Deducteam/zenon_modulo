@@ -56,14 +56,14 @@ let rec check_body env s e =
     -> check_body env s f1 && check_body env s f2
   | Etrue | Efalse
     -> true
-  | Eall (v, _, f, _) | Eex (v, _, f, _)
-  | Etau (v, _, f, _) | Elam (v, _, f, _)
+  | Eall (v, f, _) | Eex (v, f, _)
+  | Etau (v, f, _) | Elam (v, f, _)
     -> check_body (v::env) s f
 ;;
 
 let rec is_def predef env e =
   match e with
-  | Eall (v, t, f, _) -> is_def predef (v::env) f
+  | Eall (v, f, _) -> is_def predef (v::env) f
   | Eequiv (Eapp (Evar(s,_), args, _), body, _) when not (List.mem s predef) ->
      check_args env args && check_body [] s body
   | Eequiv (body, Eapp (Evar(s,_), args, _), _) when not (List.mem s predef) ->
@@ -85,7 +85,7 @@ let rec is_def predef env e =
 
 let rec make_def predef orig env e =
   match e with
-  | Eall (v, t, f, _) -> make_def predef orig (v::env) f
+  | Eall (v, f, _) -> make_def predef orig (v::env) f
   | Eequiv (Eapp (Evar(s,_), args, _), body, _)
     when not (List.mem s predef) && check_args env args ->
       DefPseudo (orig, s, extract_args args, body)
@@ -121,10 +121,10 @@ let rec free_syms env accu e =
   | Eimply (f, g, _) -> free_syms env (free_syms env accu f) g
   | Eequiv (f, g, _) -> free_syms env (free_syms env accu f) g
   | Etrue | Efalse -> accu
-  | Eall (v, t, f, _)
-  | Eex (v, t, f, _)
-  | Etau (v, t, f, _)
-  | Elam (v, t, f, _)
+  | Eall (v, f, _)
+  | Eex (v, f, _)
+  | Etau (v, f, _)
+  | Elam (v, f, _)
     -> free_syms (v::env) accu f
 ;;
 

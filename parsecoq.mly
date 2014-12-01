@@ -50,28 +50,28 @@ let rec mk_arobas_apply (id, l) =
 ;;
 
 let mk_all bindings body =
-  let f (var, ty) e = eall (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = eall (tvar var (Type.atomic ty), e) in
   List.fold_right f bindings body
 ;;
 
 let mk_ex bindings body =
-  let f (var, ty) e = eex (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = eex (tvar var (Type.atomic ty), e) in
   List.fold_right f bindings body
 ;;
 
 let mk_lam bindings body =
-  let f (var, ty) e = elam (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = elam (tvar var (Type.atomic ty), e) in
   List.fold_right f bindings body
 ;;
 
 let mk_fix ident ty bindings body =
-  let f (var, ty) e = elam (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = elam (tvar var (Type.atomic ty), e) in
   (ident, eapp (evar "$fix", [ List.fold_right f ((ident, ty) :: bindings) body ]))
 ;;
 
 let rec get_params e =
   match e with
-  | Elam (v, _, body, _) ->
+  | Elam (v, body, _) ->
       let (p, e1) = get_params body in
       (v :: p, e1)
   | _ -> ([], e)

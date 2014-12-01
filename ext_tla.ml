@@ -178,7 +178,7 @@ let newnodes_prop e g =
   in
   let mknode_inst prio m term =
     match m with
-    | Eall (v, t, p, _) ->
+    | Eall (v, p, _) ->
        let n = Expr.substitute [(v, term)] p in
        [ Node {
          nconc = [m];
@@ -187,7 +187,7 @@ let newnodes_prop e g =
          ngoal = g;
          nbranches = [| [n] |];
        } ]
-    | Eex (v, t, p, _) ->
+    | Eex (v, p, _) ->
        let n = Expr.substitute [(v, term)] (enot p) in
        let nm = enot (m) in
        [ Node {
@@ -277,12 +277,12 @@ let newnodes_prop e g =
 
   | Eapp (Evar("TLA.in",_), [e1; Eapp (Evar("TLA.UNION",_), [s], _)], _) ->
      let b = Expr.newvar () in
-     let h1 = eex (b, Type.atomic "", eand (eapp (evar "TLA.in", [b; s]),
+     let h1 = eex (b, eand (eapp (evar "TLA.in", [b; s]),
                                             eapp (evar "TLA.in", [e1; b]))) in
      mknode Prop "in_UNION" [e; h1; e1; s] [| [h1] |]
   | Enot (Eapp (Evar("TLA.in",_), [e1; Eapp (Evar("TLA.UNION",_), [s], _)], _), _) ->
      let b = Expr.newvar () in
-     let h1 = enot (eex (b, Type.atomic "", eand (eapp (evar "TLA.in", [b; s]),
+     let h1 = enot (eex (b, eand (eapp (evar "TLA.in", [b; s]),
                                                   eapp (evar "TLA.in", [e1; b])))) in
      mknode Arity "notin_UNION" [e; h1; e1; s] [| [h1] |]
 
@@ -316,31 +316,31 @@ let newnodes_prop e g =
      mknode Prop "notin_setminus" [e; h1; h2; e1; e2; e3] [| [h1]; [h2] |]
 
   | Eapp (Evar("TLA.in",_),
-          [e1; Eapp (Evar("TLA.subsetOf",_), [s; Elam (v, _, p, _) as pred], _)],
+          [e1; Eapp (Evar("TLA.subsetOf",_), [s; Elam (v, p, _) as pred], _)],
           _) ->
      let h1 = eapp (evar "TLA.in", [e1; s]) in
      let h2 = substitute [(v, e1)] p in
      mknode Prop "in_subsetof" [e; h1; h2; e1; s; pred] [| [h1; h2] |]
   | Enot (Eapp (Evar("TLA.in",_),
-                [e1; Eapp (Evar("TLA.subsetOf",_), [s; Elam (v, _, p, _) as pred], _)],
+                [e1; Eapp (Evar("TLA.subsetOf",_), [s; Elam (v, p, _) as pred], _)],
                 _), _) ->
      let h1 = enot (eapp (evar "TLA.in", [e1; s])) in
      let h2 = enot (substitute [(v, e1)] p) in
      mknode Prop "notin_subsetof" [e; h1; h2; e1; s; pred] [| [h1]; [h2] |]
 
   | Eapp (Evar("TLA.in",_),
-          [e1; Eapp (Evar("TLA.setOfAll",_), [s; Elam (v, _, p, _) as pred], _)],
+          [e1; Eapp (Evar("TLA.setOfAll",_), [s; Elam (v, p, _) as pred], _)],
           _) ->
      let x = Expr.newvar () in
-     let h1 = eex (x, Type.atomic "", eand (eapp (evar "TLA.in", [x; s]),
+     let h1 = eex (x, eand (eapp (evar "TLA.in", [x; s]),
                                             eapp (eeq, [e1; substitute [(v, x)] p])))
      in
      mknode (Inst h1) "in_setofall" [e; h1; e1; s; pred] [| [h1] |]
   | Enot (Eapp (Evar("TLA.in",_),
-                [e1; Eapp (Evar("TLA.setOfAll",_), [s; Elam (v, _, p, _) as pred], _)],
+                [e1; Eapp (Evar("TLA.setOfAll",_), [s; Elam (v, p, _) as pred], _)],
                 _), _) ->
      let x = Expr.newvar () in
-     let h1 = enot (eex (x, Type.atomic "", eand (eapp (evar "TLA.in", [x; s]),
+     let h1 = enot (eex (x, eand (eapp (evar "TLA.in", [x; s]),
                                                   eapp (eeq, [e1; substitute [(v, x)] p]))))
      in
      mknode (Inst h1) "notin_setofall" [e; h1; e1; s; pred] [| [h1] |]
@@ -349,7 +349,7 @@ let newnodes_prop e g =
      let h1 = eapp (evar "TLA.isAFcn", [f]) in
      let h2 = eapp (eeq, [eapp (evar "TLA.DOMAIN", [f]); a]) in
      let x = Expr.newvar () in
-     let h3 = eall (x, Type.atomic "",
+     let h3 = eall (x,
                 eimply (eapp (evar "TLA.in", [x; a]),
                         eapp (evar "TLA.in", [eapp (evar "TLA.fapply", [f; x]); b])))
      in
@@ -361,7 +361,7 @@ let newnodes_prop e g =
      let h2 = enot (eapp (eeq, [eapp (evar "TLA.DOMAIN", [f]); a])) in
      let x = Expr.newvar () in
      let h3 = enot (
-               eall (x, Type.atomic "",
+               eall (x,
                      eimply (eapp (evar "TLA.in", [x; a]),
                              eapp (evar "TLA.in", [eapp (evar "TLA.fapply", [f; x]); b]))))
      in
@@ -384,12 +384,12 @@ let newnodes_prop e g =
 
   | Eapp (Evar("=",_), [e1; Evar ("TLA.emptyset", _)], _) ->
      let x = Expr.newvar () in
-     let h = eall (x, Type.atomic "", enot (eapp (evar "TLA.in", [x; e1]))) in
+     let h = eall (x, enot (eapp (evar "TLA.in", [x; e1]))) in
      mknode Arity "setequalempty" [e; h; e1] [| [h] |]
 
   | Eapp (Evar("=",_), [Evar ("TLA.emptyset", _); e1], _) ->
      let x = Expr.newvar () in
-     let h = eall (x, Type.atomic "", enot (eapp (evar "TLA.in", [x; e1]))) in
+     let h = eall (x, enot (eapp (evar "TLA.in", [x; e1]))) in
      mknode Arity "setemptyequal" [e; h; e1] [| [h] |]
 
 (* redundant ?
@@ -403,13 +403,13 @@ let newnodes_prop e g =
 
   | Eapp (Evar("=",_), [e1; e2], _) when is_set_expr e1 || is_set_expr e2 ->
      let x = Expr.newvar () in
-     let h = eall (x, Type.atomic "", eequiv (eapp (evar "TLA.in", [x; e1]),
+     let h = eall (x, eequiv (eapp (evar "TLA.in", [x; e1]),
                                               eapp (evar "TLA.in", [x; e2])))
      in
      mknode (Inst h) "setequal" [e; h; e1; e2] [| [h] |]
   | Enot (Eapp (Evar("=",_), [e1; e2], _), _) when is_set_expr e1 || is_set_expr e2 ->
      let x = Expr.newvar () in
-     let h = enot (eall (x, Type.atomic "", eequiv (eapp (evar "TLA.in", [x; e1]),
+     let h = enot (eall (x, eequiv (eapp (evar "TLA.in", [x; e1]),
                                                     eapp (evar "TLA.in", [x; e2]))))
      in
      mknode (Inst h) "notsetequal" [e; h; e1; e2] [| [h] |]
@@ -433,7 +433,7 @@ let newnodes_prop e g =
      let h1 = eequiv (eapp (evar "TLA.isAFcn", [e1]), eapp (evar "TLA.isAFcn", [e2])) in
      let h2 = eapp (eeq, [eapp (evar "TLA.DOMAIN", [e1]); eapp (evar "TLA.DOMAIN", [e2])])
      in
-     let h3 = eall (x, Type.atomic "", eapp (eeq, [eapp (evar "TLA.fapply", [e1; x]);
+     let h3 = eall (x, eapp (eeq, [eapp (evar "TLA.fapply", [e1; x]);
                                                    eapp (evar "TLA.fapply", [e2; x])]))
      in
      let h = eand (eand (h1, h2), h3) in
@@ -444,37 +444,37 @@ let newnodes_prop e g =
      let h1 = eapp (evar "TLA.isAFcn", [e2]) in
      let h2 = eapp (eeq, [eapp (evar "TLA.DOMAIN", [e1]); eapp (evar "TLA.DOMAIN", [e2])])
      in
-     let h3 = eall (x, Type.atomic "", eimply (eapp (evar "TLA.in", [x; eapp(evar "TLA.DOMAIN",[e2])]),
+     let h3 = eall (x, eimply (eapp (evar "TLA.in", [x; eapp(evar "TLA.DOMAIN",[e2])]),
                                                eapp (eeq, [eapp (evar "TLA.fapply", [e1; x]);
                                                            eapp (evar "TLA.fapply", [e2; x])])))
      in
      let h = enot (eand (eand (eand (h0, h1), h2), h3)) in
      mknode (Inst h3) "notfunequal" [e; h; e1; e2] [| [h] |]
 
-  | Enot (Eapp (Evar("=",_), [Etau (v1, t1, p1, _); Etau (v2, t2, p2, _)], _), _)
+  | Enot (Eapp (Evar("=",_), [Etau (v1, p1, _); Etau (v2, p2, _)], _), _)
     when not (is_notequiv p1) && not (is_notequiv p2) ->
      let x = Expr.newvar () in
      let p1x = substitute [(v1, x)] p1 in
      let p2x = substitute [(v2, x)] p2 in
-     let h = eex (x, t1, eapp (evar "$notequiv", [p1x; p2x])) in
+     let h = eex (x, eapp (evar "$notequiv", [p1x; p2x])) in
      mknode (Inst h) "choose_diff_choose"
-            [e; h; elam (v1, t1, p1); elam (v2, t2, p2)] [| [h] |]
+            [e; h; elam (v1, p1); elam (v2, p2)] [| [h] |]
 
   | Eapp (Evar("$notequiv",_), [e1; e2], _) ->
      let h = enot (eequiv (e1, e2)) in
      mknode Arity "notequivdef" [] [| [h] |]
 
-  | Enot (Eapp (Evar("=",_), [e1; Etau (v2, t2, p2, _)], _), _)
-  | Enot (Eapp (Evar("=",_), [Etau (v2, t2, p2, _); e1], _), _)
+  | Enot (Eapp (Evar("=",_), [e1; Etau (v2, p2, _)], _), _)
+  | Enot (Eapp (Evar("=",_), [Etau (v2, p2, _); e1], _), _)
   ->
-     let h1 = eex (v2, t2, p2) in
-     let h2a = enot (eex (v2, t2, p2)) in
+     let h1 = eex (v2, p2) in
+     let h2a = enot (eex (v2, p2)) in
      let h2b = enot (substitute [(v2, e1)] p2) in
      mknode_cut (Inst h2a) "notequalchoose"
-                [h1; h2a; h2b; elam (v2, t2, p2); e1]
+                [h1; h2a; h2b; elam (v2, p2); e1]
                 [| [h1]; [h2a; h2b] |]
 
-  | Eall (v, t, Eimply (Eapp (Evar("TLA.in",_),
+  | Eall (v, Eimply (Eapp (Evar("TLA.in",_),
                               [vv; ( Eapp (Evar(("TLA.addElt" | "TLA.upair"
                                             | "TLA.set" | "TLA.union"),_), _, _)
                                    | Evar ("TLA.emptyset", _)
@@ -482,7 +482,7 @@ let newnodes_prop e g =
      let (elems, rest) = get_values_set s in
      let nodes = List.map (fun elem -> mknode_inst Arity e elem) elems in
      List.flatten nodes @ (if rest then [] else [Stop])
-  | Enot ((Eex (v, t, Eand (Eapp (Evar("TLA.in",_),
+  | Enot ((Eex (v, Eand (Eapp (Evar("TLA.in",_),
                                   [vv; ( Eapp (Evar(("TLA.addElt" | "TLA.upair"
                                                 | "TLA.set" | "TLA.union"),_), _, _)
                                        | Evar ("TLA.emptyset", _)
@@ -506,7 +506,7 @@ let newnodes_prop e g =
      let f eneq =
        match eneq with
        | Enot (Eapp (Evar("=",_), [s1; s2], _), _) ->
-          let h = enot (eall (x, Type.atomic "", eequiv (eapp (evar "TLA.in", [x; s1]),
+          let h = enot (eall (x, eequiv (eapp (evar "TLA.in", [x; s1]),
                                                          eapp (evar "TLA.in", [x; s2]))))
           in
           mknode (Inst h) "notsetequal" [eneq; h; s1; s2] [| [h] |]
@@ -874,10 +874,10 @@ let rec newnodes_subst x ctx e g =
 
   | Eapp (Evar("TLA.in",_), [Evar _ as e1; e2], _) when has_subst e1 ->
      let nctx = appctx (eapp (evar "TLA.in", [x; e2])) in
-     do_substitutions e1 (elam (x, Type.atomic "", nctx)) g
+     do_substitutions e1 (elam (x, nctx)) g
   | Eapp (Evar("TLA.in",_), [e1; Evar _ as e2], _) when has_subst e2 ->
      let nctx = appctx (eapp (evar "TLA.in", [e1; x])) in
-     do_substitutions e2 (elam (x, Type.atomic "", nctx)) g
+     do_substitutions e2 (elam (x, nctx)) g
 (* TODO:
   | Eapp ("TLA.fapply", [Eapp ("$string", [Evar (s, _)], _);
                          <some nat constant in range>], _) ->
@@ -886,18 +886,18 @@ let rec newnodes_subst x ctx e g =
 
   | Eapp (Evar("TLA.fapply",_), [Evar _ as e1; e2], _) when has_subst e1 ->
      let nctx = appctx (eapp (evar "TLA.fapply", [x; e2])) in
-     do_substitutions e1 (elam (x, Type.atomic "", nctx)) g
+     do_substitutions e1 (elam (x, nctx)) g
   | Eapp (Evar("TLA.isAFcn",_), [Evar _ as e1], _) when has_subst e1 ->
      let nctx = appctx (eapp (evar "TLA.isAFcn", [x])) in
-     do_substitutions e1 (elam (x, Type.atomic "", nctx)) g
+     do_substitutions e1 (elam (x, nctx)) g
 
   | Eapp (Evar("TLA.isASeq",_), [Evar _ as e1], _) when has_subst e1 ->
      let nctx = appctx (eapp (evar "TLA.isASeq", [x])) in
-     do_substitutions e1 (elam (x, Type.atomic "", nctx)) g
+     do_substitutions e1 (elam (x, nctx)) g
 
   | Eapp (Evar("TLA.DOMAIN",_), [Evar _ as e1], _) when has_subst e1 ->
      let nctx = appctx (eapp (evar "TLA.DOMAIN", [x])) in
-     do_substitutions e1 (elam (x, Type.atomic "", nctx)) g
+     do_substitutions e1 (elam (x, nctx)) g
 
   | Eapp (Evar(("$notequiv" | "TLA.cond" | "TLA.CASE"),_), _, _) -> []
 
@@ -930,15 +930,15 @@ let rec mk_case_branches ctx l cond =
 
 let apply f e =
   match f with
-  | Elam (v, _, b, _) -> Expr.substitute [(v, e)] b
+  | Elam (v, b, _) -> Expr.substitute [(v, e)] b
   | _ -> assert false
 ;;
 
 let has_ex e =
   match e with
-  | Etau (v, t, (Enot (p, _) as np), _) ->
-     Index.member (eex (v, t, np)) || Index.member (enot (eall (v, t, p)))
-  | Etau (v, t, p, _) -> Index.member (eex (v, t, p))
+  | Etau (v, (Enot (p, _) as np), _) ->
+     Index.member (eex (v, np)) || Index.member (enot (eall (v, p)))
+  | Etau (v, p, _) -> Index.member (eex (v, p))
   | _ -> assert false
 ;;
 
@@ -961,7 +961,7 @@ let is_in_1_to e max =
 ;;
 
 let rewrites in_expr x ctx e mknode =
-  let lamctx = elam (x, Type.atomic "", ctx) in
+  let lamctx = elam (x, ctx) in
   let appctx e = substitute [(x, e)] ctx in
   let mk_boolcase_1 name e1 =
     let h1a = eapp (eeq, [e; etrue]) in
@@ -1021,7 +1021,7 @@ let rewrites in_expr x ctx e mknode =
        mknode "definition" [appctx e; unfolded; e] [] [| [unfolded] |]
      end else
        []
-  | Eapp (Evar("TLA.fapply",_), [Eapp (Evar("TLA.Fcn",_), [s; Elam (v, _, b, _) as l], _); a], _)
+  | Eapp (Evar("TLA.fapply",_), [Eapp (Evar("TLA.Fcn",_), [s; Elam (v, b, _) as l], _); a], _)
   -> let h1 = enot (eapp (evar "TLA.in", [a; s])) in
      let h2 = appctx (Expr.substitute [(v, a)] b) in
      mknode "fapplyfcn" [appctx e; h1; h2; lamctx; s; l; a] [] [| [h1]; [h2] |]
@@ -1070,7 +1070,7 @@ let rewrites in_expr x ctx e mknode =
      mknode "record_domain" [appctx e; h1; lamctx; e; lbls] [] [| [h1] |]
   | Eapp (Evar("TLA.DOMAIN",_), [f], _) ->
      let x = newvar () in
-     let c = elam (x, Type.atomic "", appctx (eapp (evar "TLA.DOMAIN", [x]))) in
+     let c = elam (x, appctx (eapp (evar "TLA.DOMAIN", [x]))) in
      mk_eq_nodes c ["TLA.Fcn"; "TLA.except"; "TLA.record"] f
   | Enot (e1, _) when in_expr -> mk_boolcase_1 "not" e1
   | Eand (e1, e2, _) when in_expr -> mk_boolcase_2 "and" e1 e2
@@ -1078,8 +1078,8 @@ let rewrites in_expr x ctx e mknode =
   | Eimply (e1, e2, _) when in_expr -> mk_boolcase_2 "imply" e1 e2
   | Eequiv (e1, e2, _) when in_expr -> mk_boolcase_2 "equiv" e1 e2
   | Eapp (Evar("=",_), [e1; e2], _) when in_expr -> mk_boolcase_2 "equal" e1 e2
-  | Eall (v, t, p, _) when in_expr -> mk_boolcase_1 "all" (elam (v, t, p))
-  | Eex (v, t, p, _) when in_expr -> mk_boolcase_1 "ex" (elam (v, t, p))
+  | Eall (v, p, _) when in_expr -> mk_boolcase_1 "all" (elam (v, p))
+  | Eex (v, p, _) when in_expr -> mk_boolcase_1 "ex" (elam (v, p))
 
   | Eapp (Evar("TLA.cond",_), [Etrue; e1; e2], _) ->
      let h1 = appctx (e1) in
@@ -1099,8 +1099,8 @@ let rewrites in_expr x ctx e mknode =
      let c = appctx e in
      mknode "case" (c :: lamctx :: List.flatten branches) [c]
             (Array.of_list branches)
-  | Etau (v, t, b, _) when not (has_ex e) ->
-     let h1 = eex (v, t, b) in
+  | Etau (v, b, _) when not (has_ex e) ->
+     let h1 = eex (v, b) in
      let h2 = enot (h1) in
      mknode "cut" [h1] [] [| [h1]; [h2] |]
   | Eapp (Evar("TLA.Len",_), [Eapp (Evar("TLA.tuple",_), args, _)], _) ->
@@ -1109,16 +1109,16 @@ let rewrites in_expr x ctx e mknode =
      mknode "tuple_len" [appctx e; h1; lamctx; e; r] [] [| [h1] |]
   | Eapp (Evar("TLA.Len",_), [s], _) ->
      let x = newvar () in
-     let c = elam (x, Type.atomic "", appctx (eapp (evar "TLA.Len", [x]))) in
+     let c = elam (x, appctx (eapp (evar "TLA.Len", [x]))) in
      mk_eq_nodes c ["TLA.tuple"] s
 
   | Eapp (Evar("TLA.isASeq",_), [s], _) ->
      let x = newvar () in
-     let c = elam (x, Type.atomic "", appctx (eapp (evar "TLA.isASeq", [x]))) in
+     let c = elam (x, appctx (eapp (evar "TLA.isASeq", [x]))) in
      mk_eq_nodes c ["TLA.tuple"] s
   | Eapp (Evar("TLA.in",_), [a; s], _) ->
      let x = newvar () in
-     let c = elam (x, Type.atomic "", appctx (eapp (evar "TLA.in", [a; x]))) in
+     let c = elam (x, appctx (eapp (evar "TLA.in", [a; x]))) in
      let heads =
        match s with
        | Evar _ -> []  (* always replace a var; see prove.ml *)
@@ -1130,7 +1130,7 @@ let rewrites in_expr x ctx e mknode =
      mk_eq_nodes c heads s
   | Eapp (Evar("TLA.isAFcn",_), [s], _) ->
      let x = newvar () in
-     let c = elam (x, Type.atomic "", appctx (eapp (evar "TLA.isAFcn", [x]))) in
+     let c = elam (x, appctx (eapp (evar "TLA.isAFcn", [x]))) in
      mk_eq_nodes c ["TLA.Fcn"; "TLA.except"; "TLA.oneArg"; "TLA.extend";
                     "TLA.record"] s
 
@@ -1521,18 +1521,18 @@ let built_in_defs =
   [
     Def (DefReal ("subset_def", "TLA.subseteq", [evar "A"; evar "B"],
        eapp (evar "TLA.bAll", [evar "A";
-                   elam (evar "x", Type.atomic "",
+                   elam (evar "x",
                          eapp (evar "TLA.in", [evar "x"; evar "B"]))]), None));
     Def (DefReal ("bAll_def", "TLA.bAll", [evar "S"; evar "P"],
-       eall (evar "x", Type.atomic "",
+       eall (evar "x",
              eimply (eapp (evar "TLA.in", [evar "x"; evar "S"]),
                      eapp (evar "P", [evar "x"]))), None));
     Def (DefReal ("bEx_def", "TLA.bEx", [evar "S"; evar "P"],
-       eex (evar "x", Type.atomic "",
+       eex (evar "x",
             eand (eapp (evar "TLA.in", [evar "x"; evar "S"]),
                   eapp (evar "P", [evar "x"]))), None));
     Def (DefReal ("bChoose_def", "TLA.bChoice", [evar "S"; evar "P"],
-       etau (evar "x", Type.atomic "",
+       etau (evar "x",
             eand (eapp (evar "TLA.in", [evar "x"; evar "S"]),
                   eapp (evar "P", [evar "x"]))), None));
     Def (DefReal ("prod_def", "TLA.prod", [evar "A"; evar "B"],
@@ -1557,10 +1557,10 @@ let rec pp_expr e =
   | Eimply (e1, e2, _) -> eimply (pp_expr e1, pp_expr e2)
   | Eequiv (e1, e2, _) -> eequiv (pp_expr e1, pp_expr e2)
   | Etrue | Efalse -> e
-  | Eall (v, t, e1, _) -> eall (pp_expr v, t, pp_expr e1)
-  | Eex (v, t, e1, _) -> eex (pp_expr v, t, pp_expr e1)
-  | Etau (v, t, e1, _) -> etau (pp_expr v, t, pp_expr e1)
-  | Elam (v, t, e1, _) -> elam (pp_expr v, t, pp_expr e1)
+  | Eall (v, e1, _) -> eall (pp_expr v, pp_expr e1)
+  | Eex (v, e1, _) -> eex (pp_expr v, pp_expr e1)
+  | Etau (v, e1, _) -> etau (pp_expr v, pp_expr e1)
+  | Elam (v, e1, _) -> elam (pp_expr v, pp_expr e1)
 ;;
 
 module LL = Llproof;;

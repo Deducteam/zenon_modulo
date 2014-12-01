@@ -58,10 +58,10 @@ let rec replace_meta m va e =
   | Eequiv (f, g, _) -> eequiv (replace_meta m va f, replace_meta m va g)
   | Etrue -> e
   | Efalse -> e
-  | Eall (v, t, f, _) -> eall (v, t, replace_meta m va f)
-  | Eex (v, t, f, _) -> eex (v, t, replace_meta m va f)
-  | Etau (v, t, f, _) -> etau (v, t, replace_meta m va f)
-  | Elam (v, t, f, _) -> elam (v, t, replace_meta m va f)
+  | Eall (v, f, _) -> eall (v, replace_meta m va f)
+  | Eex (v, f, _) -> eex (v, replace_meta m va f)
+  | Etau (v, f, _) -> etau (v, replace_meta m va f)
+  | Elam (v, f, _) -> elam (v, replace_meta m va f)
 ;;
 
 let is_meta = function
@@ -95,7 +95,7 @@ let add_node_list st ns =
 
 let make_inst st m term g =
   match m with
-  | Eall (v, t, p, _) ->
+  | Eall (v, p, _) ->
       let n = Expr.substitute [(v, term)] p in
       add_node st {
         nconc = [m];
@@ -104,7 +104,7 @@ let make_inst st m term g =
         ngoal = g;
         nbranches = [| [n] |];
       }, false
-  | Eex (v, t, p, _) ->
+  | Eex (v, p, _) ->
       let n = Expr.substitute [(v, term)] (enot p) in
       let nm = enot (m) in
       add_node st {
@@ -193,7 +193,7 @@ let make_notequiv st sym (p, g) (np, ng) =
   | Eapp (Evar("Is_true",_), _, _), _ when Extension.is_active "focal" -> st
   | Eapp (Evar(s1,_) as s1', args1, _), Enot (Eapp (Evar(s2,_) as s2', args2, _), _) ->
       assert (s1 =%= s2);
-      if compare_type s1' s2' <> 0 then st
+      if compare_type (get_type s1') (get_type s2') <> 0 then st
       else if sym && List.length args2 != 2
          || List.length args1 <> List.length args2
       then (arity_warning s1; st)
@@ -510,8 +510,8 @@ let has_free_var v e = List.mem v (get_fv e);;
 
 let newnodes_delta st fm g _ =
   match fm with
-  | Eex (v, t, p, _) ->
-     let h = substitute [(v, etau (v, t, p))] p in
+  | Eex (v, p, _) ->
+     let h = substitute [(v, etau (v, p))] p in
      add_node st {
        nconc = [fm];
        nrule = Ex (fm);
@@ -519,9 +519,9 @@ let newnodes_delta st fm g _ =
        ngoal = g;
        nbranches = [| [h] |];
      }, true
-  | Enot (Eall (v, t, p, _), _) ->
-     let h1 = substitute [(v, etau (v, t, enot p))] (enot p) in
-     let h2 = eex (v, t, enot p) in
+  | Enot (Eall (v, p, _), _) ->
+     let h1 = substitute [(v, etau (v, enot p))] (enot p) in
+     let h2 = eex (v, enot p) in
      add_node st {
        nconc = [fm];
        nrule = NotAllEx (fm);
@@ -534,7 +534,7 @@ let newnodes_delta st fm g _ =
 
 let newnodes_gamma st fm g _ =
   match fm with
-  | Eall (v, t, p, _) ->
+  | Eall (v, p, _) ->
       let w = emeta (fm) in
       let branches = [| [Expr.substitute [(v, w)] p] |] in
       add_node st {
@@ -544,7 +544,7 @@ let newnodes_gamma st fm g _ =
         ngoal = g;
         nbranches = branches;
       }, true
-  | Enot (Eex (v, t, p, _) as fm1, _) ->
+  | Enot (Eex (v, p, _) as fm1, _) ->
       let w = emeta (fm1) in
       let branches = [| [enot (Expr.substitute [(v, w)] p)] |] in
       add_node st {
@@ -643,8 +643,8 @@ let orient_meta m1 m2 =
     | Eequiv (e1, e2, _)
       -> get_metas e1 @@ get_metas e2
     | Etrue | Efalse -> []
-    | Eall (v, t, e1, _) | Eex (v, t, e1, _) | Etau (v, t, e1, _)
-    | Elam (v, t, e1, _)
+    | Eall (v, e1, _) | Eex (v, e1, _) | Etau (v, e1, _)
+    | Elam (v, e1, _)
       -> get_metas e1
   in
   let l1 = get_metas m1 in

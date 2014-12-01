@@ -22,17 +22,17 @@ let mkequiv e el = myfold eequiv e el;;
 let mkrimply e el = myfold (fun (a, b) -> eimply (b, a)) e el;;
 
 let mk_eall (vars, typ, body) =
-  let f v b = eall (evar v, typ, b) in
+  let f v b = eall (tvar v typ, b) in
   List.fold_right f vars body
 ;;
 
 let mk_eex (vars, typ, body) =
-  let f v b = eex (evar v, typ, b) in
+  let f v b = eex (tvar v typ, b) in
   List.fold_right f vars body
 ;;
 
 let mk_elam (vars, typ, body) =
-  let f v b = elam (evar v, typ, b) in
+  let f v b = elam (tvar v typ, b) in
   List.fold_right f vars body
 ;;
 
@@ -143,8 +143,8 @@ expr_list:
 ;
 
 lambda:
-  | OPEN OPEN IDENT STRING CLOSE expr CLOSE      { (evar $3, Type.atomic $4, $6) }
-  | OPEN OPEN IDENT CLOSE expr CLOSE             { (evar $3, Type.atomic univ_name, $5) }
+  | OPEN OPEN IDENT STRING CLOSE expr CLOSE      { (tvar $3 (Type.atomic $4), $6) }
+  | OPEN OPEN IDENT CLOSE expr CLOSE             { (tvar $3 (Type.atomic univ_name), $5) }
 ;
 
 mlambda:
@@ -184,7 +184,7 @@ id_expr_list_expr:
   | IDENT expr id_expr_list_expr
       { match $3 with
         | [] -> assert false
-        | body :: vals -> elam (evar ($1), Type.atomic "", body) :: $2 :: vals
+        | body :: vals -> elam (tvar ($1) (Type.atomic ""), body) :: $2 :: vals
       }
 ;
 

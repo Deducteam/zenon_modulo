@@ -77,10 +77,10 @@ let rec make_annot_expr e =
   | Eimply (e1,e2,_) -> eimply (make_annot_expr e1, make_annot_expr e2)
   | Eequiv (e1,e2,_) -> eequiv (make_annot_expr e1, make_annot_expr e2)
   | Etrue | Efalse -> e
-  | Eall (x,s,e,_) -> eall (x, s, make_annot_expr e)
-  | Eex (x,s,e,_) -> eex (x, s, make_annot_expr e)
-  | Etau (x,s,e,_) -> etau (x, s, make_annot_expr e)
-  | Elam (x,s,e,_) -> elam (x, s, make_annot_expr e)
+  | Eall (x,e,_) -> eall (x, make_annot_expr e)
+  | Eex (x,e,_) -> eex (x, make_annot_expr e)
+  | Etau (x,e,_) -> etau (x, make_annot_expr e)
+  | Elam (x,e,_) -> elam (x, make_annot_expr e)
 ;;
 
 let make_definition name form body p =

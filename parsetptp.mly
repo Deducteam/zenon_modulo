@@ -17,7 +17,7 @@ let ns_fun s = ns "" s;; (* "f_" *)
 let rec mk_quant q vs body =
   match vs with
   | [] -> body
-  | (h, s)::t -> q (h, s, mk_quant q t body)
+  | h::t -> q (h, mk_quant q t body)
 ;;
 
 let cnf_to_formula l =
@@ -28,7 +28,7 @@ let cnf_to_formula l =
     | [] -> assert false
     | a::l2 -> List.fold_left (fun x y -> eor (x,y)) a l2
   in
-  mk_quant eall (List.map (fun x -> (evar x, Type.atomic Namespace.univ_name)) vs) body
+  mk_quant eall (List.map (fun x -> (tvar x (Type.atomic Namespace.univ_name))) vs) body
 ;;
 
 %}
@@ -157,10 +157,10 @@ atom:
   | expr                           { $1 }
 ;
 var_list:
-  | UIDENT COMMA var_list             { (evar (ns_var $1), Type.atomic Namespace.univ_name) :: $3 }
-  | UIDENT COLON expr COMMA var_list  { (evar (ns_var $1), Type.tff (type_of_expr $3)) :: $5 }
-  | UIDENT                            { [evar (ns_var $1), Type.atomic Namespace.univ_name] }
-  | UIDENT COLON expr                 { [evar (ns_var $1), Type.tff (type_of_expr $3)] }
+  | UIDENT COMMA var_list             { (tvar (ns_var $1) (Type.atomic Namespace.univ_name)) :: $3 }
+  | UIDENT COLON expr COMMA var_list  { (tvar (ns_var $1) (Type.tff (type_of_expr $3))) :: $5 }
+  | UIDENT                            { [tvar (ns_var $1) (Type.atomic Namespace.univ_name)] }
+  | UIDENT COLON expr                 { [tvar (ns_var $1) (Type.tff (type_of_expr $3))] }
 ;
 tff_type_arrow:
   | expr RANGL expr                   { eapp(evar "->", [$3; $1]) }

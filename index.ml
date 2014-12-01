@@ -473,22 +473,22 @@ let rec expr o ex =
       pr "(<=> "; expr o e1; pr " "; expr o e2; pr ")";
   | Etrue -> pr "(True)";
   | Efalse -> pr "(False)";
-  | Eall (v, t, e, _) when (Type.to_string t) === Namespace.univ_name ->
+  | Eall (v, e, _) when (Type.to_string (get_type v)) === Namespace.univ_name ->
       pr "(A. ((%a) " print_var v; expr o e; pr "))";
-  | Eall (v, t, e, _) ->
-      pr "(A. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Eex (v, t, e, _) when (Type.to_string t) === Namespace.univ_name ->
+  | Eall (v, e, _) ->
+      pr "(A. ((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr "))";
+  | Eex (v, e, _) when (Type.to_string (get_type v)) === Namespace.univ_name ->
       pr "(E. ((%a) " print_var v; expr o e; pr "))";
-  | Eex (v, t, e, _) ->
-      pr "(E. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Etau (v, t, e, _) when (Type.to_string t) === Namespace.univ_name ->
+  | Eex (v, e, _) ->
+      pr "(E. ((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr "))";
+  | Etau (v, e, _) when (Type.to_string (get_type v)) === Namespace.univ_name ->
       pr "(t. ((%a) " print_var v; expr o e; pr "))";
-  | Etau (v, t, e, _) ->
-      pr "(t. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Elam (v, t, e, _) when (Type.to_string t) === Namespace.univ_name ->
+  | Etau (v, e, _) ->
+      pr "(t. ((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr "))";
+  | Elam (v, e, _) when (Type.to_string (get_type v)) === Namespace.univ_name ->
       pr "((%a) " print_var v; expr o e; pr ")";
-  | Elam (v, t, e, _) ->
-      pr "((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr ")";
+  | Elam (v, e, _) ->
+      pr "((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr ")";
 ;;
 
 let dprint_expr e = expr () e;;
@@ -516,9 +516,9 @@ let get_formula i =
 
 let make_tau_name p =
   match p with
-  | Etau (Evar (v, _), _, _, _) when is_prefix "zenon_" v ->
+  | Etau (Evar (v, _), _, _) when is_prefix "zenon_" v ->
      Printf.sprintf "%s_%s" Namespace.tau_prefix (base26 (get_number p))
-  | Etau (Evar (v, _), _, _, _) ->
+  | Etau (Evar (v, _), _, _) ->
      Printf.sprintf "%s%s_%s" Namespace.tau_prefix v (base26 (get_number p))
   | _ -> assert false
 ;;

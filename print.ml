@@ -72,22 +72,22 @@ let rec expr o ex =
       pr "(<=> "; expr o e1; pr " "; expr o e2; pr ")";
   | Etrue -> pr "(True)";
   | Efalse -> pr "(False)";
-  | Eall (v, t, e, _) when (Type.to_string t) = univ_name ->
+  | Eall (v, e, _) when (Type.to_string (get_type v)) = univ_name ->
       pr "(A. ((%a) " print_var v; expr o e; pr "))";
-  | Eall (v, t, e, _) ->
-      pr "(A. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Eex (v, t, e, _) when (Type.to_string t) = univ_name ->
+  | Eall (v, e, _) ->
+      pr "(A. ((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr "))";
+  | Eex (v, e, _) when (Type.to_string (get_type v)) = univ_name ->
       pr "(E. ((%a) " print_var v; expr o e; pr "))";
-  | Eex (v, t, e, _) ->
-      pr "(E. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Etau (v, t, e, _) when (Type.to_string t) = univ_name ->
+  | Eex (v, e, _) ->
+      pr "(E. ((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr "))";
+  | Etau (v, e, _) when (Type.to_string (get_type v)) = univ_name ->
       pr "(t. ((%a) " print_var v; expr o e; pr "))";
-  | Etau (v, t, e, _) ->
-      pr "(t. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Elam (v, t, e, _) when (Type.to_string t) = univ_name ->
+  | Etau (v, e, _) ->
+      pr "(t. ((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr "))";
+  | Elam (v, e, _) when (Type.to_string (get_type v)) = univ_name ->
       pr "((%a) " print_var v; expr o e; pr ")";
-  | Elam (v, t, e, _) ->
-      pr "((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr ")";
+  | Elam (v, e, _) ->
+      pr "((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr ")";
 ;;
 
 let expr o e =
@@ -143,21 +143,21 @@ let rec expr_soft o ex =
       pr "("; expr_soft o e1; pr " <=> "; expr_soft o e2; pr ")";
   | Etrue -> pr "True";
   | Efalse -> pr "False";
-  | Eall (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Eall (Evar (v, _) as var, e, _) when (Type.to_string (get_type var)) = univ_name ->
       pr "(All %s, " v; expr_soft o e; pr ")";
-  | Eall (Evar (v, _), t, e, _) ->
-      pr "(All %s:%s, " v (Type.to_string t); expr_soft o e; pr ")";
+  | Eall (Evar (v, _) as var, e, _) ->
+      pr "(All %s:%s, " v (Type.to_string (get_type var)); expr_soft o e; pr ")";
   | Eall _ -> assert false
-  | Eex (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Eex (Evar (v, _) as var, e, _) when (Type.to_string (get_type var)) = univ_name ->
       pr "(Ex %s, " v; expr_soft o e; pr ")";
-  | Eex (Evar (v, _), t, e, _) ->
-      pr "(Ex %s:%s, " v (Type.to_string t); expr_soft o e; pr ")";
+  | Eex (Evar (v, _) as var, e, _) ->
+      pr "(Ex %s:%s, " v (Type.to_string (get_type var)); expr_soft o e; pr ")";
   | Eex _ -> assert false
   | Etau _ as e -> pr "T_%d" (Index.get_number e);
-  | Elam (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Elam (Evar (v, _) as var, e, _) when (Type.to_string (get_type var)) = univ_name ->
       pr "(lambda %s, " v; expr_soft o e; pr ")";
-  | Elam (Evar (v, _), t, e, _) ->
-      pr "(lambda %s:%s, " v (Type.to_string t); expr_soft o e; pr ")";
+  | Elam (Evar (v, _) as var, e, _) ->
+      pr "(lambda %s:%s, " v (Type.to_string (get_type var)); expr_soft o e; pr ")";
   | Elam _ -> assert false
 ;;
 
@@ -448,14 +448,14 @@ let rec llproof_expr o e =
       pro " <=> ";
       llproof_expr o p2;
       pro ")";
-  | Eall (v, t, p, _) ->
-      pro "All %a, " print_vartype (v, Type.to_string t); llproof_expr o p;
-  | Eex (v, t, p, _) ->
-      pro "Ex %a, " print_vartype (v, Type.to_string t); llproof_expr o p;
-  | Elam (v, t, p, _) ->
-      pro "(lambda %a, " print_vartype (v, Type.to_string t); llproof_expr o p; pro ")";
-  | Etau (v, t, p, _) ->
-      pro "(tau %a, " print_vartype (v, Type.to_string t); llproof_expr o p; pro ")";
+  | Eall (v, p, _) ->
+      pro "All %a, " print_vartype (v, Type.to_string (get_type v)); llproof_expr o p;
+  | Eex (v, p, _) ->
+      pro "Ex %a, " print_vartype (v, Type.to_string (get_type v)); llproof_expr o p;
+  | Elam (v, p, _) ->
+      pro "(lambda %a, " print_vartype (v, Type.to_string (get_type v)); llproof_expr o p; pro ")";
+  | Etau (v, p, _) ->
+      pro "(tau %a, " print_vartype (v, Type.to_string (get_type v)); llproof_expr o p; pro ")";
   | Eapp (Evar(s,_), [e1; e2], _) when is_infix_op s ->
      pro "("; llproof_expr o e1; pro " %s " (to_infix s); llproof_expr o e2; pro ")";
   | Eapp (s, [], _) -> pro "%s" (get_name s);
@@ -658,21 +658,21 @@ let rec expr_esc o ex =
       pr "("; expr_esc o e1; pr " &lt;=&gt; "; expr_esc o e2; pr ")";
   | Etrue -> pr "True";
   | Efalse -> pr "False";
-  | Eall (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Eall (Evar (v, _) as var, e, _) when (Type.to_string (get_type var)) = univ_name ->
       pr "(All %s, " v; expr_esc o e; pr ")";
-  | Eall (Evar (v, _), t, e, _) ->
-      pr "(All %s:%s, " v (Type.to_string t); expr_esc o e; pr ")";
+  | Eall (Evar (v, _) as var, e, _) ->
+      pr "(All %s:%s, " v (Type.to_string (get_type var)); expr_esc o e; pr ")";
   | Eall _ -> assert false
-  | Eex (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Eex (Evar (v, _) as var, e, _) when (Type.to_string (get_type var)) = univ_name ->
       pr "(Ex %s, " v; expr_esc o e; pr ")";
-  | Eex (Evar (v, _), t, e, _) ->
-      pr "(Ex %s:%s, " v (Type.to_string t); expr_esc o e; pr ")";
+  | Eex (Evar (v, _) as var, e, _) ->
+      pr "(Ex %s:%s, " v (Type.to_string (get_type var)); expr_esc o e; pr ")";
   | Eex _ -> assert false
   | Etau _ as e -> pr "T_%d" (Index.get_number e);
-  | Elam (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Elam (Evar (v, _) as var, e, _) when (Type.to_string (get_type var)) = univ_name ->
       pr "(lambda %s, " v; expr_esc o e; pr ")";
-  | Elam (Evar (v, _), t, e, _) ->
-      pr "(lambda %s:%s, " v (Type.to_string t); expr_esc o e; pr ")";
+  | Elam (Evar (v, _) as var, e, _) ->
+      pr "(lambda %s:%s, " v (Type.to_string (get_type var)); expr_esc o e; pr ")";
   | Elam _ -> assert false
 ;;
 
@@ -801,7 +801,7 @@ let dots o ?full_output:(b=true) ?max_depth:(d=(-1)) l =
 (* Functions for easy debug printing *)
 
 let pp_expr b e = expr_soft (Buff b) e
-let pp_expr_t b e = Printf.bprintf b "%a : '%s'" pp_expr e (Type.opt_string (get_type e))
+let pp_expr_t b e = Printf.bprintf b "%a : '%s'" pp_expr e (Type.to_string (get_type e))
 
 let pp_mlrule b r =
   let s, l = get_rule_name r in
@@ -814,7 +814,7 @@ let sexpr e = Log.on_buffer pp_expr e
 let rec expr_type o ex =
   let pr f = oprintf o f in
   expr_soft o ex;
-  pr " : '%s'\n" (Type.opt_string (get_type ex));
+  pr " : '%s'\n" (Type.to_string (get_type ex));
   match ex with
   | Evar (v, _) -> ()
   | Emeta (e, _) -> ()
@@ -827,9 +827,9 @@ let rec expr_type o ex =
           expr_type o e1; expr_type o e2
   | Etrue
   | Efalse -> ()
-  | Eall (Evar (v, _), t, e, _)
-  | Eex (Evar (v, _), t, e, _)
-  | Elam (Evar (v, _), t, e, _) ->
+  | Eall (Evar (v, _), e, _)
+  | Eex (Evar (v, _), e, _)
+  | Elam (Evar (v, _), e, _) ->
           expr_type o e
   | Etau _  -> ()
   | _ -> assert false

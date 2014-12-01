@@ -30,7 +30,7 @@ val bool_app : t list -> t
 val bool_app_opt : t option list -> t option
 val type_eq : t list -> t
 val type_app : t -> t list -> t
-val type_app_opt : string * t option -> t option list -> t option
+val type_app_opt : string * t option -> t list -> t
 
 val to_string : t -> string
 val opt_string : t option -> string

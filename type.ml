@@ -191,12 +191,10 @@ let type_app (b, t) args =
         raise Not_enough_args
 
 let type_app_opt (s, t) args =
-    try
-        if s = "=" && t = None then
-            Some (type_eq (List.map extract args))
-        else
-            Some (type_app (extract t) (List.map extract args))
-    with Some_expected -> None
+  if s = "=" && t = None then
+    type_eq args
+  else
+    type_app (extract t) args
 
 (* Functions for TPTP.TFF typechecking *)
 let rec is_atomic = function
