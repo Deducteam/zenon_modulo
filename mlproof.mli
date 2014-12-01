@@ -107,6 +107,11 @@ val make_def : definition -> expr -> expr -> proof -> proof;;
 
 val make_cut : expr -> proof -> proof -> proof;;
 
+val make_open : expr list -> proof;;
+val is_open_node : proof -> bool;;
+val is_open_proof : proof -> bool;;
+
+
 (*
   These are not provided because they are derived rules
 

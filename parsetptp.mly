@@ -9,14 +9,15 @@ open Expr;;
 open Phrase;;
 
 let ns pre s = (if !Globals.namespace_flag then pre else "") ^ s;;
-let ns_hyp s = ns "H_" s;;
-let ns_var s = ns "v_" s;;
-let ns_fun s = ns "f_" s;;
+(* Renaming is now done during typechecking *)
+let ns_hyp s = ns "" s;; (* "H_" *)
+let ns_var s = ns "" s;; (* "v_" *)
+let ns_fun s = ns "" s;; (* "f_" *)
 
 let rec mk_quant q vs body =
   match vs with
   | [] -> body
-  | (h, s)::t -> q (h, s, mk_quant q t body)
+  | h::t -> q (h, mk_quant q t body)
 ;;
 
 let cnf_to_formula l =
@@ -27,7 +28,7 @@ let cnf_to_formula l =
     | [] -> assert false
     | a::l2 -> List.fold_left (fun x y -> eor (x,y)) a l2
   in
-  mk_quant eall (List.map (fun x -> (evar x, Type.atomic Namespace.univ_name)) vs) body
+  mk_quant eall (List.map (fun x -> (tvar x (Type.atomic Namespace.univ_name))) vs) body
 ;;
 
 %}
@@ -104,6 +105,10 @@ phrase:
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7) }
   | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA type_def CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7) }
+  | INPUT_TFF_FORMULA OPEN INT COMMA LIDENT COMMA formula CLOSE DOT
+     { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7) }
+  | INPUT_TFF_FORMULA OPEN INT COMMA LIDENT COMMA type_def CLOSE DOT
+     { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7) }
   | ANNOT                          { Phrase.Annotation $1 }
 ;
 expr:
@@ -152,10 +157,10 @@ atom:
   | expr                           { $1 }
 ;
 var_list:
-  | UIDENT COMMA var_list             { (evar (ns_var $1), Type.atomic Namespace.univ_name) :: $3 }
-  | UIDENT COLON expr COMMA var_list  { (evar (ns_var $1), type_of_expr $3) :: $5 }
-  | UIDENT                            { [evar (ns_var $1), Type.atomic Namespace.univ_name] }
-  | UIDENT COLON expr                 { [evar (ns_var $1), type_of_expr $3] }
+  | UIDENT COMMA var_list             { (tvar (ns_var $1) (Type.atomic Namespace.univ_name)) :: $3 }
+  | UIDENT COLON expr COMMA var_list  { (tvar (ns_var $1) (Type.tff (type_of_expr $3))) :: $5 }
+  | UIDENT                            { [tvar (ns_var $1) (Type.atomic Namespace.univ_name)] }
+  | UIDENT COLON expr                 { [tvar (ns_var $1) (Type.tff (type_of_expr $3))] }
 ;
 tff_type_arrow:
   | expr RANGL expr                   { eapp(evar "->", [$3; $1]) }
@@ -176,8 +181,8 @@ tff_type_sig:
      { eapp (evar "!>", $8 :: $4) }
 ;
 tff_quant:
-  | UIDENT COLON TTYPE COMMA tff_quant  { (evar $1) :: $5 }
-  | UIDENT COLON TTYPE                  { [evar $1] }
+  | UIDENT COLON TTYPE COMMA tff_quant  { (evar (ns_var $1)) :: $5 }
+  | UIDENT COLON TTYPE                  { [evar (ns_var $1)] }
 ;
 name_list:
   | LIDENT COMMA name_list         { $1 :: $3 }

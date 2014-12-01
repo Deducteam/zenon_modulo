@@ -19,9 +19,9 @@ module HE = Hashtbl.Make (Expr);;
 
 let get_type m =
   match m with
-  | Eall (v, t, e, _)
-  | Eex (v, t, e, _)
-     -> Type.to_string t
+  | Eall (v, e, _)
+  | Eex (v, e, _)
+     -> Type.to_string (get_type v)
   | _ -> assert false
 ;;
 
@@ -99,7 +99,10 @@ let expr_tbl = HE.create 9997;;
 let rec xtr_expr a =
   match a with
   | Evar (v, _) -> a
-  | Emeta (e, _) -> evar (make_meta_name e)
+  | Emeta (Eall(v, _, _) as e, _)
+  | Emeta (Eex(v, _, _) as e, _)
+    -> tvar (make_meta_name e) (Expr.get_type v)
+  | Emeta(_) -> assert false
   | Eapp (Evar("$scope",_), lam :: tau :: vals, _) -> tr_expr (apply lam tau)
   | Eapp (s, args, _) -> eapp (s, List.map tr_expr args)
 
@@ -110,11 +113,11 @@ let rec xtr_expr a =
   | Eequiv (p, q, _) -> eequiv (tr_expr p, tr_expr q)
   | Etrue -> etrue
   | Efalse -> efalse
-  | Eall (v, t, e, _) -> eall (v, t, tr_expr e)
-  | Eex (v, t, e, _) -> eex (v, t, tr_expr e)
+  | Eall (v, e, _) -> eall (v, tr_expr e)
+  | Eex (v, e, _) -> eex (v, tr_expr e)
 
-  | Etau (v, t, e, _) -> etau (v, t, tr_expr e)
-  | Elam (v, ty, e1, _) -> elam (v, ty, tr_expr e1)
+  | Etau (v, e, _) -> etau (v, tr_expr e)
+  | Elam (v, e1, _) -> elam (v, tr_expr e1)
 
 and tr_expr a = memo expr_tbl xtr_expr a
 ;;
@@ -130,11 +133,11 @@ let tr_rule r =
   | And (p, q) -> LL.Rconnect (LL.And, tr_expr p, tr_expr q)
   | NotOr (p, q) -> LL.Rnotconnect (LL.Or, tr_expr p, tr_expr q)
   | NotImpl (p, q) -> LL.Rnotconnect (LL.Imply, tr_expr p, tr_expr q)
-  | NotAll (Enot (Eall (v, t, p, _) as pp, _)) ->
-      LL.Rnotall (tr_expr pp, tr_expr (etau (v, t, enot (remove_scope p))))
+  | NotAll (Enot (Eall (v, p, _) as pp, _)) ->
+      LL.Rnotall (tr_expr pp, tr_expr (etau (v, enot (remove_scope p))))
   | NotAll _ -> assert false
-  | Ex (Eex (v, t, p, _) as pp) ->
-      LL.Rex (tr_expr pp, tr_expr (etau (v, t, remove_scope p)))
+  | Ex (Eex (v, p, _) as pp) ->
+      LL.Rex (tr_expr pp, tr_expr (etau (v, remove_scope p)))
   | Ex _ -> assert false
   | All (p, t) -> LL.Rall (tr_expr p, tr_expr t)
   | NotEx (Enot (p, _), t) -> LL.Rnotex (tr_expr p, tr_expr t)
@@ -155,9 +158,9 @@ let tr_rule r =
   | CongruenceLR (p, a, b) -> LL.RcongruenceLR (tr_expr p, tr_expr a, tr_expr b)
   | CongruenceRL (p, a, b) -> LL.RcongruenceRL (tr_expr p, tr_expr a, tr_expr b)
 
-  | Ext ("", "notallex", [Elam (v, t, p, _) as lam]) ->
-     let c = enot (eall (v, t, p)) in
-     let h = eex (v, t, enot p) in
+  | Ext ("", "notallex", [Elam (v, p, _) as lam]) ->
+     let c = enot (eall (v, p)) in
+     let h = eex (v, enot p) in
      LL.Rextension ("", "zenon_notallex", [lam], [c], [[h]])
   | Ext ("", "stringequal", [v1; v2]) ->
      let c = eapp (eeq, [eapp (estring, [v1]); eapp (estring, [v2])]) in
@@ -231,11 +234,11 @@ let rec get_params accu p =
   | Eequiv (e, f, _) -> get_params (get_params accu e) f
   | Etrue -> accu
   | Efalse -> accu
-  | Eall (v, t, e, _) -> get_params accu e
-  | Eex (v, t, e, _) -> get_params accu e
-  | Etau (v, t, _, _) ->
-     merge [(Type.to_string t, p)] accu
-  | Elam (v, t, e, _) -> get_params accu e
+  | Eall (v, e, _) -> get_params accu e
+  | Eex (v, e, _) -> get_params accu e
+  | Etau (v, _, _) ->
+     merge [(Type.to_string (Expr.get_type v), p)] accu
+  | Elam (v, e, _) -> get_params accu e
 ;;
 
 let lemma_tbl = (Hashtbl.create 997
@@ -437,10 +440,10 @@ let rec xfind_occ v e1 e2 =
   | Eequiv (f1, g1, _), Eequiv (f2, g2, _) ->
       xfind_occ v f1 f2; xfind_occ v g1 g2
   | Efalse, _ -> ()
-  | Eall (v1, _, _, _), _ when Expr.equal v1 v -> ()
-  | Eall (_, _, f1, _), Eall (_, _, f2, _) -> xfind_occ v f1 f2
-  | Eex (v1, _, _, _), _ when Expr.equal v1 v -> ()
-  | Eex (_, _, f1, _), Eex (_, _, f2, _) -> xfind_occ v f1 f2
+  | Eall (v1, _, _), _ when Expr.equal v1 v -> ()
+  | Eall (_, f1, _), Eall (_, f2, _) -> xfind_occ v f1 f2
+  | Eex (v1, _, _), _ when Expr.equal v1 v -> ()
+  | Eex (_, f1, _), Eex (_, f2, _) -> xfind_occ v f1 f2
   | Etau _, _ -> ()
   | Elam _, _ -> ()
   | _, _ -> assert false
@@ -454,8 +457,8 @@ let find_occ v e1 e2 =
 
 let find_subst e1 e2 =
   match e1, e2 with
-  | Eall (v1, _, f1, _), Eall (v2, _, f2, _) -> (v2, find_occ v1 f1 f2)
-  | Eex (v1, _, f1, _), Eex (v2, _, f2, _) -> (v2, find_occ v1 f1 f2)
+  | Eall (v1, f1, _), Eall (v2, f2, _) -> (v2, find_occ v1 f1 f2)
+  | Eex (v1, f1, _), Eex (v2, f2, _) -> (v2, find_occ v1 f1 f2)
   | _, _ -> assert false
 ;;
 
@@ -533,7 +536,7 @@ and find_diff_list x l1 l2 =
 
 let rec get_univ f =
   match f with
-  | Eall (v, ty, body, _) -> (v, f) :: get_univ body
+  | Eall (v, body, _) -> (v, f) :: get_univ body
   | _ -> []
 ;;
 
@@ -554,7 +557,7 @@ let get_args def args folded unfolded =
 
 let inst_all e f =
   match e with
-  | Eall (v, t, e1, _) -> Expr.substitute [(v, f)] e1
+  | Eall (v, e1, _) -> Expr.substitute [(v, f)] e1
   | _ -> assert false
 ;;
 
@@ -571,8 +574,8 @@ let rec decompose_forall e v p naxyz arity f args =
     n2
   end else begin
     match naxyz with
-    | Enot (Eall (v1, t1, p1, _), _) ->
-        let tau = etau (v1, t1, enot p1) in
+    | Enot (Eall (v1, p1, _), _) ->
+        let tau = etau (v1, enot p1) in
         let nayz = enot (substitute [(v1, tau)] p1) in
         let n1 = decompose_forall e v p nayz (arity-1) f (args @ [tau]) in
         let n2 = make_node [naxyz] (NotAll naxyz) [[nayz]] [n1] in
@@ -590,8 +593,8 @@ let rec decompose_exists e v p exyz arity f args =
     n2
   end else begin
     match exyz with
-    | Eex (v1, t1, p1, _) ->
-        let tau = etau (v1, t1, p1) in
+    | Eex (v1, p1, _) ->
+        let tau = etau (v1, p1) in
         let eyz = substitute [(v1, tau)] p1 in
         let n1 = decompose_exists e v p eyz (arity-1) f (args @ [tau]) in
         let n2 = make_node [exyz] (Ex exyz) [[eyz]] [n1] in
@@ -603,7 +606,7 @@ let rec decompose_exists e v p exyz arity f args =
 let rec make_alls e vs n0 =
   match e, vs with
   | _, [] -> n0
-  | Eall (v, _, body, _), h::t ->
+  | Eall (v, body, _), h::t ->
       make_all e h (make_alls (substitute [(v, h)] body) t n0)
   | _, _ -> assert false
 ;;
@@ -808,12 +811,12 @@ let rec refute_scope e tau va =
                      (refute_scope (enot e2) tau) va
      in
      option_map (make_nimpl e1 e2) n0
-  | Eex (v, t, e1, _) ->
-     let e2 = substitute [(v, etau (v, t, e1))] e1 in
+  | Eex (v, e1, _) ->
+     let e2 = substitute [(v, etau (v, e1))] e1 in
      let n0 = refute_scope e2 tau va in
      option_map (make_ex e) n0
-  | Enot (Eall (v, t, e1, _), _) ->
-     let e2 = enot (substitute [(v, etau (v, t, enot e1))] e1) in
+  | Enot (Eall (v, e1, _), _) ->
+     let e2 = enot (substitute [(v, etau (v, enot e1))] e1) in
      let n0 = refute_scope e2 tau va in
      option_map (make_nall e) n0
   | Eapp (Evar("=",_), [e1; e2], _) when Expr.equal e1 tau && Expr.equal e2 va ->
@@ -895,7 +898,7 @@ and translate_derived p =
       let (node, extras, subs) = recomp_disj sub e in
       assert (subs = []);
       (node, extras)
-  | AllPartial ((Eall (v1, t1, q, _) as e1), f, arity) ->
+  | AllPartial ((Eall (v1, q, _) as e1), f, arity) ->
       let n1 = gethyps1 p in
       let vs = make_vars arity in
       let sxyz = eapp (f, vs) in
@@ -905,7 +908,7 @@ and translate_derived p =
       let n3 = make_cut axyz n1 n2 in
       to_llproof n3
   | AllPartial _ -> assert false
-  | NotExPartial ((Enot (Eex (v1, t1, q, _), _) as ne1), f, arity) ->
+  | NotExPartial ((Enot (Eex (v1, q, _), _) as ne1), f, arity) ->
       let n1 = gethyps1 p in
       let vs = make_vars arity in
       let sxyz = eapp (f, vs) in
@@ -1010,7 +1013,7 @@ and translate_derived p =
       (n, union [Eqrel.get_trans_hyp s] ext)
   | Trans _ | Trans_sym _ | TransEq _ | TransEq2 _ | TransEq_sym _
     -> assert false
-  | Miniscope (Elam (v, ty, e1, _) as lam, tau, [va]) ->
+  | Miniscope (Elam (v, e1, _) as lam, tau, [va]) ->
      let n_eq =
        match p.mlhyps with
        | [| h |] -> h
@@ -1028,9 +1031,9 @@ and translate_derived p =
   | Miniscope (lam, tau, []) ->
      to_llproof (gethyps1 p)
   | Miniscope _ -> assert false
-  | NotAllEx (Enot (Eall (v, t, body, _), _) as nap) ->
-     let ep = eex (v, t, enot body) in
-     let lam = elam (v, t, body) in
+  | NotAllEx (Enot (Eall (v, body, _), _) as nap) ->
+     let ep = eex (v, enot body) in
+     let lam = elam (v, body) in
      let n0 = gethyps1 p in
      let n1 = make_ex ep n0 in
      let n2 = make_node [nap] (Ext ("", "notallex", [lam])) [[ep]] [n1] in
@@ -1091,7 +1094,7 @@ and translate_pseudo_def_base p def_hyp s args folded unfolded =
      in
      let x = Expr.newvar () in
      let (ctx, a, b) = find_diff x folded unfolded in
-     make_cong (elam (x, Type.atomic "", ctx)) a b n0
+     make_cong (elam (x, ctx)) a b n0
   | _ -> assert false
 
 and translate_rec_def p eqn s args folded unfolded =
@@ -1101,7 +1104,7 @@ and translate_rec_def p eqn s args folded unfolded =
   in
   let x = Expr.newvar () in
   let (ctx, a, b) = find_diff x folded unfolded in
-  let p = elam (x, Type.atomic "", ctx) in
+  let p = elam (x, ctx) in
   let eq = add_argument eqn (mk_tuple args) in
   make_node [apply p a] (Ext ("recfun", "unfold", [p; a; b; eq]))
             [[apply p b]] [n0]

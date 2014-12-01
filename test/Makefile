@@ -1,7 +1,7 @@
 #  Copyright 2004 INRIA
 #  $Id: Makefile,v 1.14 2011-12-28 16:43:33 doligez Exp $
 
-ZOPT = -q -max-time 10m -max-size 520M -x induct -x focal
+ZOPT = -q -max-time 10m -max-size 600M -x induct -x focal
 
 BENCH = test13.znn test16.znn test38.znn test41.znn test48.znn
 

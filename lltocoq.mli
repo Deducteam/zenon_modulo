@@ -10,3 +10,4 @@ val output :
 ;;
 
 val p_expr : out_channel -> Expr.expr -> unit;;
+val pp_expr : out_channel -> Expr.expr -> unit;;

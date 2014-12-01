@@ -115,23 +115,23 @@ let make_nimpl p q n0 =
 ;;
 
 let make_nall nap n0 =
-  let (v, t, p) =
+  let (v, p) =
     match nap with
-    | Enot (Eall (v, t, body, _), _) -> (v, t, body)
+    | Enot (Eall (v, body, _), _) -> (v, body)
     | _ -> assert false
   in
-  let tnp = etau (v, t, enot p) in
+  let tnp = etau (v, enot p) in
   let nptnp = enot (substitute [(v, tnp)] p) in
   make_node [nap] (NotAll nap) [[nptnp]] [n0]
 ;;
 
 let make_ex ep n0 =
-  let (v, t, p) =
+  let (v, p) =
     match ep with
-    | Eex (v, t, body, _) -> (v, t, body)
+    | Eex (v, body, _) -> (v, body)
     | _ -> assert false
   in
-  let tp = etau (v, t, p) in
+  let tp = etau (v, p) in
   let ptp = substitute [(v, tp)] p in
   make_node [ep] (Ex ep) [[ptp]] [n0]
 ;;
@@ -139,7 +139,7 @@ let make_ex ep n0 =
 let make_all ap a n0 =
   let (v, p) =
     match ap with
-    | Eall (v, _, body, _) -> (v, body)
+    | Eall (v, body, _) -> (v, body)
     | _ -> assert false
   in
   let pa = substitute [(v, a)] p in
@@ -149,7 +149,7 @@ let make_all ap a n0 =
 let make_nex nep a n0 =
   let (v, p) =
     match nep with
-    | Enot (Eall (v, _, body, _), _) -> (v, body)
+    | Enot (Eall (v, body, _), _) -> (v, body)
     | _ -> assert false
   in
   let npa = enot (substitute [(v, a)] p) in
@@ -242,6 +242,25 @@ let make_congrl p a b n0 =
 let make_cut p n0 n1 =
   make_node [] (Cut p) [[p]; [enot p]] [n0; n1]
 ;;
+
+
+let make_open l = {
+    mlconc = l;
+    mlrule = Ext("dummy", "open", []);
+    mlhyps = [| |];
+    mlrefc = 1;
+}
+
+let is_open_node p = p.mlrule = Ext("dummy", "open", [])
+
+let is_open_proof p =
+    let rec aux p =
+        if is_open_node p then
+            raise Exit
+        else
+            Array.iter aux p.mlhyps
+    in
+    try aux p; false with Exit -> true
 
 (*
 

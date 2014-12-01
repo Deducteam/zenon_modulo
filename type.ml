@@ -1,3 +1,4 @@
+(*  Copyright 2014 INRIA  *)
 
 (* Base types *)
 type base =
@@ -31,7 +32,10 @@ let mk_constr constr args =
 
 let mk_arrow args ret =
     let aux = function | [], t -> t | _ -> raise Base_expected in
-    base (Arrow (List.map aux args, aux ret))
+    if List.length args = 0 then
+        base (aux ret)
+    else
+        base (Arrow (List.map aux args, aux ret))
 
 (* Usual types *)
 let type_bool = base Bool
@@ -39,8 +43,10 @@ let type_int = atomic "Int"
 let type_rat = atomic "Rat"
 let type_real = atomic "Real"
 let type_tff_i = atomic "$i"
+let type_scope = atomic "Scope"
 
 let type_type = base Ttype
+
 (* Type comparison *)
 let _to_int = function
     | Bool -> 0
@@ -93,13 +99,22 @@ let neq t t' = compare t t' <> 0
 
 let nbind (b, t) = List.length b
 
+(* Useful comparisons *)
+let _nums = [ type_int; type_rat; type_real ]
+let is_type_num t = List.exists (equal t) _nums
 
 (* Printing *)
+let to_string_atomic = function
+    | "Int" -> "Z"
+    | "Rat" -> "Q"
+    | "Real" -> "R"
+    | s -> s
+
 let rec to_string_base = function
-    | Bool -> "$o"
-    | App (s, []) -> s
+    | Bool -> "Prop"
+    | App (s, []) -> to_string_atomic s
     | App (s, l) -> "(" ^ s ^ " " ^ (String.concat " " (List.map to_string_base l)) ^ ")"
-    | Arrow (args, ret) -> "(" ^ (String.concat " * " (List.map to_string_base args)) ^ " > " ^ (to_string_base ret) ^ ")"
+    | Arrow (args, ret) -> "(" ^ (String.concat " -> " (List.map to_string_base args)) ^ " -> " ^ (to_string_base ret) ^ ")"
     | Ttype -> "$tType"
 
 let to_string_binders l =
@@ -109,7 +124,9 @@ let to_string_binders l =
         "!>[" ^ tvars ^ "]: "
 
 let to_string (b, t) = (to_string_binders b) ^ (to_string_base t)
-
+let opt_string = function
+    | None -> ""
+    | Some t -> to_string t
 
 (* Convenience functions *)
 let to_base (b, t) = if b = [] then t else raise Base_expected
@@ -159,6 +176,7 @@ let type_app_base t l = match t with
     | _ -> raise Function_expected
 
 let type_eq = function
+    | [a; b] when is_type_num a && is_type_num b -> type_bool
     | [a; b] -> if equal a b then type_bool else raise (Mismatch (a, b))
     | _ -> raise Not_enough_args
 
@@ -173,12 +191,10 @@ let type_app (b, t) args =
         raise Not_enough_args
 
 let type_app_opt (s, t) args =
-    try
-        if s = "=" then
-            Some (type_eq (List.map extract args))
-        else
-            Some (type_app (extract t) (List.map extract args))
-    with Some_expected -> None
+  if s = "=" && t = None then
+    type_eq args
+  else
+    type_app (extract t) args
 
 (* Functions for TPTP.TFF typechecking *)
 let rec is_atomic = function
@@ -206,4 +222,25 @@ let rec _tff = function
     | Ttype -> Ttype
 
 let tff (b, t) = (b, _tff t)
+
+(* Functions for SMTLIB typechecking *)
+let rec _smtlib = function
+    | Bool -> Bool
+    | App ("Bool", []) -> Bool
+    | App ("Int", []) -> App ("Int", [])
+    | App ("Real", []) -> App ("Real", [])
+    | App ("Type", []) -> Ttype
+    | App (s, l) -> App (s, List.map _tff l)
+    | Arrow (l, ret) -> Arrow (List.map _tff l, _tff ret)
+    | Ttype -> Ttype
+
+let smtlib (b, t) = (b, _smtlib t)
+
+(* Help for defined types in coq proofs *)
+let defs = ref ([] : (string * t) list)
+
+let add_defs l =
+    defs := l @ !defs
+
+let get_defs () = !defs
 

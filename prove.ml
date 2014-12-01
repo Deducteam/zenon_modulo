@@ -58,10 +58,10 @@ let rec replace_meta m va e =
   | Eequiv (f, g, _) -> eequiv (replace_meta m va f, replace_meta m va g)
   | Etrue -> e
   | Efalse -> e
-  | Eall (v, t, f, _) -> eall (v, t, replace_meta m va f)
-  | Eex (v, t, f, _) -> eex (v, t, replace_meta m va f)
-  | Etau (v, t, f, _) -> etau (v, t, replace_meta m va f)
-  | Elam (v, t, f, _) -> elam (v, t, replace_meta m va f)
+  | Eall (v, f, _) -> eall (v, replace_meta m va f)
+  | Eex (v, f, _) -> eex (v, replace_meta m va f)
+  | Etau (v, f, _) -> etau (v, replace_meta m va f)
+  | Elam (v, f, _) -> elam (v, replace_meta m va f)
 ;;
 
 let is_meta = function
@@ -95,7 +95,7 @@ let add_node_list st ns =
 
 let make_inst st m term g =
   match m with
-  | Eall (v, t, p, _) ->
+  | Eall (v, p, _) ->
       let n = Expr.substitute [(v, term)] p in
       add_node st {
         nconc = [m];
@@ -104,7 +104,7 @@ let make_inst st m term g =
         ngoal = g;
         nbranches = [| [n] |];
       }, false
-  | Eex (v, t, p, _) ->
+  | Eex (v, p, _) ->
       let n = Expr.substitute [(v, term)] (enot p) in
       let nm = enot (m) in
       add_node st {
@@ -191,9 +191,10 @@ let make_notequiv st sym (p, g) (np, ng) =
          && not (Expr.equal e1 e2)
     -> st
   | Eapp (Evar("Is_true",_), _, _), _ when Extension.is_active "focal" -> st
-  | Eapp (Evar(s1,_) as s1', args1, _), Enot (Eapp (Evar(s2,_), args2, _), _) ->
+  | Eapp (Evar(s1,_) as s1', args1, _), Enot (Eapp (Evar(s2,_) as s2', args2, _), _) ->
       assert (s1 =%= s2);
-      if sym && List.length args2 != 2
+      if compare_type (get_type s1') (get_type s2') <> 0 then st
+      else if sym && List.length args2 != 2
          || List.length args1 <> List.length args2
       then (arity_warning s1; st)
       else if Extension.is_active "induct"
@@ -509,8 +510,8 @@ let has_free_var v e = List.mem v (get_fv e);;
 
 let newnodes_delta st fm g _ =
   match fm with
-  | Eex (v, t, p, _) ->
-     let h = substitute [(v, etau (v, t, p))] p in
+  | Eex (v, p, _) ->
+     let h = substitute [(v, etau (v, p))] p in
      add_node st {
        nconc = [fm];
        nrule = Ex (fm);
@@ -518,9 +519,9 @@ let newnodes_delta st fm g _ =
        ngoal = g;
        nbranches = [| [h] |];
      }, true
-  | Enot (Eall (v, t, p, _), _) ->
-     let h1 = substitute [(v, etau (v, t, enot p))] (enot p) in
-     let h2 = eex (v, t, enot p) in
+  | Enot (Eall (v, p, _), _) ->
+     let h1 = substitute [(v, etau (v, enot p))] (enot p) in
+     let h2 = eex (v, enot p) in
      add_node st {
        nconc = [fm];
        nrule = NotAllEx (fm);
@@ -533,7 +534,7 @@ let newnodes_delta st fm g _ =
 
 let newnodes_gamma st fm g _ =
   match fm with
-  | Eall (v, t, p, _) ->
+  | Eall (v, p, _) ->
       let w = emeta (fm) in
       let branches = [| [Expr.substitute [(v, w)] p] |] in
       add_node st {
@@ -543,7 +544,7 @@ let newnodes_gamma st fm g _ =
         ngoal = g;
         nbranches = branches;
       }, true
-  | Enot (Eex (v, t, p, _) as fm1, _) ->
+  | Enot (Eex (v, p, _) as fm1, _) ->
       let w = emeta (fm1) in
       let branches = [| [enot (Expr.substitute [(v, w)] p)] |] in
       add_node st {
@@ -642,8 +643,8 @@ let orient_meta m1 m2 =
     | Eequiv (e1, e2, _)
       -> get_metas e1 @@ get_metas e2
     | Etrue | Efalse -> []
-    | Eall (v, t, e1, _) | Eex (v, t, e1, _) | Etau (v, t, e1, _)
-    | Elam (v, t, e1, _)
+    | Eall (v, e1, _) | Eex (v, e1, _) | Etau (v, e1, _)
+    | Elam (v, e1, _)
       -> get_metas e1
   in
   let l1 = get_metas m1 in
@@ -1340,6 +1341,10 @@ let prove_fail () =
   raise NoProof
 ;;
 
+let open_fail () =
+    Log.debug 3 "--> OPEN";
+    Closed (make_open (List.map fst (Index.get_all ())))
+
 type rule =
   state -> expr -> int -> (expr * int) list -> state * bool
 and params = {
@@ -1347,6 +1352,7 @@ and params = {
   fail : unit -> branch_state;
   progress : unit -> unit;
   end_progress : string -> unit;
+  iter : (proof list -> proof list) -> proof list -> proof list;
 };;
 
 let rec refute_aux prm stk st forms =
@@ -1381,7 +1387,7 @@ and next_node prm stk st =
   prm.progress ();
   incr Globals.inferences;
   match remove st.queue with
-  | None -> prm.fail ()
+  | None -> unwind prm stk (prm.fail ())
   | Some (n, q1) ->
       let st1 = {(*st with*) queue = q1} in
       match reduce_branches n with
@@ -1404,6 +1410,10 @@ and next_branch prm stk n st brstate =
       if !cur_depth > !max_depth then begin
         unwind prm stk Backtrack
       end else begin
+        let c = Array.fold_left (fun x b -> if b =%= Open then x + 1 else x) 0 brstate in
+        if c > 1 then
+          Extension.add_formula (evar "#branch");
+        Log.debug 3 "~ (%i/%i--%i) %a" (Array.length brstate - i) (Array.length brstate) c Print.pp_mlrule n.nrule;
         refute prm (fr :: stk) st
                (List.map (fun x -> (x, n.ngoal)) n.nbranches.(i))
       end
@@ -1431,7 +1441,7 @@ and unwind prm stk res =
       in
       List.iter f (List.rev fr.node.nbranches.(fr.curbr));
       begin match res with
-      | Closed p when disjoint fr.node.nbranches.(fr.curbr) p.mlconc ->
+      | Closed p when (disjoint fr.node.nbranches.(fr.curbr) p.mlconc) && not (is_open_node p) ->
           unwind prm stk1 res
       | Backtrack -> unwind prm stk1 res
       | Closed _ ->
@@ -1463,7 +1473,7 @@ let ticker finished () =
   if not finished then periodic '#';
 ;;
 
-let rec iter_refute prm rl =
+let rec iter_refute prm rl acc =
   Log.debug 1 "============ Begin search ===========";
   match refute prm [] {queue = empty} rl with
   | Backtrack ->
@@ -1471,8 +1481,15 @@ let rec iter_refute prm rl =
       Progress.do_progress begin fun () ->
         eprintf "increase max_depth to %d\n" !max_depth;
       end '*';
-      iter_refute prm rl;
-  | x -> x
+      iter_refute prm rl acc;
+  | Closed p when Mlproof.is_open_proof p ->
+      Log.debug 5 "=========== Extension iter ==========";
+      if Extension.iter_open p then begin
+        prm.iter (iter_refute prm rl) (p :: acc)
+      end else
+        p :: acc
+  | Closed p -> prm.iter (fun x -> x) (p :: acc)
+  | Open -> assert false
 ;;
 
 let prove prm defs l =
@@ -1488,13 +1505,13 @@ let prove prm defs l =
   cur_depth := 0;
   top_depth := 0;
   try
-    match iter_refute prm rl with
-    | Closed p ->
+    match iter_refute prm rl [] with
+    | p :: acc ->
         Gc.delete_alarm al;
         ticker true ();
         prm.end_progress "";
-        p
-    | Open | Backtrack -> assert false
+        p :: acc
+    | _ -> assert false
   with e ->
     prm.end_progress " no proof";
     raise e
@@ -1505,4 +1522,29 @@ let default_params = {
   fail = prove_fail;
   progress = progress;
   end_progress = Progress.end_progress;
+  iter = (fun f acc -> f acc);
 };;
+
+let open_params_base = {
+  rules = prove_rules;
+  fail = open_fail;
+  progress = progress;
+  end_progress = Progress.end_progress;
+  iter = (fun _ _ -> assert false);
+};;
+
+let open_params level =
+    let rec cut l i = match l with
+    | [] -> []
+    | a :: r when i > 0 -> a :: (cut r (i - 1))
+    | _ (* i <= 0 *) -> []
+    in
+    let f = match level with
+    | None -> (fun f acc -> f acc)
+    | Some i when i <= 0 -> (fun f acc -> f (cut acc ((- i) + 1)))
+    | Some i (* i > 0 *) -> (fun f acc -> if List.length acc >= i then acc else f acc)
+    in
+    { open_params_base with iter = f }
+;;
+
+

@@ -106,7 +106,9 @@ let synthesize s =
   | t when t = univ_name -> any_name
   | "nat" -> "O"
   | "bool" -> "true"
-  | "Z" -> "Z0"
+  | "Z" -> "0%Z"
+  | "Q" -> "(0 # 1)%Q"
+  | "R" -> "0%R"
   | t when is_mapped (evar t) ->
       let result = getname (evar t) in
       constants_used := result :: !constants_used;
@@ -134,8 +136,8 @@ let rec trexpr env e =
   | Emeta _ -> assert false
   | Eapp (Evar("$match",_), e1 :: cases, _) ->
       Cmatch (trexpr env e1, List.map (trcase env []) cases)
-  | Eapp (Evar("$fix",_), Elam (Evar (f, _), ty, e1, _) :: args, _) ->
-      Capp (Cfix (f, Type.to_string ty, trexpr env e1), List.map (trexpr env) args)
+  | Eapp (Evar("$fix",_), Elam (Evar (f, _) as var, e1, _) :: args, _) ->
+      Capp (Cfix (f, Type.to_string (get_type var), trexpr env e1), List.map (trexpr env) args)
   | Eapp (Evar("FOCAL.ifthenelse",_), [e1; e2; e3], _) ->
       Cifthenelse (trexpr env e1, trexpr env e2, trexpr env e3)
   | Eapp (Evar("$string",_), [Evar (v, _)], _) -> Cvar v
@@ -148,19 +150,19 @@ let rec trexpr env e =
   | Eequiv (e1, e2, _) -> Cequiv (trexpr env e1, trexpr env e2)
   | Etrue -> Cvar "True"
   | Efalse -> Cvar "False"
-  | Eall (Evar (v, _), t, e1, _) -> Call (v, Type.to_string t, trexpr (v::env) e1)
+  | Eall (Evar (v, _) as var, e1, _) -> Call (v, Type.to_string (get_type var), trexpr (v::env) e1)
   | Eall _ -> assert false
-  | Eex (Evar (v, _), t, e1, _) -> Cex (v, Type.to_string t, trexpr (v::env) e1)
+  | Eex (Evar (v, _) as var, e1, _) -> Cex (v, Type.to_string (get_type var), trexpr (v::env) e1)
   | Eex _ -> assert false
   | Etau _ -> Cvar (Index.make_tau_name e)
-  | Elam (Evar (v, _), t, e1, _) -> Clam (v, cty (Type.to_string t), trexpr (v::env) e1)
+  | Elam (Evar (v, _) as var, e1, _) -> Clam (v, cty (Type.to_string (get_type var)), trexpr (v::env) e1)
   | Elam _ -> assert false
 
 and trcase env accu e =
   match e with
   | Eapp (Evar("$match-case",_), [Evar (constr, _); body], _) ->
      (constr, List.rev accu, trexpr env body)
-  | Elam (Evar (v, _), _, body, _) -> trcase env (v :: accu) body
+  | Elam (Evar (v, _), body, _) -> trcase env (v :: accu) body
   | _ -> assert false
 ;;
 
@@ -263,39 +265,39 @@ let rec trtree env node =
       let lam2 = mklam p (mklam (enot q) sub2) in
       let concl = getv env (enot (eequiv (p, q))) in
       Capp (Cvar "zenon_notequiv", [tropt p; tropt q; lam1; lam2; concl])
-  | Rex (Eex (Evar (x, _) as vx, ty, px, _) as exp, z) ->
+  | Rex (Eex (Evar (x, _) as vx, px, _) as exp, z) ->
       let sub = tr_subtree_1 hyps in
-      let zz = etau (vx, ty, px) in
+      let zz = etau (vx, px) in
       let zzn = Index.make_tau_name zz in
       let pzz = substitute [(vx, zz)] px in
-      let ty = Type.to_string ty in
+      let ty = Type.to_string (get_type vx) in
       let lam = Clam (zzn, cty ty, mklam pzz sub) in
       Capp (Cvar "zenon_ex", [cty ty; trpred x ty px; lam; getv env exp])
   | Rex _ -> assert false
-  | Rnotall (Eall (Evar (x, _) as vx, ty, px, _) as allp, z) ->
+  | Rnotall (Eall (Evar (x, _) as vx, px, _) as allp, z) ->
       let sub = tr_subtree_1 hyps in
-      let zz = etau (vx, ty, enot (px)) in
+      let zz = etau (vx, enot (px)) in
       let zzn = Index.make_tau_name (zz) in
       let pzz = substitute [(vx, zz)] px in
-      let ty = Type.to_string ty in
+      let ty = Type.to_string (get_type vx) in
       let lam = Clam (zzn, cty ty, mklam (enot (pzz)) sub) in
       let concl = getv env (enot allp) in
       Capp (Cvar "zenon_notall", [cty ty; trpred x ty px; lam; concl])
   | Rnotall _ -> assert false
-  | Rall (Eall (Evar (x, _) as vx, ty, px, _) as allp, t) ->
+  | Rall (Eall (Evar (x, _) as vx, px, _) as allp, t) ->
       let sub = tr_subtree_1 hyps in
       let pt = substitute [(vx, t)] px in
       let lam = mklam pt sub in
-      let ty = Type.to_string ty in
+      let ty = Type.to_string (get_type vx) in
       let p = trpred x ty px in
       let concl = getv env allp in
       Capp (Cvar "zenon_all", [cty ty; p; trexpr t; lam; concl])
   | Rall _ -> assert false
-  | Rnotex (Eex (Evar (x, _) as vx, ty, px, _) as exp, t) ->
+  | Rnotex (Eex (Evar (x, _) as vx, px, _) as exp, t) ->
       let sub = tr_subtree_1 hyps in
       let npt = enot (substitute [(vx, t)] px) in
       let lam = mklam npt sub in
-      let ty = Type.to_string ty in
+      let ty = Type.to_string (get_type vx) in
       let p = trpred x ty px in
       let concl = getv env (enot (exp)) in
       Capp (Cvar "zenon_notex", [cty ty; p; trexpr t; lam; concl])
@@ -379,7 +381,7 @@ let rec trtree env node =
      let recargs = List.map2 make_hyp hyps cstrs in
      let pred =
        let v = Expr.newvar () in
-       trexpr (elam (v, Type.atomic "", enot (eapp (eeq, [e1; v]))))
+       trexpr (elam (v, enot (eapp (eeq, [e1; v]))))
      in
      let refl = Capp (Cvar "refl_equal", [tropt e1]) in
      Capp (Cvar schema, typargs @ pred :: recargs @ tropt e1 :: [refl])
@@ -403,7 +405,7 @@ let rec trtree env node =
      let (args, cstrs, schema) = get_induct ty in
      let typargs = List.map (fun _ -> Cwild) args in
      let x = Expr.newvar () in
-     let p = elam (x, Type.atomic "", eimply (eimply (apply ctx (apply unfx x), efalse),
+     let p = elam (x, eimply (eimply (apply ctx (apply unfx x), efalse),
                                       eimply (apply ctx (apply foldx x), efalse)))
      in
      let brs = List.map mkfixcase cstrs in
@@ -597,6 +599,26 @@ let tr_ty t =
   | s -> sprintf "%s" s
 ;;
 
+let is_infix = function
+    | "$less" | "$lesseq" | "$greater" | "$greatereq" | "="
+    | "$sum" | "$product" | "$difference" | "$uminus" 
+    | "$coq_div" -> true
+    | _ -> false
+
+let to_infix = function
+    | "$less" -> "<"
+    | "$lesseq" -> "<="
+    | "$greater" -> ">"
+    | "$greatereq" -> ">="
+    | "=" -> "="
+    | "$sum" -> "+"
+    | "$product" -> "*"
+    | "$difference" -> "-"
+    | "$uminus" -> "-"
+    | "$coq_div" -> "#"
+    | s -> s
+;;
+
 let pr_oc oc prefix t =
   let rec pr_list p b l =
     let f t = bprintf b " %a" p t; in
@@ -617,7 +639,7 @@ let pr_oc oc prefix t =
   let rec pr b t =
     match t with
     | Cvar "" -> assert false
-    | Cvar s -> bprintf b "%s" s; flush_buf oc;
+    | Cvar s -> bprintf b "%s" (to_infix s); flush_buf oc;
     | Cty s -> bprintf b "%a" pr_ty s;
     | Clam (_, _, Clam _) ->
         let (lams, body) = get_lams [] t in
@@ -626,7 +648,9 @@ let pr_oc oc prefix t =
     | Clam (s, t1, t2) -> bprintf b "(fun %s:%a=>%a)" s pr t1 pr t2;
     | Capp (Cvar "=", [e1; e2]) ->
        bprintf b "(%a = %a)" pr e1 pr e2;  (* NOTE: spaces are needed *)
-    | Capp (Cvar "%", [e1; e2]) ->
+    | Capp (Cvar s, [e1; e2]) when is_infix s ->
+       bprintf b "(%a %s %a)" pr e1 (to_infix s) pr e2;
+    | Capp (Cvar "%", [e1; e2]) | Capp (Cvar "$coq_scope", [e2; e1]) ->
        bprintf b "(%a)%%%a" pr e1 pr e2
     | Capp (Cvar "=", args) -> bprintf b "(@eq _%a)" (pr_list pr) args;
     | Capp (t1, []) -> pr b t1;
@@ -750,7 +774,6 @@ let get_signatures ps ext_decl =
   let rec get_sig r env e =
     match e with
     | Evar ("_", _) -> ()
-    | Evar (s, _) when is_nat s -> ()
     | Evar (s, _) -> if not (List.mem s env) then add_sig s 0 r;
     | Emeta _ | Etrue | Efalse -> ()
     | Eapp (Evar(s,_), args, _) ->
@@ -762,8 +785,8 @@ let get_signatures ps ext_decl =
       -> get_sig Prop env e1;
          get_sig Prop env e2;
     | Enot (e1, _) -> get_sig Prop env e1;
-    | Eall (Evar (v, _), _, e1, _) | Eex (Evar (v, _), _, e1, _)
-    | Etau (Evar (v, _), _, e1, _) | Elam (Evar (v, _), _, e1, _)
+    | Eall (Evar (v, _), e1, _) | Eex (Evar (v, _), e1, _)
+    | Etau (Evar (v, _), e1, _) | Elam (Evar (v, _), e1, _)
       -> get_sig Prop (v::env) e1;
     | Eall _ | Eex _ | Etau _ | Elam _ -> assert false
   in
@@ -899,9 +922,11 @@ let declare_context oc phrases =
   fprintf oc "Require Import zenon.\n";
   Extension.declare_context_coq oc;
   let ext_decl = Extension.predef () in
+  let type_defs = Type.get_defs () in
   fprintf oc "Parameter %s : Set.\n" univ_name;
   fprintf oc "Parameter %s : %s.\n" any_name univ_name;
-  let sigs = get_signatures phrases ext_decl in
+  List.iter (fun (s, t) -> fprintf oc "Parameter %s : %s.\n" s (Type.to_string t)) type_defs;
+  let sigs = get_signatures phrases (ext_decl @ (List.map fst type_defs)) in
   List.iter (print_signature oc) sigs;
   List.iter (declare_hyp oc) phrases;
   if not !Globals.quiet_flag then fprintf oc "(* END-CONTEXT *)\n";

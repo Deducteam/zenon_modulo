@@ -18,10 +18,10 @@ type expr = private
   | Etrue
   | Efalse
 
-  | Eall of expr * etype * expr * private_info
-  | Eex of expr * etype * expr * private_info
-  | Etau of expr * etype * expr * private_info
-  | Elam of expr * etype * expr * private_info
+  | Eall of expr * expr * private_info
+  | Eex of expr * expr * private_info
+  | Etau of expr * expr * private_info
+  | Elam of expr * expr * private_info
       (* variable, type, body *)
 ;;
 
@@ -36,10 +36,11 @@ type t = expr;;
 
 val equal : t -> t -> bool;;
 val compare : t -> t -> int;;
+val compare_type : Type.t -> Type.t -> int;;
 val hash : t -> int;;
 
-val get_type : expr -> etype option;;
-val extract_args : etype option -> expr list -> etype option list;;
+val get_type : expr -> etype;;
+val extract_args : etype option -> expr list -> etype list;;
 
 val evar : string -> expr;;
 val tvar : string -> etype -> expr;;
@@ -49,14 +50,15 @@ val eapp : expr * expr list -> expr;;
 val enot : expr -> expr;;
 val eand : expr * expr -> expr;;
 val eor : expr * expr -> expr;;
+val exor : expr * expr -> expr;;
 val eimply : expr * expr -> expr;;
 val eequiv : expr * expr -> expr;;
 val etrue : expr;;
 val efalse : expr;;
-val eall : expr * etype * expr -> expr;;
-val eex : expr * etype * expr -> expr;;
-val etau : expr * etype * expr -> expr;;
-val elam : expr * etype * expr -> expr;;
+val eall : expr * expr -> expr;;
+val eex : expr * expr -> expr;;
+val etau : expr * expr -> expr;;
+val elam : expr * expr -> expr;;
 
 val eeq : expr;;
 val estring : expr;;
@@ -96,6 +98,9 @@ val occurs_as_meta : expr -> expr -> bool;;
 
 exception Higher_order;;
 val substitute : (expr * expr) list -> expr -> expr;;
+val substitute_type : (expr * expr) list -> etype -> etype;;
+val substitute_meta : (expr * expr) -> expr -> expr;;
+val substitute_expr : (expr * expr) -> expr -> expr;;
 val substitute_2nd : (expr * expr) list -> expr -> expr;;
 val apply : expr -> expr -> expr;;
 val add_argument : expr -> expr -> expr;;
@@ -117,3 +122,4 @@ val get_fv : expr -> string list;;
 type goalness = int;;
 
 val print_stats : out_channel -> unit;;
+

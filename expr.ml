@@ -20,7 +20,7 @@ type expr =
   | Etrue
   | Efalse
 
-  | Eall of expr  * expr * private_info
+  | Eall of expr * expr * private_info
   | Eex of expr * expr * private_info
   | Etau of expr * expr * private_info
   | Elam of expr * expr * private_info
@@ -181,6 +181,11 @@ let rec remove x l =
 
 let combine x y = x + y * 131 + 1;;
 
+let rec make_list c acc = function
+    | 0 -> acc
+    | n when n > 0 -> make_list c (c :: acc) (n - 1)
+    | _ -> assert false
+
 let prop_app l =
     let aux l =
         try raise (Type_Mismatch (type_prop, (List.find (fun e -> not (e == type_prop)) l)))
@@ -192,6 +197,13 @@ let prop_app l =
         aux l
 
 let priv_var s t = mkpriv 0 [s] 1 0 [] t;;
+
+let mk_arrow l ret =
+    assert (List.for_all (fun e -> type_type == get_type e) (ret :: l));
+    let t = make_list type_type [] (List.length l + 1) in
+    let v = priv_var "<-" t in
+    Eapp(v, ret :: l, ())
+
 let priv_meta e =
   mkpriv (combine k_meta (get_skel e)) [] 1 0 [e] (get_meta_type e)
 ;;
@@ -249,7 +261,7 @@ let priv_tau v e =
 let priv_lam v e =
   mkpriv (combine k_lam (combine (get_hash (get_type v)) (get_skel e)))
          (remove v (get_fv e)) 1 (get_taus e) (get_metas e)
-         (get_type e)
+         (mk_arrow [get_type v] (get_type e))
 ;;
 
 module HashedExpr = struct
@@ -330,7 +342,7 @@ module HashedExpr = struct
   | Some t1, Some t2 -> Type.equal t1 t2
   | _ -> false
 
-  let equal e1 e2 =
+  let equal e1 e2 = (t_eq (get_type e1) (get_type e2)) &&
     match e1, e2 with
     | Evar (v1, _), Evar (v2, _) -> v1 =%= v2 && get_type e1 == get_type e2
     | Emeta (f1, _), Emeta (f2, _) -> f1 == f2
@@ -391,20 +403,23 @@ let print_stats oc =
   ;;
 *)
 
-let evar s = he_merge (Evar (s, priv_var s type_none))
-let tvar s t = he_merge (Evar (s, priv_var s t))
-let emeta (e) = he_merge (Emeta (e, priv_meta e))
-let enot (e) = he_merge (Enot (e, priv_not e))
-let eand (e1, e2) = he_merge (Eand (e1, e2, priv_and e1 e2))
-let eor (e1, e2) = he_merge (Eor (e1, e2, priv_or e1 e2))
-let eimply (e1, e2) = he_merge (Eimply (e1, e2, priv_imply e1 e2))
-let etrue = Etrue
-let efalse = Efalse
-let eequiv (e1, e2) = he_merge (Eequiv (e1, e2, priv_equiv e1 e2))
-let eall (v, e) = he_merge (Eall (v, e, priv_all v e))
-let eex (v, e) = he_merge (Eex (v, e, priv_ex v e))
-let etau (v, e) = he_merge (Etau (v, e, priv_tau v e))
-let elam (v, e) = he_merge (Elam (v, e, priv_lam v e))
+let evar s = he_merge (Evar (s, priv_var s type_none));;
+let tvar s t = he_merge (Evar (s, priv_tvar s t));;
+let emeta (e) = he_merge (Emeta (e, priv_meta e));;
+let eapp (s, args) = he_merge (Eapp (s, args, priv_app s args));;
+let enot (e) = he_merge (Enot (e, priv_not e));;
+let eand (e1, e2) = he_merge (Eand (e1, e2, priv_and e1 e2));;
+let eor (e1, e2) = he_merge (Eor (e1, e2, priv_or e1 e2));;
+let eimply (e1, e2) = he_merge (Eimply (e1, e2, priv_imply e1 e2));;
+let etrue = Etrue;;
+let efalse = Efalse;;
+let eequiv (e1, e2) = he_merge (Eequiv (e1, e2, priv_equiv e1 e2));;
+let eall (v, e) = he_merge (Eall (v, e, priv_all v e));;
+let eex (v, e) = he_merge (Eex (v, e, priv_ex v e));;
+let etau (v, e) = he_merge (Etau (v, e, priv_tau v e));;
+let elam (v, e) = he_merge (Elam (v, e, priv_lam v e));;
+
+let exor (e1,e2) = eor (eand (e1, enot e2), eand (enot e1, e2));;
 
 let estring = evar "$string";;
 
@@ -575,6 +590,41 @@ and substitute map e =
   | Elam (v, f, _) -> aux elam map v f
 ;;
 
+let rec substitute_meta map e =
+  match e with
+  | Evar (v, _) -> e
+  | Emeta (e', _) -> let (meta, v) = map in if e' == meta then v else e
+  | Eapp (s, args, _) -> eapp (s, List.map (substitute_meta map) args)
+  | Enot (f, _) -> enot (substitute_meta map f)
+  | Eand (f, g, _) -> eand (substitute_meta map f, substitute_meta map g)
+  | Eor (f, g, _) -> eor (substitute_meta map f, substitute_meta map g)
+  | Eimply (f, g, _) -> eimply (substitute_meta map f, substitute_meta map g)
+  | Eequiv (f, g, _) -> eequiv (substitute_meta map f, substitute_meta map g)
+  | Etrue | Efalse -> e
+  | Eall (v, f, _) -> eall (v, substitute_meta map f)
+  | Eex (v, f, _) -> eex (v, substitute_meta map f)
+  | Etau (v, f, _) -> etau (v, substitute_meta map f)
+  | Elam (v, f, _) -> elam (v, substitute_meta map f)
+;;
+
+let rec substitute_expr map e =
+  match e with
+  | _ when e == (fst map) -> snd map
+  | Evar (v, _) -> e
+  | Emeta (e', _) -> e
+  | Eapp (s, args, _) -> eapp (s, List.map (substitute_expr map) args)
+  | Enot (f, _) -> enot (substitute_expr map f)
+  | Eand (f, g, _) -> eand (substitute_expr map f, substitute_expr map g)
+  | Eor (f, g, _) -> eor (substitute_expr map f, substitute_expr map g)
+  | Eimply (f, g, _) -> eimply (substitute_expr map f, substitute_expr map g)
+  | Eequiv (f, g, _) -> eequiv (substitute_expr map f, substitute_expr map g)
+  | Etrue | Efalse -> e
+  | Eall (v, f, _) -> eall (v, substitute_expr map f)
+  | Eex (v, f, _) -> eex (v, substitute_expr map f)
+  | Etau (v, f, _) -> etau (v, substitute_expr map f)
+  | Elam (v, f, _) -> elam (v, substitute_expr map f)
+;;
+
 let rec substitute_2nd map e =
   match e with
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
@@ -584,7 +634,7 @@ let rec substitute_2nd map e =
      begin try
       let lam = List.assq (evar (get_name s)) map in
       match lam, acts with
-      | Elam (v, _, body, _), [a] -> substitute [(v,a)] body
+      | Elam (v, body, _), [a] -> substitute [(v,a)] body
       | Evar (v, _), _ -> eapp (lam, acts)
       | Eapp (s1, args1, _), _ -> eapp (s1, args1 @ acts)
       | _ -> raise Higher_order
@@ -596,39 +646,39 @@ let rec substitute_2nd map e =
   | Eimply (f, g, _) -> eimply (substitute_2nd map f, substitute_2nd map g)
   | Eequiv (f, g, _) -> eequiv (substitute_2nd map f, substitute_2nd map g)
   | Etrue | Efalse -> e
-  | Eall (v, t, f, _) ->
+  | Eall (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
         let nv = newvar () in
-        eall (nv, t, substitute_2nd ((v, nv) :: map1) f)
+        eall (nv, substitute_2nd ((v, nv) :: map1) f)
       else
-        eall (v, t, substitute_2nd map1 f)
-  | Eex (v, t, f, _) ->
+        eall (v, substitute_2nd map1 f)
+  | Eex (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
         let nv = newvar () in
-        eex (nv, t, substitute_2nd ((v, nv) :: map1) f)
+        eex (nv, substitute_2nd ((v, nv) :: map1) f)
       else
-        eex (v, t, substitute_2nd map1 f)
-  | Etau (v, t, f, _) ->
+        eex (v, substitute_2nd map1 f)
+  | Etau (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
         let nv = newvar () in
-        etau (nv, t, substitute_2nd ((v, nv) :: map1) f)
+        etau (nv, substitute_2nd ((v, nv) :: map1) f)
       else
-        etau (v, t, substitute_2nd map1 f)
-  | Elam (v, t, f, _) ->
+        etau (v, substitute_2nd map1 f)
+  | Elam (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
         let nv = newvar () in
-        elam (nv, t, substitute_2nd ((v, nv) :: map1) f)
+        elam (nv, substitute_2nd ((v, nv) :: map1) f)
       else
-        elam (v, t, substitute_2nd map1 f)
+        elam (v, substitute_2nd map1 f)
 ;;
 
 let apply f a =
   match f with
-  | Elam (v, _, body, _) -> substitute [(v, a)] body
+  | Elam (v, body, _) -> substitute [(v, a)] body
   | _ -> raise Higher_order
 ;;
 
@@ -649,8 +699,8 @@ let rec remove_scope e =
   | Eor (e1, e2, _) -> eor (remove_scope e1, remove_scope e2)
   | Eimply (e1, e2, _) -> eimply (remove_scope e1, remove_scope e2)
   | Eequiv (e1, e2, _) -> eequiv (remove_scope e1, remove_scope e2)
-  | Eall (v, t, e1, _) -> eall (v, t, remove_scope e1)
-  | Eex (v, t, e1, _) -> eex (v, t, remove_scope e1)
+  | Eall (v, e1, _) -> eall (v, remove_scope e1)
+  | Eex (v, e1, _) -> eex (v, remove_scope e1)
   | Evar _ | Emeta _ | Etrue | Efalse | Etau _ | Elam _
   -> e
 ;;

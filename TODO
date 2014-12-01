@@ -1,22 +1,11 @@
-These are mostly suggestions
 
-General :
-  -> Prevent zenon from instanciating variables whose type contains
-     non-instanciated type variables
-  -> when comparing type to Namespace.univ_name,
-     instead of comparing strings, compare values of type Type.t ?
-  -> Change llproof rules to include expr instead of string for functions ?
-  -> Use polymorphic equality instead of name equality for functions ?
+* Coq proofs
+  - congruence does not work with equality on rationals
+  - set constants to be variables instead of 0-ary functions (Type difference for context).
 
-In index.ml:
-  -> Use exprs instead of strings to store definitions
+* Simplex
+  - Fix the schmilblik with multiple/repeated solving with int variables
 
-In ext_induct.ml:
-  -> Use Type interface instead of messy operations on strings for types
-     More genreally, use Type.t instead of strings in the module.
+* Meta-variable extension
+  - limit the number of instanciations ?
 
-In parsetptp.mly:
-  -> Apply ns_var and/or ns_fun where expected
-
-In eqrel.ml :
-  -> use Type.t instead of string to store types

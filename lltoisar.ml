@@ -42,7 +42,7 @@ let hname hyps e =
 
 let apply lam arg =
   match lam with
-  | Elam (v, t, e1, _) -> substitute [(v, arg)] e1
+  | Elam (v, e1, _) -> substitute [(v, arg)] e1
   | _ -> assert false
 ;;
 
@@ -178,16 +178,16 @@ let rec p_expr env dict oc e =
       poc "TRUE";
   | Efalse ->
       poc "FALSE";
-  | Eall (Evar (x, _), _, e, _) ->
+  | Eall (Evar (x, _), e, _) ->
       poc "(\\\\A %s:%a)" x (p_expr (x::env) dict) e;
   | Eall _ -> assert false
-  | Eex (Evar (x, _), _, e, _) ->
+  | Eex (Evar (x, _), e, _) ->
       poc "(\\\\E %s:%a)" x (p_expr (x::env) dict) e;
   | Eex _ -> assert false
-  | Elam (Evar (x, _), _, e, _) ->
+  | Elam (Evar (x, _), e, _) ->
       poc "(\\<lambda>%s. %a)" x (p_expr (x::env) dict) e;
   | Elam _ -> assert false
-  | Etau (Evar (x, _), _, e, _) ->
+  | Etau (Evar (x, _), e, _) ->
       poc "(CHOOSE %s:%a)" x (p_expr (x::env) dict) e;
   | Etau _ -> assert false
   | Emeta _ -> assert false
@@ -262,10 +262,10 @@ let p_is dict oc h =
   | Enot (Eor (e1, e2, _), _) -> binary "~(" e1 "|" e2 ")"
   | Enot (Eimply (e1, e2, _), _) -> binary "~(" e1 "=>" e2 ")"
   | Enot (Eequiv (e1, e2, _), _) -> binary "~(" e1 "<=>" e2 ")"
-  | Eall (v, t, e1, _) -> unary "\\\\A x : " (elam (v, t, e1)) "(x)"
-  | Eex (v, t, e1, _) -> unary "\\\\E x : " (elam (v, t, e1)) "(x)"
-  | Enot (Eall (v, t, e1, _), _) -> unary "~(\\\\A x : " (elam (v, t, e1)) "(x))"
-  | Enot (Eex (v, t, e1, _), _) -> unary "~(\\\\E x : " (elam (v, t, e1)) "(x))"
+  | Eall (v, e1, _) -> unary "\\\\A x : " (elam (v, e1)) "(x)"
+  | Eex (v, e1, _) -> unary "\\\\E x : " (elam (v, e1)) "(x)"
+  | Enot (Eall (v, e1, _), _) -> unary "~(\\\\A x : " (elam (v, e1)) "(x))"
+  | Enot (Eex (v, e1, _), _) -> unary "~(\\\\E x : " (elam (v, e1)) "(x))"
   | Enot (Enot (e1, _), _) -> unary "~~" e1 ""
   | Eapp (Evar("=",_), [e1; e2], _) -> binary "" e1 "=" e2 ""
   | Enot (Eapp (Evar("=",_), [e1; e2], _), _) -> binary "" e1 "~=" e2 ""
@@ -675,17 +675,17 @@ let rec p_tree hyps i dict oc proof =
      p_sub dict hs proof.hyps;
   | Rnotnot (e1) ->
      alpha "notnot" (enot (enot e1)) [e1] proof.hyps;
-  | Rex (Eex (x, t, e1, _) as conc, e2) ->
-     delta "ex_choose" false (elam (x, t, e1)) e2 conc proof.hyps;
+  | Rex (Eex (x, e1, _) as conc, e2) ->
+     delta "ex_choose" false (elam (x, e1)) e2 conc proof.hyps;
   | Rex _ -> assert false
-  | Rnotall (Eall (x, t, e1, _) as nconc, e2) ->
-     delta "notall_choose" true (elam (x, t, e1)) e2 (enot nconc) proof.hyps;
+  | Rnotall (Eall (x, e1, _) as nconc, e2) ->
+     delta "notall_choose" true (elam (x, e1)) e2 (enot nconc) proof.hyps;
   | Rnotall _ -> assert false
-  | Rall (Eall (x, t, e1, _) as conc, e2) ->
-     gamma "all" false (elam (x, t, e1)) e2 conc proof.hyps;
+  | Rall (Eall (x, e1, _) as conc, e2) ->
+     gamma "all" false (elam (x, e1)) e2 conc proof.hyps;
   | Rall _ -> assert false
-  | Rnotex (Eex (x, t, e1, _) as nconc, e2) ->
-     gamma "notex" true (elam (x, t, e1)) e2 (enot nconc) proof.hyps;
+  | Rnotex (Eex (x, e1, _) as nconc, e2) ->
+     gamma "notex" true (elam (x, e1)) e2 (enot nconc) proof.hyps;
   | Rnotex _ -> assert false
   | Rlemma (l, a) ->
      let rec filter_vars l =
@@ -878,7 +878,7 @@ and p_subst hyps i dict oc mk l1 l2 rl2 prev =
      else begin
        let newrl2 = h2 :: rl2 in
        let x = newvar () in
-       let p = elam (x, Type.atomic "", mk (List.rev_append rl2 (x :: t1))) in
+       let p = elam (x, mk (List.rev_append rl2 (x :: t1))) in
        let e = apply p h2 in
        let n_e = hname hyps e in
        iprintf (iinc i) oc "have %s: \"%a\"" n_e (p_expr dict) e;

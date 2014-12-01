@@ -17,6 +17,7 @@ parsezen.ml
 parsezen.mli
 lexcoq.ml
 lextptp.ml
+lexsmtlib.ml
 lexzen.ml
 checksum.ml
 config.ml

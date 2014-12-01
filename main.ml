@@ -15,8 +15,18 @@ type proof_level =
   | Proof_coq
   | Proof_coqterm
   | Proof_isar
+  | Proof_dot of bool * int
 ;;
 let proof_level = ref Proof_none;;
+let default_depth = 100;;
+
+type open_level =
+    | Open_none
+    | Open_all
+    | Open_first of int
+    | Open_last of int
+;;
+let keep_open = ref Open_none;;
 
 type input_format =
   | I_zenon
@@ -112,6 +122,14 @@ let argspec = [
          "             read input file in TPTP format";
   "-iz", Arg.Unit (fun () -> input_format := I_zenon),
       "                read input file in Zenon format (default)";
+  "-k", Arg.Unit (fun () -> keep_open := Open_last 0),
+     "                 use incomplete proof attempts to instanciate";
+  "-kall", Arg.Unit (fun () -> keep_open := Open_all),
+        "              keep all incomplete proof attempts";
+  "-kf", Arg.Int (fun n -> keep_open := Open_first n),
+      "<n>             keep the first <n> proof attempts";
+  "-kl", Arg.Int (fun n -> keep_open := Open_last n),
+      "<n>             keep the last <n> proof attempts";
   "-loadpath", Arg.Set_string load_path,
     sprintf "          path to Zenon's coq libraries (default %s)"
             Config.libdir;
@@ -127,8 +145,8 @@ let argspec = [
   "-max-time", Arg.String (int_arg time_limit),
             "<t>[smhd] limit CPU time to <t> second/minute/hour/day"
             ^ " (5m)";
-  "-ocoq", Arg.Unit (fun () -> proof_level := Proof_coq),
-        "              print the proof in Coq script format";
+  "-ocoq", Arg.Unit (fun () -> namespace_flag := true; proof_level := Proof_coq),
+        "              print the proof in Coq script format (force -rename)";
   "-ocoqterm", Arg.Unit (fun () -> proof_level := Proof_coqterm),
             "          print the proof in Coq term format";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
@@ -143,6 +161,12 @@ let argspec = [
       "                print the proof in middle-level format";
   "-onone", Arg.Unit (fun () -> proof_level := Proof_none),
          "             do not print the proof (default)";
+  "-odot", Arg.Unit (fun () -> proof_level := Proof_dot (true, default_depth)),
+        "              print the proof in dot format (use with -q option)";
+  "-odotd", Arg.Int (fun n -> proof_level := Proof_dot (true, n)),
+         "             print the proof in dot format (use with -q option)(less verbose)";
+  "-odotl", Arg.Int (fun n -> proof_level := Proof_dot (false, n)),
+         "             print the proof in dot format (use with -q option)(less verbose)";
   "-opt0", Arg.Unit (fun () -> opt_level := 0),
         "              do not optimise the proof";
   "-opt1", Arg.Unit (fun () -> opt_level := 1),
@@ -333,11 +357,24 @@ let main () =
       flush stderr;
       Gc.set {(Gc.get ()) with Gc.verbose = 0x010};
     end;
-    let proof = Prove.prove Prove.default_params defs hyps in
+    let params = match !keep_open with
+        | Open_none -> Prove.default_params
+        | Open_all -> Prove.open_params None
+        | Open_first n -> Prove.open_params (Some n)
+        | Open_last n -> Prove.open_params (Some (-n))
+    in
+    let proofs = Prove.prove params defs hyps in
+    let proof= List.hd proofs in
+    let is_open = Mlproof.is_open_proof proof in
+    if is_open then
+        retcode := 12;
     if not !quiet_flag then begin
-      printf "(* PROOF-FOUND *)\n";
-      flush stdout;
-    end;
+      if is_open then
+        printf "(* NO-PROOF *)\n"
+      else
+        printf "(* PROOF-FOUND *)\n";
+      flush stdout
+      end;
     let llp = lazy (optim (Extension.postprocess
                              (Mltoll.translate th_name ppphrases proof)))
     in
@@ -359,6 +396,8 @@ let main () =
     | Proof_isar ->
         let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in
         Watch.warn phrases_dep llp u;
+    | Proof_dot (b, n) ->
+        Print.dots ~full_output:b ~max_depth:n (Print.Chan stdout) (List.rev proofs);
     end;
   with
   | Prove.NoProof ->
@@ -389,7 +428,10 @@ let do_main () =
   with
   | Error.Abort -> do_exit 11;
   (*
-  | e -> eprintf "Zenon error: uncaught exception %s\n" (Printexc.to_string e);
-         do_exit 14;
-         *)
+  | Type.Mismatch(t, t') as e->
+          Format.printf "Mismatched type : expected '%s' but instead received '%s'@." (Type.to_string t) (Type.to_string t');
+          raise e
+          *)
+  (* | e -> eprintf "Zenon error: uncaught exception %s\n" (Printexc.to_string e);
+         do_exit 14; *)
 ;;

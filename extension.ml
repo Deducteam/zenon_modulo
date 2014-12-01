@@ -16,6 +16,7 @@ type t = {
   make_inst : Expr.expr -> Expr.expr -> Expr.goalness -> Node.node list;
   add_formula : Expr.expr -> unit;
   remove_formula : Expr.expr -> unit;
+  iter_open : proof -> bool;
   preprocess : Phrase.phrase list -> Phrase.phrase list;
   add_phrase : Phrase.phrase -> unit;
   postprocess : Llproof.proof -> Llproof.proof;
@@ -78,6 +79,10 @@ let add_formula e =
 
 let remove_formula e =
   List.iter (fun t -> t.remove_formula e) !active
+;;
+
+let iter_open p =
+  List.exists (fun x -> x) (List.map (fun t -> t.iter_open p) !active)
 ;;
 
 let preprocess l =

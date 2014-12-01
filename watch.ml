@@ -68,20 +68,20 @@ let rec check_unused name e =
   match e with
   | Evar _ | Emeta _ | Etrue | Efalse
     -> ()
-  | Eapp (Evar("$fix",_), Elam (f, _, body, _) :: args, _) ->
+  | Eapp (Evar("$fix",_), Elam (f, body, _) :: args, _) ->
      List.iter (check_unused name) (body :: args)
   | Eapp (f, args, _) -> List.iter (check_unused name) args;
   | Enot (e1, _) -> check_unused name e1;
   | Eand (e1, e2, _) | Eor (e1, e2, _) | Eimply (e1, e2, _) | Eequiv (e1, e2, _)
     -> check_unused name e1; check_unused name e2;
-  | Eall (Evar (v, _), t, e1, _) | Eex (Evar (v, _), t, e1, _)
-  | Etau (Evar (v, _), t, e1, _) | Elam (Evar (v, _), t, e1, _)
+  | Eall (Evar (v, _) as var, e1, _) | Eex (Evar (v, _) as var, e1, _)
+  | Etau (Evar (v, _) as var, e1, _) | Elam (Evar (v, _) as var, e1, _)
     ->
        if not (Misc.is_prefix Namespace.prefix v)
           && (String.length v < 1 || v.[0] <> '_')
           && not (List.mem v (get_fv e1))
        then begin
-         Error.warn (sprintf "unused variable (%s : %s) in %s" v (Type.to_string t) name);
+         Error.warn (sprintf "unused variable (%s : %s) in %s" v (Type.to_string (get_type var)) name);
        end;
        check_unused name e1;
   | Eall _ | Eex _ | Etau _ | Elam _ -> assert false
