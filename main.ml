@@ -430,12 +430,10 @@ let do_main () =
   try main ()
   with
   | Error.Abort -> do_exit 11;
-  | Expr.Type_Mismatch (t, t', f) as e ->
-     Format.printf "Mismatched type : expected '%s' but instead received '%s' in function %s@."
-                   (Print.sexpr t)
-                   (Print.sexpr t')
-                   f;
-          raise e
+  | Expr.Type_Mismatch (t, t', f) ->
+          let s = Printexc.get_backtrace () in
+          Format.printf "Mismatched type : expected '%s' but instead received '%s' (in %s)@\nBacktrace :@\n%s@."
+          (Print.sexpr t) (Print.sexpr t') f s;
   (*
   | e -> eprintf "Zenon error: uncaught exception %s\n" (Printexc.to_string e);
          do_exit 14; *)

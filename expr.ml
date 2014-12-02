@@ -46,6 +46,7 @@ type definition =
 exception Higher_order;;
 exception Type_Mismatch of expr * expr * string;;
 exception Bad_Arity of expr * expr list;;
+exception Trying_to_type_type;;
 
 
 (************************)
@@ -164,7 +165,6 @@ let get_fv e = (get_priv e).free_vars;;
 let get_size e = (get_priv e).size;;
 let get_taus e = (get_priv e).taus;;
 let get_metas e = (get_priv e).metas;;
-exception Trying_to_type_type;;
 let get_type e =
   if e == type_type || e == v_type_type
   then raise Trying_to_type_type
@@ -279,7 +279,11 @@ let priv_equiv e1 e2 =
 let priv_all v e =
   mkpriv (combine k_all (combine (get_hash (get_type v)) (get_skel e)))
          (remove v (get_fv e)) (1 + get_size e) (get_taus e) (get_metas e)
-         (get_type e) (* forall is used for both universal quantification and polymorphism *)
+         (if get_type e == type_type then type_type
+          else if get_type e == type_prop then type_prop
+          else if get_type e == type_none then type_none
+          else raise (Type_Mismatch (type_prop, get_type e, "priv_all")))
+         (* forall is used for both universal quantification and polymorphism *)
 ;;
 let priv_ex v e =
   mkpriv (combine k_ex (combine (get_hash (get_type v)) (get_skel e)))
@@ -587,7 +591,7 @@ and inst_app map s args = match s, args with
   | _ -> substitute map s, args
 
 and type_app s args =
-    if List.exists ((==) type_none) (s :: args) then
+    if List.memq type_none (s :: args) then
         type_none
     else match inst_app [] s args with
     | Earrow(l, ret, _), args' ->

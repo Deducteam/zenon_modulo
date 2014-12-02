@@ -17,7 +17,10 @@ let ns_fun s = ns "" s;; (* "f_" *)
 let rec mk_quant q vs body =
   match vs with
   | [] -> body
-  | h::t -> q (h, mk_quant q t body)
+  | h::t ->
+          let body = mk_quant q t body in
+          Log.debug 10 "Quantifying over %a" Print.pp_expr h;
+          q (h, body)
 ;;
 
 let cnf_to_formula l =
