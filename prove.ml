@@ -50,6 +50,7 @@ let rec replace_meta m va e =
   match e with
   | Evar _ -> e
   | Emeta _ -> if Expr.equal e m then va else e
+  | Earrow _ -> assert false
   | Eapp (s, args, _) -> eapp (s, List.map (replace_meta m va) args)
   | Enot (f, _) -> enot (replace_meta m va f)
   | Eand (f, g, _) -> eand (replace_meta m va f, replace_meta m va g)
@@ -193,7 +194,7 @@ let make_notequiv st sym (p, g) (np, ng) =
   | Eapp (Evar("Is_true",_), _, _), _ when Extension.is_active "focal" -> st
   | Eapp (Evar(s1,_) as s1', args1, _), Enot (Eapp (Evar(s2,_) as s2', args2, _), _) ->
       assert (s1 =%= s2);
-      if compare_type (get_type s1') (get_type s2') <> 0 then st
+      if not (get_type s1' == get_type s2') then st
       else if sym && List.length args2 != 2
          || List.length args1 <> List.length args2
       then (arity_warning s1; st)
@@ -637,6 +638,7 @@ let orient_meta m1 m2 =
     match e with
     | Evar _ -> []
     | Emeta (m, _) -> m :: get_metas m
+    | Earrow _ -> assert false
     | Eapp (s, es, _) -> List.fold_left (fun a e -> get_metas e @@ a) [] es
     | Enot (e1, _) -> get_metas e1
     | Eand (e1, e2, _) | Eor (e1, e2, _) | Eimply (e1, e2, _)

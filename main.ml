@@ -427,11 +427,10 @@ let do_main () =
   try main ()
   with
   | Error.Abort -> do_exit 11;
-  (*
-  | Type.Mismatch(t, t') as e->
-          Format.printf "Mismatched type : expected '%s' but instead received '%s'@." (Type.to_string t) (Type.to_string t');
+  | Expr.Type_Mismatch (t, t') as e ->
+          Format.printf "Mismatched type : expected '%s' but instead received '%s'@." (Print.sexpr t) (Print.sexpr t');
           raise e
-          *)
-  (* | e -> eprintf "Zenon error: uncaught exception %s\n" (Printexc.to_string e);
+  (*
+  | e -> eprintf "Zenon error: uncaught exception %s\n" (Printexc.to_string e);
          do_exit 14; *)
 ;;

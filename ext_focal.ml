@@ -605,6 +605,7 @@ let rec pp_expr e =
   match e with
   | Evar _ -> e
   | Emeta _ -> e
+  | Earrow _ -> assert false
   | Eapp (Evar("Is_true",_), [Eapp (Evar(s,_), args, _)], _) ->
       eapp (evar ("Is_true**" ^ s), List.map pp_expr args)
   | Eapp (s, args, _) -> eapp (s, List.map pp_expr args)
@@ -695,6 +696,7 @@ let rec process_expr e =
   match e with
   | Evar _ -> e
   | Emeta _ -> e
+  | Earrow _ -> assert false
   | Eapp (Evar(s,_), args, _) when is_prefix 0 "Is_true**" s ->
       let s1 = chop_prefix "Is_true**" s in
       eapp (evar "Is_true", [eapp (evar s1, List.map process_expr args)])

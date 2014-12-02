@@ -139,6 +139,7 @@ let rec p_expr env dict oc e =
       poc "(CHOOSE x : TRUE)";
   | Evar (v, _) ->
       poc "%s" (tr_constant v);
+  | Earrow _ -> assert false
   | Eapp (Evar("$string",_), [Evar (s, _)], _) when String.length s >= 2 ->
       poc "''%s''" (String.sub s 1 (String.length s - 2))
   | Eapp (Evar("$string",_), _, _) -> assert false

@@ -300,14 +300,14 @@ let make_induction_branch ty targs p (con, args) =
 
 let newnodes_induction e g =
   match e with
-  | Enot (Eall (v, _, _), _) when Type.to_string (Expr.get_type v) = "" -> []
+  | Enot (Eall (v, _, _), _) when Print.sexpr (Expr.get_type v) = "" -> []
   | Enot (Eall (v, body, _), _) ->
      begin try
        let ty = Expr.get_type v in
-       let (tycon, targs) = parse_type (Type.to_string ty) in
+       let (tycon, targs) = parse_type (Print.sexpr ty) in
        let (args, cons, schema) = Hashtbl.find type_table tycon in
        let p = elam (v, body) in
-       let br = List.map (make_induction_branch (Type.to_string ty) targs p) cons in
+       let br = List.map (make_induction_branch (Print.sexpr ty) targs p) cons in
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "induction_notall",
@@ -318,14 +318,14 @@ let newnodes_induction e g =
        }]
      with Not_found -> []
      end
-  | Eex (v, _, _) when Type.to_string (Expr.get_type v) = "" -> []
+  | Eex (v, _, _) when Print.sexpr (Expr.get_type v) = "" -> []
   | Eex (v, Enot (body, _), _) ->
      begin try
        let ty = Expr.get_type v in
-       let (tycon, targs) = parse_type (Type.to_string ty) in
+       let (tycon, targs) = parse_type (Print.sexpr ty) in
        let (args, cons, schema) = Hashtbl.find type_table tycon in
        let p = elam (v, body) in
-       let br = List.map (make_induction_branch (Type.to_string ty) targs p) cons in
+       let br = List.map (make_induction_branch (Print.sexpr ty) targs p) cons in
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "induction_exnot",
@@ -339,11 +339,11 @@ let newnodes_induction e g =
   | Eex (v, body, _) ->
      begin try
        let ty = Expr.get_type v in
-       let (tycon, targs) = parse_type (Type.to_string ty) in
+       let (tycon, targs) = parse_type (Print.sexpr ty) in
        let (args, cons, schema) = Hashtbl.find type_table tycon in
        let np = elam (v, enot (body)) in
        let p = elam (v, body) in
-       let br = List.map (make_induction_branch (Type.to_string ty) targs np) cons in
+       let br = List.map (make_induction_branch (Print.sexpr ty) targs np) cons in
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "induction_ex",
@@ -705,7 +705,7 @@ let to_llproof tr_expr mlp args =
           Eapp (Evar("$fix",_) as f', (Elam (f, body, _) as r)
                         :: a :: args, _)]) ->
      begin try
-       let (tname, _) = parse_type (Type.to_string (get_decreasing_arg body [])) in
+       let (tname, _) = parse_type (Print.sexpr (get_decreasing_arg body [])) in
        let nx = Expr.newvar () in
        let foldx = elam (nx, eapp (f', [r; nx] @ args)) in
        let xbody = substitute_2nd [(f, eapp (f', [r]))] body in

@@ -49,6 +49,13 @@ exception Bad_Arity of expr * expr list;;
 
 
 (************************)
+(* help for defined symbols in coq proofs *)
+let defs = ref ([] : (string * expr) list)
+let add_defs l =
+    defs := l @ !defs
+let get_defs () = !defs
+
+(************************)
 (* small sets of formulas (represented as lists) *)
 
 let rec diff l1 l2 =
@@ -419,7 +426,6 @@ let evar s = he_merge (Evar (s, priv_var s type_none));;
 let tvar s t = he_merge (Evar (s, priv_var s t));;
 let emeta (e) = he_merge (Emeta (e, priv_meta e));;
 let earrow args ret =
-    assert (List.for_all (fun e -> type_type == get_type e) (ret :: args));
     he_merge (Earrow (args, ret, priv_arrow args ret));;
 let enot (e) = he_merge (Enot (e, priv_not e));;
 let eand (e1, e2) = he_merge (Eand (e1, e2, priv_and e1 e2));;
@@ -567,8 +573,10 @@ and inst_app map s args = match s, args with
   | _ -> substitute map s, args
 
 and type_app s args =
-    match inst_app [] s args with
-    | Eapp(Evar("<-", _), ret :: l, _), args' ->
+    if List.exists ((==) type_none) (s :: args) then
+        type_none
+    else match inst_app [] s args with
+    | Earrow(l, ret, _), args' ->
             let l' = List.map get_type args' in
             begin try
                 let t, t' = find2 (fun t t' -> not (t == t')) l l' in

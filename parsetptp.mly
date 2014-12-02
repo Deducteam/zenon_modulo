@@ -114,7 +114,7 @@ phrase:
 expr:
   | UIDENT                             { evar (ns_var $1) }
   | LIDENT arguments                   { eapp (evar @@ ns_fun $1, $2) }
-  | TTYPE                              { evar "$tType" }
+  | TTYPE                              { type_type }
   | STRING                             { eapp (evar "$string", [evar $1]) }
   | INT                                { eapp (evar "$int", [evar $1]) }
   | RAT                                { eapp (evar "$rat", [evar $1]) }
@@ -163,8 +163,8 @@ var_list:
   | UIDENT COLON expr                 { [tvar (ns_var $1) $3] }
 ;
 tff_type_arrow:
-  | expr RANGL expr                   { eapp(evar "->", [$3; $1]) }
-  | OPEN tff_tuple CLOSE RANGL expr   { eapp(evar "->",  $5 :: $2) }
+  | expr RANGL expr                   { earrow [$1] $3 }
+  | OPEN tff_tuple CLOSE RANGL expr   { earrow $2 $5 }
 ;
 tff_tuple:
   | expr                  { [$1] }
@@ -176,13 +176,13 @@ tff_type_sig:
   | tff_type_arrow
      { $1 }
   | ALL RANGL LBRACKET tff_quant RBRACKET COLON expr
-     { eapp (evar "!>", $7 :: $4) }
+     { mk_quant eall $4 $7 }
   | ALL RANGL LBRACKET tff_quant RBRACKET COLON OPEN tff_type_arrow CLOSE
-     { eapp (evar "!>", $8 :: $4) }
+     { mk_quant eall $4 $8 }
 ;
 tff_quant:
-  | UIDENT COLON TTYPE COMMA tff_quant  { (evar (ns_var $1)) :: $5 }
-  | UIDENT COLON TTYPE                  { [evar (ns_var $1)] }
+  | UIDENT COLON TTYPE COMMA tff_quant  { (tvar (ns_var $1) type_type) :: $5 }
+  | UIDENT COLON TTYPE                  { [tvar (ns_var $1) type_type] }
 ;
 name_list:
   | LIDENT COMMA name_list         { $1 :: $3 }

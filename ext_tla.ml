@@ -1548,6 +1548,7 @@ let rec pp_expr e =
   match e with
   | Evar _ -> e
   | Emeta _ -> assert false
+  | Earrow _ -> assert false
   | Eapp (Evar("$notequiv",_), [e1; e2], _) -> enot (eequiv (pp_expr e1, pp_expr e2))
   | Eapp (Evar("$notequiv",_), _, _) -> assert false
   | Eapp (s, args, _) -> eapp (s, List.map pp_expr args)

@@ -71,6 +71,7 @@ let rec make_annot_expr e =
       let l = List.map make_annot_expr l in
       eapp (evar s, l)
   | Eapp(_) -> assert false
+  | Earrow _ -> e
   | Enot (e,_) -> enot (make_annot_expr e)
   | Eand (e1,e2,_) -> eand (make_annot_expr e1, make_annot_expr e2)
   | Eor (e1,e2,_) -> eor (make_annot_expr e1, make_annot_expr e2)

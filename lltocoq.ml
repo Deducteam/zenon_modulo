@@ -48,13 +48,6 @@ let rec p_list init printer sep oc l =
       p_list init printer sep oc t;
 ;;
 
-let p_type oc t =
-  match Type.to_string t with
-  | t when t = univ_name -> fprintf oc "%s" t;
-  | "" -> fprintf oc "_";
-  | s -> fprintf oc "%s" s;
-;;
-
 let rec decompose_lambda e =
   match e with
   | Elam (Evar (_, _) as v, b, _) ->
@@ -62,13 +55,6 @@ let rec decompose_lambda e =
      (v :: bindings), body
   | Elam _ -> assert false
   | _ -> [], e
-;;
-
-let p_binding oc v =
-  match v with
-  | Evar (s, _) ->
-     fprintf oc "(%s : %a)" s p_type (get_type v)
-  | _ -> assert false
 ;;
 
 let p_id_list oc l = p_list " " (fun oc x -> fprintf oc "%s" x) "" oc l;;
@@ -93,13 +79,22 @@ let to_infix = function
     | "==" -> "=="
     | s -> s
 
-let rec p_expr oc e =
+let rec p_binding oc v =
+  match v with
+  | Evar (s, _) ->
+     fprintf oc "(%s : %a)" s p_expr (get_type v)
+  | _ -> assert false
+
+and p_expr oc e =
   let poc fmt = fprintf oc fmt in
   match e with
-  | Evar (v, _) when Mltoll.is_meta v ->
-      poc "%s" (Coqterm.synthesize v);
+  | Evar (v, _) as var when Mltoll.is_meta v ->
+      poc "%s" (Coqterm.synthesize (get_type var));
   | Evar (v, _) ->
       poc "%s" v;
+  | Earrow(args, ret, _) ->
+      poc "("; List.iteri (fun i t -> p_expr oc t; poc " -> ") args;
+      p_expr oc ret; poc ")"
   | Eapp (Evar("$coq_scope",_), [Evar(s,_); e], _) ->
       poc "(%a)%%%s" p_expr e s;
   | Eapp (Evar("=",_), [e1; e2], _) ->
@@ -140,13 +135,13 @@ let rec p_expr oc e =
   | Efalse ->
       poc "False";
   | Eall (Evar (x, _) as v, e1, _) ->
-      poc "(forall %s : %a, %a)" x p_type (get_type v) p_expr e1;
+      poc "(forall %s : %a, %a)" x p_expr (get_type v) p_expr e1;
   | Eall _ -> assert false
   | Eex (Evar (x, _) as v, e1, _) ->
-      poc "(exists %s : %a, %a)" x p_type (get_type v) p_expr e1;
+      poc "(exists %s : %a, %a)" x p_expr (get_type v) p_expr e1;
   | Eex _ -> assert false
   | Elam (Evar (x, _) as v, e1, _) ->
-      poc "(fun %s : %a => %a)" x p_type (get_type v) p_expr e1;
+      poc "(fun %s : %a => %a)" x p_expr (get_type v) p_expr e1;
   | Elam _ -> assert false
   | Emeta _ -> assert false
   | Etau _ -> poc "%s" (Index.make_tau_name e);
@@ -175,7 +170,7 @@ let rec p_nand oc l =
 let rec p_bound_vars oc l =
   match l with
   | (ty, arg) :: t ->
-     fprintf oc " (%a : %a)" pp_expr arg p_type ty;
+     fprintf oc " (%a : %a)" pp_expr arg p_expr ty;
      p_bound_vars oc t;
   | [] -> ()
 ;;
@@ -421,7 +416,6 @@ let rec p_lemmas oc l =
   | [] -> ()
   | lem :: t ->
      let params = List.filter (fun (ty, v) -> notmeta v) lem.params in
-     let params = List.map (fun (ty, v) -> Type.atomic ty, v) params in
      declare_lemma oc lem.name params lem.proof.conc;
      p_script_lemma oc (List.length params) lem.proof;
      fprintf oc "(* end of lemma %s *)\n" lem.name;
@@ -433,7 +427,6 @@ let p_theorem oc phrases l =
   | [] -> assert false
   | thm :: lemmas ->
      let params = List.filter (fun (ty, v) -> notmeta v) thm.params in
-     let params = List.map (fun (ty, v) -> Type.atomic ty, v) params in
      declare_theorem oc thm.name params thm.proof.conc phrases;
      p_lemmas oc (List.rev lemmas);
      p_script_thm oc thm.proof;

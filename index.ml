@@ -449,7 +449,6 @@ let ext_set tbl i x =
   !tbl.(i) <- x;
 ;;
 
-(*
 let rec expr o ex =
   let pr = eprintf in
   let print_var b v =
@@ -461,6 +460,7 @@ let rec expr o ex =
   | Evar (v, _) -> pr "%s" v;
 
   | Emeta (e, _) -> pr "%s#" Namespace.meta_prefix;
+  | Earrow _ -> assert false
   | Eapp (s, es, _) ->
       pr "(%s" (get_name s); List.iter (fun x -> pr " "; expr o x) es; pr ")";
   | Enot (e, _) -> pr "(-. "; expr o e; pr ")";
@@ -474,26 +474,25 @@ let rec expr o ex =
       pr "(<=> "; expr o e1; pr " "; expr o e2; pr ")";
   | Etrue -> pr "(True)";
   | Efalse -> pr "(False)";
-  | Eall (v, e, _) when (Type.to_string (get_type v)) === Namespace.univ_name ->
+  | Eall (v, e, _) when get_type v == type_none ->
       pr "(A. ((%a) " print_var v; expr o e; pr "))";
   | Eall (v, e, _) ->
-      pr "(A. ((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr "))";
-  | Eex (v, e, _) when (Type.to_string (get_type v)) === Namespace.univ_name ->
+      pr "(A. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
+  | Eex (v, e, _) when get_type v == type_none ->
       pr "(E. ((%a) " print_var v; expr o e; pr "))";
   | Eex (v, e, _) ->
-      pr "(E. ((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr "))";
-  | Etau (v, e, _) when (Type.to_string (get_type v)) === Namespace.univ_name ->
+      pr "(E. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
+  | Etau (v, e, _) when get_type v == type_none ->
       pr "(t. ((%a) " print_var v; expr o e; pr "))";
   | Etau (v, e, _) ->
-      pr "(t. ((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr "))";
-  | Elam (v, e, _) when (Type.to_string (get_type v)) === Namespace.univ_name ->
+      pr "(t. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
+  | Elam (v, e, _) when get_type v == type_none ->
       pr "((%a) " print_var v; expr o e; pr ")";
   | Elam (v, e, _) ->
-      pr "((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr ")";
+      pr "((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
 ;;
-*)
 
-let dprint_expr e = Print.expr (Print.Chan stderr) e;;
+let dprint_expr e = expr () e;;
 
 let get_number e =
   begin try HE.find numforms e

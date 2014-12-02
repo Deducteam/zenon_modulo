@@ -3,6 +3,7 @@
 
 type private_info;;
 
+(* Expression definition *)
 type expr = private
   | Evar of string * private_info
   | Emeta of expr * private_info    (* expr = Eall (...)  or   Eex (...) *)
@@ -32,20 +33,27 @@ type definition =
   | DefRec of expr * string * expr list * expr
 ;;
 
+(* Exceptions *)
 exception Type_Mismatch of expr * expr;;
 exception Bad_Arity of expr * expr list;;
 
 type t = expr;;
 
+(* Expr comparison *)
 val equal : t -> t -> bool;;
 val compare : t -> t -> int;;
 val hash : t -> int;;
 
+(* Term construction *)
 val evar : string -> expr;;
 val tvar : string -> expr -> expr;;
 val emeta : expr -> expr;;
 val eapp : expr * expr list -> expr;;
 
+val eeq : expr;;
+val estring : expr;;
+
+(* Prop construction *)
 val enot : expr -> expr;;
 val eand : expr * expr -> expr;;
 val eor : expr * expr -> expr;;
@@ -59,20 +67,25 @@ val eex : expr * expr -> expr;;
 val etau : expr * expr -> expr;;
 val elam : expr * expr -> expr;;
 
-val get_type : expr -> expr;;
+val all_list : expr list -> expr -> expr;;
+val ex_list : expr list -> expr -> expr;;
 
+(* Typing *)
 val type_type : expr;;
 val type_prop : expr;;
 val type_none : expr;;
 val earrow : expr list -> expr -> expr;;
+
+val get_type : expr -> expr;;
+
 val type_app : expr -> expr list -> expr;;
+(* [type_app t args]
+   checks that type t can be applied to the given arguments, and reutrns the return type.
+   @raise Type_Mismatch if the type and arguments do not match.
+*)
 
-val eeq : expr;;
-val estring : expr;;
 
-val all_list : expr list -> expr -> expr;;
-val ex_list : expr list -> expr -> expr;;
-
+(* Misc functions *)
 val diff : expr list -> expr list -> expr list;;
 (* [diff l1 l2]
    return [l1] without the formulas present in [l2]
@@ -129,3 +142,6 @@ type goalness = int;;
 
 val print_stats : out_channel -> unit;;
 
+(* Helper for defined symbols in coq proofs *)
+val add_defs : (string * t) list -> unit
+val get_defs : unit -> (string * t) list
