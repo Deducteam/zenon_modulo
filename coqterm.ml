@@ -124,6 +124,14 @@ let cty s =
   | _ -> Cty s
 ;;
 
+(* Returns the type of e as a string.
+   If e is not typed, returns the empty string. *)
+let string_type e =
+  let ty = get_type e in
+  if Expr.equal ty type_none then ""
+  else Print.sexpr ty
+;;
+
 let rec trexpr env e =
   match e with
   | Evar (v, _) as var when Mltoll.is_meta v && not (List.mem v env) ->
@@ -147,12 +155,12 @@ let rec trexpr env e =
   | Eequiv (e1, e2, _) -> Cequiv (trexpr env e1, trexpr env e2)
   | Etrue -> Cvar "True"
   | Efalse -> Cvar "False"
-  | Eall (Evar (v, _) as var, e1, _) -> Call (v, Print.sexpr (get_type var), trexpr (v::env) e1)
+  | Eall (Evar (v, _) as var, e1, _) -> Call (v, string_type var, trexpr (v::env) e1)
   | Eall _ -> assert false
-  | Eex (Evar (v, _) as var, e1, _) -> Cex (v, Print.sexpr (get_type var), trexpr (v::env) e1)
+  | Eex (Evar (v, _) as var, e1, _) -> Cex (v, string_type var, trexpr (v::env) e1)
   | Eex _ -> assert false
   | Etau _ -> Cvar (Index.make_tau_name e)
-  | Elam (Evar (v, _) as var, e1, _) -> Clam (v, cty (Print.sexpr (get_type var)), trexpr (v::env) e1)
+  | Elam (Evar (v, _) as var, e1, _) -> Clam (v, cty (string_type var), trexpr (v::env) e1)
   | Elam _ -> assert false
 
 and trcase env accu e =
@@ -267,7 +275,7 @@ let rec trtree env node =
       let zz = etau (vx, px) in
       let zzn = Index.make_tau_name zz in
       let pzz = substitute [(vx, zz)] px in
-      let ty = Print.sexpr (get_type vx) in
+      let ty = string_type vx in
       let lam = Clam (zzn, cty ty, mklam pzz sub) in
       Capp (Cvar "zenon_ex", [cty ty; trpred x ty px; lam; getv env exp])
   | Rex _ -> assert false
@@ -276,7 +284,7 @@ let rec trtree env node =
       let zz = etau (vx, enot (px)) in
       let zzn = Index.make_tau_name (zz) in
       let pzz = substitute [(vx, zz)] px in
-      let ty = Print.sexpr (get_type vx) in
+      let ty = string_type vx in
       let lam = Clam (zzn, cty ty, mklam (enot (pzz)) sub) in
       let concl = getv env (enot allp) in
       Capp (Cvar "zenon_notall", [cty ty; trpred x ty px; lam; concl])
@@ -285,7 +293,7 @@ let rec trtree env node =
       let sub = tr_subtree_1 hyps in
       let pt = substitute [(vx, t)] px in
       let lam = mklam pt sub in
-      let ty = Print.sexpr (get_type vx) in
+      let ty = string_type vx in
       let p = trpred x ty px in
       let concl = getv env allp in
       Capp (Cvar "zenon_all", [cty ty; p; trexpr t; lam; concl])
@@ -294,7 +302,7 @@ let rec trtree env node =
       let sub = tr_subtree_1 hyps in
       let npt = enot (substitute [(vx, t)] px) in
       let lam = mklam npt sub in
-      let ty = Print.sexpr (get_type vx) in
+      let ty = string_type vx in
       let p = trpred x ty px in
       let concl = getv env (enot (exp)) in
       Capp (Cvar "zenon_notex", [cty ty; p; trexpr t; lam; concl])
