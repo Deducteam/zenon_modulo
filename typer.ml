@@ -79,15 +79,15 @@ let rec rec_expr env = function
      assert false
   | Eapp (Evar ("$match", _),
           [p;
-           Elam (Evar (x, _),
-                 Elam (Evar (y, _),
+           Elam (Evar (x, _), tx,
+                 Elam (Evar (y, _), ty,
                        Eapp (Evar ("$match-case", _),
                              [Evar ("dk_tuple.pair", _); body],
                              _),
                        _),
                  _)],
           _) as e ->
-     let newenv = x :: y :: env in
+     let newenv = (x, tx) :: (y, ty) :: env in
      (match get_type (rec_expr newenv body) with
       | Some ty -> force_type ty e
       | None -> Printf.eprintf "\nUntyped pattern body %a.\n"
