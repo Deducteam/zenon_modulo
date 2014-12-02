@@ -105,7 +105,7 @@ let mk_pairs e l =
 
 let get_label rf = 
   match rf with 
-  | Eapp ("Record_field", [Evar (l, _); v], _) 
+  | Eapp ("$Record_field", [Evar (l, _); v], _) 
     -> l
   | _ -> assert false
 ;;
@@ -116,7 +116,7 @@ let compare_label rf1 rf2 =
 
 let mk_record l = 
   let labels = String.concat "_" (List.map get_label l) in
-  let name = "Record_"^labels in 
+  let name = "$Record_"^labels in 
   let sorted_l = List.sort compare_label l in 
   eapp (name, sorted_l)
 ;;
@@ -372,9 +372,9 @@ record_expr_list:
   | /* empty */
 	 { [] }
   | IDENT COLON_EQ_ expr
-	  { [eapp ("Record_field", [evar $1; $3])] }
+	  { [eapp ("$Record_field", [evar $1; $3])] }
   | IDENT COLON_EQ_ expr SEMI_ record_expr_list 
-	  { eapp ("Record_field", [evar $1; $3]) :: $5 }
+	  { eapp ("$Record_field", [evar $1; $3]) :: $5 }
 ;
 
 pat_expr_list:
