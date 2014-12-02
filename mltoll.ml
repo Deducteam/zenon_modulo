@@ -33,10 +33,10 @@ let type_to_ident s =
     else if Misc.isalnum s.[i] then newlen (i+1) (n+1)
     else newlen (i+1) (n+3)
   in
-  let result = String.create (newlen 0 0) in
+  let result = Bytes.create (newlen 0 0) in
   let rec loop i j =
     if i >= String.length s then ()
-    else if Misc.isalnum s.[i] then (result.[j] <- s.[i]; loop (i+1) (j+1))
+    else if Misc.isalnum s.[i] then (Bytes.set result j s.[i]; loop (i+1) (j+1))
     else begin
       let ss = sprintf "_%02x" (Char.code s.[i]) in
       String.blit ss 0 result j 3;
@@ -44,7 +44,7 @@ let type_to_ident s =
     end
   in
   loop 0 0;
-  result
+  Bytes.to_string result
 ;;
 
 let ident_to_type s =
@@ -53,22 +53,22 @@ let ident_to_type s =
     else if s.[i] <> '_' then newlen (i+1) (n+1)
     else newlen (i+3) (n+1)
   in
-  let result = String.create (newlen 0 0) in
+  let result = Bytes.create (newlen 0 0) in
   let rec loop i j =
     if i >= String.length s then ()
-    else if s.[i] <> '_' then (result.[j] <- s.[i]; loop (i+1) (j+1))
+    else if s.[i] <> '_' then (Bytes.set result j s.[i]; loop (i+1) (j+1))
     else begin
-      result.[j] <- Char.chr (int_of_string ("0x" ^ String.sub s (i+1) 2));
+      Bytes.set result j (Char.chr (int_of_string ("0x" ^ String.sub s (i+1) 2)));
       loop (i+3) (j+1)
     end
   in
   loop 0 0;
-  result
+  Bytes.to_string result
 ;;
 
 let make_meta_name e =
   sprintf "%s%d_%s" meta_prefix (Index.get_number e)
-          (type_to_ident (get_type e))
+          (type_to_ident (Print.sexpr (get_type e)))
 ;;
 let is_meta s =
   String.length s >= String.length meta_prefix

@@ -1,10 +1,9 @@
 (*  Copyright 2014 INRIA  *)
 
-open Type
 open Expr
 
 exception Type_error of string
-exception Type_found of etype
+exception Type_found of expr
 
 module M = Map.Make(String)
 
@@ -35,7 +34,7 @@ let rec rm_binding v map =
 
 (* Environment for typing *)
 type env = {
-    tff : Type.t list M.t;
+    tff : Expr.t list M.t;
     map : (Expr.t * Expr.t) list;
     (* We also do substituting during typechecking to save a *lot* of time *)
 }
@@ -58,12 +57,10 @@ let tff_find v env =
         raise (Type_error (Printf.sprintf "Unknown variable : %s" v))
 
 let tff_add_type name t env =
-    if not (Type.tff_check t) then
-        raise (Type_error (Printf.sprintf "The following type is ill-formed in TFF :@\n%s" (Type.to_string t)));
     if tff_mem name env then
         match M.find name env.tff with
         | [] -> assert false
-        | [t'] -> begin match Type.compare t t' with
+        | [t'] -> begin match Expr.compare t t' with
             | 0 -> env
             | _ -> raise (Type_error (Printf.sprintf "Contradictory types for '%s'" name))
             end
@@ -71,50 +68,43 @@ let tff_add_type name t env =
     else
         { env with tff = M.add name [t] env.tff }
 
-let tff_app_aux s args t =
+let tff_app_aux args t =
     try
-        begin
-        let targs = List.map tff (extract_args (Some t) args) in
-        Log.debug 8 "extracted types for type '%s' :" (Type.to_string t);
-        (List.iter2 (fun e t -> Log.debug 8 " - %a: %s" Print.pp_expr e (Type.to_string t)) args targs);
-        match (type_app_opt (s, Some t) targs) with
-        | t' -> raise (Type_found t)
-        end
+        ignore (type_app t args);
+        raise (Type_found t)
     with
-    | Not_enough_args
-    | Function_expected
-    | Mismatch _ ->
-            ()
+    Type_Mismatch _ -> ()
 
 let tff_app f args env =
     try
         Log.debug 5 "finding type for '%s'" f;
-        List.iter (fun e -> Log.debug 7 "argument : (%a: %s)" Print.pp_expr e
-            (Type.to_string (get_type e))) args;
+        List.iter (fun e -> Log.debug 8 "argument : (%a: %a)" Print.pp_expr e
+            Print.pp_expr (get_type e)) args;
         begin match M.find f env.tff with
         | [] -> assert false
         | [t] when args = [] ->
-                Log.debug 5 "found single type (%s: %s)" f (Type.to_string t);
+                Log.debug 5 "found single type (%s: %a)" f Print.pp_expr t;
                 t
         | _ when args = [] ->
                 raise (Type_error (Printf.sprintf "Overloaded function '%s' without arguments" f))
         | l ->
                 Log.debug 5 "overloaded type found";
                 try
-                    List.iter (tff_app_aux f args) l;
+                    List.iter (tff_app_aux args) l;
                     raise (Type_error
                         (Printf.sprintf "No signature match found for '%s' with arguments : %s"
-                        f (String.concat "*" (List.map Type.to_string
+                        f (String.concat "*" (List.map Print.sexpr
                             (List.map get_type args)))
                     ))
                 with Type_found t ->
-                    Log.debug 5 "found type (%s: %s)" f (Type.to_string t);
+                    Log.debug 5 "found type (%s: %a)" f Print.pp_expr t;
                     t
         end
     with Not_found ->
         raise (Type_error (Printf.sprintf "Unknown variable : %s" f))
 
 let default_env =
+    (*
     let unary t t' = mk_arrow [t] t' in
     let binary t t' t'' = mk_arrow [t; t'] t'' in
     let pred t = unary t type_bool in
@@ -159,6 +149,8 @@ let default_env =
         "$to_rat",      [unary type_int type_rat; unary type_rat type_rat; unary type_real type_rat];
         "$to_real",     [unary type_int type_real; unary type_rat type_real; unary type_real type_real];
     ] in
+    *)
+    let tff_builtin = [] in
     let tff_base = List.fold_left (fun acc (s, t) -> M.add s t acc) M.empty tff_builtin in
     { empty_env with tff = tff_base }
 
@@ -211,9 +203,7 @@ let rec type_tff_app env is_pred e = match e with
             begin try
                 eapp (f, args), env''
             with
-            | Not_enough_args
-            | Mismatch _
-            | Function_expected ->
+            | Type_Mismatch _
                     raise (Type_error (Printf.sprintf "Inferred type for %s '%s' not valid."
                         (if is_pred then "predicate" else "function") s))
             end

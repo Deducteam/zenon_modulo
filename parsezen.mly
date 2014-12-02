@@ -37,7 +37,7 @@ let mk_elam (vars, typ, body) =
 ;;
 
 let mk_pattern constr vars body =
-  mk_elam (vars, Type.atomic "", eapp (evar "$match-case", [evar constr; body]))
+  mk_elam (vars, type_none, eapp (evar "$match-case", [evar constr; body]))
 ;;
 
 let hyp_counter = ref 0;;
@@ -143,13 +143,13 @@ expr_list:
 ;
 
 lambda:
-  | OPEN OPEN IDENT STRING CLOSE expr CLOSE      { (tvar $3 (Type.atomic $4), $6) }
-  | OPEN OPEN IDENT CLOSE expr CLOSE             { (tvar $3 (Type.atomic univ_name), $5) }
+  | OPEN OPEN IDENT STRING CLOSE expr CLOSE      { (tvar $3 (tvar $4 type_type), $6) }
+  | OPEN OPEN IDENT CLOSE expr CLOSE             { (tvar $3 (type_none), $5) }
 ;
 
 mlambda:
-  | OPEN OPEN ident_list STRING CLOSE expr CLOSE { ($3, Type.atomic $4, $6) }
-  | OPEN OPEN ident_list CLOSE expr CLOSE        { ($3, Type.atomic univ_name, $5) }
+  | OPEN OPEN ident_list STRING CLOSE expr CLOSE { ($3, tvar $4 type_type, $6) }
+  | OPEN OPEN ident_list CLOSE expr CLOSE        { ($3, type_none, $5) }
 ;
 
 ident_list:
@@ -184,7 +184,7 @@ id_expr_list_expr:
   | IDENT expr id_expr_list_expr
       { match $3 with
         | [] -> assert false
-        | body :: vals -> elam (tvar ($1) (Type.atomic ""), body) :: $2 :: vals
+        | body :: vals -> elam (tvar ($1) type_none, body) :: $2 :: vals
       }
 ;
 

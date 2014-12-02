@@ -32,6 +32,9 @@ type definition =
   | DefRec of expr * string * expr list * expr
 ;;
 
+exception Type_Mismatch of expr * expr;;
+exception Bad_Arity of expr * expr list;;
+
 type t = expr;;
 
 val equal : t -> t -> bool;;
@@ -62,6 +65,7 @@ val type_type : expr;;
 val type_prop : expr;;
 val type_none : expr;;
 val earrow : expr list -> expr -> expr;;
+val type_app : expr -> expr list -> expr;;
 
 val eeq : expr;;
 val estring : expr;;
