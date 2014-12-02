@@ -39,6 +39,7 @@ let cnf_to_formula l =
 %token AND
 %token OR
 %token NOT
+%token PROP
 %token TRUE
 %token FALSE
 %token TTYPE
@@ -114,6 +115,7 @@ phrase:
 expr:
   | UIDENT                             { evar (ns_var $1) }
   | LIDENT arguments                   { eapp (evar @@ ns_fun $1, $2) }
+  | PROP                               { type_prop }
   | TTYPE                              { type_type }
   | STRING                             { eapp (evar "$string", [evar $1]) }
   | INT                                { eapp (evar "$int", [evar $1]) }
