@@ -587,14 +587,16 @@ let rec llproof_tree o i t =
 ;;
 
 let print_idtype o (ty, act) =
-  if ty = univ_name
+  if ty == type_none
   then begin
     llproof_expr o act;
     oprintf o " ";
   end else begin
     oprintf o "(";
     llproof_expr o act;
-    oprintf o "):\"%s\" " ty
+    oprintf o "):\"";
+    llproof_expr o ty;
+    oprintf o "\" "
   end
 ;;
 

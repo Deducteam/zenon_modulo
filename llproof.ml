@@ -42,7 +42,7 @@ type prooftree = {
 
 type lemma = {
   name : string;
-  params : (string * Expr.expr) list;
+  params : (Expr.expr * Expr.expr) list;
   proof : prooftree;
 };;
 

@@ -17,6 +17,7 @@ let lemma_name n = sprintf "%s%d_%s" lemma_prefix n !lemma_suffix;;
 
 module HE = Hashtbl.Make (Expr);;
 
+(*
 let get_type m =
   match m with
   | Eall (v, e, _)
@@ -24,6 +25,7 @@ let get_type m =
      -> Type.to_string (get_type v)
   | _ -> assert false
 ;;
+*)
 
 let type_to_ident s =
   let rec newlen i n =
@@ -103,6 +105,8 @@ let rec xtr_expr a =
   | Emeta (Eex(v, _, _) as e, _)
     -> tvar (make_meta_name e) (Expr.get_type v)
   | Emeta(_) -> assert false
+  | Earrow(args, ret, _) -> assert false
+
   | Eapp (Evar("$scope",_), lam :: tau :: vals, _) -> tr_expr (apply lam tau)
   | Eapp (s, args, _) -> eapp (s, List.map tr_expr args)
 
@@ -224,7 +228,8 @@ let rec get_params accu p =
   | Evar (v, _) -> accu
   | Emeta (m, _) ->
      let name = make_meta_name m in
-     merge [(get_type m, evar (name))] accu
+     merge [Expr.get_type m, evar (name)] accu
+  | Earrow _ -> assert false
   | Eapp (_, es, _) -> List.fold_left get_params accu es
 
   | Enot (e, _) -> get_params accu e
@@ -237,7 +242,7 @@ let rec get_params accu p =
   | Eall (v, e, _) -> get_params accu e
   | Eex (v, e, _) -> get_params accu e
   | Etau (v, _, _) ->
-     merge [(Type.to_string (Expr.get_type v), p)] accu
+     merge [Expr.get_type v, p] accu
   | Elam (v, e, _) -> get_params accu e
 ;;
 
