@@ -73,6 +73,7 @@ rule token = parse
   | "cnf"            { INPUT_CLAUSE }
   | "fof"            { INPUT_FORMULA }
   | "tff"            { INPUT_TFF_FORMULA }
+  | "$o"             { PROP }
   | "$true"          { TRUE }
   | "$false"         { FALSE }
   | "$tType"         { TTYPE }
