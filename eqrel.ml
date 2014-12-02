@@ -10,7 +10,7 @@ type direction = L | R;;
 
 let symbol = ref None;;
 let leaves = ref [];;
-let typ = ref "";;
+let typ = ref type_none;;
 
 let get_name = function
     | Evar(s, _) -> s
@@ -66,12 +66,12 @@ let rec do_disj env e =
 let get_leaves path env e =
   symbol := None;
   leaves := [];
-  typ := "";
+  typ := type_none;
   try
     do_disj env e;
     (List.rev path, env, !leaves, !typ)
   with Wrong_shape ->
-    (List.rev path, env, [], "")
+    (List.rev path, env, [], type_none)
 ;;
 
 let subexprs = ref [];;
@@ -79,12 +79,12 @@ let subexprs = ref [];;
 let rec do_conj path env e =
   match e with
   | Eand (e1, e2, _) -> do_conj (L::path) env e1; do_conj (R::path) env e2;
-  | Eall (v, e1, _) -> do_conj path ((v,Type.to_string (Expr.get_type v))::env) e1;
+  | Eall (v, e1, _) -> do_conj path ((v, Expr.get_type v)::env) e1;
   | Enot (Eor (e1, e2, _), _) ->
       do_conj (L::path) env (enot e1); do_conj (R::path) env (enot e2);
   | Enot (Eimply (e1, e2, _), _) ->
       do_conj (L::path) env e1; do_conj (R::path) env (enot e2);
-  | Enot (Eex (v, e1, _), _) -> do_conj path ((v,Type.to_string (Expr.get_type v))::env) (enot e1);
+  | Enot (Eex (v, e1, _), _) -> do_conj path ((v, Expr.get_type v)::env) (enot e1);
   | Enot (Enot (e1, _), _) -> do_conj path env e1;
   | Eequiv (e1, e2, _) ->
       do_conj (L::path) env (eimply (e1, e2));
@@ -173,7 +173,7 @@ type info = {
   mutable sym : (Expr.expr * direction list * int list) option;
   mutable trans : (Expr.expr * direction list * int list) option;
   mutable transsym : (Expr.expr * direction list * int list) option;
-  mutable typ : string;
+  mutable typ : Expr.expr;
   mutable refl_hyp : Expr.expr option;
   mutable sym_hyp : Expr.expr option;
   mutable trans_hyp : Expr.expr option;
@@ -185,7 +185,7 @@ let get_record s =
   try Hashtbl.find tbl s
   with Not_found ->
     let result = {refl = None; sym = None; trans = None;
-                  transsym = None; typ = "";
+                  transsym = None; typ = type_none;
                   refl_hyp = None; sym_hyp = None; trans_hyp = None}
     in
     Hashtbl.add tbl s result;
@@ -231,7 +231,7 @@ Hashtbl.add tbl (eeq) {
   sym = eq_origin;
   trans = eq_origin;
   transsym = eq_origin;
-  typ = "";
+  typ = type_none;
   refl_hyp = None;
   sym_hyp = None;
   trans_hyp = None;

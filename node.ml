@@ -107,6 +107,7 @@ let rec can_instantiate m e =
   match e with
   | Evar _ -> true
   | Emeta (m1, _) -> not (List.exists (Expr.equal m) (get_metas m1))
+  | Earrow _ -> assert false
   | Eapp (s, es, _) -> List.for_all (can_instantiate m) es
   | Enot (e1, _) -> can_instantiate m e1
   | Eand (e1, e2, _) | Eor (e1, e2, _) | Eimply (e1, e2, _)

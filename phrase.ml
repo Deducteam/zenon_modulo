@@ -49,6 +49,7 @@ let rec check_body env s e =
   match e with
   | Evar (v, _) -> v <> s || List.mem e env
   | Emeta _ -> assert false
+  | Earrow _ -> false
   | Eapp (Evar(ss,_), args, _) -> ss <> s && List.for_all (check_body env s) args
   | Eapp(_) -> assert false
   | Enot (f, _) -> check_body env s f
@@ -114,7 +115,7 @@ let rec free_syms env accu e =
   | Evar (v, _) -> if List.mem e env then accu else v :: accu
   | Emeta _ -> assert false
   | Eapp (Evar(s,_), args, _) -> List.fold_left (free_syms env) (s ::accu) args
-  | Eapp (_) -> assert false
+  | Eapp (_) | Earrow _ -> assert false
   | Enot (f, _) -> free_syms env accu f
   | Eand (f, g, _) -> free_syms env (free_syms env accu f) g
   | Eor (f, g, _) -> free_syms env (free_syms env accu f) g

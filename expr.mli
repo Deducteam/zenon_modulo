@@ -38,13 +38,10 @@ val equal : t -> t -> bool;;
 val compare : t -> t -> int;;
 val hash : t -> int;;
 
-val get_type : expr -> expr;;
-
 val evar : string -> expr;;
 val tvar : string -> expr -> expr;;
 val emeta : expr -> expr;;
 val eapp : expr * expr list -> expr;;
-val earrow : expr list -> expr -> expr;;
 
 val enot : expr -> expr;;
 val eand : expr * expr -> expr;;
@@ -58,6 +55,13 @@ val eall : expr * expr -> expr;;
 val eex : expr * expr -> expr;;
 val etau : expr * expr -> expr;;
 val elam : expr * expr -> expr;;
+
+val get_type : expr -> expr;;
+
+val type_type : expr;;
+val type_prop : expr;;
+val type_none : expr;;
+val earrow : expr list -> expr -> expr;;
 
 val eeq : expr;;
 val estring : expr;;

@@ -449,6 +449,7 @@ let ext_set tbl i x =
   !tbl.(i) <- x;
 ;;
 
+(*
 let rec expr o ex =
   let pr = eprintf in
   let print_var b v =
@@ -490,8 +491,9 @@ let rec expr o ex =
   | Elam (v, e, _) ->
       pr "((%a \"%s\") " print_var v (Type.to_string (get_type v)); expr o e; pr ")";
 ;;
+*)
 
-let dprint_expr e = expr () e;;
+let dprint_expr e = Print.expr (Print.Chan stderr) e;;
 
 let get_number e =
   begin try HE.find numforms e

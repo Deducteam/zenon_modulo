@@ -201,7 +201,9 @@ let prop_app l =
     else
         aux l
 
-let priv_var s t = mkpriv 0 [s] 1 0 [] t;;
+let priv_var s t =
+  mkpriv 0 [s] 1 0 [] t
+;;
 let rec priv_arrow args ret =
   let comb_skel accu e = combine (get_skel e) accu in
   let skel = combine k_app (List.fold_left comb_skel (get_hash ret) args) in

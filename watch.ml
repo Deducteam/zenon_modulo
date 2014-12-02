@@ -68,6 +68,7 @@ let rec check_unused name e =
   match e with
   | Evar _ | Emeta _ | Etrue | Efalse
     -> ()
+  | Earrow _ -> assert false
   | Eapp (Evar("$fix",_), Elam (f, body, _) :: args, _) ->
      List.iter (check_unused name) (body :: args)
   | Eapp (f, args, _) -> List.iter (check_unused name) args;
@@ -81,7 +82,7 @@ let rec check_unused name e =
           && (String.length v < 1 || v.[0] <> '_')
           && not (List.mem v (get_fv e1))
        then begin
-         Error.warn (sprintf "unused variable %s in %s" v name);
+         Error.warn (sprintf "unused variable (%s : %s) in %s" v (Print.sexpr (get_type var)) name);
        end;
        check_unused name e1;
   | Eall _ | Eex _ | Etau _ | Elam _ -> assert false
