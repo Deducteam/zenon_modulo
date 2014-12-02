@@ -72,7 +72,6 @@ let isfalse e = enot (eapp ("Is_true", [e]));;
 let newnodes_select e g = 
   let mk_unfold ctx p args =
     try
-      print_endline "mk unfold";
       let (d, params, body) = Index.get_def p in
       let prio = match d with DefRec _ -> Inst e | _ -> Prop in
       match params, args, body with
@@ -102,11 +101,6 @@ let newnodes_select e g =
     | Not_found -> assert false
   in
   try
-    print_endline "------ select time --------";
-    print_endline "";
-    Print.expr_soft (Print.Chan stdout) e;
-    print_endline "";
-    print_endline "";
     match e with 
     | Eapp (sym, [l; r], _) 
 	 when contains_sub sym "$select_" -> 
@@ -268,9 +262,9 @@ let newnodes_select e g =
 		}; Stop ]
 	 | _ -> assert false 
        end
+    | _ -> []
   with 
   | Record_error -> []
-  | _ -> []
 ;;
        
 let newnodes e g _ = 

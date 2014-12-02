@@ -68,6 +68,13 @@ let p_binding oc (v, t) =
   fprintf oc "(%s : %a)" v p_type t
 ;;
 
+let contains_sub big sub = 
+  let length = String.length sub in 
+  if (String.length big) > length then
+    (String.sub big 0 length) = sub
+  else false
+;;
+
 let p_id_list oc l = p_list " " (fun oc x -> fprintf oc "%s" x) "" oc l;;
 
 let rec p_expr oc e =
@@ -89,6 +96,10 @@ let rec p_expr oc e =
           p_expr expr (p_list " " p_expr "") l
   | Eapp ("FOCAL.ifthenelse", [e1; e2; e3], _) ->
       poc "(if %a then %a else %a)" p_expr e1 p_expr e2 p_expr e3;
+  | Eapp (sym, record_field_list, _) when contains_sub sym "$Record_" -> 
+     poc "{| %a |}" p_expr_record_list record_field_list;
+  | Eapp (sym, [Evar (l, _); r], _) when contains_sub sym "$select_" -> 
+     poc "%a.(%s )" p_expr r l;
   | Eapp ("$string", [Evar (v, _)], _) ->
       poc "%s" v;
   | Eapp ("*", [e1; e2], _) ->
@@ -122,6 +133,14 @@ let rec p_expr oc e =
   | Elam _ -> assert false
   | Emeta _ -> assert false
   | Etau _ -> poc "%s" (Index.make_tau_name e);
+
+and p_expr_record_list oc l = 
+  match l with 
+  | [] -> fprintf oc "";
+  | [Eapp ("Record_field", [Evar (l ,_); v], _)] 
+    -> fprintf oc "%s := %a" l p_expr v;
+  | Eapp ("Record_field", [Evar (l ,_); v], _) :: tl
+    -> fprintf oc "%s := %a; " l p_expr v; p_expr_record_list oc tl;
 
 and p_expr_list oc l = p_list " " p_expr "" oc l;
 
