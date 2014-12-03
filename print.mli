@@ -17,6 +17,7 @@ val mlproof_rule_soft : output -> Mlproof.rule -> unit;;
 val llproof : output -> Llproof.proof -> unit;;
 
 val sexpr : Expr.expr -> string;;
+val sexpr_type : Expr.expr -> string;;
 val pp_expr : Buffer.t -> Expr.expr -> unit;;
 val pp_expr_type : Buffer.t -> Expr.expr -> unit;;
 val pp_mlrule : Buffer.t -> Mlproof.rule -> unit;;

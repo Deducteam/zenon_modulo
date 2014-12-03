@@ -848,3 +848,4 @@ let rec expr_type o ex =
 
 let pp_expr_type b e = expr_type (Buff b) e
 ;;
+let sexpr_type e = Log.on_buffer pp_expr_type e;;
