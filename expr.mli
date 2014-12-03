@@ -145,3 +145,7 @@ val print_stats : out_channel -> unit;;
 (* Helper for defined symbols in coq proofs *)
 val add_defs : (string * t) list -> unit
 val get_defs : unit -> (string * t) list
+
+(* Comparison of variables without comparing their types *)
+val var_equal : expr -> expr -> bool
+val list_var_equal : expr list -> expr list -> bool

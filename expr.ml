@@ -183,6 +183,16 @@ let get_name = function
     | _ -> assert false
 ;;
 
+let var_equal e1 e2 = match (e1, e2) with
+  | Evar (v1, _), Evar (v2, _) -> v1 =%= v2
+  | _ -> raise (Invalid_argument "var_equal")
+;;
+
+let list_var_equal l1 l2 =
+  List.length l1 = List.length l2 && (
+    List.for_all2 var_equal l1 l2)
+;;
+
 let rec str_union l1 l2 =
   match l1, l2 with
   | [], _ -> l2
