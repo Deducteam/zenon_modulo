@@ -34,7 +34,7 @@ and private_info = {
   size : int;
   taus : int;           (* depth of tau nesting *)
   metas : expr list;
-  typ : expr;
+  typ : expr option;
 };;
 
 type definition =
@@ -102,7 +102,7 @@ let mkpriv skel fv sz taus metas typ = {
   size = sz;
   taus = taus;
   metas = metas;
-  typ = typ;
+  typ = Some typ;
 };;
 
 (* Base types *)
@@ -113,10 +113,10 @@ let rec v_type_type = Evar("$tType", {
     size = 1;
     taus = 0;
     metas = [];
-    typ = type_type;
-})
+    typ = None;
+});;
 
-and type_type =
+let type_type =
     Eapp(v_type_type, [], {
     hash = Hashtbl.hash (0, []);
     skel_hash  = 0;
@@ -124,7 +124,7 @@ and type_type =
     size = 1;
     taus = 0;
     metas = [];
-    typ = type_type;
+    typ = None;
 })
 
 let v_type_prop = Evar("$o", mkpriv 0 ["$o"] 1 0 [] type_type)
@@ -164,7 +164,14 @@ let get_fv e = (get_priv e).free_vars;;
 let get_size e = (get_priv e).size;;
 let get_taus e = (get_priv e).taus;;
 let get_metas e = (get_priv e).metas;;
-let get_type e = (get_priv e).typ;;
+exception Trying_to_type_type;;
+let get_type e =
+  if e == type_type || e == v_type_type
+  then raise Trying_to_type_type
+  else match (get_priv e).typ with
+       | Some ty -> ty
+       | None -> assert false
+;;
 
 let get_meta_type = function
     | Eall (v, _, _) | Eex (v, _, _) -> get_type v
