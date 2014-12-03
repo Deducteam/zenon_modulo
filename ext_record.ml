@@ -155,7 +155,7 @@ let newnodes_select e g =
 	    let value = get_value l r in 
 	    [ Node { 
 		  nconc = [e];
-		  nrule = Ext ("record", "select", [e; l; r]);
+		  nrule = Ext ("record", "equal_select", [e; l; r]);
 		  nprio = Arity;
 		  ngoal = g;
 		  nbranches = [| [eapp ("=", [value; b])] |];
@@ -175,7 +175,7 @@ let newnodes_select e g =
 	    let value = get_value l r in 
 	    [ Node { 
 		  nconc = [e];
-		  nrule = Ext ("record", "select", [e; l; r]);
+		  nrule = Ext ("record", "equal_select", [e; l; r]);
 		  nprio = Arity;
 		  ngoal = g;
 		  nbranches = [| [eapp ("=", [a; value])] |];
@@ -195,7 +195,7 @@ let newnodes_select e g =
 	    let value = get_value l r in 
 	    [ Node { 
 		  nconc = [e];
-		  nrule = Ext ("record", "select", [e; l; r]);
+		  nrule = Ext ("record", "not_equal_select", [e; l; r]);
 		  nprio = Arity;
 		  ngoal = g;
 		  nbranches = [| [enot(eapp ("=", [value; b]))] |];
@@ -215,7 +215,7 @@ let newnodes_select e g =
 	    let value = get_value l r in 
 	    [ Node { 
 		  nconc = [e];
-		  nrule = Ext ("record", "select", [e; l; r]);
+		  nrule = Ext ("record", "not_equal_select", [e; l; r]);
 		  nprio = Arity;
 		  ngoal = g;
 		  nbranches = [| [enot(eapp ("=", [a; value]))] |];
@@ -278,7 +278,6 @@ let preprocess l = l;;
 let add_phrase x = ();;
 let postprocess l = l;;
 
-
 let to_llargs tr_expr r =
   match r with
   | Ext ("record", "select", [e; l; r]) -> 
@@ -289,6 +288,32 @@ let to_llargs tr_expr r =
      let h = tr_expr (enot (get_value l r)) in 
      let c = tr_expr e in 
      ("zenon_record_not_select", [tr_expr e], [c], [ [h] ])
+  | Ext ("record", "equal_select", [e; l; r]) -> 
+     (match e with 
+      | Eapp ("=", [Eapp (s1, [l; Eapp (s2, _, _)], _); b], _) 
+	   when contains_sub s1 "$select_" && contains_sub s2 "$Record_" -> 
+	 let h = tr_expr (eapp ("=", [get_value l r; b])) in 
+	 let c = tr_expr e in 
+	 ("zenon_record_equal_select", [tr_expr e], [c], [ [h] ])
+      | Eapp ("=", [a; Eapp (s1, [l; Eapp (s2, _, _)], _)], _) 
+	   when contains_sub s1 "$select_" && contains_sub s2 "$Record_" -> 
+	 let h = tr_expr (eapp ("=", [a; get_value l r])) in 
+	 let c = tr_expr e in 
+	 ("zenon_record_equal_select", [tr_expr e], [c], [ [h] ])
+      | _ -> assert false)
+  | Ext ("record", "not_equal_select", [e; l; r]) -> 
+     (match e with 
+      | Enot (Eapp ("=", [Eapp (s1, [l; Eapp (s2, _, _)], _); b], _), _)
+	   when contains_sub s1 "$select_" && contains_sub s2 "$Record_" -> 
+	 let h = tr_expr (enot(eapp ("=", [get_value l r; b]))) in 
+	 let c = tr_expr e in 
+	 ("zenon_record_not_equal_select", [tr_expr e], [c], [ [h] ])
+      | Enot( Eapp ("=", [a; Eapp (s1, [l; Eapp (s2, _, _)], _)], _), _) 
+	   when contains_sub s1 "$select_" && contains_sub s2 "$Record_" -> 
+	 let h = tr_expr (enot(eapp ("=", [a; get_value l r]))) in 
+	 let c = tr_expr e in 
+	 ("zenon_record_not_equal_select", [tr_expr e], [c], [ [h] ])
+      | _ -> assert false)		  
   | Ext ("record", "istrue_select", [e; l; r]) -> 
      let h = tr_expr (istrue (get_value l r)) in 
      let c = tr_expr e in 

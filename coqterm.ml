@@ -642,6 +642,8 @@ let pr_oc oc prefix t =
        bprintf b "{| %a |}" pr_record_list args;
     | Capp (Cvar sym, [Cvar l; v]) when contains_sub sym "$select_" -> 
        bprintf b "%a.(%s )" pr v l;
+    | Capp (Cvar sym, _ :: args) when contains_sub sym "zenon_record" -> 
+       bprintf b "(%a )" (pr_list pr) args; 
     | Capp (Cvar "=", [e1; e2]) ->
        bprintf b "(%a = %a)" pr e1 pr e2;  (* NOTE: spaces are needed *)
     | Capp (Cvar "%", [e1; e2]) ->
