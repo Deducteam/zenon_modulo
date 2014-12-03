@@ -137,10 +137,11 @@ let rec p_expr oc e =
 and p_expr_record_list oc l = 
   match l with 
   | [] -> fprintf oc "";
-  | [Eapp ("Record_field", [Evar (l ,_); v], _)] 
+  | [Eapp ("$Record_field", [Evar (l ,_); v], _)] 
     -> fprintf oc "%s := %a" l p_expr v;
-  | Eapp ("Record_field", [Evar (l ,_); v], _) :: tl
+  | Eapp ("$Record_field", [Evar (l ,_); v], _) :: tl
     -> fprintf oc "%s := %a; " l p_expr v; p_expr_record_list oc tl;
+  | _ -> assert false;
 
 and p_expr_list oc l = p_list " " p_expr "" oc l;
 

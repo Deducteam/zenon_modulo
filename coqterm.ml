@@ -126,6 +126,13 @@ let cty s =
   | _ -> Cty s
 ;;
 
+let contains_sub big sub = 
+  let length = String.length sub in 
+  if (String.length big) > length then
+    (String.sub big 0 length) = sub
+  else false
+;;
+
 let rec trexpr env e =
   match e with
   | Evar (v, _) when Mltoll.is_meta v && not (List.mem v env) ->
@@ -138,6 +145,10 @@ let rec trexpr env e =
       Capp (Cfix (f, ty, trexpr env e1), List.map (trexpr env) args)
   | Eapp ("FOCAL.ifthenelse", [e1; e2; e3], _) ->
       Cifthenelse (trexpr env e1, trexpr env e2, trexpr env e3)
+  | Eapp (sym, record_list, _) when contains_sub sym "$Record_" -> 
+     Capp (Cvar sym, trexpr_record env record_list)
+  | Eapp (sym, [Evar (l, _); r], _) when contains_sub sym "$select_" ->
+     Capp (Cvar sym, [Cvar l; trexpr env r])
   | Eapp ("$string", [Evar (v, _)], _) -> Cvar v
   | Eapp (f, args, _) -> Capp (Cvar f, List.map (trexpr env) args)
   | Enot (e1, _) -> Cnot (trexpr env e1)
@@ -155,6 +166,14 @@ let rec trexpr env e =
   | Elam (Evar (v, _), t, e1, _) -> Clam (v, cty t, trexpr (v::env) e1)
   | Elam _ -> assert false
 
+and trexpr_record env e = 
+  match e with 
+  | [] -> [];
+  | [Eapp ("$Record_field" as sym, [Evar (l ,_); v], _)] -> 
+     [Capp (Cvar sym, [Cvar l; trexpr env v])];
+  | Eapp ("$Record_field" as sym, [Evar (l ,_); v], _) :: tl -> 
+     Capp (Cvar sym, [Cvar l; trexpr env v]) :: (trexpr_record env tl);
+     
 and trcase env accu e =
   match e with
   | Eapp ("$match-case", [Evar (constr, _); body], _) ->
@@ -619,6 +638,10 @@ let pr_oc oc prefix t =
         bprintf b "(fun%a=>%a)" pr_lams lams pr body;
     | Clam (s, Cwild, t2) -> bprintf b "(fun %s=>%a)" s pr t2;
     | Clam (s, t1, t2) -> bprintf b "(fun %s:%a=>%a)" s pr t1 pr t2;
+    | Capp (Cvar sym, args) when contains_sub sym "$Record_" -> 
+       bprintf b "{| %a |}" pr_record_list args;
+    | Capp (Cvar sym, [Cvar l; v]) when contains_sub sym "$select_" -> 
+       bprintf b "%a.(%s )" pr v l;
     | Capp (Cvar "=", [e1; e2]) ->
        bprintf b "(%a = %a)" pr e1 pr e2;  (* NOTE: spaces are needed *)
     | Capp (Cvar "%", [e1; e2]) ->
@@ -646,6 +669,15 @@ let pr_oc oc prefix t =
        bprintf b "(if %a then %a else %a)" pr e1 pr e2 pr e3;
     | Cannot (e1, e2) ->
        bprintf b "(%a:%a)" pr e1 pr e2;
+
+  and pr_record_list b args = 
+    match args with 
+    | [] -> bprintf b "";
+    | [Capp (Cvar "$Record_field", [Cvar l; v])] -> 
+       bprintf b "%s := %a" l pr v;
+    | Capp (Cvar "$Record_field", [Cvar l; v]) :: tl -> 
+       bprintf b "%s := %a; " l pr v; pr_record_list b tl;
+    | _ -> assert false;
 
   and pr_lams b l =
     let f (v, ty) =
