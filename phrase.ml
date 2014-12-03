@@ -41,7 +41,7 @@ let check_args env args =
     let arg = extract_args args in
     let senv = List.sort compare env in
     let sarg = List.sort compare arg in
-    senv = sarg && no_duplicates senv
+    list_var_equal senv sarg && no_duplicates senv
   with Bad_arg -> false
 ;;
 

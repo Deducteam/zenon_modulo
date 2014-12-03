@@ -16,12 +16,14 @@ let get_name = function
     | Evar(s, _) -> s
     | _ -> assert false
 
+let mem_assoc x env = List.exists (fun (y, _) -> get_name x = get_name y) env;;
+
 let rec check_pattern env sym e =
   match e with
   | Eapp (s, [(Evar _ as x); (Evar _ as y)], _)
   | Enot (Eapp (s, [(Evar _ as x); (Evar _ as y)], _), _)
-    when compare s sym = 0 ->
-      if List.mem_assoc x env && List.mem_assoc y env then ()
+    when var_equal s sym ->
+      if mem_assoc x env && mem_assoc y env then ()
       else raise Wrong_shape;
   | _ -> raise Wrong_shape;
 ;;
@@ -33,10 +35,12 @@ let get_skeleton e =
   | _ -> raise Wrong_shape
 ;;
 
+let assoc x env = List.assoc (get_name x) (List.map (fun (x, y) -> (get_name x, y)) env);;
+
 let get_type env e =
   match e with
-  | Enot (Eapp (_, [Evar _ as x; _], _), _) -> List.assoc x env
-  | Eapp (_, [Evar _ as x; _], _) -> List.assoc x env
+  | Enot (Eapp (_, [Evar _ as x; _], _), _) -> assoc x env
+  | Eapp (_, [Evar _ as x; _], _) -> assoc x env
   | _ -> assert false
 ;;
 
