@@ -189,7 +189,7 @@ let var_equal e1 e2 = match (e1, e2) with
 ;;
 
 let list_var_equal l1 l2 =
-  List.length l1 = List.length l2 && (
+  List.length l1 =%= List.length l2 && (
     List.for_all2 var_equal l1 l2)
 ;;
 
