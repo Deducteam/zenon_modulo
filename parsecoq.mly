@@ -24,16 +24,16 @@ let rec mk_type e =
 
 let mk_eapp (s, args) =
   match (s, args) with
-  | "and", [e1; e2] -> eand (e1, e2)
-  | "or", [e1; e2] -> eor (e1, e2)
-  | "not", [e1] -> enot (e1)
-  | _ -> eapp (evar s, args)
+  | Evar ("and", _), [e1; e2] -> eand (e1, e2)
+  | Evar ("or", _), [e1; e2] -> eor (e1, e2)
+  | Evar ("not", _), [e1] -> enot (e1)
+  | _ -> eapp (s, args)
 ;;
 
 let mk_apply (e, l) =
   match e with
-  | Eapp (Evar(s,_), args, _) -> mk_eapp (s, args @ l)
-  | Evar (s, _) -> mk_eapp (s, l)
+  | Eapp (s, args, _) -> mk_eapp (s, args @ l)
+  | Evar _ as s -> mk_eapp (s, l)
   | _ -> raise Parse_error
 ;;
 
@@ -284,10 +284,10 @@ expr:
       { mk_apply ($1, $2) }
 
   | AROBAS_ IDENT expr1_list %prec apply
-      { mk_eapp ("@", evar ($2) :: $3) }
+      { mk_eapp (evar "@", evar ($2) :: $3) }
 
   | AROBAS_ IDENT %prec apply
-      { mk_eapp ("@", [evar ($2)]) }
+      { mk_eapp (evar "@", [evar ($2)]) }
 
   | expr1
       { $1 }
