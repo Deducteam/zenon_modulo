@@ -34,7 +34,7 @@ type definition =
 ;;
 
 (* Exceptions *)
-exception Type_Mismatch of expr * expr;;
+exception Type_Mismatch of expr * expr * string;;
 exception Bad_Arity of expr * expr list;;
 
 type t = expr;;

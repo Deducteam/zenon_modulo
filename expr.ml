@@ -44,7 +44,7 @@ type definition =
 ;;
 
 exception Higher_order;;
-exception Type_Mismatch of expr * expr;;
+exception Type_Mismatch of expr * expr * string;;
 exception Bad_Arity of expr * expr list;;
 
 
@@ -217,7 +217,7 @@ let rec make_list c acc = function
 
 let prop_app l =
     let aux l =
-        try raise (Type_Mismatch (type_prop, (List.find (fun e -> not (e == type_prop)) l)))
+        try raise (Type_Mismatch (type_prop, (List.find (fun e -> not (e == type_prop)) l), "Expr.prop_app"))
         with Not_found -> type_prop
     in
     if List.memq type_none l then
@@ -586,7 +586,7 @@ and inst_app map s args = match s, args with
           if get_type a == type_type then
             inst_app ((v, a) :: map) e r
           else
-            raise (Type_Mismatch(type_type, get_type a))
+            raise (Type_Mismatch(type_type, get_type a, "Expr.inst_app"))
   | _ -> substitute map s, args
 
 and type_app s args =
@@ -597,7 +597,7 @@ and type_app s args =
             let l' = List.map get_type args' in
             begin try
                 let t, t' = find2 (fun t t' -> not (t == t')) l l' in
-                raise (Type_Mismatch (t, t'))
+                raise (Type_Mismatch (t, t', "Expr.type_app"))
             with
             | Invalid_argument "find2" ->
                 raise (Bad_Arity (s, args))
