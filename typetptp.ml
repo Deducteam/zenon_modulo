@@ -168,8 +168,6 @@ let type_tff_var t env = function
             begin try
                 (List.assq e env.map, env)
             with Not_found ->
-                Log.debug 0 "looking for %a in :" Print.pp_expr e;
-                List.iter (fun (x, y) -> Log.debug 0 "  %a -> %a" Print.pp_expr x Print.pp_expr y) env.map;
                 begin match get_type e with
                 | t when type_none == t ->
                         if tff_mem v env then
