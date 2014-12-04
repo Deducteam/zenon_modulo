@@ -810,7 +810,11 @@ let predef () =
 (* Functions for building types (/!\ too specific to Dedukti) *)
 let eT = tvar "cc.eT" (earrow [type_type] type_type);;
 let eps ty = assert (get_type ty == type_type); eapp (eT, [ty]);;
-let arr ty1 ty2 = earrow [ty1] ty2;;
+let arr ty1 ty2 =
+  match ty2 with
+  | Earrow (l, ret, _) -> earrow (ty1 :: l) ret
+  | _ -> earrow [ty1] ty2
+;;
 let t_bool = tvar "basics.bool__t" type_type;;
 let bool1 = eps t_bool;;
 let bool2 = arr bool1 bool1;;
