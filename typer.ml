@@ -232,50 +232,49 @@ and check_expr env ty e =
    param env (s : ty) returns s :: env *)
 let param env s = s :: env;;
 
-(* Type a definition *)
-let definition env = function
-  | DefReal (name, ident, params, body, decarg) ->
-     let env' = List.fold_left param env params in
-     DefReal (name, ident, params, check_expr env' type_prop body, decarg)
-  | DefPseudo ((e, n), s, params, body) ->
-     let env' = List.fold_left param env params in
-     DefPseudo ((infer_expr env e, n), s, params, check_expr env' type_prop body)
-  | DefRec (e, s, params, body) ->
-     let env' = List.fold_left param env params in
-     DefRec (infer_expr env e, s, params, check_expr env' type_prop body)
+(* Declare the defined identifier and return the typed version of the body
+   and its typing environment. *)
+(* TODO: currify when the body is a lambda. *)
+let declare_def_constant = function
+  | DefReal (_, s, params, body, _)
+  | DefPseudo ((_, _), s, params, body)
+  | DefRec (_, s, params, body) ->
+     let env = List.fold_left param [] params in
+     let typed_body = infer_expr env body in
+     declare_constant (s, earrow (List.map get_type params) (get_type typed_body));
+     (env, typed_body)
 ;;
 
-(* When typing a phrase, there are two alternatives,
-   either the phrase is a typing declaration of a function symbol,
-   (in which case we remove it from the list of phrases
-   and add the declaration to the environment) or it is a regular phrase
-   that we type. *)
-type declaration_phrase = Decl of string * expr | Phr of Phrase.phrase;;
+(* Type a definition and declare it. *)
+let definition d =
+  let (env, typed_body) = declare_def_constant d in
+  match d with
+  | DefReal (name, ident, params, body, decarg) ->
+     DefReal (name, ident, params, typed_body, decarg)
+  | DefPseudo ((e, n), s, params, body) ->
+     DefPseudo ((infer_expr env e, n), s, params, typed_body)
+  | DefRec (e, s, params, body) ->
+     DefRec (infer_expr env e, s, params, typed_body)
+;;
 
 (* Declarations are encoded as "real definitions" by the parser
    (currently only parsedk). *)
-let phrase env = function
+(* This function is folded on the list of phrases,
+   it removes declarations and return the typed phrases
+   in reverse order *)
+let phrase l (p, b) = match p with
   | Phrase.Def (DefReal ("Typing declaration", s, _, ty, _)) ->
-     Decl (s, ty)
+     declare_constant (s, ty);
+     l
   | Phrase.Hyp (s, e, n) ->
-     Phr (Phrase.Hyp (s, check_expr env type_prop e, n))
-  | Phrase.Def d -> Phr (Phrase.Def (definition env d))
-  | p -> Phr p
-;;
-
-(* This function is iterated (folded) on the list of phrases
-   (annotated by a boolean). *)
-let phraseb (env, l) (p, b) =
-  match phrase env p with
-  | Decl (s, ty) ->
-     (tvar s ty :: env, l)
-  | Phr ph ->
-     (env, (ph, b) :: l)
+     (Phrase.Hyp (s, check_expr [] type_prop e, n), b) :: l
+  | Phrase.Def d ->
+     (Phrase.Def (definition d), b) :: l
+  | _ -> (p, b) :: l                  (* TODO *)
 ;;
 
 (* This is the only exported function of this module,
-   it is called in main.ml after parsing of Dedukti input. *)
+   it is called in main.ml after parsing. *)
 let phrasebl l =
-  let (env, revl) = List.fold_left phraseb ([], []) l in
-  List.rev revl
+  List.rev (List.fold_left phrase [] l)
 ;;
