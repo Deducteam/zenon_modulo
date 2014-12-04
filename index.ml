@@ -410,17 +410,17 @@ let defs = (Hashtbl.create tblsize : (string, definition) Hashtbl.t);;
 
 let add_def d =
   match d with
-  | DefReal (_, s, args, body, _) -> Hashtbl.add defs s d;
-  | DefPseudo (h, s, args, body) -> Hashtbl.add defs s d;
-  | DefRec (_, s, args, body) -> Hashtbl.add defs s d;
+  | DefReal (_, s, _, _, _, _) -> Hashtbl.add defs s d;
+  | DefPseudo (_, s, _, _, _) -> Hashtbl.add defs s d;
+  | DefRec (_, s, _, _, _) -> Hashtbl.add defs s d;
 ;;
 let has_def s = Hashtbl.mem defs s;;
 let get_def s =
   let d = Hashtbl.find defs s in
   match d with
-  | DefReal (_, s, params, body, _) -> (d, params, body)
-  | DefPseudo (hyp, s, params, body) -> (d, params, body)
-  | DefRec (_, s, params, body) -> (d, params, body)
+  | DefReal (_, s, ty, params, body, _) -> (d, ty, params, body)
+  | DefPseudo (hyp, s, ty, params, body) -> (d, ty, params, body)
+  | DefRec (_, s, ty, params, body) -> (d, ty, params, body)
 ;;
 
 (* ==== *)

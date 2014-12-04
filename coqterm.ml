@@ -719,7 +719,7 @@ let use_hyp oc count p =
   match p with
   | Phrase.Hyp (name, _, _) when name = goal_name -> count
   | Phrase.Hyp (name, _, _)
-  | Phrase.Def (DefReal (name, _, _, _, _))
+  | Phrase.Def (DefReal (name, _, _, _, _, _))
   -> fprintf oc "assert (%s%d := %s).\n" dummy_prefix count name;
      count + 1
   | _ -> count
@@ -805,10 +805,10 @@ let get_signatures ps ext_decl =
     | Phrase.Hyp (name, e, _) ->
         get_sig Prop [] e;
         set_type name Hyp_name;
-    | Phrase.Def (DefReal (_, s, _, e, _)) ->
+    | Phrase.Def (DefReal (_, s, _, _, e, _)) ->
         defined := s :: !defined;
         get_sig (Indirect s) [] e;
-    | Phrase.Def (DefRec (eqn, s, _, e)) ->
+    | Phrase.Def (DefRec (eqn, s, _, _, e)) ->
         defined := s :: !defined;
         get_sig (Indirect s) [] e;
     | Phrase.Def (DefPseudo _) -> assert false
@@ -892,17 +892,17 @@ let declare_hyp oc h =
   | Phrase.Hyp (name, stmt, _) ->
       pr_oc oc (sprintf "Parameter %s : " name) (trexpr [] stmt);
       fprintf oc ".\n";
-  | Phrase.Def (DefReal (name, sym, [], body, None)) ->
+  | Phrase.Def (DefReal (name, sym, _, [], body, None)) ->
       let prefix = sprintf "Definition %s := " sym in
       pr_oc oc prefix (trexpr [] body);
       fprintf oc ".\n";
-  | Phrase.Def (DefReal (name, sym, params, body, None)) ->
+  | Phrase.Def (DefReal (name, sym, _, params, body, None)) ->
       fprintf oc "Definition %s := fun" sym;
       List.iter (print_var oc) params;
       fprintf oc " =>\n";
       pr_oc oc "" (trexpr [] body);
       fprintf oc ".\n";
-  | Phrase.Def (DefReal (name, sym, params, body, Some v)) ->
+  | Phrase.Def (DefReal (name, sym, _, params, body, Some v)) ->
       fprintf oc "Fixpoint %s" sym;
       List.iter (print_var oc) params;
       fprintf oc " { struct %s } :=\n" v;

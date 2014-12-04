@@ -42,7 +42,7 @@ let dowarn kind name =
 let check (p, dep) =
   match p with
   | Phrase.Hyp (name, _, _) when not (test name) -> dowarn "hypothesis" name
-  | Phrase.Def (DefReal (_, s, _, _, _)) when not (test s) ->
+  | Phrase.Def (DefReal (_, s, _, _, _, _)) when not (test s) ->
      dowarn "definition" s
   | _ -> ()
 ;;
@@ -92,8 +92,8 @@ let warn_unused_var phr_dep =
   let f (p, _) =
     match p with
     | Phrase.Hyp (name, e, _) -> check_unused name e
-    | Phrase.Def (DefReal (_, name, _, body, _)) -> check_unused name body
-    | Phrase.Def (DefRec (_, name, _, body)) -> check_unused name body
+    | Phrase.Def (DefReal (_, name, _, _, body, _)) -> check_unused name body
+    | Phrase.Def (DefRec (_, name, _, _, body)) -> check_unused name body
     | Phrase.Def (DefPseudo _) -> assert false
     | Phrase.Sig _ -> ()
     | Phrase.Inductive _ -> ()

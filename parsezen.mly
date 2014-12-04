@@ -96,10 +96,10 @@ file:
 
 phrase:
   | DEF hyp_name OPEN IDENT ident_list CLOSE expr
-      { let idl = List.map evar $5 in Zdef (DefReal ($2, $4, idl, $7, None)) }
+      { let idl = List.map evar $5 in Zdef (DefReal ($2, $4, type_none, idl, $7, None)) }
   | FIXPOINT hyp_name IDENT OPEN IDENT ident_list CLOSE expr
       { let idl = List.map evar $6 in
-        Zdef (DefReal ($2, $5, idl, $8, Some $3))
+        Zdef (DefReal ($2, $5, type_none, idl, $8, Some $3))
       }
   | HYP int_opt hyp_name expr
       { Zhyp ($3, $4, $2) }

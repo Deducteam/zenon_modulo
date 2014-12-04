@@ -1007,14 +1007,14 @@ let rewrites in_expr x ctx e mknode =
      mknode "trueistrue" [appctx e; e; h1; lamctx; e] [e] [| [h1] |]
   | Eapp (Evar("$notequiv",_), [e1; e2], _) -> []
   | Evar (f, _) when in_expr && Index.has_def f ->
-     let (d, params, body) = Index.get_def f in
+     let (d, ty, params, body) = Index.get_def f in
      if params = [] then begin
        let unfolded = appctx body in
        mknode "definition" [appctx e; unfolded; e] [] [| [unfolded] |]
      end else
        []
   | Eapp (Evar(f,_), args, _) when in_expr && Index.has_def f ->
-     let (d, params, body) = Index.get_def f in
+     let (d, ty, params, body) = Index.get_def f in
      if List.length params = List.length args then begin
        let s = List.combine params args in
        let unfolded = appctx (substitute_2nd s body) in
@@ -1164,7 +1164,7 @@ let newnodes_rewrites e g =
   let mknode name args add_con branches =
     match name, args with
     | "definition", [folded; unfolded; Evar (f, _)] ->
-       let (def, params, body) = Index.get_def f in
+       let (def, ty, params, body) = Index.get_def f in
        [ Node {
          nconc = e :: add_con;
          nrule = Definition (def, folded, unfolded);
@@ -1173,7 +1173,7 @@ let newnodes_rewrites e g =
          nbranches = branches;
        }]
     | "definition", [folded; unfolded; Eapp (Evar(f,_), args, _)] ->
-       let (def, params, body) = Index.get_def f in
+       let (def, ty, params, body) = Index.get_def f in
        [ Node {
          nconc = e :: add_con;
          nrule = Definition (def, folded, unfolded);
@@ -1519,23 +1519,23 @@ let to_llproof tr_expr mlp args =
 
 let built_in_defs =
   [
-    Def (DefReal ("subset_def", "TLA.subseteq", [evar "A"; evar "B"],
+    Def (DefReal ("subset_def", "TLA.subseteq", type_none, [evar "A"; evar "B"],
        eapp (evar "TLA.bAll", [evar "A";
                    elam (evar "x",
                          eapp (evar "TLA.in", [evar "x"; evar "B"]))]), None));
-    Def (DefReal ("bAll_def", "TLA.bAll", [evar "S"; evar "P"],
+    Def (DefReal ("bAll_def", "TLA.bAll", type_none, [evar "S"; evar "P"],
        eall (evar "x",
              eimply (eapp (evar "TLA.in", [evar "x"; evar "S"]),
                      eapp (evar "P", [evar "x"]))), None));
-    Def (DefReal ("bEx_def", "TLA.bEx", [evar "S"; evar "P"],
+    Def (DefReal ("bEx_def", "TLA.bEx", type_none, [evar "S"; evar "P"],
        eex (evar "x",
             eand (eapp (evar "TLA.in", [evar "x"; evar "S"]),
                   eapp (evar "P", [evar "x"]))), None));
-    Def (DefReal ("bChoose_def", "TLA.bChoice", [evar "S"; evar "P"],
+    Def (DefReal ("bChoose_def", "TLA.bChoice", type_none, [evar "S"; evar "P"],
        etau (evar "x",
             eand (eapp (evar "TLA.in", [evar "x"; evar "S"]),
                   eapp (evar "P", [evar "x"]))), None));
-    Def (DefReal ("prod_def", "TLA.prod", [evar "A"; evar "B"],
+    Def (DefReal ("prod_def", "TLA.prod", type_none, [evar "A"; evar "B"],
        eapp (evar "TLA.Product", [eapp (evar "TLA.tuple", [evar "A"; evar "B"])]), None));
   ]
 ;;

@@ -154,7 +154,7 @@ let tr_rule r =
   | P_NotP (p, q) -> LL.Rpnotp (tr_expr p, tr_expr q)
   | NotEqual (e1, e2) -> LL.Rnotequal (tr_expr e1, tr_expr e2)
 
-  | Definition (DefReal (name, sym, args, body, decarg), folded, unfolded) ->
+  | Definition (DefReal (name, sym, _, args, body, decarg), folded, unfolded) ->
       LL.Rdefinition (name, sym, args, body, decarg,
                       tr_expr folded, tr_expr unfolded)
 
@@ -881,14 +881,14 @@ and get_sub l =
 
 and translate_derived p =
   match p.mlrule with
-  | Definition (DefPseudo ((def_hyp, _), s, args, body), folded, unfolded) ->
+  | Definition (DefPseudo ((def_hyp, _), s, _, args, body), folded, unfolded) ->
       let actuals = get_args def_hyp args folded unfolded in
       let exp =
         translate_pseudo_def p def_hyp s actuals folded unfolded
       in
       let (n, ext) = to_llproof exp in
       (n, union [def_hyp] ext)
-  | Definition (DefRec (eqn, s, args, body), folded, unfolded) ->
+  | Definition (DefRec (eqn, s, _, args, body), folded, unfolded) ->
       let actuals = get_diff_args folded unfolded in
       let exp =
         translate_rec_def p eqn s actuals folded unfolded

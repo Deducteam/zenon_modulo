@@ -27,10 +27,10 @@ type expr = private
 ;;
 
 type definition =
-  | DefReal of string * string * expr list * expr * string option
-     (* definition-name, defined-ident, params, body, decreasing-arg *)
-  | DefPseudo of (expr * int) * string * expr list * expr
-  | DefRec of expr * string * expr list * expr
+  | DefReal of string * string * expr * expr list * expr * string option
+     (* definition-name, defined-ident, type, params, body, decreasing-arg *)
+  | DefPseudo of (expr * int) * string * expr * expr list * expr
+  | DefRec of expr * string * expr * expr list * expr
 ;;
 
 (* Exceptions *)

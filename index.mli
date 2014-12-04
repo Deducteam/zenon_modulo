@@ -55,7 +55,7 @@ val search_proof : unit -> Mlproof.proof option;;
 
 val add_def : definition -> unit;;
 val has_def : string -> bool;;
-val get_def : string -> definition * expr list * expr;;
+val get_def : string -> definition * expr * expr list * expr;;
 
 (* ==== depth of metavariables ==== *)
 

@@ -66,7 +66,7 @@ let is_true_equal x =
 let newnodes_istrue e g =
   let mk_unfold ctx p args =
     try
-      let (d, params, body) = Index.get_def p in
+      let (d, ty, params, body) = Index.get_def p in
       let prio = match d with DefRec _ -> Inst e | _ -> Prop in
       match params, args, body with
       | [], Some aa, (Evar (b, _) as b') ->
@@ -627,6 +627,36 @@ let rec pp_expr e =
   | Elam (v, e, _) -> elam (v, pp_expr e)
 ;;
 
+(* Registering of constants for type-checking *)
+(* Functions for building types (/!\ too specific to Dedukti) *)
+let eT = tvar "cc.eT" (earrow [type_type] type_type);;
+let eps ty = assert (get_type ty == type_type); ty
+   (* was "eapp (eT, [ty])",
+      TODO test input_format to choose between Dedukti and Coq typing. *)
+;;
+let arr ty1 ty2 =
+  match ty2 with
+  | Earrow (l, ret, _) -> earrow (ty1 :: l) ret
+  | _ -> earrow [ty1] ty2
+;;
+let t_bool = tvar "basics.bool__t" type_type;;
+let bool1 = eps t_bool;;
+let bool2 = arr bool1 bool1;;
+let bool3 = arr bool1 bool2;;
+let t_prop = type_prop;;
+
+List.iter Typer.declare_constant
+  [
+    ("Is_true", arr bool1 t_prop);
+    ("true", bool1);
+    ("false", bool1);
+    ("basics._tilda__tilda_", bool2);
+    ("basics._amper__amper_", bool3);
+    ("basics._bar__bar_", bool3);
+    ("basics._bar__lt__gt__bar_", bool3)
+  ]
+;;
+
 let built_in_defs =
   let x = Expr.newvar () in
   let y = Expr.newvar () in
@@ -635,21 +665,21 @@ let built_in_defs =
   let ty = Expr.newvar () in
   let case = eapp (evar "$match-case", [evar ("Datatypes.pair"); x]) in
   [
-    Def (DefReal ("_amper__amper_", "basics._amper__amper_", [x; y],
+    Def (DefReal ("_amper__amper_", "basics._amper__amper_", bool3, [x; y],
                   eapp (evar "coq_builtins.bi__and_b", [x; y]), None));
-    Def (DefReal ("_bar__bar_", "basics._bar__bar_", [x; y],
+    Def (DefReal ("_bar__bar_", "basics._bar__bar_", bool3, [x; y],
                   eapp (evar "coq_builtins.bi__or_b", [x; y]), None));
-    Def (DefReal ("_tilda__tilda_", "basics._tilda__tilda_", [x],
+    Def (DefReal ("_tilda__tilda_", "basics._tilda__tilda_", bool2, [x],
                   eapp (evar "coq_builtins.bi__not_b", [x]), None));
-    Def (DefReal ("_bar__lt__gt__bar_", "basics._bar__lt__gt__bar_", [x; y],
+    Def (DefReal ("_bar__lt__gt__bar_", "basics._bar__lt__gt__bar_", bool3, [x; y],
                   eapp (evar "coq_builtins.bi__xor_b", [x; y]), None));
 
-    Def (DefReal ("pair", "basics.pair", [tx; ty; x; y],
+    Def (DefReal ("pair", "basics.pair", type_none, [tx; ty; x; y],
                   eapp (evar "Datatypes.pair", [tx; ty; x; y]), None));
-    Def (DefReal ("fst", "basics.fst", [tx; ty; xy],
+    Def (DefReal ("fst", "basics.fst", type_none, [tx; ty; xy],
                   eapp (evar "$match", [xy; elam (x, elam (y, case))]),
                   None));
-    Def (DefReal ("snd", "basics.snd", [tx; ty; xy],
+    Def (DefReal ("snd", "basics.snd", type_none, [tx; ty; xy],
                   eapp (evar "$match", [xy; elam (y, elam (x, case))]),
                   None));
     Inductive ("basics.list__t", ["A"], [
@@ -664,13 +694,13 @@ let built_in_defs =
                [ ("true", []); ("false", []) ], "basics.bool__t_ind");
 
     (* deprecated, kept for compatibility only *)
-    Def (DefReal ("and_b", "basics.and_b", [x; y],
+    Def (DefReal ("and_b", "basics.and_b", bool3, [x; y],
                   eapp (evar "basics._amper__amper_", [x; y]), None));
-    Def (DefReal ("or_b", "basics.or_b", [x; y],
+    Def (DefReal ("or_b", "basics.or_b", bool3, [x; y],
                   eapp (evar "basics._bar__bar_", [x; y]), None));
-    Def (DefReal ("not_b", "basics.not_b", [x; y],
+    Def (DefReal ("not_b", "basics.not_b", bool2, [x; y],
                   eapp (evar "basics._tilda__tilda_", [x; y]), None));
-    Def (DefReal ("xor_b", "basics.xor_b", [x; y],
+    Def (DefReal ("xor_b", "basics.xor_b", bool3, [x; y],
                   eapp (evar "basics._bar__lt__gt__bar_", [x; y]), None));
   ]
 ;;
@@ -679,10 +709,10 @@ let preprocess l =
   let f x =
     match x with
     | Hyp (name, e, goalness) -> Hyp (name, pp_expr e, goalness)
-    | Def (DefReal (name, sym, formals, body, decarg)) ->
-        Def (DefReal (name, sym, formals, pp_expr body, decarg))
-    | Def (DefRec (eqn, sym, formals, body)) ->
-        Def (DefRec (eqn, sym, formals, pp_expr body))
+    | Def (DefReal (name, sym, ty, formals, body, decarg)) ->
+        Def (DefReal (name, sym, ty, formals, pp_expr body, decarg))
+    | Def (DefRec (eqn, sym, ty, formals, body)) ->
+        Def (DefRec (eqn, sym, ty, formals, pp_expr body))
     | Def (DefPseudo _) -> assert false
     | Sig _ -> x
     | Inductive _ -> x
@@ -803,34 +833,6 @@ let predef () =
      "true"; "false"; "FOCAL.ifthenelse" ;
      "List.cons"; "List.nil"; "Datatypes.pair";
     ]
-;;
-
-
-(* Registering of constants for type-checking *)
-(* Functions for building types (/!\ too specific to Dedukti) *)
-let eT = tvar "cc.eT" (earrow [type_type] type_type);;
-let eps ty = assert (get_type ty == type_type); eapp (eT, [ty]);;
-let arr ty1 ty2 =
-  match ty2 with
-  | Earrow (l, ret, _) -> earrow (ty1 :: l) ret
-  | _ -> earrow [ty1] ty2
-;;
-let t_bool = tvar "basics.bool__t" type_type;;
-let bool1 = eps t_bool;;
-let bool2 = arr bool1 bool1;;
-let bool3 = arr bool1 bool2;;
-let t_prop = type_prop;;
-
-List.iter Typer.declare_constant
-  [
-    ("Is_true", arr bool1 t_prop);
-    ("true", bool1);
-    ("false", bool1);
-    ("basics._tilda__tilda_", bool2);
-    ("basics._amper__amper_", bool3);
-    ("basics._bar__bar_", bool3);
-    ("basics._bar__lt__gt__bar_", bool3)
-  ]
 ;;
 
 Extension.register {

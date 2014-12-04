@@ -1031,7 +1031,7 @@ let output oc phrases ppphrases llp =
       | Phrase.Hyp (name, e, _) when name <> Namespace.goal_name ->
          fprintf oc "axioms %s: \"%a\"\n" name (p_expr dict_empty) e
       | Phrase.Hyp _ -> ()
-      | Phrase.Def (DefReal (name, sym, args, body, None)) ->
+      | Phrase.Def (DefReal (name, sym, _, args, body, None)) ->
          let isym = tr_prefix sym in
          fprintf oc "consts \"%s\" :: \"[%a] \\<Rightarrow> c\"\n" isym
                  (p_list dict_empty "c" (fun _ _ _ -> ()) ",") args;

@@ -219,7 +219,7 @@ and xcheck_expr env ty e =
 and check_expr env ty e =
   try
     let result = xcheck_expr env ty e in
-    assert (get_type result == ty);
+    assert (ty == type_none || get_type result == ty);
     result
   with Type_Mismatch (a, b, f) as exc ->
     Printf.eprintf "error while checking %s at type %s in env [%s].\n"
@@ -236,12 +236,15 @@ let param env s = s :: env;;
    and its typing environment. *)
 (* TODO: currify when the body is a lambda. *)
 let declare_def_constant = function
-  | DefReal (_, s, params, body, _)
-  | DefPseudo ((_, _), s, params, body)
-  | DefRec (_, s, params, body) ->
+  | DefReal (_, s, ty, params, body, _)
+  | DefPseudo ((_, _), s, ty, params, body)
+  | DefRec (_, s, ty, params, body) ->
      let env = List.fold_left param [] params in
-     let typed_body = infer_expr env body in
-     declare_constant (s, earrow (List.map get_type params) (get_type typed_body));
+     let typed_body = check_expr env ty body in
+     if ty = type_none then
+       declare_constant (s, earrow (List.map get_type params) (get_type typed_body))
+     else
+       declare_constant (s, ty);
      (env, typed_body)
 ;;
 
@@ -249,12 +252,12 @@ let declare_def_constant = function
 let definition d =
   let (env, typed_body) = declare_def_constant d in
   match d with
-  | DefReal (name, ident, params, body, decarg) ->
-     DefReal (name, ident, params, typed_body, decarg)
-  | DefPseudo ((e, n), s, params, body) ->
-     DefPseudo ((infer_expr env e, n), s, params, typed_body)
-  | DefRec (e, s, params, body) ->
-     DefRec (infer_expr env e, s, params, typed_body)
+  | DefReal (name, ident, ty, params, body, decarg) ->
+     DefReal (name, ident, ty, params, typed_body, decarg)
+  | DefPseudo ((e, n), s, ty, params, body) ->
+     DefPseudo ((infer_expr env e, n), s, ty, params, typed_body)
+  | DefRec (e, s, ty, params, body) ->
+     DefRec (infer_expr env e, s, ty, params, typed_body)
 ;;
 
 (* Declarations are encoded as "real definitions" by the parser
@@ -263,7 +266,7 @@ let definition d =
    it removes declarations and return the typed phrases
    in reverse order *)
 let phrase l (p, b) = match p with
-  | Phrase.Def (DefReal ("Typing declaration", s, _, ty, _)) ->
+  | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _)) ->
      declare_constant (s, ty);
      l
   | Phrase.Hyp (s, e, n) ->

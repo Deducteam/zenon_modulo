@@ -181,19 +181,19 @@ let phrase o ph =
   let pro f = oprintf o f in
   begin match ph with
   | Phrase.Hyp (n, e, p) -> pro "# %s:\n$%d " n p; expr o e; pro "\n";
-  | Phrase.Def (DefReal (name, s, args, e, None)) ->
+  | Phrase.Def (DefReal (name, s, ty, args, e, None)) ->
       pro "$def \"%s\" %s (" name s;
       print_list (buf o) print_var " " args;
       pro ") ";
       expr o e;
       pro "\n";
-  | Phrase.Def (DefReal (name, s, args, e, Some v)) ->
+  | Phrase.Def (DefReal (name, s, ty, args, e, Some v)) ->
       pro "$fixpoint \"%s\" %s %s (" name s v;
       print_list (buf o) print_var " " args;
       pro ") ";
       expr o e;
       pro "\n";
-  | Phrase.Def (DefRec (eqn, s, args, e)) ->
+  | Phrase.Def (DefRec (eqn, s, ty, args, e)) ->
       pro "$defrec %s (" s;
       print_list (buf o) print_var " " args;
       pro ") ";
@@ -201,7 +201,7 @@ let phrase o ph =
       pro " ";
       expr o eqn;
       pro "\n";
-  | Phrase.Def (DefPseudo ((hyp, prio), s, args, e)) ->
+  | Phrase.Def (DefPseudo ((hyp, prio), s, ty, args, e)) ->
       pro "#pseudo-def: ";
       expr o hyp;
       pro "\n$def %s (" s;
@@ -245,9 +245,9 @@ let get_rule_name = function
   | NotEquiv (e1, e2) -> "NotEquiv", [e1; e2]
   | P_NotP (e1, e2) -> "P-NotP", [e1; e2]
   | P_NotP_sym (s, e1, e2) -> "P-NotP-sym("^(get_name s)^")", [e1; e2]
-  | Definition (DefReal (_, s, _, _, _), e, _) -> "Definition("^s^")", [e]
-  | Definition (DefPseudo (_, s, _, _), e, _) -> "Definition-Pseudo("^s^")", [e]
-  | Definition (DefRec (_, s, _, _), e, _) -> "Definition-Rec("^s^")", [e]
+  | Definition (DefReal (_, s, _, _, _, _), e, _) -> "Definition("^s^")", [e]
+  | Definition (DefPseudo (_, s, _, _, _), e, _) -> "Definition-Pseudo("^s^")", [e]
+  | Definition (DefRec (_, s, _, _, _), e, _) -> "Definition-Rec("^s^")", [e]
   | ConjTree e -> "ConjTree", [e]
   | DisjTree e -> "DisjTree", [e]
   | AllPartial (e1, s, n) -> "All-Partial", [e1]
@@ -337,9 +337,9 @@ let hlrule_name = function
   | P_NotP (e1, e2) -> "P-NotP", [e1; e2]
   | P_NotP_sym (s, e1, e2) -> "P-NotP-sym("^(get_name s)^")", [e1; e2]
   | NotEqual (e1, e2) -> "NotEqual", [enot (eapp (eeq, [e1; e2]))]
-  | Definition (DefReal (_, s, _, _, _), e, _)
-  | Definition (DefPseudo (_, s, _, _), e, _)
-  | Definition (DefRec (_, s, _, _), e, _)
+  | Definition (DefReal (_, s, _, _, _, _), e, _)
+  | Definition (DefPseudo (_, s, _, _, _), e, _)
+  | Definition (DefRec (_, s, _, _, _), e, _)
   -> "Definition("^s^")", [e]
   | ConjTree (e) -> "ConjTree", [e]
   | DisjTree (e) -> "DisjTree", [e]
@@ -716,9 +716,9 @@ let dot_rule_name = function
   | NotEquiv (e1, e2) -> "NotEquiv", [e1; e2]
   | P_NotP (e1, e2) -> "P-NotP", [e1; e2]
   | P_NotP_sym (s, e1, e2) -> "P-NotP-sym("^(sexpr_esc s)^")", [e1; e2]
-  | Definition (DefReal (_, s, _, _, _), e, _) -> "Definition("^s^")", [e]
-  | Definition (DefPseudo (_, s, _, _), e, _) -> "Definition-Pseudo("^s^")", [e]
-  | Definition (DefRec (_, s, _, _), e, _) -> "Definition-Rec("^s^")", [e]
+  | Definition (DefReal (_, s, _, _, _, _), e, _) -> "Definition("^s^")", [e]
+  | Definition (DefPseudo (_, s, _, _, _), e, _) -> "Definition-Pseudo("^s^")", [e]
+  | Definition (DefRec (_, s, _, _, _), e, _) -> "Definition-Rec("^s^")", [e]
   | ConjTree e -> "ConjTree", [e]
   | DisjTree e -> "DisjTree", [e]
   | AllPartial (e1, s, n) -> "All-Partial", [e1]

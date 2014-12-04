@@ -38,9 +38,9 @@ and private_info = {
 };;
 
 type definition =
-  | DefReal of string * string * expr list * expr * string option
-  | DefPseudo of (expr * int) * string * expr list * expr
-  | DefRec of expr * string * expr list * expr
+  | DefReal of string * string * expr * expr list * expr * string option
+  | DefPseudo of (expr * int) * string * expr * expr list * expr
+  | DefRec of expr * string * expr * expr list * expr
 ;;
 
 exception Higher_order;;

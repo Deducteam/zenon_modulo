@@ -82,7 +82,7 @@ let mk_pattern (constr, args) body =
   mk_lam bindings (eapp (evar "$match-case", [evar (constr); body]))
 ;;
 
-let mk_inductive name bindings constrs =
+let mk_inductive name ty bindings constrs =
   let args = List.map fst bindings in
   let g (tcon, targs) =
     if tcon = name && targs = args then Self
@@ -387,25 +387,29 @@ hyp_def:
       { Hyp ($2, $4, 1) }
   | DEFINITION id_or_expr COLON_EQ_ expr PERIOD_
       { let (params, expr) = get_params $4 in
-        Def (DefReal ($2, $2, params, expr, None)) }
+        Def (DefReal ($2, $2, type_none, params, expr, None)) }
   | DEFINITION IDENT compact_args COLON_ typ COLON_EQ_ expr PERIOD_
       {
        let compact_params = $3 in
        let (other_params, expr) = get_params $7 in
-       Def (DefReal ($2, $2, (compact_params @ other_params), expr, None))
+       let params = compact_params @ other_params in
+       let ty = earrow (List.map get_type params) $5 in
+       Def (DefReal ($2, $2, ty, params, expr, None))
       }
   | FIXPOINT IDENT compact_args LBRACE_ STRUCT IDENT RBRACE_
              COLON_ typ COLON_EQ_ expr PERIOD_
       {
        let compact_params = $3 in
        let (other_params, expr) = get_params $11 in
-       Def (DefReal ($2, $2, (compact_params @ other_params), expr, Some $6))
+       let params = compact_params @ other_params in
+       let ty = earrow (List.map get_type params) $9 in
+       Def (DefReal ($2, $2, ty, params, expr, Some $6))
       }
   | FUNCTION IDENT compact_args COLON_ typ LBRACE_ expr RBRACE_ COLON_EQ_
     expr PERIOD_
-      { Def (DefRec ($7, $2, $3, $10)) }
-  | INDUCTIVE IDENT binding_list COLON_ IDENT COLON_EQ_ constr_list PERIOD_
-      { mk_inductive $2 $3 $7 }
+      { Def (DefRec ($7, $2, $5, $3, $10)) }
+  | INDUCTIVE IDENT binding_list COLON_ typ COLON_EQ_ constr_list PERIOD_
+      { mk_inductive $2 $5 $3 $7 }
 ;
 
 

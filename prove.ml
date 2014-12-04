@@ -561,7 +561,7 @@ let newnodes_gamma st fm g _ =
 let newnodes_unfold st fm g _ =
   let mk_unfold ctx p args =
     try
-      let (d, params, body) = Index.get_def p in
+      let (d, _, params, body) = Index.get_def p in
       let prio = match d with DefRec _ -> Inst fm | _ -> Prop in
       match params, args, body with
       | [], Some aa, (Evar (b, _) as b') ->
