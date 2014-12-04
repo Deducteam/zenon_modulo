@@ -359,12 +359,12 @@ let newnodes_eq_str st fm g _ =
      let r = Index.find_str_eq () in
      let fl st (e2, s) =
        let s2 = eapp (evar "$string", [evar s]) in
-       let eq = eapp (evar "=", [e2; s2]) in
+       let eq = eeq e2 s2 in
        mk_node st "stringdiffrl" e1 s1 e2 s2 eq
      in
      let fr st (e2, s) =
        let s2 = eapp (evar "$string", [evar s]) in
-       let eq = eapp (evar "=", [s2; e2]) in
+       let eq = eeq s2 e2 in
        mk_node st "stringdiffrr" e1 s1 e2 s2 eq
      in
      List.fold_left fr (List.fold_left fl (st, false) l) r
