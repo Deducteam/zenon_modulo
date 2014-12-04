@@ -82,6 +82,11 @@ let ret_bool_to_prop = function
   | _ -> raise (Invalid_argument "ret_bool_to_prop")
 ;;
 
+let prop_to_bool_args args ty =
+  if ty == type_none then earrow (List.map get_type args) t_bool
+  else ret_prop_to_bool ty
+;;
+
 let istrue e = eapp (tvar "Is_true" (arr t_bool t_prop), [e]);;
 let isfalse e = enot (istrue e);;
 
@@ -160,7 +165,7 @@ let newnodes_istrue e g =
   | Eapp (Evar(op,_) as var, [e1; e2; e3], _) when is_true_equal op ->
      let branches = [| [eeq e2 e3] |] in
      let name = chop_prefix "Is_true**" op in
-     let vssty = ret_prop_to_bool (get_type var) in
+     let vssty = prop_to_bool_args [e1; e2; e3] (get_type var) in
        [ Node {
          nconc = [e];
          nrule = Ext ("focal", "equal", [tvar name vssty; e1; e2; e3]);
@@ -207,7 +212,7 @@ let newnodes_istrue e g =
   | Enot (Eapp (Evar(op,_) as var, [e1; e2; e3], _), _) when is_true_equal op ->
      let branches = [| [enot (eeq e2 e3)] |] in
      let name = chop_prefix "Is_true**" op in
-     let vssty = ret_prop_to_bool (get_type var) in
+     let vssty = prop_to_bool_args [e1; e2; e3] (get_type var) in
        [ Node {
          nconc = [e];
          nrule = Ext ("focal", "notequal", [tvar name vssty; e1; e2; e3]);
@@ -343,12 +348,7 @@ let newnodes_istrue e g =
       }; Stop ]
   | Eapp (Evar(s,_) as vs, args, _) when is_prefix 0 "Is_true**" s ->
       let ss = chop_prefix "Is_true**" s in
-      let vssty =
-        let tyvs = get_type vs in
-        if tyvs == type_none
-        then earrow (List.map get_type args) t_bool
-        else ret_prop_to_bool tyvs
-      in
+      let vssty = prop_to_bool_args args (get_type vs) in
       let branches = [| [istrue (eapp (tvar ss vssty, args))] |] in
       [ Node {
           nconc = [e];
@@ -368,7 +368,7 @@ let newnodes_istrue e g =
       }; Stop ]
   | Enot (Eapp (Evar(s,_) as var, args, _), _) when is_prefix 0 "Is_true**" s ->
       let ss = chop_prefix "Is_true**" s in
-      let vssty = ret_prop_to_bool (get_type var) in
+      let vssty = prop_to_bool_args args (get_type var) in
       let branches = [| [isfalse (eapp (tvar ss vssty, args))] |] in
       [ Node {
           nconc = [e];
@@ -756,7 +756,7 @@ let rec process_expr e =
   | Earrow _ -> assert false
   | Eapp (Evar(s,_) as vs, args, _) when is_prefix 0 "Is_true**" s ->
       let s1 = chop_prefix "Is_true**" s in
-      let vssty = ret_prop_to_bool (get_type vs) in
+      let vssty = prop_to_bool_args args (get_type vs) in
       istrue (eapp (tvar s1 vssty, List.map process_expr args))
   | Eapp (s, args, _) -> eapp (s, List.map process_expr args)
   | Enot (e1, _) -> enot (process_expr e1)
@@ -788,7 +788,7 @@ let rec process_prooftree p =
     when is_prefix 0 "Is_true**" s1 ->
       assert (s1 = s2);
       let s = chop_prefix "Is_true**" s1 in
-      let vssty = ret_prop_to_bool (get_type var) in
+      let vssty = prop_to_bool_args args1 (get_type var) in
       let fa1 = eapp (tvar s vssty, List.map process_expr args1) in
       let fa2 = eapp (tvar s vssty, List.map process_expr args2) in
       let step1 = {
