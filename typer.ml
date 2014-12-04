@@ -91,6 +91,9 @@ let follow_preunifiers_none preunifiers e =
   with Not_found -> type_none
 ;;
 
+(* Local exception for giving up checking of application *)
+exception Give_up;;
+
 (* Main functions walking through expressions infering and checking types. *)
 (* This type-checking is bidirectionnal. *)
 let rec infer_expr env = function
@@ -135,7 +138,10 @@ let rec infer_expr env = function
          let remove_metas = follow_preunifiers_none preunifiers in
          let args_types_no_meta = List.map remove_metas args_types in
          let newtyf =
-           earrow args_types_no_meta (remove_metas meta_return_type)
+           if List.exists ((==) type_none) args_types_no_meta
+           then type_none
+           else
+             earrow args_types_no_meta (remove_metas meta_return_type)
          in
          let newargs =
            List.map2 (check_expr env) args_types_no_meta infered_args
@@ -174,10 +180,29 @@ and xcheck_expr env ty e =
       | Evar (s, _) -> tvar s ty
       | Emeta (Eall (Evar (s, _), b, _), _) ->
          emeta (check_expr env type_prop (eall (tvar s ty, b)))
-      | Eapp (Evar (f_sym, _), args, _) ->
-         let typed_args = List.map (infer_expr env) args in
-         let tyf = earrow (List.map get_type typed_args) ty in
-         eapp (tvar f_sym tyf, typed_args)
+      | Eapp (Evar (f_sym, _) as f, args, _) ->
+         (try
+             let typed_args = List.map (infer_expr env) args in
+             let args_types = List.map get_type typed_args in
+             let (new_typed_args, new_args_types) =
+               if List.exists ((==) type_none) args_types
+               then (
+                 (* Backup plan, maybe f_sym is declared and can help us checking args *)
+                 let tyf' = type_const f in
+                 match tyf' with
+                 | Earrow (l, ret, _) when List.length l = List.length args && ret == ty ->
+                    let new_typed_args = List.map2 (check_expr env) l args in
+                    let new_args_types = List.map get_type new_typed_args in
+                    if List.exists ((==) type_none) new_args_types then raise Give_up;
+                    (new_typed_args, new_args_types)
+                 | _ -> raise Give_up
+               )
+               else (typed_args, args_types)
+             in
+             let tyf = earrow new_args_types ty in
+             eapp (tvar f_sym tyf, new_typed_args)
+           with Give_up ->
+             eapp (evar f_sym, args))
       | Enot (e, _) ->
          assert (ty == type_prop);
          enot (check_expr env type_prop e)
