@@ -279,7 +279,7 @@ let priv_equiv e1 e2 =
 let priv_all v e =
   mkpriv (combine k_all (combine (get_hash (get_type v)) (get_skel e)))
          (remove v (get_fv e)) (1 + get_size e) (get_taus e) (get_metas e)
-         (prop_app [get_type e])
+         (get_type e) (* forall is used for both universal quantification and polymorphism *)
 ;;
 let priv_ex v e =
   mkpriv (combine k_ex (combine (get_hash (get_type v)) (get_skel e)))
