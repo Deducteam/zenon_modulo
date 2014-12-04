@@ -25,6 +25,13 @@ exception Arity_mismatch of expr * expr list;;
 let const_env : (string, expr) Hashtbl.t = Hashtbl.create 97;;
 let declare_constant (c, ty) = Hashtbl.add const_env c ty;;
 
+(* Print the declared constants, one by line *)
+let print_constant_decls out =
+  Hashtbl.iter (fun s ty -> Printf.fprintf out "$CONST %s : %s\n"
+                                        s (Print.sexpr ty))
+               const_env
+;;
+
 (* This function queries the hashtable for typing a constant *)
 (* Raises Not_found if the constant is unknown. *)
 let type_const = function

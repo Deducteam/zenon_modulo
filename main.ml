@@ -353,6 +353,9 @@ let main () =
       eprintf "relations: ";
       Eqrel.print_rels stderr;
       eprintf "\n";
+      eprintf "typing declarations: ";
+      eprintf "\n";
+      Typer.print_constant_decls stderr;
       eprintf "----\n";
       flush stderr;
       Gc.set {(Gc.get ()) with Gc.verbose = 0x010};
