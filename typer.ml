@@ -253,24 +253,26 @@ and check_expr env ty e =
     raise exc
 ;;
 
-(* Parameters of definitions are typed variables.
-   param env (s : ty) returns s :: env *)
-let param env s = s :: env;;
-
 (* Declare the defined identifier and return the typed version of the body
    and its typing environment. *)
 (* TODO: currify when the body is a lambda. *)
 let declare_def_constant = function
-  | DefReal (_, s, ty, params, body, _)
-  | DefPseudo ((_, _), s, ty, params, body)
-  | DefRec (_, s, ty, params, body) ->
-     let env = List.fold_left param [] params in
-     let typed_body = check_expr env ty body in
-     if ty = type_none then
-       declare_constant (s, earrow (List.map get_type params) (get_type typed_body))
+  | DefReal (_, s, ty, env, body, _)
+  | DefPseudo ((_, _), s, ty, env, body)
+  | DefRec (_, s, ty, env, body) ->
+     if ty == type_none
+     then
+       let typed_body = infer_expr env body in
+       declare_constant (s, earrow (List.map get_type env) (get_type typed_body));
+       (env, typed_body)
      else
-       declare_constant (s, ty);
-     (env, typed_body)
+       (match ty with
+        | Earrow (ty_params, ty_body, _) ->
+           assert (ty_params = List.map get_type env);
+           let typed_body = check_expr env ty_body body in
+           declare_constant (s, ty);
+           (env, typed_body)
+        | _ -> assert false)      (* Constant must have arrow types *)
 ;;
 
 (* Type a definition and declare it. *)
