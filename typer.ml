@@ -304,5 +304,5 @@ let phrase l (p, b) = match p with
 (* This is the only exported function of this module,
    it is called in main.ml after parsing. *)
 let phrasebl l =
-  List.rev (List.fold_left phrase [] l)
+  List.fold_left phrase [] (List.rev l)
 ;;
