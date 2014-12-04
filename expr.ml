@@ -476,7 +476,16 @@ let evar s = he_merge (Evar (s, priv_var s type_none));;
 let tvar s t = he_merge (Evar (s, priv_var s t));;
 let emeta (e) = he_merge (Emeta (e, priv_meta e));;
 let earrow args ret =
-    he_merge (Earrow (args, ret, priv_arrow args ret));;
+  match ret with
+  | Earrow _ -> assert false
+  | _ ->
+     he_merge (Earrow (args, ret, priv_arrow args ret))
+;;
+let add_arg ty1 ty2 =
+  match ty2 with
+  | Earrow (l, ret, _) -> earrow (ty1 :: l) ret
+  | _ -> earrow [ty1] ty2
+;;
 let enot (e) = he_merge (Enot (e, priv_not e));;
 let eand (e1, e2) = he_merge (Eand (e1, e2, priv_and e1 e2));;
 let eor (e1, e2) = he_merge (Eor (e1, e2, priv_or e1 e2));;
@@ -493,7 +502,7 @@ let exor (e1,e2) = eor (eand (e1, enot e2), eand (enot e1, e2));;
 let priv_lam v e =
   mkpriv (combine k_lam (combine (get_hash (get_type v)) (get_skel e)))
          (remove v (get_fv e)) 1 (get_taus e) (get_metas e)
-         (earrow [get_type v] (get_type e))
+         (add_arg (get_type v) (get_type e))
 
 let elam (v, e) = he_merge (Elam (v, e, priv_lam v e))
 ;;
