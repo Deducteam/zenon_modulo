@@ -9,22 +9,16 @@ open Expr;;
 open Namespace;;
 open Phrase;;
 
-let rec mk_type_string e =
+let rec mk_type e =
   match e with
-  | Evar (s, _) -> s
-  | Emeta _ -> assert false
-  | Eapp (Evar("*",_), [e1; e2], _) ->
-     sprintf "(%s*%s)" (mk_type_string e1) (mk_type_string e2)
-  | Eapp (Evar("%",_), [e1; e2], _) ->
-     sprintf "((%s)%%%s)" (mk_type_string e1) (mk_type_string e2)
-  | Eapp (Evar(s,_), args, _) ->
-     let inside =
-       List.fold_left (fun s a -> sprintf "%s %s" s (mk_type_string a)) s args
-     in
-     sprintf "(%s)" inside
+  | Evar (s, _) -> tvar s type_type
+  | Eapp (s, args, _) ->
+     eapp (s, List.map mk_type args)
   | Eimply (e1, e2, _) ->
-     sprintf "(%s -> %s)" (mk_type_string e1) (mk_type_string e2)
-  | _ -> assert false (* FIXME TODO *)
+     (match mk_type e2 with
+      | Earrow (l, ret, _) -> earrow (mk_type e1 :: l) ret
+      | ty -> earrow [mk_type e1] ty)
+  | e -> e
 ;;
 
 let mk_eapp (s, args) =
@@ -50,22 +44,22 @@ let rec mk_arobas_apply (id, l) =
 ;;
 
 let mk_all bindings body =
-  let f (var, ty) e = eall (tvar var (tvar ty type_type), e) in
+  let f (var, ty) e = eall (tvar var ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_ex bindings body =
-  let f (var, ty) e = eex (tvar var (tvar ty type_type), e) in
+  let f (var, ty) e = eex (tvar var ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_lam bindings body =
-  let f (var, ty) e = elam (tvar var (tvar ty type_type), e) in
+  let f (var, ty) e = elam (tvar var ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_fix ident ty bindings body =
-  let f (var, ty) e = elam (tvar var (tvar ty type_type), e) in
+  let f (var, ty) e = elam (tvar var ty, e) in
   (ident, eapp (evar "$fix", [ List.fold_right f ((ident, ty) :: bindings) body ]))
 ;;
 
@@ -84,7 +78,7 @@ let mk_let id expr body =
 let mk_let_fix (id, def) body = mk_let id def body;;
 
 let mk_pattern (constr, args) body =
-  let bindings = List.map (fun v -> (v, "")) args in
+  let bindings = List.map (fun v -> (v, type_none)) args in
   mk_lam bindings (eapp (evar "$match-case", [evar (constr); body]))
 ;;
 
@@ -207,6 +201,7 @@ let mk_string s = evar ("\"" ^ s ^ "\"") ;;
 
 %start file
 %type <string * (Phrase.phrase * bool) list> file
+%type <expr> typ
 
 %%
 
@@ -371,13 +366,13 @@ binding_list:
   | /* empty */
       { [] }
   | IDENT binding_list
-      { ($1, "") :: $2 }
+      { ($1, type_none) :: $2 }
   | LPAREN_ simplebinding RPAREN_ binding_list
       { $2 @ $4 }
 ;
 
 typ:
-  | expr                   { mk_type_string $1 }
+  | expr                   { mk_type $1 }
 ;
 
 /* normal identifier or unparsed  expression */
@@ -416,7 +411,7 @@ hyp_def:
 
 compact_args:
     /* empty */                                          { [] }
-  | LPAREN_ IDENT COLON_ typ RPAREN_ compact_args    { (evar $2) :: $6 }
+  | LPAREN_ IDENT COLON_ typ RPAREN_ compact_args    { (tvar $2 $4) :: $6 }
 ;
 
 
