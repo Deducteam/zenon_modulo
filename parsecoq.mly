@@ -11,7 +11,8 @@ open Phrase;;
 
 let rec mk_type e =
   match e with
-  | Evar (s, _) -> tvar s type_type
+  | Evar (s, _) -> eapp (tvar s type_type, []) (* All type idents are parsed as constants,
+                                                 TODO: allow real type variables *)
   | Eapp (s, args, _) ->
      eapp (s, List.map mk_type args)
   | Eimply (e1, e2, _) ->
