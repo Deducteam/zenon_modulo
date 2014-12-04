@@ -148,7 +148,7 @@ lambda:
 ;
 
 mlambda:
-  | OPEN OPEN ident_list STRING CLOSE expr CLOSE { ($3, tvar $4 type_type, $6) }
+  | OPEN OPEN ident_list STRING CLOSE expr CLOSE { ($3, eapp (tvar $4 type_type, []), $6) }
   | OPEN OPEN ident_list CLOSE expr CLOSE        { ($3, type_none, $5) }
 ;
 
