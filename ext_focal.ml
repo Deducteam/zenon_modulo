@@ -805,6 +805,30 @@ let predef () =
     ]
 ;;
 
+
+(* Registering of constants for type-checking *)
+(* Functions for building types (/!\ too specific to Dedukti) *)
+let eT = tvar "cc.eT" (earrow [type_type] type_type);;
+let eps ty = assert (get_type ty == type_type); eapp (eT, [ty]);;
+let arr ty1 ty2 = earrow [ty1] ty2;;
+let t_bool = tvar "basics.bool__t" type_type;;
+let bool1 = eps t_bool;;
+let bool2 = arr bool1 bool1;;
+let bool3 = arr bool1 bool2;;
+let t_prop = type_prop;;
+
+List.iter Typer.declare_constant
+  [
+    ("Is_true", arr bool1 t_prop);
+    ("true", bool1);
+    ("false", bool1);
+    ("basics._tilda__tilda_", bool2);
+    ("basics._amper__amper_", bool3);
+    ("basics._bar__bar_", bool3);
+    ("basics._bar__lt__gt__bar_", bool3)
+  ]
+;;
+
 Extension.register {
   Extension.name = "focal";
   Extension.newnodes = newnodes;
