@@ -581,6 +581,7 @@ let newname () =
 ;;
 
 let newvar () = evar (newname ());;
+let newtvar ty = tvar (newname ()) ty;;
 
 let rec rm_binding v map =
   match map with

@@ -129,6 +129,7 @@ val remove_scope : expr -> expr;;
 
 (* gensym *)
 val newvar : unit -> expr;;
+val newtvar : expr -> expr;;
 val newname : unit -> string;;
 
 val size : expr -> int;;
