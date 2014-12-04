@@ -230,7 +230,7 @@ let rec get_params accu p =
   | Evar (v, _) -> accu
   | Emeta (m, _) ->
      let name = make_meta_name m in
-     merge [Expr.get_type m, evar (name)] accu
+     merge [Expr.get_type m, tvar (name) (Expr.get_type p)] accu
   | Earrow _ -> assert false
   | Eapp (_, es, _) -> List.fold_left get_params accu es
 
