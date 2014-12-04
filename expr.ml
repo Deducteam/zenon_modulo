@@ -370,11 +370,6 @@ module HashedExpr = struct
     || m1 && m2 && equal_in_env [v1] [v2] f1 f2
   ;;
 
-  let opt_equal a b = match a, b with
-  | None, None -> true
-  | Some t1, Some t2 -> Type.equal t1 t2
-  | _ -> false
-
   let equal e1 e2 = get_type e1 == get_type e2 &&
     match e1, e2 with
     | Evar (v1, _), Evar (v2, _) -> v1 =%= v2 && get_type e1 == get_type e2
