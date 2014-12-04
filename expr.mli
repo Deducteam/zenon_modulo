@@ -50,7 +50,7 @@ val tvar : string -> expr -> expr;;
 val emeta : expr -> expr;;
 val eapp : expr * expr list -> expr;;
 
-val eeq : expr;;
+val eeq : expr -> expr -> expr;;
 val estring : expr;;
 
 (* Prop construction *)

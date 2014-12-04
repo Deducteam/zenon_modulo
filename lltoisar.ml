@@ -359,7 +359,7 @@ let rec p_tree hyps i dict oc proof =
   | Rextension (_, "zenon_stringequal", _, _, _) -> assert false
   | Rextension (_, "zenon_stringdiffll", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let s1nes2 = enot (eapp (eeq, [s1; s2])) in
+     let s1nes2 = enot (eeq s1 s2) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
      iprintf i oc "by auto\n";
      iprintf i oc "have %s: \"%a\"" (hname hyps h) (p_expr dict) h;
@@ -370,7 +370,7 @@ let rec p_tree hyps i dict oc proof =
   | Rextension (_, "zenon_stringdiffll", _, _, _) -> assert false
   | Rextension (_, "zenon_stringdifflr", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let s1nes2 = enot (eapp (eeq, [s1; s2])) in
+     let s1nes2 = enot (eeq s1 s2) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
      iprintf i oc "by auto\n";
      iprintf i oc "have %s: \"%a\"" (hname hyps h) (p_expr dict) h;
@@ -381,7 +381,7 @@ let rec p_tree hyps i dict oc proof =
   | Rextension (_, "zenon_stringdifflr", _, _, _) -> assert false
   | Rextension (_, "zenon_stringdiffrl", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let s1nes2 = enot (eapp (eeq, [s1; s2])) in
+     let s1nes2 = enot (eeq s1 s2) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
      iprintf i oc "by auto\n";
      iprintf i oc "have %s: \"%a\"" (hname hyps h) (p_expr dict) h;
@@ -392,7 +392,7 @@ let rec p_tree hyps i dict oc proof =
   | Rextension (_, "zenon_stringdiffrl", _, _, _) -> assert false
   | Rextension (_, "zenon_stringdiffrr", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let s1nes2 = enot (eapp (eeq, [s1; s2])) in
+     let s1nes2 = enot (eeq s1 s2) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
      iprintf i oc "by auto\n";
      iprintf i oc "have %s: \"%a\"" (hname hyps h) (p_expr dict) h;
@@ -423,7 +423,7 @@ let rec p_tree hyps i dict oc proof =
                     |"zenon_record_domain"),
                 [p; olde; newe], [c], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let eqn = eapp (eeq, [olde; newe]) in
+     let eqn = eeq olde newe in
      iprintf i oc "have %s: \"%a\"" (hname hyps eqn) (p_expr dict) eqn;
      let dict2 = p_is dict oc eqn in
      iprintf i oc "by auto\n";
@@ -444,7 +444,7 @@ let rec p_tree hyps i dict oc proof =
        | _ -> assert false
      in
      let indom = eapp (evar "TLA.in", [fld; eapp (evar "TLA.DOMAIN", [r])]) in
-     let eqn = eapp (eeq, [olde; newe]) in
+     let eqn = eeq olde newe in
      let eqx = eand (indom, eqn) in
      iprintf i oc "have %s: \"%a\"" (hname hyps eqx) (p_expr dict) eqx;
      let dict = p_is dict oc eqx in
@@ -740,12 +740,12 @@ let rec p_tree hyps i dict oc proof =
   | Rdefinition _ -> assert false
   | Rnotequal (Eapp (Evar(f,_) as f', args1, _) as e1, (Eapp (Evar(g,_), args2, _) as e2)) ->
      assert (f = g);
-     let e = enot (eapp (eeq, [e1; e2])) in
+     let e = enot (eeq e1 e2) in
      iprintf i oc "show FALSE\n";
      iprintf i oc "proof (rule zenon_noteq [of \"%a\"])\n" (p_expr dict) e2;
      let pr d x y z = p_sub_equal hyps (iinc i) d oc x y z in
      let dict2 = list_fold_left3 pr dict args1 args2 proof.hyps in
-     let mk l = enot (eapp (eeq, [eapp (f', l); e2])) in
+     let mk l = enot (eeq (eapp (f', l)) e2) in
      p_subst hyps i dict2 oc mk args1 args2 [] e;
   | Rnotequal _ -> assert false
   | Rpnotp (Eapp (Evar(p,_) as p', args1, _) as pp, (Enot (Eapp (Evar(q,_), args2, _), _) as np)) ->
@@ -758,14 +758,14 @@ let rec p_tree hyps i dict oc proof =
      p_subst hyps i dict2 oc mk args1 args2 [] pp;
   | Rpnotp _ -> assert false
   | Rnoteq e1 ->
-     let neq = enot (eapp (eeq, [e1; e1])) in
+     let neq = enot (eeq e1 e1) in
      let n_neq = hname hyps neq in
      iprintf i oc "show FALSE\n";
      iprintf i oc "by (rule zenon_noteq [OF %s])\n" n_neq;
   | Reqsym (e1, e2) ->
-     let eq = eapp (eeq, [e1; e2]) in
+     let eq = eeq e1 e2 in
      let n_eq = hname hyps eq in
-     let neq = enot (eapp (eeq, [e2; e1])) in
+     let neq = enot (eeq e2 e1) in
      let n_neq = hname hyps neq in
      iprintf i oc "show FALSE\n";
      iprintf i oc "by (rule zenon_eqsym [OF %s %s])\n" n_eq n_neq;
@@ -777,7 +777,7 @@ let rec p_tree hyps i dict oc proof =
      iprintf i oc "by (rule %s)\n" (hname hyps efalse);
   | RcongruenceLR (p, a, b) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let h0 = eapp (eeq, [a; b]) in
+     let h0 = eeq a b in
      let h1 = apply p a in
      let c = apply p b in
      iprintf i oc "have %s: \"%a\"" (hname hyps c) (p_expr dict) c;
@@ -787,7 +787,7 @@ let rec p_tree hyps i dict oc proof =
      p_tree hyps i dict2 oc t;
   | RcongruenceRL (p, a, b) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
-     let h0 = eapp (eeq, [b; a]) in
+     let h0 = eeq b a in
      let h1 = apply p a in
      let c = apply p b in
      iprintf i oc "have %s: \"%a\"" (hname hyps c) (p_expr dict) c;
@@ -849,14 +849,14 @@ and p_delta hyps i dict oc lem neg lam e conc sub =
   p_tree hyps i dict2 oc t;
 
 and p_sub_equal hyps i dict oc e1 e2 prf =
-  let eq = eapp (eeq, [e1; e2]) in
+  let eq = eeq e1 e2 in
   if Expr.equal e1 e2 || List.exists (Expr.equal eq) prf.conc
   then dict
   else begin
     let n_eq = enot (eq) in
     iprintf i oc "have %s: \"%a\"" (hname hyps eq) (p_expr dict) eq;
     let dict2 = p_is dict oc eq in
-    let rev_eq = eapp (eeq, [e2; e1]) in
+    let rev_eq = eeq e2 e1 in
     if List.exists (Expr.equal rev_eq) prf.conc then begin
       iprintf i oc "by (rule sym [OF %s])\n" (hname hyps rev_eq);
     end else begin
@@ -884,7 +884,7 @@ and p_subst hyps i dict oc mk l1 l2 rl2 prev =
        let n_e = hname hyps e in
        iprintf (iinc i) oc "have %s: \"%a\"" n_e (p_expr dict) e;
        let dict2 = p_is dict oc e in
-       let eq = eapp (eeq, [h1; h2]) in
+       let eq = eeq h1 h2 in
        iprintf (iinc i) oc "by (rule subst [where P=\"%a\", OF %s], fact %s)\n"
                (p_expr dict2) p (hname hyps eq) (hname hyps prev);
        p_subst hyps i dict2 oc mk t1 t2 newrl2 e;

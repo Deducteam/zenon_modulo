@@ -44,7 +44,9 @@ let clear_line () =
 
 
 let debug_level_ = ref 0
-let set_debug l = debug_level_ := l
+let set_debug l =
+    debug_level_ := l;
+    if l > 0 then Printexc.record_backtrace true
 let get_debug () = !debug_level_
 let need_cleanup = ref false
 let debug l format =

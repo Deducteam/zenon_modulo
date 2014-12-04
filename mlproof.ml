@@ -178,7 +178,7 @@ let make_neqv p q n0 n1 =
 ;;
 
 let mk_neqs l1 l2 =
-  try List.map2 (fun x y -> [enot (eapp (eeq, [x; y]))]) l1 l2
+  try List.map2 (fun x y -> [enot (eeq x y)]) l1 l2
   with Invalid_argument _ -> assert false
 ;;
 
@@ -208,7 +208,7 @@ let make_pnps r rab nrcd n0 n1 =
     | _ -> assert false
   in
   make_node [rab; nrcd] (P_NotP_sym (r, rab, nrcd))
-            [[enot (eapp (eeq, [b; c]))]; [enot (eapp (eeq, [a; d]))]] [n0; n1]
+            [[enot (eeq b c)]; [enot (eeq a d)]] [n0; n1]
 ;;
 
 let make_neql fa fb ns =
@@ -222,7 +222,7 @@ let make_neql fa fb ns =
     | Eapp (Evar(g,_), bb, _) -> assert (g = f); bb
     | _ -> assert false
   in
-  make_node [enot (eapp (eeq, [fa; fb]))] (NotEqual (fa, fb)) (mk_neqs aa bb) ns
+  make_node [enot (eeq fa fb)] (NotEqual (fa, fb)) (mk_neqs aa bb) ns
 ;;
 
 let make_def d folded unfolded n0 =
@@ -230,12 +230,12 @@ let make_def d folded unfolded n0 =
 ;;
 
 let make_conglr p a b n0 =
-  make_node [apply p a; eapp (eeq, [a; b])] (CongruenceLR (p, a, b))
+  make_node [apply p a; eeq a b] (CongruenceLR (p, a, b))
             [[apply p b]] [n0]
 ;;
 
 let make_congrl p a b n0 =
-  make_node [apply p a; eapp (eeq, [b; a])] (CongruenceRL (p, a, b))
+  make_node [apply p a; eeq b a] (CongruenceRL (p, a, b))
             [[apply p b]] [n0]
 ;;
 

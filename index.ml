@@ -259,11 +259,11 @@ let find_neq_lr e = HE.find_all neq_lr e;;
 let find_neq_rl e = HE.find_all neq_rl e;;
 
 let find_eq e =
-  List.map (fun x -> eapp (eeq, [e; x])) (find_eq_lr e)
-  @ List.map (fun x -> eapp (eeq, [x; e])) (find_eq_rl e);;
+  List.map (fun x -> eeq e x) (find_eq_lr e)
+  @ List.map (fun x -> eeq x e) (find_eq_rl e);;
 let find_neq e =
-  List.map (fun x -> enot (eapp (eeq, [e; x]))) (find_neq_lr e)
-  @ List.map (fun x -> enot (eapp (eeq, [x; e]))) (find_neq_rl e);;
+  List.map (fun x -> enot (eeq e x)) (find_neq_lr e)
+  @ List.map (fun x -> enot (eeq x e)) (find_neq_rl e);;
 
 (* ==== *)
 

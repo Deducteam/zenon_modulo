@@ -132,7 +132,7 @@ let newnodes_istrue e g =
         nbranches = branches;
       }; Stop ]
   | Eapp (Evar(op,_), [e1; e2; e3], _) when is_true_equal op ->
-     let branches = [| [eapp (eeq, [e2; e3])] |] in
+     let branches = [| [eeq e2 e3] |] in
      let name = chop_prefix "Is_true**" op in
        [ Node {
          nconc = [e];
@@ -178,7 +178,7 @@ let newnodes_istrue e g =
         nbranches = branches;
       }; Stop ]
   | Enot (Eapp (Evar(op,_), [e1; e2; e3], _), _) when is_true_equal op ->
-     let branches = [| [enot (eapp (eeq, [e2; e3]))] |] in
+     let branches = [| [enot (eeq e2 e3)] |] in
      let name = chop_prefix "Is_true**" op in
        [ Node {
          nconc = [e];
@@ -282,7 +282,7 @@ let newnodes_istrue e g =
           nrule = Ext ("focal", "istrue_true", [e1]);
           nprio = Arity;
           ngoal = g;
-          nbranches = [| [eapp (eeq, [e1; evar "true"])] |];
+          nbranches = [| [eeq e1 (evar "true")] |];
       } ]
   | Enot (Eapp (Evar("Is_true",_), [Eapp (Evar("$fix",_), _, _) as e1], _), _) ->
       [ Node {
@@ -290,7 +290,7 @@ let newnodes_istrue e g =
           nrule = Ext ("focal", "notistrue_false", [e1]);
           nprio = Arity;
           ngoal = g;
-          nbranches = [| [eapp (eeq, [e1; evar "false"])] |];
+          nbranches = [| [eeq e1 (evar "false")] |];
       } ]
   | Eapp (Evar("Is_true",_), [Eapp (Evar(s,_), args, _)], _) when Index.has_def s ->
      let ctx x = eapp (evar "Is_true", [x]) in
@@ -439,7 +439,7 @@ let to_llargs tr_expr r =
       let c = tr_expr (istrue (eapp (evar "coq_builtins.bi__not_b", [e1]))) in
       ("zenon_focal_not", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "equal", [Evar (name, _)as a; e1; e2; e3]) ->
-      let h = tr_expr (eapp (eeq, [e2; e3])) in
+      let h = tr_expr (eeq e2 e3) in
       let c = tr_expr (istrue (eapp (a, [e1; e2; e3]))) in
       let eqdec = evar ("zenon_focal_eqdec") in
       (name_of_equality_lemma,
@@ -461,7 +461,7 @@ let to_llargs tr_expr r =
       let c = tr_expr (enot (istrue (eapp (evar "coq_builtins.bi__not_b", [e1])))) in
       ("zenon_focal_notnot", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notequal", [Evar (name, _) as a; e1; e2; e3]) ->
-      let h = tr_expr (enot (eapp (eeq, [e2; e3]))) in
+      let h = tr_expr (enot (eeq e2 e3)) in
       let c = tr_expr (enot (istrue (eapp (a, [e1; e2; e3])))) in
       (name_of_notequality_lemma,
        [tr_expr e1; tr_expr e2; tr_expr e3], [c], [ [h] ])
@@ -472,35 +472,35 @@ let to_llargs tr_expr r =
       let c = tr_expr (enot (istrue (evar "true"))) in
       ("zenon_focal_nottrue", [], [c], []);
   | Ext (_, "trueequal", [e1]) ->
-     let c = tr_expr (eapp (eeq, [evar "true"; e1])) in
+     let c = tr_expr (eeq (evar "true") e1) in
      let h = tr_expr (eapp (evar "Is_true", [e1])) in
      ("zenon_focal_trueequal", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "equaltrue", [e1]) ->
-     let c = tr_expr (eapp (eeq, [e1; evar "true"])) in
+     let c = tr_expr (eeq e1 (evar "true")) in
      let h = tr_expr (eapp (evar "Is_true", [e1])) in
      ("zenon_focal_equaltrue", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "truenotequal", [e1]) ->
-     let c = tr_expr (enot (eapp (eeq, [evar "true"; e1]))) in
+     let c = tr_expr (enot (eeq (evar "true") e1)) in
      let h = tr_expr (enot (eapp (evar "Is_true", [e1]))) in
      ("zenon_focal_truenotequal", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notequaltrue", [e1]) ->
-     let c = tr_expr (enot (eapp (eeq, [e1; evar "true"]))) in
+     let c = tr_expr (enot (eeq e1 (evar "true"))) in
      let h = tr_expr (enot (eapp (evar "Is_true", [e1]))) in
      ("zenon_focal_notequaltrue", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "falseequal", [e1]) ->
-     let c = tr_expr (eapp (eeq, [evar "false"; e1])) in
+     let c = tr_expr (eeq (evar "false") e1) in
      let h = tr_expr (enot (eapp (evar "Is_true", [e1]))) in
      ("zenon_focal_falseequal", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "equalfalse", [e1]) ->
-     let c = tr_expr (eapp (eeq, [e1; evar "false"])) in
+     let c = tr_expr (eeq e1 (evar "false")) in
      let h = tr_expr (enot (eapp (evar "Is_true", [e1]))) in
      ("zenon_focal_equalfalse", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "falsenotequal", [e1]) ->
-     let c = tr_expr (enot (eapp (eeq, [evar "false"; e1]))) in
+     let c = tr_expr (enot (eeq (evar "false") e1)) in
      let h = tr_expr (eapp (evar "Is_true", [e1])) in
      ("zenon_focal_falsenotequal", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notequalfalse", [e1]) ->
-     let c = tr_expr (enot (eapp (eeq, [e1; evar "false"]))) in
+     let c = tr_expr (enot (eeq e1 (evar "false"))) in
      let h = tr_expr (eapp (evar "Is_true", [e1])) in
      ("zenon_focal_notequalfalse", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "merge", _) -> ("zenon_focal_merge", [], [], [])
@@ -575,11 +575,11 @@ let to_llargs tr_expr r =
       ("zenon_focal_ite_rel_nr", List.map tr_expr [rf; e1; c; t; e],
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "istrue_true", [e1]) ->
-     let h = tr_expr (eapp (eeq, [e1; evar "true"])) in
+     let h = tr_expr (eeq e1 (evar "true")) in
      let c = tr_expr (istrue e1) in
      ("zenon_focal_istrue_true", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notistrue_false", [e1]) ->
-     let h = tr_expr (eapp (eeq, [e1; evar "false"])) in
+     let h = tr_expr (eeq e1 (evar "false")) in
      let c = tr_expr (enot (istrue e1)) in
      ("zenon_focal_notistrue_false", [tr_expr e1], [c], [ [h] ])
   | Ext (x, y, _) ->
@@ -763,7 +763,7 @@ let rec process_prooftree p =
       let fa1 = eapp (evar s, List.map process_expr args1) in
       let fa2 = eapp (evar s, List.map process_expr args2) in
       let step1 = {
-        conc = Expr.union [enot (eapp (eeq, [fa1; fa2]))] pconc;
+        conc = Expr.union [enot (eeq fa1 fa2)] pconc;
         rule = Rnotequal (fa1, fa2);
         hyps = phyps;
       } in

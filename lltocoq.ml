@@ -347,7 +347,7 @@ let p_rule oc r =
   | Rnotequal (Eapp (Evar(f,_), args1, _), Eapp (Evar(g,_), args2, _)) ->
      assert (f = g);
      let f a1 a2 =
-       let eq = eapp (eeq, [a1; a2]) in
+       let eq = eeq a1 a2 in
        let neq = enot eq in
        poc "cut (%a); [idtac | apply NNPP; zenon_intro %s].\n"
            p_expr eq (getname neq);
@@ -363,7 +363,7 @@ let p_rule oc r =
      poc "try rewrite <- %s_pnotp.\n" Namespace.dummy_prefix;
      poc "exact %s.\n" (getname ff);
      let f a1 a2 =
-       let eq = eapp (eeq, [a1; a2]) in
+       let eq = eeq a1 a2 in
        let neq = enot eq in
        poc "cut (%a); [idtac | apply NNPP; zenon_intro %s].\n"
            p_expr eq (getname neq);
@@ -372,24 +372,24 @@ let p_rule oc r =
      poc "congruence.\n";
   | Rpnotp _ -> assert false
   | Rnoteq e ->
-      poc "apply %s. apply refl_equal.\n" (getname (enot (eapp (eeq, [e; e]))));
+      poc "apply %s. apply refl_equal.\n" (getname (enot (eeq e e)));
   | Reqsym (e, f) ->
       poc "apply %s. apply sym_equal. exact %s.\n"
-          (getname (enot (eapp (eeq, [f; e]))))
-          (getname (eapp (eeq, [e; f])));
+          (getname (enot (eeq f e)))
+          (getname (eeq e f));
   | Rnottrue ->
       poc "exact (%s I).\n" (getname (enot (etrue)));
   | Rfalse ->
       poc "exact %s.\n" (getname efalse);
   | RcongruenceLR (p, a, b) ->
       let c1 = apply p a in
-      let c2 = eapp (eeq, [a; b]) in
+      let c2 = eeq a b in
       let h = apply p b in
       poc "apply (zenon_congruence_lr_s _ %a %a %a %s %s). zenon_intro %s.\n"
           p_expr p p_expr a p_expr b (getname c1) (getname c2) (getname h);
   | RcongruenceRL (p, a, b) ->
       let c1 = apply p a in
-      let c2 = eapp (eeq, [b; a]) in
+      let c2 = eeq b a in
       let h = apply p b in
       poc "apply (zenon_congruence_rl_s _ %a %a %a %s %s). zenon_intro %s.\n"
           p_expr p p_expr a p_expr b (getname c1) (getname c2) (getname h);

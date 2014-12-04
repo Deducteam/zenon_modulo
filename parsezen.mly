@@ -131,7 +131,7 @@ expr:
   | OPEN EX mlambda CLOSE                { mk_eex $3 }
   | mlambda                              { mk_elam $1 }
   | OPEN TAU lambda CLOSE                { etau $3 }
-  | OPEN EQUAL expr expr CLOSE           { eapp (eeq, [$3; $4]) }
+  | OPEN EQUAL expr expr CLOSE           { eeq $3 $4 }
   | OPEN MATCH expr case_list CLOSE      { eapp (evar "$match", $3 :: $4) }
   | OPEN LET id_expr_list_expr CLOSE     { eapp (evar "$let", $3) }
   | OPEN FIX mlambda expr_list CLOSE     { eapp (evar "$fix", mk_elam $3 :: $4) }

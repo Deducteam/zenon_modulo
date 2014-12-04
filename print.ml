@@ -336,7 +336,7 @@ let hlrule_name = function
   | NotEquiv (e1, e2) -> "NotEquiv", [enot (eequiv (e1, e2))]
   | P_NotP (e1, e2) -> "P-NotP", [e1; e2]
   | P_NotP_sym (s, e1, e2) -> "P-NotP-sym("^(get_name s)^")", [e1; e2]
-  | NotEqual (e1, e2) -> "NotEqual", [enot (eapp (eeq, [e1; e2]))]
+  | NotEqual (e1, e2) -> "NotEqual", [enot (eeq e1 e2)]
   | Definition (DefReal (_, s, _, _, _, _), e, _)
   | Definition (DefPseudo (_, s, _, _, _), e, _)
   | Definition (DefRec (_, s, _, _, _), e, _)

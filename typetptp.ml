@@ -193,7 +193,7 @@ let rec type_tff_app env is_pred e = match e with
     | Eapp(Evar("=", _), [a; b], _) ->
             let a', env' = type_tff_term env a in
             let b', env'' = type_tff_term env' b in
-            eapp (eeq, [a'; b']), env''
+            eeq a' b', env''
     | Eapp(Evar(s, _) as s', args, _) ->
             let args, env' = map_fold type_tff_term env args in
             let f, env'' = match get_type s' with

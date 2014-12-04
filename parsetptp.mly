@@ -124,8 +124,8 @@ expr:
   | INT                                { eapp (evar "$int", [evar $1]) }
   | RAT                                { eapp (evar "$rat", [evar $1]) }
   | REAL                               { eapp (evar "$real", [evar $1]) }
-  | expr EQSYM expr                    { eapp (eeq, [$1; $3]) }
-  | expr NEQSYM expr                   { enot (eapp (eeq, [$1; $3])) }
+  | expr EQSYM expr                    { eeq $1 $3 }
+  | expr NEQSYM expr                   { enot (eeq $1 $3) }
 ;
 arguments:
   | OPEN expr_list CLOSE         { $2 }

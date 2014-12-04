@@ -129,7 +129,7 @@ let rec make_inequals_aux l1 l2 =
   match l1, l2 with
   | [], [] -> []
   | h1::t1, h2::t2 ->
-      [enot (eapp (eeq, [h1; h2]))] :: make_inequals_aux t1 t2
+      [enot (eeq h1 h2)] :: make_inequals_aux t1 t2
   | _, _ -> assert false
 ;;
 let make_inequals l1 l2 = Array.of_list (make_inequals_aux l1 l2);;
@@ -336,7 +336,7 @@ let newnodes_eq_str st fm g _ =
       nrule = Ext ("", rule, [e1; s1; e2; s2]);
       nprio = Prop;
       ngoal = g;
-      nbranches = [| [enot (eapp (eeq, [e1; e2]))] |];
+      nbranches = [| [enot (eeq e1 e2)] |];
     }, false
   in
   match fm with
@@ -345,12 +345,12 @@ let newnodes_eq_str st fm g _ =
      let r = Index.find_str_eq () in
      let fl st (e2, s) =
        let s2 = eapp (evar "$string", [evar s]) in
-       let eq = eapp (eeq, [e2; s2]) in
+       let eq = eeq e2 s2 in
        mk_node st "stringdiffll" e1 s1 e2 s2 eq
      in
      let fr st (e2, s) =
        let s2 = eapp (evar "$string", [evar s]) in
-       let eq = eapp (eeq, [s2; e2]) in
+       let eq = eeq s2 e2 in
        mk_node st "stringdifflr" e1 s1 e2 s2 eq
      in
      List.fold_left fr (List.fold_left fl (st, false) l) r
@@ -664,7 +664,7 @@ let newnodes_refl st fm g _ =
         nrule = Refl (s', e1, e2);
         nprio = Arity;
         ngoal = g;
-        nbranches = [| [enot (eapp (eeq, [e1; e2]))] |];
+        nbranches = [| [enot (eeq e1 e2)] |];
       }, false
 
   | Enot (Eapp (Evar("=",_), [Emeta (m1, _) as e1; Emeta (m2, _) as e2], _), _) ->
@@ -715,8 +715,8 @@ let mknode_trans sym (e1, g1) (e2, g2) =
   in
   let (x, y, z, t) = if sym then (d, a, b, c) else (c, a, b, d) in
   let branches = [|
-    [enot (eapp (eeq, [x; y])); enot (eapp (r', [x; y]))];
-    [enot (eapp (eeq, [z; t])); enot (eapp (r', [z; t]))];
+    [enot (eeq x y); enot (eapp (r', [x; y]))];
+    [enot (eeq z t); enot (eapp (r', [z; t]))];
   |] in
   {
     nconc = [e1; e2];
@@ -742,9 +742,9 @@ let mknode_transeq sym (e1, g1) (e2, g2) =
     else (c, a, b, d)
   in
   let branches = [|
-    [enot (eapp (eeq, [x; y])); enot (eapp (r', [x; y]))];
+    [enot (eeq x y); enot (eapp (r', [x; y]))];
     [enot (eapp (r', [x; y])); enot (eapp (r', [z; t]))];
-    [enot (eapp (eeq, [z; t])); enot (eapp (r', [z; t]))];
+    [enot (eeq z t); enot (eapp (r', [z; t]))];
   |] in
   {
     nconc = [e1; e2];
@@ -837,10 +837,10 @@ let newnodes_match_trans st fm g _ =
         ] in
         let eqnodes =
           if s' =%= "=" then [] else
-          let eqmatches_ll = Index.find_trans_left eeq h1 in
-          let eqmatches_rr = Index.find_trans_right eeq h2 in
-          let eqmatches_lr = Index.find_trans_right eeq h1 in
-          let eqmatches_rl = Index.find_trans_left eeq h2 in
+          let eqmatches_ll = Index.find_trans_left s h1 in
+          let eqmatches_rr = Index.find_trans_right s h2 in
+          let eqmatches_lr = Index.find_trans_right s h1 in
+          let eqmatches_rl = Index.find_trans_left s h2 in
           List.flatten [
             List.map (mknode_negtranseq false fmg) eqmatches_ll;
             List.map (mknode_negtranseq true fmg) eqmatches_lr;

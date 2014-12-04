@@ -296,6 +296,40 @@ let priv_tau v e =
          (get_type v)
 ;;
 
+(************************)
+(* temp printers *)
+let rec print b ex =
+  match ex with
+  | Evar (v, _) -> Printf.bprintf b "%s" v;
+  | Emeta (e, _) -> Printf.bprintf b "M.(%a)" print e;
+  | Earrow (args, ret, _) ->
+      Printf.bprintf b "(%a -> %a)"
+      (fun b l -> List.iteri (fun i x -> if i > 0 then Printf.bprintf b " * %a" print x) l) args print ret;
+  | Eapp (s, es, _) ->
+      Printf.bprintf b "(%a%a)" print s
+      (fun b l -> List.iter (fun x -> Printf.bprintf b " %a" print x) l) es
+  | Enot (e, _) ->
+      Printf.bprintf b "~ %a" print e
+  | Eand (e1, e2, _) ->
+      Printf.bprintf b "(%a /\\ %a)" print e1 print e2
+  | Eor (e1, e2, _) ->
+      Printf.bprintf b "(%a \\/ %a)" print e1 print e2
+  | Eimply (e1, e2, _) ->
+      Printf.bprintf b "(%a => %a)" print e1 print e2
+  | Eequiv (e1, e2, _) ->
+      Printf.bprintf b "(%a <=> %a)" print e1 print e2
+  | Etrue -> Printf.bprintf b "True";
+  | Efalse -> Printf.bprintf b "False";
+  | Eall (v, e, _) ->
+      Printf.bprintf b "(A.(%a : %a): %a)" print v print (get_type v) print e
+  | Eex (v, e, _) ->
+      Printf.bprintf b "(E.(%a : %a): %a)" print v print (get_type v) print e
+  | Etau (v, e, _) ->
+      Printf.bprintf b "(T.(%a : %a): %a)" print v print (get_type v) print e
+  | Elam (v, e, _) ->
+      Printf.bprintf b "(L.(%a : %a): %a)" print v print (get_type v) print e
+
+
 module HashedExpr = struct
   type t = expr;;
 
@@ -464,7 +498,6 @@ let priv_lam v e =
 let elam (v, e) = he_merge (Elam (v, e, priv_lam v e))
 ;;
 
-let eeq = evar "=";;
 let estring = evar "$string";;
 
 let rec all_list vs body =
@@ -576,6 +609,8 @@ let rec priv_app s args =
   let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
   let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
   let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
+  Log.debug 15 "Typing '%a'" print s;
+  List.iter (fun x -> Log.debug 15 " |- %a ::: %a" print x print (get_type x)) args;
   let typ = type_app (get_type s) args in
   mkpriv skel fv sz taus metas typ
 
@@ -608,6 +643,11 @@ and type_app s args =
     | t, [] -> t
     | _ -> assert false
 
+and eeq a b =
+    let t = get_type a in
+    let s = tvar "=" (earrow [t; t] type_prop) in
+    eapp (s, [a; b])
+
 and substitute map e =
   let aux f map v body =
       let t = substitute map (get_type v) in
@@ -628,6 +668,7 @@ and substitute map e =
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
   | Earrow(args, ret, _) -> earrow (List.map (substitute map) args) (substitute map ret)
+  | Eapp (Evar ("=", _), [a; b], _) -> eeq (substitute map a) (substitute map b)
   | Eapp (s, args, _) -> eapp (s, List.map (substitute map) args)
   | Enot (f, _) -> enot (substitute map f)
   | Eand (f, g, _) -> eand (substitute map f, substitute map g)

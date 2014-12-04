@@ -198,7 +198,7 @@ let make_match_branches e cases =
           | _ -> eapp (constr, rvars)
         in
 *)
-        let shape = enot (eapp (eeq, [e; pattern])) in
+        let shape = enot (eeq e pattern) in
         [enot (all_list rvars shape)]
       in
       List.map f c
@@ -225,7 +225,7 @@ let make_match_congruence e g ctx is_t ee cases rhs =
   let key = if is_t then "Is_true**$match" else "$match" in
   let p = elam (x, ctx (eapp (evar key, x :: cases))) in
   Node {
-    nconc = [e; eapp (eeq, [ee; rhs])];
+    nconc = [e; eeq ee rhs];
     nrule = CongruenceLR (p, ee, rhs);
     nprio = Arity;
     ngoal = g;
@@ -376,7 +376,7 @@ let newnodes_injective e g =
        let args2 = get_args e2 in
        let ty = evar ((Hashtbl.find constructor_table (get_constr e1)).cd_type)
        in
-       let branch = List.map2 (fun x y -> eapp (eeq, [x; y])) args1 args2 in
+       let branch = List.map2 (fun x y -> eeq x y) args1 args2 in
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "injection", [e; ty]);
@@ -412,7 +412,7 @@ let newnodes_injective e g =
      let cas2 = make_case_expr "_" [] efalse in
      let x = newvar () in
      let caract = elam (x, eapp (evar "$match", [x; cas1; cas2])) in
-     let h = enot (eapp (eeq, [e2; e1])) in
+     let h = enot (eeq e2 e1) in
      [ Node {
       nconc = [];
        nrule = Ext ("induct", "discriminate_diff", [e2; e1; caract]);
@@ -433,7 +433,7 @@ let newnodes_injective e g =
      in
      if is_multiconstr then begin
        let any = eapp (evar "$any-induct", [evar (desc.cd_type); e1]) in
-       let h = enot (eapp (eeq, [e1; any])) in
+       let h = enot (eeq e1 any) in
        [ Node {
          nconc = [];
          nrule = Ext ("induct", "discriminate_meta", []);
@@ -452,7 +452,7 @@ let newnodes_constr_eq e g =
     let mk_node accu ee =
       if Expr.equal e0 ee then accu
       else begin
-        let eqn = eapp (eeq, [e0; ee]) in
+        let eqn = eeq e0 ee in
         Node {
           nconc = [];
           nrule = Cut eqn;
@@ -606,7 +606,7 @@ let to_llproof tr_expr mlp args =
        match args1, args2 with
        | [], [] -> accu
        | a1 :: t1, a2 :: t2 ->
-          let hyp = tr_expr (eapp (eeq, [a1; a2])) in
+          let hyp = tr_expr (eeq a1 a2) in
           if List.exists (Expr.equal hyp) accu.conc then begin
             let (_, cons, schema) =
               try Hashtbl.find type_table ty with Not_found -> assert false
@@ -646,7 +646,7 @@ let to_llproof tr_expr mlp args =
        match args1, args2 with
        | [], [] -> accu
        | a1 :: t1, a2 :: t2 ->
-          let hyp = tr_expr (eapp (eeq, [a1; a2])) in
+          let hyp = tr_expr (eeq a1 a2) in
           if List.exists (Expr.equal hyp) accu.conc then begin
             let (_, cons, schema) =
               try Hashtbl.find type_table ty with Not_found -> assert false
@@ -875,7 +875,7 @@ let p_rule_coq oc r =
   | Rextension (_, "zenon_induct_discriminate", [], [conc; _], []) ->
       poc "discriminate %s.\n" (getname conc);
   | Rextension (_, "zenon_induct_discriminate_diff", [], [e1; e2; _], []) ->
-      let h = enot (eapp (eeq, [e1; e2])) in
+      let h = enot (eeq e1 e2) in
       poc "assert (%a) as %s. discriminate.\n" p_expr h (getname h);
   | Rextension (_, "zenon_induct_cases", [Evar (ty, _); ctx; e1], [c], hs) ->
      poc "case_eq (%a); [\n    " p_expr e1;

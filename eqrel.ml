@@ -230,7 +230,7 @@ let subsumed_subexpr e (path, env, sb, typ) =
 let subsumed e = List.for_all (subsumed_subexpr e) (get_subexprs e);;
 
 let eq_origin = Some (etrue, [], []);;
-Hashtbl.add tbl (eeq) {
+Hashtbl.add tbl (evar "=") {
   refl = eq_origin;
   sym = eq_origin;
   trans = eq_origin;

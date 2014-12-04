@@ -218,11 +218,11 @@ let rec trtree env node =
       let lamp = mklam p subp in
       Clet (getname (enot p), lamp, subnp)
   | Rnoteq (e) ->
-      let e_neq_e = getv env (enot (eapp (eeq, [e; e]))) in
+      let e_neq_e = getv env (enot (eeq e e)) in
       Capp (Cvar "zenon_noteq", [Cwild; trexpr e; e_neq_e])
   | Reqsym (e, f) ->
-      let e_eq_f = getv env (eapp (eeq, [e; f])) in
-      let f_neq_e = getv env (enot (eapp (eeq, [f; e]))) in
+      let e_eq_f = getv env (eeq e f) in
+      let f_neq_e = getv env (enot (eeq f e)) in
       Capp (Cvar "zenon_eqsym", [Cwild; trexpr e; trexpr f; e_eq_f; f_neq_e])
   | Rnotnot (p) ->
       let sub = mklam p (tr_subtree_1 hyps) in
@@ -316,12 +316,12 @@ let rec trtree env node =
   | Rpnotp _ -> assert false
   | Rnotequal ((Eapp (Evar(f,_) as f', args1, _) as ff), (Eapp (Evar(g,_), args2, _) as gg)) ->
      assert (f = g);
-     let gen x = enot (eapp (eeq, [eapp (f', x); gg])) in
+     let gen x = enot (eeq (eapp (f', x)) gg) in
      let args = mk_eq_args gen [] args1 args2 in
      let base = Capp (Cvar "zenon_notnot",
                       [Cwild; Capp (Cvar "refl_equal", [trexpr gg])])
      in
-     let neq = enot (eapp (eeq, [ff; gg])) in
+     let neq = enot (eeq ff gg) in
      Capp (List.fold_right2 (mk_eq_node env) args hyps base, [getv env neq])
   | Rnotequal _ -> assert false
   | RcongruenceLR (p, a, b) ->
@@ -329,7 +329,7 @@ let rec trtree env node =
      let h = apply p b in
      let lam = mklam h sub in
      let concl1 = getv env (apply p a) in
-     let concl2 = getv env (eapp (eeq, [a; b])) in
+     let concl2 = getv env (eeq a b) in
      Capp (Cvar "zenon_congruence_lr",
            [Cwild; trexpr p; trexpr a; trexpr b; lam; concl1; concl2])
   | RcongruenceRL (p, a, b) ->
@@ -337,7 +337,7 @@ let rec trtree env node =
      let h = apply p b in
      let lam = mklam h sub in
      let concl1 = getv env (apply p a) in
-     let concl2 = getv env (eapp (eeq, [b; a])) in
+     let concl2 = getv env (eeq b a) in
      Capp (Cvar "zenon_congruence_rl",
            [Cwild; trexpr p; trexpr a; trexpr b; lam; concl1; concl2])
   | Rdefinition (name, sym, args, body, None, folded, unfolded) ->
@@ -355,7 +355,7 @@ let rec trtree env node =
   | Rextension (_, "zenon_induct_discriminate_diff",
                 [], [a; b; car], []) ->
      let subp = tr_subtree_1 hyps in
-     let h = enot (eapp (eeq, [a; b])) in
+     let h = enot (eeq a b) in
      Clet (getname h, Capp (Cvar "eq_ind",
                             [trexpr a; trexpr car; Cvar "I"; trexpr b]),
            subp)
@@ -368,8 +368,7 @@ let rec trtree env node =
        let shape =
          let vvars = List.map evar vars in
          let params = List.map (fun _ -> evar "_") args in
-         let base = enot (eapp (eeq,
-                                [e1; eapp (evar "@", evar c :: params @ vvars)]))
+         let base = enot (eeq e1 (eapp (evar "@", evar c :: params @ vvars)))
          in
          enot (all_list vvars base)
        in
@@ -386,7 +385,7 @@ let rec trtree env node =
      let recargs = List.map2 make_hyp hyps cstrs in
      let pred =
        let v = Expr.newvar () in
-       trexpr (elam (v, enot (eapp (eeq, [e1; v]))))
+       trexpr (elam (v, enot (eeq e1 v)))
      in
      let refl = Capp (Cvar "refl_equal", [tropt e1]) in
      Capp (Cvar schema, typargs @ pred :: recargs @ tropt e1 :: [refl])
@@ -440,7 +439,7 @@ and mk_eq_node env (ctx, a, b) h sub =
   if Expr.equal a b then sub else begin
     let x = Expr.newname () in
     let c = Clam (x, Cwild, trexpr env (ctx (evar x))) in
-    let aneb = enot (eapp (eeq, [a; b])) in
+    let aneb = enot (eeq a b) in
     let thyp = mklam env aneb (trtree env h) in
     Capp (Cvar "zenon_subst",
           [Cwild; c; trexpr env a; trexpr env b; thyp; sub])

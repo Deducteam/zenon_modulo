@@ -272,9 +272,9 @@ expr:
       { eand ($1, $3) }
 
   | expr EQ_ expr
-      { eapp (eeq, [$1; $3]) }
+      { eeq $1 $3 }
   | expr LT_GT_ expr
-      { enot (eapp (eeq, [$1; $3])) }
+      { enot (eeq $1 $3) }
 
   | TILDE_ expr
       { enot ($2) }

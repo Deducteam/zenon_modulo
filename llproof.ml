@@ -91,8 +91,8 @@ let reduce conc rule hyps =
     | Rnottrue -> [enot (etrue)]
     | Raxiom (p) -> [p; enot p]
     | Rcut (p) -> []
-    | Rnoteq (a) -> [enot (eapp (eeq, [a; a]))]
-    | Reqsym (a, b) -> [eapp (eeq, [a; b]); enot (eapp (eeq, [b; a]))]
+    | Rnoteq (a) -> [enot (eeq a a)]
+    | Reqsym (a, b) -> [eeq a b; enot (eeq b a)]
     | Rnotnot (p) -> [enot (enot (p))]
     | Rconnect (And, p, q) -> [eand (p, q)]
     | Rconnect (Or, p, q) -> [eor (p, q)]
@@ -107,9 +107,9 @@ let reduce conc rule hyps =
     | Rnotex (ep, t) -> [enot (ep)]
     | Rnotall (ap, v) -> [enot (ap)]
     | Rpnotp (p, q) -> [p; q]
-    | Rnotequal (a, b) -> [enot (eapp (eeq, [a; b]))]
-    | RcongruenceLR (p, a, b) -> [apply p a; eapp (eeq, [a; b])]
-    | RcongruenceRL (p, a, b) -> [apply p a; eapp (eeq, [b; a])]
+    | Rnotequal (a, b) -> [enot (eeq a b)]
+    | RcongruenceLR (p, a, b) -> [apply p a; eeq a b]
+    | RcongruenceRL (p, a, b) -> [apply p a; eeq b a]
     | Rdefinition (name, sym, args, body, recarg, fld, unf) -> [fld]
     | Rextension (ext, name, args, cons, hyps) -> cons
     | Rlemma (name, args) -> (get_lemma name).proof.conc
