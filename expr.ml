@@ -499,6 +499,8 @@ let rec xpreunify accu e1 e2 =
   | _, _ when e1 == e2 -> accu
   | Eapp (s1, a1, _), Eapp (s2, a2, _) when s1 =%= s2 ->
       List.fold_left2 xpreunify accu a1 a2
+  | Earrow (a1, r1, _), Earrow (a2, r2, _) ->
+      List.fold_left2 xpreunify accu (r1 :: a1) (r2 :: a2)
   | Emeta (m1, _), _ -> (m1, e2) :: accu
   | _, Emeta (m2, _) -> (m2, e1) :: accu
   | _, _ -> raise Mismatch
