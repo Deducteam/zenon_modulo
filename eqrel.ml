@@ -185,15 +185,29 @@ type info = {
 
 let tbl = (Hashtbl.create 97 : (Expr.t, info) Hashtbl.t);;
 
-let get_record s =
-  try Hashtbl.find tbl s
+let eq_origin = Some (etrue, [], []);;
+let find_aux tbl s =
+  try true, Hashtbl.find tbl s
   with Not_found ->
-    let result = {refl = None; sym = None; trans = None;
-                  transsym = None; typ = type_none;
-                  refl_hyp = None; sym_hyp = None; trans_hyp = None}
+    let result = match s with
+    | Evar("=", _) -> { refl = eq_origin; sym = eq_origin; trans = eq_origin;
+                        transsym = eq_origin; typ = type_none; refl_hyp = None;
+                        sym_hyp = None; trans_hyp = None; }
+    | _ -> { refl = None; sym = None; trans = None;
+             transsym = None; typ = type_none; refl_hyp = None;
+             sym_hyp = None; trans_hyp = None}
     in
-    Hashtbl.add tbl s result;
-    result
+    false, result
+
+let find tbl s = snd (find_aux tbl s)
+
+let get_record s =
+    let b, res = find_aux tbl s in
+    if not b then begin
+        Log.debug 5 "Adding '%a' to eqrel table" Print.pp_expr s;
+        Hashtbl.add tbl s res
+    end;
+    res
 ;;
 
 let analyse_subexpr e (path, env, sb, typ) =
@@ -229,20 +243,8 @@ let subsumed_subexpr e (path, env, sb, typ) =
 
 let subsumed e = List.for_all (subsumed_subexpr e) (get_subexprs e);;
 
-let eq_origin = Some (etrue, [], []);;
-Hashtbl.add tbl (evar "=") {
-  refl = eq_origin;
-  sym = eq_origin;
-  trans = eq_origin;
-  transsym = eq_origin;
-  typ = type_none;
-  refl_hyp = None;
-  sym_hyp = None;
-  trans_hyp = None;
-};;
-
 let refl s =
-  try let r = Hashtbl.find tbl s in
+  try let r = find tbl s in
       match r.refl with
       | None -> false
       | Some _ -> true
@@ -250,7 +252,7 @@ let refl s =
 ;;
 
 let sym s =
-  try let r = Hashtbl.find tbl s in
+  try let r = find tbl s in
       match r.sym, r.refl, r.transsym with
       | Some _, _, _ -> true
       | _, Some _, Some _ -> true
@@ -259,7 +261,7 @@ let sym s =
 ;;
 
 let trans s =
-  try let r = Hashtbl.find tbl s in
+  try let r = find tbl s in
       match r.trans, r.refl, r.transsym with
       | Some _, _, _ -> true
       | _, Some _, Some _ -> true
@@ -268,7 +270,7 @@ let trans s =
 ;;
 
 let any s =
-  try let r = Hashtbl.find tbl s in
+  try let r = find tbl s in
       match r.refl, r.sym, r.trans with
       | None, None, None -> false
       | _, _, _ -> true
