@@ -302,7 +302,7 @@ let parse_file f =
           in
           let goal_found = List.exists is_goal result in
           if not goal_found then Error.warn "no goal given";
-          (thm_default_name, result)
+          (thm_default_name, Typer.phrasebl result)
     with
     | Parsing.Parse_error -> report_error lexbuf "syntax error."
     | Error.Lex_error msg -> report_error lexbuf msg
