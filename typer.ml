@@ -244,7 +244,13 @@ and xcheck_expr env ty e =
 and check_expr env ty e =
   try
     let result = xcheck_expr env ty e in
-    assert (ty == type_none || get_type result == ty);
+    let rty = get_type result in
+    if not (rty == type_none || rty == ty)
+    then Printf.eprintf "Typer: type checking %s at type %s resulted in %s = %s.\n"
+                        (Print.sexpr e)
+                        (Print.sexpr ty)
+                        (Print.sexpr_type result)
+                        (Print.sexpr rty);
     result
   with Type_Mismatch (a, b, f) as exc ->
     Printf.eprintf "error while checking %s at type %s in env [%s].\n"
