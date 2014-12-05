@@ -820,8 +820,8 @@ let pp_mlrule b r =
 let sexpr e = Log.on_buffer pp_expr e
 let sexpr_type e = Log.on_buffer pp_expr_t e
 ;;
-(* Full type debug printing for expr *)
 
+(* Full type debug printing for expr *)
 let rec expr_type o ex =
   let pr f = oprintf o f in
   expr_soft o ex;
