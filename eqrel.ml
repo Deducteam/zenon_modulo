@@ -12,10 +12,6 @@ let symbol = ref None;;
 let leaves = ref [];;
 let typ = ref type_none;;
 
-let get_name = function
-    | Evar(s, _) -> s
-    | _ -> assert false
-
 let mem_assoc x env = List.exists (fun (y, _) -> get_name x = get_name y) env;;
 
 let rec check_pattern env sym e =

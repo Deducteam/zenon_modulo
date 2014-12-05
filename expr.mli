@@ -77,6 +77,7 @@ val type_prop : expr;;
 val type_none : expr;;
 val earrow : expr list -> expr -> expr;;
 
+val get_name : expr -> string;;
 val get_type : expr -> expr;;
 
 val type_app : expr -> expr list -> expr;;
