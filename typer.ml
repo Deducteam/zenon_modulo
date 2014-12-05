@@ -44,6 +44,8 @@ let type_const = function
                                    which should be a variable.  *)
 ;;
 
+(* If a variable of name v is in env, then return its type.
+   Otherwise raise Not_found *)
 let assoc v env =
   get_type
     (List.find
