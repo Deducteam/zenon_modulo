@@ -219,7 +219,7 @@ let analyse_subexpr e (path, env, sb, typ) =
       if sym <> None then r.sym <- sym;
       if trans <> None then r.trans <- trans;
       if transsym <> None then r.transsym <- transsym;
-      r.typ <- typ
+      if not (typ = type_none) then r.typ <- typ
 ;;
 
 let analyse e = List.iter (analyse_subexpr e) (get_subexprs e);;
@@ -287,15 +287,9 @@ let hyps_tbl =
   (HE.create 97 : hyp_kind HE.t)
 ;;
 
-let get_arg_ty s =
-  match Expr.get_type s with
-  | Earrow ([t1; t2], prop, _) when t1 == t2 && prop == type_prop -> t1
-  | _ -> type_none
-;;
-
 let get_refl_hyp s =
   assert (get_name s <> "=");
-  let arg_ty = get_arg_ty s in
+  let arg_ty = (get_record s).typ in
   let r = Hashtbl.find tbl s in
   match r.refl_hyp with
   | Some e -> e
@@ -312,7 +306,7 @@ let get_refl_hyp s =
 
 let get_sym_hyp s =
   assert (get_name s <> "=");
-  let arg_ty = get_arg_ty s in
+  let arg_ty = (get_record s).typ in
   let r = Hashtbl.find tbl s in
   match r.sym_hyp with
   | Some e -> e
@@ -334,7 +328,7 @@ let get_sym_hyp s =
 
 let get_trans_hyp s =
   assert (get_name s <> "=");
-  let arg_ty = get_arg_ty s in
+  let arg_ty = (get_record s).typ in
   let r = Hashtbl.find tbl s in
   match r.trans_hyp with
   | Some e -> e
