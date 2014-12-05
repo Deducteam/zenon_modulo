@@ -287,13 +287,20 @@ let hyps_tbl =
   (HE.create 97 : hyp_kind HE.t)
 ;;
 
+let get_arg_ty s =
+  match Expr.get_type s with
+  | Earrow ([t1; t2], prop, _) when t1 == t2 && prop == type_prop -> t1
+  | _ -> type_none
+;;
+
 let get_refl_hyp s =
   assert (get_name s <> "=");
+  let arg_ty = get_arg_ty s in
   let r = Hashtbl.find tbl s in
   match r.refl_hyp with
   | Some e -> e
   | None ->
-      let vx = evar "x" in
+      let vx = tvar "x" arg_ty in
       let result = eall (vx, eapp (s, [vx; vx])) in
       r.refl_hyp <- Some result;
       begin match r.refl with
@@ -305,11 +312,12 @@ let get_refl_hyp s =
 
 let get_sym_hyp s =
   assert (get_name s <> "=");
+  let arg_ty = get_arg_ty s in
   let r = Hashtbl.find tbl s in
   match r.sym_hyp with
   | Some e -> e
   | None ->
-      let vx = evar "x" and vy = evar "y" in
+      let vx = tvar "x" arg_ty and vy = tvar "y" arg_ty in
       let result = eall (vx, eall (vy,
                      eimply (eapp (s, [vx; vy]), eapp (s, [vy; vx]))))
       in
@@ -326,11 +334,12 @@ let get_sym_hyp s =
 
 let get_trans_hyp s =
   assert (get_name s <> "=");
+  let arg_ty = get_arg_ty s in
   let r = Hashtbl.find tbl s in
   match r.trans_hyp with
   | Some e -> e
   | None ->
-      let vx = evar "x" and vy = evar "y" and vz = evar "z" in
+      let vx = tvar "x" arg_ty and vy = tvar "y" arg_ty and vz = tvar "z" arg_ty in
       let result = eall (vx, eall (vy, eall (vz,
                      eimply (eapp (s, [vx; vy]),
                        eimply (eapp (s, [vy; vz]), eapp (s, [vx; vz]))))))
