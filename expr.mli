@@ -36,6 +36,7 @@ type definition =
 (* Exceptions *)
 exception Type_Mismatch of expr * expr * string;;
 exception Bad_Arity of expr * expr list;;
+exception Ill_typed_substitution of (expr * expr) list;;
 
 type t = expr;;
 
@@ -118,11 +119,15 @@ val occurs_as_meta : expr -> expr -> bool;;
 
 exception Higher_order;;
 val substitute : (expr * expr) list -> expr -> expr;;
+(* Same as substitute but also check that the substitution is well-typed. *)
+val substitute_safe : (expr * expr) list -> expr -> expr;;
 (*
 val substitute_meta : (expr * expr) -> expr -> expr;;
 val substitute_expr : (expr * expr) -> expr -> expr;;
 *)
 val substitute_2nd : (expr * expr) list -> expr -> expr;;
+(* Same as substitute but also check that the substitution is well-typed. *)
+val substitute_2nd_safe : (expr * expr) list -> expr -> expr;;
 val apply : expr -> expr -> expr;;
 val add_argument : expr -> expr -> expr;;
 val remove_scope : expr -> expr;;

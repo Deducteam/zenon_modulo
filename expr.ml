@@ -47,6 +47,7 @@ exception Higher_order;;
 exception Type_Mismatch of expr * expr * string;;
 exception Bad_Arity of expr * expr list;;
 exception Trying_to_type_type;;
+exception Ill_typed_substitution of (expr * expr) list;;
 
 
 (************************)
@@ -633,7 +634,7 @@ and inst_app map s args = match s, args with
             inst_app ((v, a) :: map) e r
           else
             raise (Type_Mismatch(type_type, get_type a, "Expr.inst_app"))
-  | _ -> substitute map s, args
+  | _ -> substitute_safe map s, args
 
 and type_app s args =
     if List.memq type_none (s :: args) then
@@ -658,9 +659,9 @@ and eeq a b =
     let s = tvar "=" (earrow [t; t] type_prop) in
     eapp (s, [a; b])
 
-and substitute map e =
+and substitute_unsafe map e =
   let aux f map v body =
-      let t = substitute map (get_type v) in
+      let t = substitute_unsafe map (get_type v) in
       let map1 = rm_binding v map in
       let nv =
           if conflict v map1 then
@@ -669,28 +670,37 @@ and substitute map e =
             tvar (get_name v) t
       in
       if v <> nv then
-        f (nv, substitute ((v, nv) :: map1) body)
+        f (nv, substitute_unsafe ((v, nv) :: map1) body)
       else
-        f (v, substitute map1 body)
+        f (v, substitute_unsafe map1 body)
   in
   match e with
   | _ when disj (get_fv e) map -> e
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
-  | Earrow(args, ret, _) -> earrow (List.map (substitute map) args) (substitute map ret)
-  | Eapp (Evar ("=", _), [a; b], _) -> eeq (substitute map a) (substitute map b)
-  | Eapp (s, args, _) -> eapp (s, List.map (substitute map) args)
-  | Enot (f, _) -> enot (substitute map f)
-  | Eand (f, g, _) -> eand (substitute map f, substitute map g)
-  | Eor (f, g, _) -> eor (substitute map f, substitute map g)
-  | Eimply (f, g, _) -> eimply (substitute map f, substitute map g)
-  | Eequiv (f, g, _) -> eequiv (substitute map f, substitute map g)
+  | Earrow(args, ret, _) -> earrow (List.map (substitute_unsafe map) args) (substitute_unsafe map ret)
+  | Eapp (Evar ("=", _), [a; b], _) -> eeq (substitute_unsafe map a) (substitute_unsafe map b)
+  | Eapp (s, args, _) -> eapp (s, List.map (substitute_unsafe map) args)
+  | Enot (f, _) -> enot (substitute_unsafe map f)
+  | Eand (f, g, _) -> eand (substitute_unsafe map f, substitute_unsafe map g)
+  | Eor (f, g, _) -> eor (substitute_unsafe map f, substitute_unsafe map g)
+  | Eimply (f, g, _) -> eimply (substitute_unsafe map f, substitute_unsafe map g)
+  | Eequiv (f, g, _) -> eequiv (substitute_unsafe map f, substitute_unsafe map g)
   | Etrue | Efalse -> e
   | Eall (v, f, _) -> aux eall map v f
   | Eex (v, f, _) -> aux eex map v f
   | Etau (v, f, _) -> aux etau map v f
   | Elam (v, f, _) -> aux elam map v f
+
+and substitute_safe map e =
+  if (List.for_all (fun (a, b) -> get_type a == get_type b) map)
+  then
+    substitute_unsafe map e
+  else
+    raise (Ill_typed_substitution map)
 ;;
+
+let substitute = substitute_unsafe;;
 
 (*
 let rec substitute_meta map e =
@@ -731,13 +741,18 @@ let rec substitute_expr map e =
 ;;
 *)
 
-let rec substitute_2nd map e =
+let rec substitute_2nd_unsafe map e =
+  List.iter
+    (fun (a, b) -> if not (get_type a == get_type b)
+                then raise (Type_Mismatch (a, b, "substitute_2nd_unsafe")))
+    map;
+  assert (List.for_all (fun (a, b) -> get_type a == get_type b) map);
   match e with
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
   | Earrow _ -> assert false
   | Eapp (s, args, _) ->
-     let acts = List.map (substitute_2nd map) args in
+     let acts = List.map (substitute_2nd_unsafe map) args in
      begin try
       let lam = List.assq (evar (get_name s)) map in
       match lam, acts with
@@ -747,41 +762,50 @@ let rec substitute_2nd map e =
       | _ -> raise Higher_order
      with Not_found -> eapp (s, acts)
      end
-  | Enot (f, _) -> enot (substitute_2nd map f)
-  | Eand (f, g, _) -> eand (substitute_2nd map f, substitute_2nd map g)
-  | Eor (f, g, _) -> eor (substitute_2nd map f, substitute_2nd map g)
-  | Eimply (f, g, _) -> eimply (substitute_2nd map f, substitute_2nd map g)
-  | Eequiv (f, g, _) -> eequiv (substitute_2nd map f, substitute_2nd map g)
+  | Enot (f, _) -> enot (substitute_2nd_unsafe map f)
+  | Eand (f, g, _) -> eand (substitute_2nd_unsafe map f, substitute_2nd_unsafe map g)
+  | Eor (f, g, _) -> eor (substitute_2nd_unsafe map f, substitute_2nd_unsafe map g)
+  | Eimply (f, g, _) -> eimply (substitute_2nd_unsafe map f, substitute_2nd_unsafe map g)
+  | Eequiv (f, g, _) -> eequiv (substitute_2nd_unsafe map f, substitute_2nd_unsafe map g)
   | Etrue | Efalse -> e
   | Eall (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
         let nv = newvar () in
-        eall (nv, substitute_2nd ((v, nv) :: map1) f)
+        eall (nv, substitute_2nd_unsafe ((v, nv) :: map1) f)
       else
-        eall (v, substitute_2nd map1 f)
+        eall (v, substitute_2nd_unsafe map1 f)
   | Eex (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
         let nv = newvar () in
-        eex (nv, substitute_2nd ((v, nv) :: map1) f)
+        eex (nv, substitute_2nd_unsafe ((v, nv) :: map1) f)
       else
-        eex (v, substitute_2nd map1 f)
+        eex (v, substitute_2nd_unsafe map1 f)
   | Etau (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
         let nv = newvar () in
-        etau (nv, substitute_2nd ((v, nv) :: map1) f)
+        etau (nv, substitute_2nd_unsafe ((v, nv) :: map1) f)
       else
-        etau (v, substitute_2nd map1 f)
+        etau (v, substitute_2nd_unsafe map1 f)
   | Elam (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
         let nv = newvar () in
-        elam (nv, substitute_2nd ((v, nv) :: map1) f)
+        elam (nv, substitute_2nd_unsafe ((v, nv) :: map1) f)
       else
-        elam (v, substitute_2nd map1 f)
+        elam (v, substitute_2nd_unsafe map1 f)
+
+and substitute_2nd_safe map e =
+  if (List.for_all (fun (a, b) -> get_type a == get_type b) map)
+  then
+    substitute_2nd_unsafe map e
+  else
+    raise (Ill_typed_substitution map)
 ;;
+
+let substitute_2nd = substitute_2nd_unsafe;;
 
 let apply f a =
   match f with
