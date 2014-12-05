@@ -18,6 +18,17 @@ exception Scoping_error of string;;
 (* Exception raised when a function is applied to the bad number of arguments *)
 exception Arity_mismatch of expr * expr list;;
 
+(* Options to pass to the type checking and type inference functions *)
+type opts =
+    {
+      default_type : expr;      (* A type to associate to free variables *)
+      scope_warnings : bool;    (* Should we warn when we encounter free variables? *)
+      undeclared_functions_warning : bool; (* Should we warn when we encounter undeclared function symbols? *)
+      register_new_constants : bool; (* If we infer the type of an unknown function symbol, should we register it? *)
+      fully_type : bool;             (* Should everything be typed? *)
+    }
+;;
+
 (* A global hashtable of constant values.
    These constants are declared in extensions.
    (declare_constant is exported)
@@ -36,10 +47,13 @@ let print_constant_decls out =
 
 (* This function queries the hashtable for typing a constant *)
 (* Raises Not_found if the constant is unknown. *)
-let type_const = function
+let type_const opts = function
   | Evar (s, _) as c ->
      (try tvar s (Hashtbl.find const_env s)
-      with Not_found -> c)
+      with Not_found ->
+           if opts.undeclared_functions_warning then
+             Error.warn ("Undeclared function symbol : " ^ s);
+           c)
   | _ -> assert false            (* This function should only
                                    be called for typing the head
                                    of an application,
@@ -88,110 +102,117 @@ let instantiate args ty =
 
 (* Main functions walking through expressions infering and checking types. *)
 (* This type-checking is bidirectionnal. *)
-let rec infer_expr env = function
+let rec infer_expr opts env = function
   | Evar (s, _) as v ->
      (
        try (tvar s (assoc s env))
        with Not_found ->
-         Printf.eprintf "Scoping error: unknown free variable %s\n" s;
-         v
+            if opts.scope_warnings then
+              Error.warn ("Scoping error: unknown free variable " ^ s);
+            if get_type v == type_none then
+              tvar s opts.default_type
+            else
+              v
      )
-  | Emeta (t, _) -> emeta (infer_expr env t)
+  | Emeta (t, _) -> emeta (infer_expr opts env t)
   | Enot _ | Eand _ | Eor _ | Eimply _ | Eequiv _
   | Etrue | Efalse | Eall _ | Eex _
-  | Eapp (Evar ("=", _), [_; _], _) as e -> check_expr env type_prop e
+  | Eapp (Evar ("=", _), [_; _], _) as e -> check_expr opts env type_prop e
   | Eapp (Evar (f_sym, _) as f, args, _) ->
      (* First lookup in the constant table *)
      (* Remark: If it fails, it looks at it on the symbol. *)
-     let tyf = get_type (type_const f) in
+     let tyf = get_type (type_const opts f) in
      if tyf == type_none
      then
        (* We have no way to find a return type,
           but we have to recursively call ourself
           for scoping purpose *)
-       eapp (f, List.map (infer_expr env) args)
+       eapp (f, List.map (infer_expr opts env) args)
      else
        let (type_args, term_args, tys, ret_ty) = instantiate args tyf in
-       eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr env) tys term_args)
+       eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr opts env) tys term_args)
   | Etau (Evar _ as x, body, _) ->
-     etau (x, check_expr (x :: env) type_prop body)
+     etau (x, check_expr opts (x :: env) type_prop body)
   | Elam (Evar _ as x, body, _) ->
-     elam (x, infer_expr (x :: env) body)
+     elam (x, infer_expr opts (x :: env) body)
   | _ -> assert false
-and xcheck_expr env ty e =
+and xcheck_expr opts env ty e =
   if get_type e == ty
   then e
   else
     if ty == type_none
-    then infer_expr env e
+    then infer_expr opts env e
     else
       match e with
       | Evar (s, _) -> tvar s ty
       | Emeta (Eall (Evar (s, _), b, _), _) ->
-         emeta (check_expr env type_prop (eall (tvar s ty, b)))
+         emeta (check_expr opts env type_prop (eall (tvar s ty, b)))
       | Eapp (Evar ("=", _) as eq, [e1; e2], _) ->
          (* Equality is the only symbol for which
             implicit polymorphism is allowed. *)
          (* First try to infer the type of e1 *)
-         let e1' = infer_expr env e1 in
+         let e1' = infer_expr opts env e1 in
          let t1 = get_type e1' in
          (* If this fails, try e2 *)
          if t1 == type_none then
-           let e2' = infer_expr env e2 in
+           let e2' = infer_expr opts env e2 in
            let t2 = get_type e2' in
            (* if it also fails, finally look at the type annotation of the equality constant *)
            if t2 == type_none then
              match get_type eq with
              | Earrow ([t1; t2], prop, _) when t1 == t2 && prop = type_prop ->
-                eeq (check_expr env t1 e1) (check_expr env t2 e2)
+                eeq (check_expr opts env t1 e1) (check_expr opts env t2 e2)
              | _ ->                    (* We hav no more clue to guess the type of this equality *)
                 eeq e1' e2'
            else
-             eeq (check_expr env t2 e1) e2'
+             eeq (check_expr opts env t2 e1) e2'
          else
-           eeq e1' (check_expr env t1 e2)
+           eeq e1' (check_expr opts env t1 e2)
       | Eapp (Evar (f_sym, _) as f, args, _) ->
          (* First lookup in the constant table *)
          (* Remark: If it fails, it looks at it on the symbol. *)
-         let tyf = get_type (type_const f) in
+         let tyf = get_type (type_const opts f) in
          if tyf == type_none
          then
-           let typed_args = List.map (infer_expr env) args in
+           let typed_args = List.map (infer_expr opts env) args in
            let args_types = List.map get_type typed_args in
-           eapp (tvar f_sym (earrow args_types ty), typed_args)
+           let infered_const_type = earrow args_types ty in
+           if opts.register_new_constants then
+             declare_constant (f_sym, infered_const_type);
+           eapp (tvar f_sym infered_const_type, typed_args)
          else
            let (type_args, term_args, tys, ret_ty) = instantiate args tyf in
            if ret_ty == ty
            then
-             eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr env) tys term_args)
+             eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr opts env) tys term_args)
            else
              raise (Type_Mismatch (ret_ty, ty, "Typer.xcheck_expr"))
       | Enot (e, _) ->
          assert (ty == type_prop);
-         enot (check_expr env type_prop e)
+         enot (check_expr opts env type_prop e)
       | Eand (a, b, _) ->
          assert (ty == type_prop);
-         eand (check_expr env type_prop a, check_expr env type_prop b)
+         eand (check_expr opts env type_prop a, check_expr opts env type_prop b)
       | Eor (a, b, _) ->
          assert (ty == type_prop);
-         eor (check_expr env type_prop a, check_expr env type_prop b)
+         eor (check_expr opts env type_prop a, check_expr opts env type_prop b)
       | Eimply (a, b, _) ->
          assert (ty == type_prop);
-         eimply (check_expr env type_prop a, check_expr env type_prop b)
+         eimply (check_expr opts env type_prop a, check_expr opts env type_prop b)
       | Eequiv (a, b, _) ->
          assert (ty == type_prop);
-         eequiv (check_expr env type_prop a, check_expr env type_prop b)
+         eequiv (check_expr opts env type_prop a, check_expr opts env type_prop b)
       | Etrue -> assert (ty == type_prop); etrue
       | Efalse -> assert (ty == type_prop); efalse
       | Eall (Evar _ as x, body, _) ->
          assert (ty == type_prop);
-         eall (x, check_expr (x :: env) type_prop body)
+         eall (x, check_expr opts (x :: env) type_prop body)
       | Eex (Evar _ as x, body, _) ->
          assert (ty == type_prop);
-         eex (x, check_expr (x :: env) type_prop body)
+         eex (x, check_expr opts (x :: env) type_prop body)
       | Etau (Evar _ as x, body, _) ->
-         let newx = check_expr env x ty in
-         etau (newx, check_expr (newx :: env) type_prop body)
+         let newx = check_expr opts env x ty in
+         etau (newx, check_expr opts (newx :: env) type_prop body)
       | Elam (Evar _ as x, body, _) ->
          (
            let mk_arrow l ret =
@@ -199,61 +220,51 @@ and xcheck_expr env ty e =
            in
            match ty with
            | Earrow (hd :: tl, ret, _) ->
-              let newx = check_expr env hd x in
-              elam (newx, check_expr (x :: env) (mk_arrow tl ret) body)
+              let newx = check_expr opts env hd x in
+              elam (newx, check_expr opts (x :: env) (mk_arrow tl ret) body)
            | _ -> raise (Invalid_argument "Typer.check_expr: arrow expected")
          )
       | _ -> assert false
-and check_expr env ty e =
-  try
-    let result = xcheck_expr env ty e in
-    let rty = get_type result in
-    if not (rty == type_none || rty == ty)
-    then Printf.eprintf "Typer: type checking %s at type %s resulted in %s = %s.\n"
-                        (Print.sexpr e)
-                        (Print.sexpr ty)
-                        (Print.sexpr_type result)
-                        (Print.sexpr rty);
-    result
-  with Type_Mismatch (a, b, f) as exc ->
-    Printf.eprintf "error while checking %s at type %s in env [%s].\n"
-                   (Print.sexpr_type e) (Print.sexpr_type ty)
-                   (String.concat "; " (List.map Print.sexpr_type env));
-    raise exc
+and check_expr opts env ty e =
+  let result = xcheck_expr opts env ty e in
+  let rty = get_type result in
+  if opts.fully_type && not (ty == rty) then
+    raise (Type_Mismatch (ty, rty, "Typer.check_expr"));
+  result
 ;;
 
 (* Declare the defined identifier and return the typed version of the body
    and its typing environment. *)
 (* TODO: currify when the body is a lambda. *)
-let declare_def_constant = function
+let declare_def_constant opts = function
   | DefReal (_, s, ty, env, body, _)
   | DefPseudo ((_, _), s, ty, env, body)
   | DefRec (_, s, ty, env, body) ->
      if ty == type_none
      then
-       let typed_body = infer_expr env body in
+       let typed_body = infer_expr opts env body in
        declare_constant (s, earrow (List.map get_type env) (get_type typed_body));
        (env, typed_body)
      else
        (match ty with
         | Earrow (ty_params, ty_body, _) ->
            assert (ty_params = List.map get_type env);
-           let typed_body = check_expr env ty_body body in
+           let typed_body = check_expr opts env ty_body body in
            declare_constant (s, ty);
            (env, typed_body)
         | _ -> assert false)      (* Constant must have arrow types *)
 ;;
 
 (* Type a definition and declare it. *)
-let definition d =
-  let (env, typed_body) = declare_def_constant d in
+let definition opts d =
+  let (env, typed_body) = declare_def_constant opts d in
   match d with
   | DefReal (name, ident, ty, params, body, decarg) ->
      DefReal (name, ident, ty, params, typed_body, decarg)
   | DefPseudo ((e, n), s, ty, params, body) ->
-     DefPseudo ((infer_expr env e, n), s, ty, params, typed_body)
+     DefPseudo ((infer_expr opts env e, n), s, ty, params, typed_body)
   | DefRec (e, s, ty, params, body) ->
-     DefRec (infer_expr env e, s, ty, params, typed_body)
+     DefRec (infer_expr opts env e, s, ty, params, typed_body)
 ;;
 
 (* Declarations are encoded as "real definitions" by the parser
@@ -261,19 +272,19 @@ let definition d =
 (* This function is folded on the list of phrases,
    it removes declarations and return the typed phrases
    in reverse order *)
-let phrase l (p, b) = match p with
+let phrase opts l (p, b) = match p with
   | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _)) ->
      declare_constant (s, ty);
      l
   | Phrase.Hyp (s, e, n) ->
-     (Phrase.Hyp (s, check_expr [] type_prop e, n), b) :: l
+     (Phrase.Hyp (s, check_expr opts [] type_prop e, n), b) :: l
   | Phrase.Def d ->
-     (Phrase.Def (definition d), b) :: l
+     (Phrase.Def (definition opts d), b) :: l
   | _ -> (p, b) :: l                  (* TODO *)
 ;;
 
 (* This is the only exported function of this module,
    it is called in main.ml after parsing. *)
-let phrasebl l =
-  List.fold_left phrase [] (List.rev l)
+let phrasebl opts l =
+  List.fold_left (phrase opts) [] (List.rev l)
 ;;

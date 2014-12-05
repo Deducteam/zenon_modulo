@@ -289,7 +289,14 @@ let parse_file f =
       | I_focal ->
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
           closer ();
-          (name, Typer.phrasebl result)
+          let typer_options =
+            { Typer.default_type = Expr.type_none;
+              Typer.scope_warnings = true;
+              Typer.undeclared_functions_warning = true;
+              Typer.register_new_constants = true;
+              Typer.fully_type = false }
+          in
+          (name, Typer.phrasebl typer_options result)
       | I_zenon ->
           let zphrases = Parsezen.file Lexzen.token lexbuf in
           closer ();
@@ -302,7 +309,14 @@ let parse_file f =
           in
           let goal_found = List.exists is_goal result in
           if not goal_found then Error.warn "no goal given";
-          (thm_default_name, Typer.phrasebl result)
+          let typer_options =
+            { Typer.default_type = Expr.type_none;
+              Typer.scope_warnings = false;
+              Typer.undeclared_functions_warning = false;
+              Typer.register_new_constants = false;
+              Typer.fully_type = false }
+          in
+          (thm_default_name, Typer.phrasebl typer_options result)
     with
     | Parsing.Parse_error -> report_error lexbuf "syntax error."
     | Error.Lex_error msg -> report_error lexbuf msg
