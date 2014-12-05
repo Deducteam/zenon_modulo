@@ -733,7 +733,10 @@ let mknode_transeq sym (e1, g1) (e2, g2) =
   let (r', r, a, b, c, d) =
     match e1, e2 with
     | Eapp (Evar("=",_), [a; b], _), Enot (Eapp (Evar(r,_) as r', [c; d], _), _) -> (r', r, a, b, c, d)
-    | _, _ -> assert false
+    | _, _ ->
+            Log.debug 0 "e1 : %a" Print.pp_expr e1;
+            Log.debug 0 "e2 : %a" Print.pp_expr e2;
+            assert false
   in
   let rsym = Eqrel.sym r' in
   let (x, y, z, t) =
@@ -837,10 +840,12 @@ let newnodes_match_trans st fm g _ =
         ] in
         let eqnodes =
           if s' =%= "=" then [] else
-          let eqmatches_ll = Index.find_trans_left s h1 in
-          let eqmatches_rr = Index.find_trans_right s h2 in
-          let eqmatches_lr = Index.find_trans_right s h1 in
-          let eqmatches_rl = Index.find_trans_left s h2 in
+          let eq1 = tvar "=" (earrow [get_type e1; get_type e1] type_prop) in
+          let eq2 = tvar "=" (earrow [get_type e2; get_type e2] type_prop) in
+          let eqmatches_ll = Index.find_trans_left eq1 h1 in
+          let eqmatches_rr = Index.find_trans_right eq2 h2 in
+          let eqmatches_lr = Index.find_trans_right eq1 h1 in
+          let eqmatches_rl = Index.find_trans_left eq2 h2 in
           List.flatten [
             List.map (mknode_negtranseq false fmg) eqmatches_ll;
             List.map (mknode_negtranseq true fmg) eqmatches_lr;
