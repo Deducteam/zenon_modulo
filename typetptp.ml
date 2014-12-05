@@ -294,7 +294,9 @@ let type_tff_def env e = match e with
     | _ -> raise (Type_error (Printf.sprintf "Ill-formed expression."))
 
 (* Check the quantifiers so that no type except Namespace.univ_name is present ? *)
-let type_fof_expr e = ()
+let type_fof_expr env e =
+    let e', _ = type_tff_prop env e in
+    e'
 
 (* Wrappers *)
 let relevant = function
@@ -322,8 +324,8 @@ let type_phrase env p = match p with
             Phrase.Hyp (name, e', notype_kind kind), env'
     | Phrase.Hyp (name, e, kind) ->
             Log.debug 1 "typechecking FOF formula '%s'" name;
-            type_fof_expr e;
-            p, env
+            let e' = type_fof_expr env e in
+            Phrase.Hyp(name, e', kind), env
     | _ ->
             Log.debug 1 "typechecking unknown formula";
             p, env
