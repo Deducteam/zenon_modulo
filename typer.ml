@@ -55,46 +55,34 @@ let assoc v env =
        env)
 ;;
 
-
-(* Replace prenex quantified type variables by meta variables. *)
-(* Variables are accumulated to call substitution only once. *)
-let rec generalize_scheme varmap = function
-  | Eall (v, sch, _) as e ->
-     generalize_scheme ((v, emeta e) :: varmap) sch
-  | Evar _
-  | Earrow _ as base_type ->
-     substitute varmap base_type
-  | _ -> raise (Invalid_argument "Typer.generalize_scheme: Type scheme expected")
+(* arity ty is the arity of *symbols* of type ty. *)
+let rec xarity acc = function
+  | Eall (_, ty, _) -> xarity (acc + 1) ty
+  | Earrow (l, _, _) -> acc + List.length l
+  | _ -> acc
 ;;
+let arity = xarity 0;;
 
-(* Generate a fresh type meta-variable *)
-let new_meta () =
-  emeta (eall (tvar (newname ()) type_type,
-               type_none))             (* Body is irrelevant *)
+(* instantiate args ty substitutes prenex type variables in ty
+   by type arguments at the beginning of the list of arguments args.
+   Returns the type arguments, the remaining arguments, their expected types
+   and the expected return type *)
+(* Helper function that accumulates type arguments in reverse order. *)
+let rec xinstantiate accu args ty =
+  match (ty, args) with
+  | (Eall (v, ty, _), hd :: tl) ->
+     xinstantiate (hd :: accu) tl (substitute_safe [v, hd] ty)
+  | (Earrow (l, ret, _), args) -> (accu, args, l, ret)
+  | (ty, []) -> (accu, [], [], ty)
+  | (_, _ :: _) -> assert false  (* Should not occur because we have checked arity *)
+
+let instantiate args ty =
+  if arity ty = List.length args then
+    let (reversed_ty_args, args, tys, ret) = xinstantiate [] args ty in
+    (List.rev reversed_ty_args, args, tys, ret)
+  else
+    raise (Arity_mismatch (ty, args))
 ;;
-
-(* Same as get_type but returns a fresh meta variable instead of type_none *)
-let get_type_meta e =
-  let ty = get_type e in
-  if ty == type_none then new_meta () else ty
-;;
-
-(* Lookup a list of preunifiers until the expression is no more a meta,
-   may raise Not_found *)
-let rec follow_preunifiers preunifiers = function
-  | Emeta _ as m -> follow_preunifiers preunifiers (List.assoc m preunifiers)
-  | e -> e
-;;
-
-(* Like follow_preunifiers but returns type_none instead of failing *)
-let follow_preunifiers_none preunifiers e =
-  try
-    follow_preunifiers preunifiers e
-  with Not_found -> type_none
-;;
-
-(* Local exception for giving up checking of application *)
-exception Give_up;;
 
 (* Main functions walking through expressions infering and checking types. *)
 (* This type-checking is bidirectionnal. *)
@@ -107,69 +95,26 @@ let rec infer_expr env = function
          v
      )
   | Emeta (t, _) -> emeta (infer_expr env t)
+  | Enot _ | Eand _ | Eor _ | Eimply _ | Eequiv _
+  | Etrue | Efalse | Eall _ | Eex _
+  | Eapp (Evar ("=", _), [_; _], _) as e -> check_expr env type_prop e
   | Eapp (Evar (f_sym, _) as f, args, _) ->
-     let tyf = get_type f in
-     if tyf <> type_none
-     then                       (* The head has a meaningfull type. *)
-       (match tyf with
-        | Earrow (tyargs, tyret, _) when List.length tyargs = List.length args ->
-           eapp (f, List.map2 (check_expr env) tyargs args)
-        | _ -> raise (Arity_mismatch (f, args)))
-     else                       (* The head has an unknown type,
-                                   we look for it in the constant table. *)
-       (
-         (* The type of the constant f may be a type scheme of the form Eall (..(Eall(ty))),
-            we generalize it to unify it with the type of arguments. *)
-         let tyf' = generalize_scheme [] (type_const f) in
-         (* We don't know the type to return yet
-            so we generate a fresh meta-variable for it. *)
-         let meta_return_type = new_meta() in
-         (* for each argument, we try to infer its type *)
-         let infered_args =
-           List.map (fun arg -> let newarg = infer_expr env arg in
-                             if get_type newarg == type_none
-                             then arg
-                             else newarg)
-                    args
-         in
-         let args_types = List.map get_type_meta infered_args in
-         let expected_type = earrow args_types meta_return_type in
-         (* We preunify *)
-         let preunifiers = preunify expected_type tyf' in
-         (* We remove all metas *)
-         let remove_metas = follow_preunifiers_none preunifiers in
-         let args_types_no_meta = List.map remove_metas args_types in
-         let newtyf =
-           if List.exists ((==) type_none) args_types_no_meta
-           then type_none
-           else
-             earrow args_types_no_meta (remove_metas meta_return_type)
-         in
-         let newargs =
-           List.map2 (check_expr env) args_types_no_meta infered_args
-         in
-         eapp (tvar f_sym newtyf, newargs)
-       )
-  | Enot (e, _) ->
-     enot (check_expr env type_prop e)
-  | Eand (a, b, _) ->
-     eand (check_expr env type_prop a, check_expr env type_prop b)
-  | Eor (a, b, _) ->
-     eor (check_expr env type_prop a, check_expr env type_prop b)
-  | Eimply (a, b, _) ->
-     eimply (check_expr env type_prop a, check_expr env type_prop b)
-  | Eequiv (a, b, _) ->
-     eequiv (check_expr env type_prop a, check_expr env type_prop b)
-  | Etrue -> etrue
-  | Efalse -> efalse
-  | Eall (Evar _ as x, body, _) ->
-     eall (x, check_expr (x :: env) type_prop body)
-  | Eex (Evar _ as x, body, _) ->
-     eex (x, check_expr (x :: env) type_prop body)
+     (* First lookup in the constant table *)
+     (* Remark: If it fails, it looks at it on the symbol. *)
+     let tyf = get_type (type_const f) in
+     if tyf == type_none
+     then
+       (* We have no way to find a return type,
+          but we have to recursively call ourself
+          for scoping purpose *)
+       eapp (f, List.map (infer_expr env) args)
+     else
+       let (type_args, term_args, tys, ret_ty) = instantiate args tyf in
+       eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr env) tys term_args)
   | Etau (Evar _ as x, body, _) ->
      etau (x, check_expr (x :: env) type_prop body)
   | Elam (Evar _ as x, body, _) ->
-     elam (x, check_expr (x :: env) type_prop body)
+     elam (x, infer_expr (x :: env) body)
   | _ -> assert false
 and xcheck_expr env ty e =
   if get_type e == ty
@@ -182,29 +127,43 @@ and xcheck_expr env ty e =
       | Evar (s, _) -> tvar s ty
       | Emeta (Eall (Evar (s, _), b, _), _) ->
          emeta (check_expr env type_prop (eall (tvar s ty, b)))
+      | Eapp (Evar ("=", _) as eq, [e1; e2], _) ->
+         (* Equality is the only symbol for which
+            implicit polymorphism is allowed. *)
+         (* First try to infer the type of e1 *)
+         let e1' = infer_expr env e1 in
+         let t1 = get_type e1' in
+         (* If this fails, try e2 *)
+         if t1 == type_none then
+           let e2' = infer_expr env e2 in
+           let t2 = get_type e2' in
+           (* if it also fails, finally look at the type annotation of the equality constant *)
+           if t2 == type_none then
+             match get_type eq with
+             | Earrow ([t1; t2], prop, _) when t1 == t2 && prop = type_prop ->
+                eeq (check_expr env t1 e1) (check_expr env t2 e2)
+             | _ ->                    (* We hav no more clue to guess the type of this equality *)
+                eeq e1' e2'
+           else
+             eeq (check_expr env t2 e1) e2'
+         else
+           eeq e1' (check_expr env t1 e2)
       | Eapp (Evar (f_sym, _) as f, args, _) ->
-         (try
-             let typed_args = List.map (infer_expr env) args in
-             let args_types = List.map get_type typed_args in
-             let (new_typed_args, new_args_types) =
-               if List.exists ((==) type_none) args_types
-               then (
-                 (* Backup plan, maybe f_sym is declared and can help us checking args *)
-                 let tyf' = type_const f in
-                 match tyf' with
-                 | Earrow (l, ret, _) when List.length l = List.length args && ret == ty ->
-                    let new_typed_args = List.map2 (check_expr env) l args in
-                    let new_args_types = List.map get_type new_typed_args in
-                    if List.exists ((==) type_none) new_args_types then raise Give_up;
-                    (new_typed_args, new_args_types)
-                 | _ -> raise Give_up
-               )
-               else (typed_args, args_types)
-             in
-             let tyf = earrow new_args_types ty in
-             eapp (tvar f_sym tyf, new_typed_args)
-           with Give_up ->
-             eapp (evar f_sym, args))
+         (* First lookup in the constant table *)
+         (* Remark: If it fails, it looks at it on the symbol. *)
+         let tyf = get_type (type_const f) in
+         if tyf == type_none
+         then
+           let typed_args = List.map (infer_expr env) args in
+           let args_types = List.map get_type typed_args in
+           eapp (tvar f_sym (earrow args_types ty), typed_args)
+         else
+           let (type_args, term_args, tys, ret_ty) = instantiate args tyf in
+           if ret_ty == ty
+           then
+             eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr env) tys term_args)
+           else
+             raise (Type_Mismatch (ret_ty, ty, "Typer.xcheck_expr"))
       | Enot (e, _) ->
          assert (ty == type_prop);
          enot (check_expr env type_prop e)
