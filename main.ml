@@ -455,8 +455,8 @@ let do_main () =
                            "; "
                            (List.map (fun (x, y) ->
                                       Printf.sprintf "%s ↦ %s"
-                                                     (Print.sexpr_type x)
-                                                     (Print.sexpr_type y))
+                                                     (Print.sexpr_t x)
+                                                     (Print.sexpr_t y))
                                      map))
                         s;
 

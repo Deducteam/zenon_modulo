@@ -818,7 +818,7 @@ let pp_mlrule b r =
    Printf.bprintf b "%s : %a" s (Log.pp_list ~sep:", " pp_expr) l
 
 let sexpr e = Log.on_buffer pp_expr e
-let sexpr_type e = Log.on_buffer pp_expr_t e
+let sexpr_t e = Log.on_buffer pp_expr_t e
 ;;
 
 (* Full type debug printing for expr *)
@@ -848,3 +848,4 @@ let rec expr_type o ex =
   | _ -> assert false
 
 let pp_expr_type b e = expr_type (Buff b) e;;
+let sexpr_type e = Log.on_buffer pp_expr_type e;;
