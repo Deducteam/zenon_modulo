@@ -23,7 +23,9 @@ exception Arity_mismatch of expr * expr list;;
    (declare_constant is exported)
    This table is used for typing applications. *)
 let const_env : (string, expr) Hashtbl.t = Hashtbl.create 97;;
-let declare_constant (c, ty) = Hashtbl.add const_env c ty;;
+let declare_constant (c, ty) =
+  Log.debug 15 "Declaring %s : %s." c (Print.sexpr ty);
+  Hashtbl.add const_env c ty;;
 
 (* Print the declared constants, one by line *)
 let print_constant_decls out =
