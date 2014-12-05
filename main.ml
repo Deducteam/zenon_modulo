@@ -434,6 +434,18 @@ let do_main () =
           let s = Printexc.get_backtrace () in
           Format.printf "Mismatched type : expected '%s' but instead received '%s' (in %s)@\nBacktrace :@\n%s@."
           (Print.sexpr t) (Print.sexpr t') f s;
+  | Expr.Ill_typed_substitution (map) ->
+          let s = Printexc.get_backtrace () in
+          Format.printf "Ill-typed substitution [%s].@\nBacktrace :@\n%s@."
+                        (String.concat
+                           "; "
+                           (List.map (fun (x, y) ->
+                                      Printf.sprintf "%s ↦ %s"
+                                                     (Print.sexpr_type x)
+                                                     (Print.sexpr_type y))
+                                     map))
+                        s;
+
   (*
   | e -> eprintf "Zenon error: uncaught exception %s\n" (Printexc.to_string e);
          do_exit 14; *)
