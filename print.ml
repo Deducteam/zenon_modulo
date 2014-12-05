@@ -811,13 +811,14 @@ let dots o ?full_output:(b=true) ?max_depth:(d=(-1)) l =
 (* Functions for easy debug printing *)
 
 let pp_expr b e = expr_soft (Buff b) e
-let pp_expr_t b e = Printf.bprintf b "%a : '%a'" pp_expr e pp_expr (get_type e)
+let pp_expr_t b e = Printf.bprintf b "%a : %a" pp_expr e pp_expr (get_type e)
 
 let pp_mlrule b r =
   let s, l = get_rule_name r in
    Printf.bprintf b "%s : %a" s (Log.pp_list ~sep:", " pp_expr) l
 
 let sexpr e = Log.on_buffer pp_expr e
+let sexpr_type e = Log.on_buffer pp_expr_t e
 ;;
 (* Full type debug printing for expr *)
 
@@ -846,6 +847,4 @@ let rec expr_type o ex =
   | Etau _  -> ()
   | _ -> assert false
 
-let pp_expr_type b e = expr_type (Buff b) e
-;;
-let sexpr_type e = Log.on_buffer pp_expr_type e;;
+let pp_expr_type b e = expr_type (Buff b) e;;
