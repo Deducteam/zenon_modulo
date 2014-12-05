@@ -108,6 +108,8 @@ let mkpriv skel fv sz taus metas typ = {
 };;
 
 (* Base types *)
+(* Variables version of the types should not be used (nor exported) as these
+ * types should be considered constants*)
 let rec v_type_type = Evar("$tType", {
     hash = Hashtbl.hash (0, ["$tType"]);
     skel_hash  = 0;
@@ -226,6 +228,9 @@ let prop_app l =
     else
         aux l
 
+(* Meta-data constructors *)
+(* Since expressions are hashconsed, actual constructors are defined a bit later *)
+(* Additionally, the application needs more work and is defined together with substitution *)
 let priv_var s t =
   mkpriv 0 [s] 1 0 [] t
 ;;
@@ -298,7 +303,7 @@ let priv_tau v e =
 ;;
 
 (************************)
-(* temp printers *)
+(* temp printer *)
 let rec print b ex =
   match ex with
   | Evar (v, _) -> Printf.bprintf b "%s" v;
@@ -331,6 +336,8 @@ let rec print b ex =
       Printf.bprintf b "(L.(%a : %a): %a)" print v print (get_type v) print e
 
 
+(************************)
+(* Hashconsing module for expressions *)
 module HashedExpr = struct
   type t = expr;;
 
@@ -473,6 +480,7 @@ let print_stats oc =
   ;;
 *)
 
+(* Expression constructors (except eapp, see substitutions) *)
 let evar s = he_merge (Evar (s, priv_var s type_none));;
 let tvar s t = he_merge (Evar (s, priv_var s t));;
 let emeta (e) = he_merge (Emeta (e, priv_meta e));;
@@ -613,6 +621,8 @@ let rec find2 p l l' = match l, l' with
   | [], [] -> raise Not_found
   | _ -> invalid_arg "find2"
 
+(* Substitution and application need to be defined recursively, since we need
+ * substitution for application of polymorphic functions *)
 let rec priv_app s args =
   let comb_skel accu e = combine (get_skel e) accu in
   let skel = combine k_app (List.fold_left comb_skel (get_hash s) args) in
@@ -627,6 +637,7 @@ let rec priv_app s args =
 
 and eapp (s, args) = he_merge (Eapp (s, args, priv_app s args))
 
+(* Delay the actual substitution of type arguments so that the complexity stays linear *)
 and inst_app map s args = match s, args with
   | Eall(v, e, _), a :: r ->
           assert (get_type v == type_type);
@@ -679,6 +690,7 @@ and substitute_unsafe map e =
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
   | Earrow(args, ret, _) -> earrow (List.map (substitute_unsafe map) args) (substitute_unsafe map ret)
+  (* Equality symbol need to be re-generated with correct type, in case we have substituted a type argument *)
   | Eapp (Evar ("=", _), [a; b], _) -> eeq (substitute_unsafe map a) (substitute_unsafe map b)
   | Eapp (s, args, _) -> eapp (s, List.map (substitute_unsafe map) args)
   | Enot (f, _) -> enot (substitute_unsafe map f)
