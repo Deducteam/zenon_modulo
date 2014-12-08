@@ -184,6 +184,7 @@ let type_tff_var t env = function
 
 let rec type_tff_app env is_pred e = match e with
     (* Type typechecking *)
+    | _ when e == type_type || e == type_prop -> e, env
     | Eapp(Evar("$i", _), [], _) -> eapp (tvar "$i" type_type, []), env
     | Eapp(Evar("$int", _), [], _) -> eapp (tvar "Int" type_type, []), env
     | Eapp(Evar("$rat", _), [], _) -> eapp (tvar "Rat" type_type, []), env
@@ -249,7 +250,7 @@ and type_tff_quant k mk_quant env = function
     | Eex(Evar(s, _) as v, body, _)
     | Eall(Evar(s, _) as v, body, _)
     | Elam(Evar(s, _) as v, body, _) ->
-            let t = substitute env.map (get_type v) in
+            let t, env = type_tff_type env (get_type v) in
             let v' = tvar (var_name s) t in
             let map' = rm_binding v env.map in
             let nv =

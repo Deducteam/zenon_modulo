@@ -310,7 +310,7 @@ let rec print b ex =
   | Emeta (e, _) -> Printf.bprintf b "M.(%a)" print e;
   | Earrow (args, ret, _) ->
       Printf.bprintf b "(%a -> %a)"
-      (fun b l -> List.iteri (fun i x -> if i > 0 then Printf.bprintf b " * %a" print x) l) args print ret;
+      (fun b l -> List.iteri (fun i x -> if i > 0 then Printf.bprintf b " * "; Printf.bprintf b "%a" print x) l) args print ret;
   | Eapp (s, es, _) ->
       Printf.bprintf b "(%a%a)" print s
       (fun b l -> List.iter (fun x -> Printf.bprintf b " %a" print x) l) es
@@ -630,7 +630,7 @@ let rec priv_app s args =
   let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
   let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
   let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
-  Log.debug 15 "Typing '%a'" print s;
+  Log.debug 15 "Typing %a ::: %a" print s print (get_type s);
   List.iter (fun x -> Log.debug 15 " |- %a ::: %a" print x print (get_type x)) args;
   let typ = type_app (get_type s) args in
   mkpriv skel fv sz taus metas typ
