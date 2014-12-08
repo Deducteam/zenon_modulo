@@ -250,9 +250,9 @@ and type_tff_quant k mk_quant env = function
     | Eex(Evar(s, _) as v, body, _)
     | Eall(Evar(s, _) as v, body, _)
     | Elam(Evar(s, _) as v, body, _) ->
-            let t, env = type_tff_type env (get_type v) in
+            let t, env' = type_tff_type env (get_type v) in
             let v' = tvar (var_name s) t in
-            let map' = rm_binding v env.map in
+            let map' = rm_binding v env'.map in
             let nv =
                 if conflict v' map' then
                     tvar (newname ()) t
@@ -261,8 +261,8 @@ and type_tff_quant k mk_quant env = function
             in
             let map'' = (evar s, nv) :: map' in
             Log.debug 2 "Introducting '%a' of type '%a' as '%a'" Print.pp_expr v Print.pp_expr t Print.pp_expr nv;
-            let body, env' = k { env with map = map'' } body in
-            mk_quant (v', body), env'
+            let body, env'' = k { env' with map = map'' } body in
+            mk_quant (v', body), { env'' with map = env.map }
     | _ -> raise (Type_error ("Ill-formed expression"))
 
 and type_tff_term env e = match e with
