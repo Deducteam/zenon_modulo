@@ -209,25 +209,44 @@ let make_notequiv st sym (p, g) (np, ng) =
       then (arity_warning s1; st)
       else if Extension.is_active "induct"
               && List.exists2 constructor_mismatch args1 args2 then st
-      else begin
-        let myrule = if sym then P_NotP_sym (s1', p, np) else P_NotP (p, np) in
-        let myargs1 = if sym then List.rev args1 else args1 in
-        let prio =
-          if good_match args1 args2 then
-            if s1 =%= "=" then Arity_eq else Arity
-          else Inst p
-        in
-        add_node st {
-          nconc = [p; np];
-          nrule = myrule;
-          nprio = prio;
-          ngoal = min g ng;
-          nbranches = make_inequals myargs1 args2;
-        }
-      end
+      else if (List.for_all2 
+		 (fun x y -> Expr.equal (get_type x) (get_type y)) 
+		 args1 args2)
+      then
+	begin
+	  let myrule = if sym then P_NotP_sym (s1', p, np) else P_NotP (p, np) in
+	  let myargs1 = if sym then List.rev args1 else args1 in
+	  let prio =
+	    if good_match args1 args2 then
+	      if s1 =%= "=" then Arity_eq else Arity
+	    else Inst p
+	  in
+	  add_node st {
+		     nconc = [p; np];
+		     nrule = myrule;
+		     nprio = prio;
+		     ngoal = min g ng;
+		     nbranches = make_inequals myargs1 args2;
+		   }
+	end
+      else 
+	begin 
+	  try 
+	    let n_tvar = nb_tvar p in 
+	    let (texp1, _) = split_list n_tvar args1 in 
+	    let (texp2, _) = split_list n_tvar args2 in	      
+	    let subst = Expr.preunify_list texp1 texp2 in 
+	    let compare_size (m1, _) (m2, _) = 
+	      - Pervasives.compare (Expr.size m1) (Expr.size m2)
+	    in
+	    let subst = List.sort compare_size subst in
+	    let (m, term) = List.hd subst in 
+            fst (make_inst st m term (min g ng))
+	  with  Ununifiable | Unsplitable | Failure _ -> st
+	end
   | _ -> assert false
 ;;
-
+  
 (* [is_conj f m]:
    f is a n-ary conjunctive formula
    return 0 if n >= m; return m-n otherwise

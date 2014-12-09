@@ -115,6 +115,10 @@ val preunify : expr -> expr -> (expr * expr) list;;
    A pre-unifier is: (metavariable, value)
 *)
 
+exception Ununifiable;;
+
+val preunify_list : expr list -> expr list -> (expr * expr) list;;
+
 val occurs_as_meta : expr -> expr -> bool;;
 (* [occurs e1 e2] returns true if [Emeta (e1, _)] occurs in [e2] *)
 
@@ -158,3 +162,9 @@ val get_defs : unit -> (string * t) list
 (* Comparison of variables without comparing their types *)
 val var_equal : expr -> expr -> bool
 val list_var_equal : expr list -> expr list -> bool
+
+val nb_tvar : expr -> int;;
+
+exception Unsplitable;;
+
+val split_list : int -> expr list -> expr list * expr list;;
