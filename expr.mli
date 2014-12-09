@@ -122,6 +122,7 @@ exception Higher_order;;
 val substitute : (expr * expr) list -> expr -> expr;;
 (* Same as substitute but also check that the substitution is well-typed. *)
 val substitute_safe : (expr * expr) list -> expr -> expr;;
+val substitute_unsafe : (expr * expr) list -> expr -> expr;;
 (*
 val substitute_meta : (expr * expr) -> expr -> expr;;
 val substitute_expr : (expr * expr) -> expr -> expr;;
@@ -129,6 +130,7 @@ val substitute_expr : (expr * expr) -> expr -> expr;;
 val substitute_2nd : (expr * expr) list -> expr -> expr;;
 (* Same as substitute but also check that the substitution is well-typed. *)
 val substitute_2nd_safe : (expr * expr) list -> expr -> expr;;
+val substitute_2nd_unsafe : (expr * expr) list -> expr -> expr;;
 val apply : expr -> expr -> expr;;
 val add_argument : expr -> expr -> expr;;
 val remove_scope : expr -> expr;;

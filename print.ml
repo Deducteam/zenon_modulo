@@ -849,3 +849,10 @@ let rec expr_type o ex =
 
 let pp_expr_type b e = expr_type (Buff b) e;;
 let sexpr_type e = Log.on_buffer pp_expr_type e;;
+
+let pr_def b d =
+  match d with
+  | DefReal (_, _, _, _, e, _) -> pp_expr b e;
+  | DefRec (_, _, _, _, e) -> pp_expr b e;
+  | DefPseudo (_, _, _, _, e) -> pp_expr b e;
+;;

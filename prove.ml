@@ -192,7 +192,8 @@ let make_notequiv st sym (p, g) (np, ng) =
          && not (Expr.equal e1 e2)
     -> st
   | Eapp (Evar("Is_true",_), _, _), _ when Extension.is_active "focal" -> st
-  | Eapp (Evar(s1,_) as s1', args1, _), Enot (Eapp (Evar(s2,_) as s2', args2, _), _) ->
+  | Eapp (Evar(s1,_) as s1', args1, _), 
+    Enot (Eapp (Evar(s2,_) as s2', args2, _), _) ->
       assert (s1 =%= s2);
       if not (get_type s1' == get_type s2') then st
       else if sym && List.length args2 != 2
@@ -563,6 +564,8 @@ let newnodes_unfold st fm g _ =
     try
       let (d, _, params, body) = Index.get_def p in
       let prio = match d with DefRec _ -> Inst fm | _ -> Prop in
+      Log.debug 15 "Unfolding '%a'" Print.pp_expr fm;
+      Log.debug 15 " |- with '%a'" Print.pr_def d;
       match params, args, body with
       | [], Some aa, (Evar (b, _) as b') ->
          let unfolded = ctx (eapp (b', aa)) in
@@ -576,7 +579,7 @@ let newnodes_unfold st fm g _ =
       | _ ->
          let aa = match args with None -> [] | Some l -> l in
          let subst = List.map2 (fun x y -> (x,y)) params aa in
-         let unfolded = ctx (substitute_2nd subst body) in
+         let unfolded = ctx (substitute_unsafe subst body) in
          add_node st {
            nconc = [fm];
            nrule = Definition (d, fm, unfolded);
@@ -596,10 +599,12 @@ let newnodes_unfold st fm g _ =
   | Enot (Eapp (Evar(p,_), args, _), _) when Index.has_def p ->
      let ctx x = enot (x) in
      mk_unfold ctx p (Some args)
-  | Eapp (s, [Eapp (Evar(p,_), args, _); e], _) when Eqrel.any s && Index.has_def p ->
+  | Eapp (s, [Eapp (Evar(p,_), args, _); e], _) 
+       when Eqrel.any s && Index.has_def p ->
      let ctx x = eapp (s, [x; e]) in
      mk_unfold ctx p (Some args)
-  | Eapp (s, [e; Eapp (Evar(p,_), args, _)], _) when Eqrel.any s && Index.has_def p ->
+  | Eapp (s, [e; Eapp (Evar(p,_), args, _)], _) 
+       when Eqrel.any s && Index.has_def p ->
      let ctx x = eapp (s, [e; x]) in
      mk_unfold ctx p (Some args)
   | Enot (Eapp (s, [Eapp (Evar(p,_), args, _); e], _), _)
