@@ -257,7 +257,7 @@ type prooftree = {
 
 type lemma = {
   name : string;                  (* nom du lemme *)
-  params : (string * expr) list;  (* (type, actual) *)
+  params : (expr * expr) list;    (* (type, actual) *)
   proof : prooftree;              (* preuve *)
 };;
 

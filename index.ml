@@ -259,11 +259,11 @@ let find_neq_lr e = HE.find_all neq_lr e;;
 let find_neq_rl e = HE.find_all neq_rl e;;
 
 let find_eq e =
-  List.map (fun x -> eapp (eeq, [e; x])) (find_eq_lr e)
-  @ List.map (fun x -> eapp (eeq, [x; e])) (find_eq_rl e);;
+  List.map (fun x -> eeq e x) (find_eq_lr e)
+  @ List.map (fun x -> eeq x e) (find_eq_rl e);;
 let find_neq e =
-  List.map (fun x -> enot (eapp (eeq, [e; x]))) (find_neq_lr e)
-  @ List.map (fun x -> enot (eapp (eeq, [x; e]))) (find_neq_rl e);;
+  List.map (fun x -> enot (eeq e x)) (find_neq_lr e)
+  @ List.map (fun x -> enot (eeq x e)) (find_neq_rl e);;
 
 (* ==== *)
 
@@ -410,17 +410,17 @@ let defs = (Hashtbl.create tblsize : (string, definition) Hashtbl.t);;
 
 let add_def d =
   match d with
-  | DefReal (_, s, args, body, _) -> Hashtbl.add defs s d;
-  | DefPseudo (h, s, args, body) -> Hashtbl.add defs s d;
-  | DefRec (_, s, args, body) -> Hashtbl.add defs s d;
+  | DefReal (_, s, _, _, _, _) -> Hashtbl.add defs s d;
+  | DefPseudo (_, s, _, _, _) -> Hashtbl.add defs s d;
+  | DefRec (_, s, _, _, _) -> Hashtbl.add defs s d;
 ;;
 let has_def s = Hashtbl.mem defs s;;
 let get_def s =
   let d = Hashtbl.find defs s in
   match d with
-  | DefReal (_, s, params, body, _) -> (d, params, body)
-  | DefPseudo (hyp, s, params, body) -> (d, params, body)
-  | DefRec (_, s, params, body) -> (d, params, body)
+  | DefReal (_, s, ty, params, body, _) -> (d, ty, params, body)
+  | DefPseudo (hyp, s, ty, params, body) -> (d, ty, params, body)
+  | DefRec (_, s, ty, params, body) -> (d, ty, params, body)
 ;;
 
 (* ==== *)
@@ -460,6 +460,7 @@ let rec expr o ex =
   | Evar (v, _) -> pr "%s" v;
 
   | Emeta (e, _) -> pr "%s#" Namespace.meta_prefix;
+  | Earrow _ -> assert false
   | Eapp (s, es, _) ->
       pr "(%s" (get_name s); List.iter (fun x -> pr " "; expr o x) es; pr ")";
   | Enot (e, _) -> pr "(-. "; expr o e; pr ")";
@@ -473,22 +474,22 @@ let rec expr o ex =
       pr "(<=> "; expr o e1; pr " "; expr o e2; pr ")";
   | Etrue -> pr "(True)";
   | Efalse -> pr "(False)";
-  | Eall (v, t, e, _) when (Type.to_string t) === Namespace.univ_name ->
+  | Eall (v, e, _) when get_type v == type_none ->
       pr "(A. ((%a) " print_var v; expr o e; pr "))";
-  | Eall (v, t, e, _) ->
-      pr "(A. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Eex (v, t, e, _) when (Type.to_string t) === Namespace.univ_name ->
+  | Eall (v, e, _) ->
+      pr "(A. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
+  | Eex (v, e, _) when get_type v == type_none ->
       pr "(E. ((%a) " print_var v; expr o e; pr "))";
-  | Eex (v, t, e, _) ->
-      pr "(E. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Etau (v, t, e, _) when (Type.to_string t) === Namespace.univ_name ->
+  | Eex (v, e, _) ->
+      pr "(E. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
+  | Etau (v, e, _) when get_type v == type_none ->
       pr "(t. ((%a) " print_var v; expr o e; pr "))";
-  | Etau (v, t, e, _) ->
-      pr "(t. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Elam (v, t, e, _) when (Type.to_string t) === Namespace.univ_name ->
+  | Etau (v, e, _) ->
+      pr "(t. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
+  | Elam (v, e, _) when get_type v == type_none ->
       pr "((%a) " print_var v; expr o e; pr ")";
-  | Elam (v, t, e, _) ->
-      pr "((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr ")";
+  | Elam (v, e, _) ->
+      pr "((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
 ;;
 
 let dprint_expr e = expr () e;;
@@ -516,9 +517,9 @@ let get_formula i =
 
 let make_tau_name p =
   match p with
-  | Etau (Evar (v, _), _, _, _) when is_prefix "zenon_" v ->
+  | Etau (Evar (v, _), _, _) when is_prefix "zenon_" v ->
      Printf.sprintf "%s_%s" Namespace.tau_prefix (base26 (get_number p))
-  | Etau (Evar (v, _), _, _, _) ->
+  | Etau (Evar (v, _), _, _) ->
      Printf.sprintf "%s%s_%s" Namespace.tau_prefix v (base26 (get_number p))
   | _ -> assert false
 ;;

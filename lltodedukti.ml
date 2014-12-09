@@ -42,19 +42,19 @@ struct
         -> get_sig (Typ Out.mk_proptype) env e1;
 	  get_sig (Typ Out.mk_proptype) env e2
       | Enot (e1, _) -> get_sig (Typ Out.mk_proptype) env e1;
-      | Eall (Evar (v, _), _, e1, _)
+      | Eall (Evar (v, _), e1, _)
         -> get_sig (Typ Out.mk_proptype) (v::env) e1
       | Eall _ -> assert false
-      | Eex (Evar (v, _), _, e1, _)
+      | Eex (Evar (v, _), e1, _)
         -> get_sig (Typ Out.mk_proptype) (v::env) e1
       | Eex _ -> assert false
-      | Etau _ | Elam _ -> assert false (* no tau nor lambda accepted in phrases *)
+      | Etau _ | Elam _ | Earrow _ -> assert false (* no tau nor lambda accepted in phrases *)
     in
     let do_phrase p =
       match p with
       | Phrase.Hyp (name, e, _) ->
          get_sig (Typ Out.mk_proptype) [] e;
-      | Phrase.Def (DefReal ("", s, _, e, None)) ->
+      | Phrase.Def (DefReal ("", s, _, _, e, None)) ->
          get_sig (Indirect s) [] e;
       | _ -> assert false
     in
@@ -97,17 +97,18 @@ struct
       | Eand (e1, e2, _) | Eor (e1, e2, _)
       | Eimply (e1, e2, _) | Eequiv (e1, e2, _)
 	-> xget_distincts (xget_distincts distincts e1) e2
-      | Enot (e1, _) | Eall (_, _, e1, _) | Eex (_, _, e1, _)
+      | Enot (e1, _) | Eall (_, e1, _) | Eex (_, e1, _)
 	-> xget_distincts distincts e1
       | Etau _ -> assert false
+      | Earrow _ -> assert false
       | Elam _ -> distincts (* no tau nor lambda accepted in phrases *) in
     let get_distincts_phrase distincts p =
       match p with
       | Phrase.Hyp (name, e, _) -> xget_distincts distincts e
-      | Phrase.Def (DefReal (_, sym, params, body, None)) -> xget_distincts distincts body
-      | Phrase.Def (DefReal (_, sym, params, body, Some _)) -> assert false
-      | Phrase.Def (DefPseudo (_, _, _, _)) -> assert false
-      | Phrase.Def (DefRec (_, _, _, _)) -> assert false
+      | Phrase.Def (DefReal (_, sym, _, params, body, None)) -> xget_distincts distincts body
+      | Phrase.Def (DefReal (_, sym, _, params, body, Some _)) -> assert false
+      | Phrase.Def (DefPseudo _) -> assert false
+      | Phrase.Def (DefRec _) -> assert false
       | Phrase.Sig _ -> assert false
       | Phrase.Inductive _ -> assert false      (* TODO: to implement *) in
     List.fold_left get_distincts_phrase [] phrases
@@ -117,11 +118,11 @@ struct
   let get_definitions phrases =
     let xget_definitions definitions p = match p with
     | Phrase.Hyp (name, e, _) -> ()
-    | Phrase.Def (DefReal (_, sym, params, body, None)) ->
+    | Phrase.Def (DefReal (_, sym, _, params, body, None)) ->
       Hashtbl.add definitions sym (params, body)
-    | Phrase.Def (DefReal (_, sym, params, body, Some _)) -> assert false
-    | Phrase.Def (DefPseudo (_, _, _, _)) -> assert false
-    | Phrase.Def (DefRec (_, _, _, _)) -> assert false
+    | Phrase.Def (DefReal (_, sym, _, params, body, Some _)) -> assert false
+    | Phrase.Def (DefPseudo _) -> assert false
+    | Phrase.Def (DefRec _) -> assert false
     | Phrase.Sig _ -> assert false
 
     | Phrase.Inductive _ -> ()      (* TODO: to implement *)
@@ -141,10 +142,10 @@ struct
       match p with
       | Phrase.Hyp (name, e, _) when name = goal_name -> hyps
       | Phrase.Hyp (name, e, _) -> (Some name, e) :: hyps
-      | Phrase.Def (DefReal (_, sym, params, body, None)) -> hyps
-      | Phrase.Def (DefReal (_, sym, params, body, Some _)) -> assert false
-      | Phrase.Def (DefPseudo (_, _, _, _)) -> assert false
-      | Phrase.Def (DefRec (_, _, _, _)) -> assert false
+      | Phrase.Def (DefReal (_, sym, _, params, body, None)) -> hyps
+      | Phrase.Def (DefReal (_, sym, _, params, body, Some _)) -> assert false
+      | Phrase.Def (DefPseudo _) -> assert false
+      | Phrase.Def (DefRec _) -> assert false
       | Phrase.Sig _ -> assert false
       | Phrase.Inductive _ -> hyps      (* TODO: to implement *) in
     let hyps = List.fold_left xget_env [] phrases in

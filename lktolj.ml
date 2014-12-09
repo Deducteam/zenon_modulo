@@ -23,10 +23,10 @@ let rec unify e1 e2 =
   | Eimply (f1, f2, _), Eimply (f3, f4, _) ->
     eimply (unify f1 f3, unify f2 f4)
   | Enot (f1, _), Enot (f2, _) -> enot (unify f1 f2)
-  | Eall (x, ty1, f1, _), Eall (y, _, f2, _) ->
-    eall (x, ty1, unify f1 (substitute [(y, x)] f2))
-  | Eex (x, ty1, f1, _), Eex (y, _, f2, _) ->
-    eex (x, ty1, unify f1 (substitute [(y, x)] f2))
+  | Eall (x, f1, _), Eall (y, f2, _) ->
+    eall (x, unify f1 (substitute [(y, x)] f2))
+  | Eex (x, f1, _), Eex (y, f2, _) ->
+    eex (x, unify f1 (substitute [(y, x)] f2))
   | _, _ -> p_debug "fail unify" [e1; e2]; assert false
 
 let rec merge assocs =
@@ -95,14 +95,14 @@ let rec adaptaxiom g e1 e2 =
      f1, f2,
      adaptaxiom g f3 f1,
      adaptaxiom (f3 :: g) f2 f4))
-  | Eall (x, ty, f1, _), Eall (y, _, f2, _) ->
+  | Eall (x, f1, _), Eall (y, f2, _) ->
     let z = new_var () in
     scrall (
       e2, z, sclall (
 	e1, z, adaptaxiom g
 	  (substitute [(x, z)] f1)
 	  (substitute [(y, z)] f2)))
-  | Eex (x, ty, f1, _), Eex (y, _, f2, _) ->
+  | Eex (x, f1, _), Eex (y, f2, _) ->
     let z = new_var () in
     sclex (
       e1, z, screx (
@@ -135,18 +135,18 @@ let rec ladapt proof (u, v) =
     | SClnot (a, proof), Enot (sa, _)
       when (equal u (enot a)) ->
       sclnot (sa, radapt proof (a, sa))
-    | SClall (Eall (var, ty, e, _) as ap, t, proof),
-	Eall (svar, _, se, _)
+    | SClall (Eall (var, e, _) as ap, t, proof),
+	Eall (svar, se, _)
 	  when (equal u ap) ->
       let z = substitute [(var, t)] e in
       let sz = substitute [(svar, t)] se in
-      sclall (eall (svar, ty, se), t, ladapt proof (z, sz))
-    | SClex (Eex (var, ty, e, _) as ep, v, proof),
-      Eex (svar, _, se, _)
+      sclall (eall (svar, se), t, ladapt proof (z, sz))
+    | SClex (Eex (var, e, _) as ep, v, proof),
+      Eex (svar, se, _)
 	when (equal u ep) ->
       let z = substitute [(var, v)] e in
       let sz = substitute [(svar, v)] se in
-      sclex (eex (svar, ty, se), v, ladapt proof (z, sz))
+      sclex (eex (svar, se), v, ladapt proof (z, sz))
     | SCaxiom (a), _ when equal u a -> adaptaxiom (rm u g) v u
     | SCext _, _
     | SClnot _, _ | SClimply _, _ | SClor _, _ | SCland _, _
@@ -183,16 +183,16 @@ and radapt proof (a, b) =
       scrimply (xa, xb, radapt (ladapt proof (a, xa)) (b, xb))
     | SCrnot (a, proof), Enot (xa, _) ->
       scrnot (xa, ladapt proof (a, xa))
-    | SCrall (Eall (var, ty, e, _), v, proof),
-      Eall (xvar, _, xe, _) ->
+    | SCrall (Eall (var, e, _), v, proof),
+      Eall (xvar, xe, _) ->
       let z = substitute [(var, v)] e in
       let xz = substitute [(xvar, v)] xe in
-      scrall (eall (xvar, ty, xe), v, radapt proof (z, xz))
-    | SCrex (Eex (var, ty, e, _), t, proof),
-      Eex (xvar, _, xe, _) ->
+      scrall (eall (xvar, xe), v, radapt proof (z, xz))
+    | SCrex (Eex (var, e, _), t, proof),
+      Eex (xvar, xe, _) ->
       let z = substitute [(var, t)] e in
       let xz = substitute [(xvar, t)] xe in
-      screx (eex (xvar, ty, xe), t, radapt proof (z, xz))
+      screx (eex (xvar, xe), t, radapt proof (z, xz))
     | SCtrue, _ | SCeqref _, _ | SCeqsym _, _
     | SCeqfunc _, _ | SCeqprop _, _  -> proof
     | SCaxiom _, _ -> adaptaxiom (rm u g) u v
@@ -234,10 +234,10 @@ let rec weaken ex et =
   | Eimply (fx1, fx2, _), Eimply (ft1, ft2, _) ->
     eimply (weaken fx1 ft1, weaken fx2 ft2)
   | Enot (fx, _), Enot (ft, _) -> enot (weaken fx ft)
-  | Eall (x, tyx, fx, _), Eall (y, _, ft, _) ->
-    eall (x, tyx, weaken fx (substitute [(y, x)] ft))
-  | Eex (x, tyx, fx, _), Eex (y, _, ft, _) ->
-    eex (x, tyx, weaken fx (substitute [(y, x)] ft))
+  | Eall (x, fx, _), Eall (y, ft, _) ->
+    eall (x, weaken fx (substitute [(y, x)] ft))
+  | Eex (x, fx, _), Eex (y, ft, _) ->
+    eex (x, weaken fx (substitute [(y, x)] ft))
   | _, _ -> assert false
 
 let rec lltoljrule lkproof =
@@ -319,25 +319,25 @@ let rec lltoljrule lkproof =
     | SCrnot (a, _), [l], [(g, c, _) as proof] ->
       List.remove_assoc a l,
       scrnot (List.assoc a l, proof)
-    | SClall (Eall (x, ty, e, _) as ap, t, _),
+    | SClall (Eall (x, e, _) as ap, t, _),
       [l], [(g, c, _) as proof] ->
       let h = eall (
-	x, ty,
+	x,
 	weaken e (List.assoc (substitute [(x, t)] e) l)) in
       (ap, h) :: (List.remove_assoc (substitute [(x, t)] e) l),
       sclall (h, t, proof)
-    | SClex (Eex (x, ty, e, _) as ep, v, _),
+    | SClex (Eex (x, e, _) as ep, v, _),
       [l], [(g, c, _) as proof] ->
       let h = eex (
-	x, ty,
+	x,
 	weaken e (List.assoc (substitute [(x, v)] e) l)) in
       (ep, h) :: (List.remove_assoc (substitute [(x, v)] e) l),
       sclex (h, v, proof)
-    | SCrall (Eall (x, ty, e, _), v, _), [l],
+    | SCrall (Eall (x, e, _), v, _), [l],
       [(g, c, _) as proof] ->
-      l, scrall (eall (x, ty, weaken e c), v, proof)
-    | SCrex (Eex (x, ty, e, _), t, _), [l], [(g, c, _) as proof] ->
-      l, screx (eex (x, ty, weaken e c), t, proof)
+      l, scrall (eall (x, weaken e c), v, proof)
+    | SCrex (Eex (x, e, _), t, _), [l], [(g, c, _) as proof] ->
+      l, screx (eex (x, weaken e c), t, proof)
     | SCcnot (e, _), [l], [(g, c, _) as proof] ->
       List.remove_assoc (enot e) l,
       scrnot (List.assoc (enot e) l, proof)

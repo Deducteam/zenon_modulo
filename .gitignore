@@ -31,8 +31,6 @@ parsedk.ml
 parsedk.mli
 parsetptp.ml
 parsetptp.mli
-parsesmtlib.ml
-parsesmtlib.mli
 parsezen.ml
 parsezen.mli
 test_dedukti/

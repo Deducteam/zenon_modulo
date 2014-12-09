@@ -26,7 +26,7 @@ val is_constr : Expr.expr -> bool;;
 (* [is_constr e] is true iff [e] is the application of a constructor of
    an inductive type. *)
 val getname : Expr.expr -> string;;
-val synthesize : string -> string;;
+val synthesize : Expr.expr -> string;;
 val constants_used : string list ref;;
 exception Cannot_infer of string;;
 

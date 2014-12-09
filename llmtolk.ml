@@ -106,20 +106,20 @@ let rec hypstoadd rule =
       [enot (eand (eimply (p, q), eimply (q, p)))]  end
   | Rex (ep, v) ->
     begin match ep with
-    | Eex (x, ty, p, _) -> [[substitute [(x, v)] p]], [ep]
+    | Eex (x, p, _) -> [[substitute [(x, v)] p]], [ep]
     | _ -> assert false end
   | Rall (ap, t) ->
     begin match ap with
-    | Eall (x, ty, p, _) -> [[substitute [(x, t)] p]], [ap]
+    | Eall (x, p, _) -> [[substitute [(x, t)] p]], [ap]
     | _ -> assert false end
   | Rnotex (ep, t) ->
     begin match ep with
-    | Eex (x, ty, p, _) ->
+    | Eex (x, p, _) ->
       [[enot (substitute [(x, t)] p)]], [enot ep]
     | _ -> assert false end
   | Rnotall (ap, v) ->
     begin match ap with
-    | Eall (x, ty, p, _) ->
+    | Eall (x, p, _) ->
       [[enot (substitute [(x, v)] p)]], [enot ap]
     | _ -> assert false end
   | Rpnotp (e1, e2) ->
@@ -391,7 +391,7 @@ let rec rmcongruence s x e a b =
       sclnot (
 	substitute [(x, a)] e0,
 	rmcongruence (not s) x e0 b a))
-  | Eall (y, ty, e0, _) ->
+  | Eall (y, e0, _) ->
     let z = new_var () in
     scrall (
       substitute [(x, b)] e,
@@ -401,7 +401,7 @@ let rec rmcongruence s x e a b =
 	substitute [(x, a)] z,
 	rmcongruence s x
 	  (substitute [(y, z)] e0) a b))
-  | Eex (y, ty, e0, _) ->
+  | Eex (y, e0, _) ->
     let z = new_var () in
     screx (
       substitute [(x, b)] e,
@@ -411,7 +411,7 @@ let rec rmcongruence s x e a b =
 	substitute [(x, a)] z,
 	rmcongruence s x
 	  (substitute [(y, z)] e0) a b))
-    | Etau _ | Elam _ | Emeta _ | Eequiv _ ->
+    | Etau _ | Elam _ | Emeta _ | Eequiv _ | Earrow _ ->
     assert false
 
 let xlltolkrule distincts rule hyps gamma =
@@ -519,11 +519,11 @@ let xlltolkrule distincts rule hyps gamma =
     sclex (ep, v, proof)
   | Rall (ap, t), [proof] ->
     sclall (ap, t, proof)
-  | Rnotex (Eex(x, ty, p, _) as ep, t), [proof] ->
+  | Rnotex (Eex(x, p, _) as ep, t), [proof] ->
     assert (ingamma (enot (substitute [(x, t)] p)) proof);
     righttoleft ep
       (screx (ep, t, lefttoright (substitute [(x, t)] p) proof))
-  | Rnotall (Eall(x, ty, p, _) as ap, v), [proof] ->
+  | Rnotall (Eall(x, p, _) as ap, v), [proof] ->
     assert (ingamma (enot (substitute [(x, v)] p)) proof);
     righttoleft ap (
       scrall (
@@ -560,7 +560,7 @@ let xlltolkrule distincts rule hyps gamma =
   | RcongruenceLR (p, a, b), [proof] ->
     let g, c, rule = proof in
     begin match p with
-    | Elam (x, ty, e, _) ->
+    | Elam (x, e, _) ->
       let prf1 =
 	addhyp (rm (apply p b) g) (rmcongruence true x e a b) in
       let prf2 = addhyp [apply p a; eapp (evar "=", [a; b])] proof in
@@ -575,7 +575,7 @@ let xlltolkrule distincts rule hyps gamma =
   | RcongruenceRL (p, a, b), [proof] ->
     let g, c, rule = proof in
     begin match p with
-    | Elam (x, ty, e, _) ->
+    | Elam (x, e, _) ->
       let prf1 =
 	addhyp (rm (apply p b) g) (rmcongruence false x e a b) in
       let prf2 = addhyp [apply p a; eapp (evar "=", [a; b])] proof in
@@ -589,8 +589,8 @@ let xlltolkrule distincts rule hyps gamma =
   | Rdefinition (name, sym, args, body, recarg, fld, unf), [proof]
     -> assert false
   | Rextension (
-    "", "zenon_notallex", [Elam (v, t, p, _)],
-    [Enot (Eall (x, s, e, _) as ap, _)], [[ep]]), [proof] ->
+    "", "zenon_notallex", [Elam (v, p, _)],
+    [Enot (Eall (x, e, _) as ap, _)], [[ep]]), [proof] ->
     let g, c, rule = proof in
     begin match rule with
     | SClex (exp, y, prf)

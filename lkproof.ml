@@ -119,14 +119,14 @@ let sclnot (e, proof) =
   (enot e) :: g, efalse, SClnot (e, proof)
 let sclall (e1, t, proof) =
   match e1 with
-  | Eall (x, ty, p, _) ->
+  | Eall (x, p, _) ->
     let (g, c, rule) = proof in
     assert (ingamma (substitute [(x, t)] p) proof);
     e1 :: rm (substitute [(x, t)] p) g, c, SClall (e1, t, proof)
   | _ -> assert false
 let sclex (e1, v, proof) =
   match e1 with
-  | Eex (x, ty, p, _) ->
+  | Eex (x, p, _) ->
     let (g, c, rule) = proof in
     assert (ingamma (substitute [(x, v)] p) proof);
     e1 :: rm (substitute [(x, v)] p) g, c, SClex (e1, v, proof)
@@ -152,13 +152,13 @@ let scrnot (e, proof) =
   rm e g, enot e, SCrnot (e, proof)
 let scrall (e1, v, proof) =
   match e1 with
-  | Eall (x, ty, p, _) ->
+  | Eall (x, p, _) ->
     let (g, c, rule) = proof in
     g, e1, SCrall (e1, v, proof)
   | _ -> assert false
 let screx (e1, t, proof) =
   match e1 with
-  | Eex (x, ty, p, _) ->
+  | Eex (x, p, _) ->
     let (g, c, rule) = proof in
     g, e1, SCrex (e1, t, proof)
   | _ -> assert false

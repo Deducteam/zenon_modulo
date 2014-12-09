@@ -47,18 +47,20 @@ let print_var b v =
   | _ -> assert false
 ;;
 
-let print_vartype b (v, t) =
-  if t = univ_name
-  then print_var b v
-  else bprintf b "%a:\"%s\" " print_var v t
-;;
+let rec print_vartype b (v, t) =
+  if t == type_none then
+      print_var b v
+  else begin
+      bprintf b "%a:\"" print_var v; expr (Buff b) t; bprintf b "\" "
+  end
 
-let rec expr o ex =
+and expr o ex =
   let pr f = oprintf o f in
   match ex with
   | Evar (v, _) -> pr "%s" v;
-
   | Emeta (e, _) -> pr "%s%d" meta_prefix (Index.get_number e);
+  | Earrow (args, ret, _) ->
+      pr "("; List.iteri (fun i x -> if i > 0 then pr " * "; expr o x) args; pr " -> "; expr o ret; pr ")"
   | Eapp (s, es, _) ->
       pr "(%s" (get_name s); List.iter (fun x -> pr " "; expr o x) es; pr ")";
   | Enot (e, _) -> pr "(-. "; expr o e; pr ")";
@@ -72,22 +74,22 @@ let rec expr o ex =
       pr "(<=> "; expr o e1; pr " "; expr o e2; pr ")";
   | Etrue -> pr "(True)";
   | Efalse -> pr "(False)";
-  | Eall (v, t, e, _) when (Type.to_string t) = univ_name ->
+  | Eall (v, e, _) when get_type v == type_none ->
       pr "(A. ((%a) " print_var v; expr o e; pr "))";
-  | Eall (v, t, e, _) ->
-      pr "(A. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Eex (v, t, e, _) when (Type.to_string t) = univ_name ->
+  | Eall (v, e, _) ->
+      pr "(A. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
+  | Eex (v, e, _) when get_type v == type_none ->
       pr "(E. ((%a) " print_var v; expr o e; pr "))";
-  | Eex (v, t, e, _) ->
-      pr "(E. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Etau (v, t, e, _) when (Type.to_string t) = univ_name ->
+  | Eex (v, e, _) ->
+      pr "(E. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
+  | Etau (v, e, _) when get_type v == type_none ->
       pr "(t. ((%a) " print_var v; expr o e; pr "))";
-  | Etau (v, t, e, _) ->
-      pr "(t. ((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr "))";
-  | Elam (v, t, e, _) when (Type.to_string t) = univ_name ->
+  | Etau (v, e, _) ->
+      pr "(t. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
+  | Elam (v, e, _) when get_type v == type_none ->
       pr "((%a) " print_var v; expr o e; pr ")";
-  | Elam (v, t, e, _) ->
-      pr "((%a \"%s\") " print_var v (Type.to_string t); expr o e; pr ")";
+  | Elam (v, e, _) ->
+      pr "((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
 ;;
 
 let expr o e =
@@ -118,6 +120,8 @@ let rec expr_soft o ex =
   match ex with
   | Evar (v, _) -> pr "%s" v;
   | Emeta (e, _) -> pr "%s%d" meta_prefix (Index.get_number e);
+  | Earrow (args, ret, _) ->
+      pr "("; List.iteri (fun i x -> if i > 0 then pr " * "; expr_soft o x) args; pr " -> "; expr_soft o ret; pr ")"
   | Eapp (Evar(s,_), [e1; e2], _) when is_infix_op s ->
      pr "("; expr_soft o e1; pr " %s " (to_infix s); expr_soft o e2; pr ")";
   | Eapp(Evar(s, _), [], _) ->
@@ -143,21 +147,21 @@ let rec expr_soft o ex =
       pr "("; expr_soft o e1; pr " <=> "; expr_soft o e2; pr ")";
   | Etrue -> pr "True";
   | Efalse -> pr "False";
-  | Eall (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Eall (Evar (v, _) as var, e, _) when get_type var == type_none ->
       pr "(All %s, " v; expr_soft o e; pr ")";
-  | Eall (Evar (v, _), t, e, _) ->
-      pr "(All %s:%s, " v (Type.to_string t); expr_soft o e; pr ")";
+  | Eall (Evar (v, _) as var, e, _) ->
+      pr "(All %s:" v; expr_soft o (get_type var); pr ", "; expr_soft o e; pr ")";
   | Eall _ -> assert false
-  | Eex (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Eex (Evar (v, _) as var, e, _) when get_type var == type_none ->
       pr "(Ex %s, " v; expr_soft o e; pr ")";
-  | Eex (Evar (v, _), t, e, _) ->
-      pr "(Ex %s:%s, " v (Type.to_string t); expr_soft o e; pr ")";
+  | Eex (Evar (v, _) as var, e, _) ->
+      pr "(Ex %s:" v; expr_soft o (get_type var); pr ", "; expr_soft o e; pr ")";
   | Eex _ -> assert false
   | Etau _ as e -> pr "T_%d" (Index.get_number e);
-  | Elam (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Elam (Evar (v, _) as var, e, _) when get_type var == type_none ->
       pr "(lambda %s, " v; expr_soft o e; pr ")";
-  | Elam (Evar (v, _), t, e, _) ->
-      pr "(lambda %s:%s, " v (Type.to_string t); expr_soft o e; pr ")";
+  | Elam (Evar (v, _) as var, e, _) ->
+      pr "(lambda %s:" v; expr_soft o (get_type var); pr ", "; expr_soft o e; pr ")";
   | Elam _ -> assert false
 ;;
 
@@ -177,19 +181,19 @@ let phrase o ph =
   let pro f = oprintf o f in
   begin match ph with
   | Phrase.Hyp (n, e, p) -> pro "# %s:\n$%d " n p; expr o e; pro "\n";
-  | Phrase.Def (DefReal (name, s, args, e, None)) ->
+  | Phrase.Def (DefReal (name, s, ty, args, e, None)) ->
       pro "$def \"%s\" %s (" name s;
       print_list (buf o) print_var " " args;
       pro ") ";
       expr o e;
       pro "\n";
-  | Phrase.Def (DefReal (name, s, args, e, Some v)) ->
+  | Phrase.Def (DefReal (name, s, ty, args, e, Some v)) ->
       pro "$fixpoint \"%s\" %s %s (" name s v;
       print_list (buf o) print_var " " args;
       pro ") ";
       expr o e;
       pro "\n";
-  | Phrase.Def (DefRec (eqn, s, args, e)) ->
+  | Phrase.Def (DefRec (eqn, s, ty, args, e)) ->
       pro "$defrec %s (" s;
       print_list (buf o) print_var " " args;
       pro ") ";
@@ -197,7 +201,7 @@ let phrase o ph =
       pro " ";
       expr o eqn;
       pro "\n";
-  | Phrase.Def (DefPseudo ((hyp, prio), s, args, e)) ->
+  | Phrase.Def (DefPseudo ((hyp, prio), s, ty, args, e)) ->
       pro "#pseudo-def: ";
       expr o hyp;
       pro "\n$def %s (" s;
@@ -241,9 +245,9 @@ let get_rule_name = function
   | NotEquiv (e1, e2) -> "NotEquiv", [e1; e2]
   | P_NotP (e1, e2) -> "P-NotP", [e1; e2]
   | P_NotP_sym (s, e1, e2) -> "P-NotP-sym("^(get_name s)^")", [e1; e2]
-  | Definition (DefReal (_, s, _, _, _), e, _) -> "Definition("^s^")", [e]
-  | Definition (DefPseudo (_, s, _, _), e, _) -> "Definition-Pseudo("^s^")", [e]
-  | Definition (DefRec (_, s, _, _), e, _) -> "Definition-Rec("^s^")", [e]
+  | Definition (DefReal (_, s, _, _, _, _), e, _) -> "Definition("^s^")", [e]
+  | Definition (DefPseudo (_, s, _, _, _), e, _) -> "Definition-Pseudo("^s^")", [e]
+  | Definition (DefRec (_, s, _, _, _), e, _) -> "Definition-Rec("^s^")", [e]
   | ConjTree e -> "ConjTree", [e]
   | DisjTree e -> "DisjTree", [e]
   | AllPartial (e1, s, n) -> "All-Partial", [e1]
@@ -332,10 +336,10 @@ let hlrule_name = function
   | NotEquiv (e1, e2) -> "NotEquiv", [enot (eequiv (e1, e2))]
   | P_NotP (e1, e2) -> "P-NotP", [e1; e2]
   | P_NotP_sym (s, e1, e2) -> "P-NotP-sym("^(get_name s)^")", [e1; e2]
-  | NotEqual (e1, e2) -> "NotEqual", [enot (eapp (eeq, [e1; e2]))]
-  | Definition (DefReal (_, s, _, _, _), e, _)
-  | Definition (DefPseudo (_, s, _, _), e, _)
-  | Definition (DefRec (_, s, _, _), e, _)
+  | NotEqual (e1, e2) -> "NotEqual", [enot (eeq e1 e2)]
+  | Definition (DefReal (_, s, _, _, _, _), e, _)
+  | Definition (DefPseudo (_, s, _, _, _), e, _)
+  | Definition (DefRec (_, s, _, _, _), e, _)
   -> "Definition("^s^")", [e]
   | ConjTree (e) -> "ConjTree", [e]
   | DisjTree (e) -> "DisjTree", [e]
@@ -448,18 +452,20 @@ let rec llproof_expr o e =
       pro " <=> ";
       llproof_expr o p2;
       pro ")";
-  | Eall (v, t, p, _) ->
-      pro "All %a, " print_vartype (v, Type.to_string t); llproof_expr o p;
-  | Eex (v, t, p, _) ->
-      pro "Ex %a, " print_vartype (v, Type.to_string t); llproof_expr o p;
-  | Elam (v, t, p, _) ->
-      pro "(lambda %a, " print_vartype (v, Type.to_string t); llproof_expr o p; pro ")";
-  | Etau (v, t, p, _) ->
-      pro "(tau %a, " print_vartype (v, Type.to_string t); llproof_expr o p; pro ")";
+  | Eall (v, p, _) ->
+      pro "All %a, " print_vartype (v, get_type v); llproof_expr o p;
+  | Eex (v, p, _) ->
+      pro "Ex %a, " print_vartype (v, get_type v); llproof_expr o p;
+  | Elam (v, p, _) ->
+      pro "(lambda %a, " print_vartype (v, get_type v); llproof_expr o p; pro ")";
+  | Etau (v, p, _) ->
+      pro "(tau %a, " print_vartype (v, get_type v); llproof_expr o p; pro ")";
   | Eapp (Evar(s,_), [e1; e2], _) when is_infix_op s ->
      pro "("; llproof_expr o e1; pro " %s " (to_infix s); llproof_expr o e2; pro ")";
   | Eapp (s, [], _) -> pro "%s" (get_name s);
   | Eapp (s, args, _) -> pro "%s(" (get_name s); llproof_expr_list o args; pro ")";
+  | Earrow(args, ret, _) ->
+      pro "("; List.iteri (fun i x -> if i > 0 then pro " * "; llproof_expr o x) args; pro " -> "; llproof_expr o ret; pro ")"
   | Evar (s, _) -> pro "%s" s;
   | Emeta _
     -> assert false;
@@ -581,14 +587,16 @@ let rec llproof_tree o i t =
 ;;
 
 let print_idtype o (ty, act) =
-  if ty = univ_name
+  if ty == type_none
   then begin
     llproof_expr o act;
     oprintf o " ";
   end else begin
     oprintf o "(";
     llproof_expr o act;
-    oprintf o "):\"%s\" " ty
+    oprintf o "):\"";
+    llproof_expr o ty;
+    oprintf o "\" "
   end
 ;;
 
@@ -633,6 +641,8 @@ let rec expr_esc o ex =
   match ex with
   | Evar (v, _) -> pr "%s" v;
   | Emeta (e, _) -> pr "%s%d" meta_prefix (Index.get_number e);
+  | Earrow (args, ret, _) ->
+      pr "("; List.iteri (fun i x -> if i > 0 then pr " * "; expr_esc o x) args; pr " -> "; expr_esc o ret; pr ")"
   | Eapp (Evar(s,_), [e1; e2], _) when is_infix_op s ->
      pr "("; expr_esc o e1; pr " %s " (to_infix s); expr_esc o e2; pr ")";
   | Eapp (Evar(s,_), [], _) ->
@@ -658,21 +668,21 @@ let rec expr_esc o ex =
       pr "("; expr_esc o e1; pr " &lt;=&gt; "; expr_esc o e2; pr ")";
   | Etrue -> pr "True";
   | Efalse -> pr "False";
-  | Eall (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Eall (Evar (v, _) as var, e, _) when get_type var == type_none ->
       pr "(All %s, " v; expr_esc o e; pr ")";
-  | Eall (Evar (v, _), t, e, _) ->
-      pr "(All %s:%s, " v (Type.to_string t); expr_esc o e; pr ")";
+  | Eall (Evar (v, _) as var, e, _) ->
+      pr "(All %s:" v; expr_esc o (get_type var); pr ", "; expr_esc o e; pr ")";
   | Eall _ -> assert false
-  | Eex (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Eex (Evar (v, _) as var, e, _) when get_type var == type_none ->
       pr "(Ex %s, " v; expr_esc o e; pr ")";
-  | Eex (Evar (v, _), t, e, _) ->
-      pr "(Ex %s:%s, " v (Type.to_string t); expr_esc o e; pr ")";
+  | Eex (Evar (v, _) as var, e, _) ->
+      pr "(Ex %s:" v; expr_esc o (get_type var); pr ", "; expr_esc o e; pr ")";
   | Eex _ -> assert false
   | Etau _ as e -> pr "T_%d" (Index.get_number e);
-  | Elam (Evar (v, _), t, e, _) when (Type.to_string t) = univ_name ->
+  | Elam (Evar (v, _) as var, e, _) when get_type var == type_none ->
       pr "(lambda %s, " v; expr_esc o e; pr ")";
-  | Elam (Evar (v, _), t, e, _) ->
-      pr "(lambda %s:%s, " v (Type.to_string t); expr_esc o e; pr ")";
+  | Elam (Evar (v, _) as var, e, _) ->
+      pr "(lambda %s:" v; expr_esc o (get_type var); pr ", "; expr_esc o e; pr ")";
   | Elam _ -> assert false
 ;;
 
@@ -706,9 +716,9 @@ let dot_rule_name = function
   | NotEquiv (e1, e2) -> "NotEquiv", [e1; e2]
   | P_NotP (e1, e2) -> "P-NotP", [e1; e2]
   | P_NotP_sym (s, e1, e2) -> "P-NotP-sym("^(sexpr_esc s)^")", [e1; e2]
-  | Definition (DefReal (_, s, _, _, _), e, _) -> "Definition("^s^")", [e]
-  | Definition (DefPseudo (_, s, _, _), e, _) -> "Definition-Pseudo("^s^")", [e]
-  | Definition (DefRec (_, s, _, _), e, _) -> "Definition-Rec("^s^")", [e]
+  | Definition (DefReal (_, s, _, _, _, _), e, _) -> "Definition("^s^")", [e]
+  | Definition (DefPseudo (_, s, _, _, _), e, _) -> "Definition-Pseudo("^s^")", [e]
+  | Definition (DefRec (_, s, _, _, _), e, _) -> "Definition-Rec("^s^")", [e]
   | ConjTree e -> "ConjTree", [e]
   | DisjTree e -> "DisjTree", [e]
   | AllPartial (e1, s, n) -> "All-Partial", [e1]
@@ -801,20 +811,23 @@ let dots o ?full_output:(b=true) ?max_depth:(d=(-1)) l =
 (* Functions for easy debug printing *)
 
 let pp_expr b e = expr_soft (Buff b) e
-let pp_expr_t b e = Printf.bprintf b "%a : '%s'" pp_expr e (Type.opt_string (get_type e))
+let pp_expr_t b e = Printf.bprintf b "%a : %a" pp_expr e pp_expr (get_type e)
 
 let pp_mlrule b r =
   let s, l = get_rule_name r in
    Printf.bprintf b "%s : %a" s (Log.pp_list ~sep:", " pp_expr) l
 
 let sexpr e = Log.on_buffer pp_expr e
+let sexpr_t e = Log.on_buffer pp_expr_t e
 ;;
-(* Full type debug printing for expr *)
 
+(* Full type debug printing for expr *)
 let rec expr_type o ex =
   let pr f = oprintf o f in
   expr_soft o ex;
-  pr " : '%s'\n" (Type.opt_string (get_type ex));
+  pr " : '";
+  expr_soft o (get_type ex);
+  pr "'\n";
   match ex with
   | Evar (v, _) -> ()
   | Emeta (e, _) -> ()
@@ -827,12 +840,19 @@ let rec expr_type o ex =
           expr_type o e1; expr_type o e2
   | Etrue
   | Efalse -> ()
-  | Eall (Evar (v, _), t, e, _)
-  | Eex (Evar (v, _), t, e, _)
-  | Elam (Evar (v, _), t, e, _) ->
+  | Eall (Evar (v, _), e, _)
+  | Eex (Evar (v, _), e, _)
+  | Elam (Evar (v, _), e, _) ->
           expr_type o e
   | Etau _  -> ()
   | _ -> assert false
 
-let pp_expr_type b e = expr_type (Buff b) e
+let pp_expr_type b e = expr_type (Buff b) e;;
+let sexpr_type e = Log.on_buffer pp_expr_type e;;
+
+let pr_def b d =
+  match d with
+  | DefReal (_, _, _, _, e, _) -> pp_expr b e;
+  | DefRec (_, _, _, _, e) -> pp_expr b e;
+  | DefPseudo (_, _, _, _, e) -> pp_expr b e;
 ;;

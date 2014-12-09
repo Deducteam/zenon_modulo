@@ -35,12 +35,12 @@ let rec lltollm_expr defs e =
     let expr1 = lltollm_expr defs e1 in
     let expr2 = lltollm_expr defs e2 in
     eand (eimply (expr1, expr2), eimply (expr2, expr1))
-  | Eall (x, s, e, _) ->
-    eall (x, s, lltollm_expr defs e)
-  | Eex (x, s, e, _) ->
-    eex (x, s, lltollm_expr defs e)
-  | Etau (x, s, e, _) ->
-    let tau = etau (x, s, e) in
+  | Eall (x, e, _) ->
+    eall (x, lltollm_expr defs e)
+  | Eex (x, e, _) ->
+    eex (x, lltollm_expr defs e)
+  | Etau (x, e, _) ->
+    let tau = etau (x, e) in
     if List.mem_assoc tau !new_terms
     then
       List.assoc tau !new_terms
@@ -48,8 +48,9 @@ let rec lltollm_expr defs e =
       let z = new_tau () in
       new_terms := (tau, z) :: !new_terms;
       z
-  | Elam (x, s, e, _) ->
-    elam (x, s, lltollm_expr defs e)
+  | Elam (x, e, _) ->
+    elam (x, lltollm_expr defs e)
+  | Earrow _ -> assert false
   | Emeta (x, _) -> assert false
 (* /!\ Raised by a lot of files in SYN (SYN048+1.p, SYN049+1.p, SYN315+1.p, SYN318+1.p, ...) *)
 
