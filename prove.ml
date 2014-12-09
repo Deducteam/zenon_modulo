@@ -95,6 +95,10 @@ let add_node_list st ns =
 ;;
 
 let make_inst st m term g =
+  Log.debug 10 "Make inst '%a' ::: %a" 
+	    Print.pp_expr m Print.pp_expr (get_type m);
+  Log.debug 10 " |- with term '%a' ::: %a" 
+	    Print.pp_expr term Print.pp_expr (get_type term);
   match m with
   | Eall (v, p, _) ->
       let n = Expr.substitute [(v, term)] p in
@@ -184,6 +188,10 @@ let rec constructor_mismatch e1 e2 =
 ;;
 
 let make_notequiv st sym (p, g) (np, ng) =
+  Log.debug 10 "Make notequiv '%a' ::: %a" 
+	    Print.pp_expr p Print.pp_expr (get_type p);
+  Log.debug 10 " |- with '%a' ::: %a" 
+	    Print.pp_expr np Print.pp_expr (get_type np);
   match p, np with
   | Eapp (Evar("TLA.in",_), [e1; Evar _ as s1], _),
       Enot (Eapp (_, [e2; s2], _), _)
@@ -330,6 +338,8 @@ let newnodes_closure st fm g _ =
 ;;
 
 let newnodes_eq_str st fm g _ =
+  Log.debug 10 "Newnodes Eq Str '%a' ::: %a" 
+	    Print.pp_expr fm Print.pp_expr (get_type fm);
   let mk_node (st, b) rule e1 s1 e2 s2 eq =
     if Expr.equal s1 s2 then (st, b) else
     add_node st {
@@ -373,6 +383,8 @@ let newnodes_eq_str st fm g _ =
 ;;
 
 let newnodes_jtree st fm g _ =
+  Log.debug 10 "Newnodes Jtree '%a' ::: %a" 
+	    Print.pp_expr fm Print.pp_expr (get_type fm);
   match fm with
   | Eand _ | Enot (Eor _, _) | Enot (Eimply _, _)
     when is_conj fm 3 == 0 ->
@@ -398,6 +410,8 @@ let newnodes_jtree st fm g _ =
 ;;
 
 let newnodes_alpha st fm g _ =
+  Log.debug 10 "Newnodes Alpha '%a' ::: %a" 
+	    Print.pp_expr fm Print.pp_expr (get_type fm);
   match fm with
   | Enot (Enot (a, _), _) ->
       add_node st {
@@ -435,6 +449,8 @@ let newnodes_alpha st fm g _ =
 ;;
 
 let newnodes_beta st fm g _ =
+  Log.debug 10 "Newnodes Beta '%a' ::: %a" 
+	    Print.pp_expr fm Print.pp_expr (get_type fm);
   match fm with
   | Eor (a, b, _) ->
       add_node st {
@@ -511,6 +527,8 @@ let interferes env vs =
 let has_free_var v e = List.mem v (get_fv e);;
 
 let newnodes_delta st fm g _ =
+  Log.debug 10 "Newnodes Delta '%a' ::: %a" 
+	    Print.pp_expr fm Print.pp_expr (get_type fm);
   match fm with
   | Eex (v, p, _) ->
      let h = substitute [(v, etau (v, p))] p in
@@ -535,6 +553,8 @@ let newnodes_delta st fm g _ =
 ;;
 
 let newnodes_gamma st fm g _ =
+  Log.debug 10 "Newnodes Delta '%a' ::: %a" 
+	    Print.pp_expr fm Print.pp_expr (get_type fm);
   match fm with
   | Eall (v, p, _) ->
       let w = emeta (fm) in
@@ -560,6 +580,8 @@ let newnodes_gamma st fm g _ =
 ;;
 
 let newnodes_unfold st fm g _ =
+  Log.debug 10 "Newnodes Unfold '%a' ::: %a" 
+	    Print.pp_expr fm Print.pp_expr (get_type fm);
   let mk_unfold ctx p args =
     try
       let (d, _, params, body) = Index.get_def p in
@@ -662,6 +684,8 @@ let orient_meta m1 m2 =
 ;;
 
 let newnodes_refl st fm g _ =
+  Log.debug 10 "Newnodes Refl '%a' ::: %a" 
+	    Print.pp_expr fm Print.pp_expr (get_type fm);
   match fm with
   | Enot (Eapp (Evar(s,_) as s', [e1; e2], _), _) when s <> "=" && Eqrel.refl s' ->
       add_node st {
@@ -682,6 +706,8 @@ let newnodes_refl st fm g _ =
 ;;
 
 let newnodes_match_congruence st fm g _ =
+  Log.debug 10 "Newnodes Match Congruence '%a' ::: %a" 
+	    Print.pp_expr fm Print.pp_expr (get_type fm);
   match fm with
   | Enot (Eapp (Evar("=",_), [Eapp (Evar("$string",_), [s1], _);
                               Eapp (Evar("$string",_), [s2], _)], _), _)
@@ -711,6 +737,10 @@ let newnodes_match_congruence st fm g _ =
 ;;
 
 let mknode_trans sym (e1, g1) (e2, g2) =
+  Log.debug 10 "Mknode Trans '%a' ::: %a" 
+	    Print.pp_expr e1 Print.pp_expr (get_type e1);
+  Log.debug 10 " |- with '%a' ::: %a" 
+	    Print.pp_expr e2 Print.pp_expr (get_type e2);
   let (r', r, a, b, c, d) =
     match e1, e2 with
     | Eapp (Evar(r,_) as r', [a; b], _), Enot (Eapp (Evar(rr,_), [c; d], _), _) ->
@@ -735,6 +765,10 @@ let mknode_trans sym (e1, g1) (e2, g2) =
 let mknode_negtrans sym eg2 eg1 = mknode_trans sym eg1 eg2;;
 
 let mknode_transeq sym (e1, g1) (e2, g2) =
+  Log.debug 10 "Mknode TransEq '%a' ::: %a" 
+	    Print.pp_expr e1 Print.pp_expr (get_type e1);
+  Log.debug 10 " |- with '%a' ::: %a" 
+	    Print.pp_expr e2 Print.pp_expr (get_type e2);
   let (r', r, a, b, c, d) =
     match e1, e2 with
     | Eapp (Evar("=",_), [a; b], _), Enot (Eapp (Evar(r,_) as r', [c; d], _), _) -> (r', r, a, b, c, d)
@@ -785,6 +819,8 @@ let preunif_g e1 (e2, g2) =
 ;;
 
 let newnodes_match_trans st fm g _ =
+  Log.debug 10 "Newnode Match Trans '%a' ::: %a" 
+	    Print.pp_expr fm Print.pp_expr (get_type fm);
   try
     let fmg = (fm, g) in
     match fm with
@@ -864,6 +900,8 @@ let newnodes_match_trans st fm g _ =
 ;;
 
 let newnodes_match_sym st fm g _ =
+  Log.debug 10 "Newnodes Match Sym '%a' ::: %a" 
+	    Print.pp_expr fm Print.pp_expr (get_type fm);
   let fmg = (fm, g) in
   match fm with
   | Enot (Eapp (Evar(s,_) as s', [a1; a2], _), _) when s <> "=" && Eqrel.sym s' ->
@@ -876,6 +914,8 @@ let newnodes_match_sym st fm g _ =
 ;;
 
 let newnodes_match st fm g _ =
+    Log.debug 10 "Newnodes Match '%a' ::: %a" 
+	      Print.pp_expr fm Print.pp_expr (get_type fm);
   let fmg = (fm, g) in
   match fm with
   | Enot (Eapp (Evar(s,_), _, _), _) when s <> "=" ->
@@ -986,6 +1026,8 @@ let newnodes_goodmatch st fm g =
 end goodmatch stuff *)
 
 let newnodes_preunif st fm g _ =
+    Log.debug 10 "Newnodes Preunif '%a' ::: %a" 
+	      Print.pp_expr fm Print.pp_expr (get_type fm);
   match fm with
   | Enot (Eapp (Evar(s,_), _, _), _) ->
       let do_match st (p, g2) =
@@ -1025,6 +1067,8 @@ let newnodes_useless st fm g _ =
 ;;
 
 let newnodes_extensions state fm g fms =
+    Log.debug 10 "Newnodes Extension '%a' ::: %a" 
+	      Print.pp_expr fm Print.pp_expr (get_type fm);
   let (newnodes, stop) = Node.relevant (Extension.newnodes fm g fms) in
   let insert_node s n =
       Log.debug 3 "--> %a" Print.pp_mlrule n.nrule;

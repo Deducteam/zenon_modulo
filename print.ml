@@ -83,9 +83,11 @@ and expr o ex =
   | Eex (v, e, _) ->
       pr "(E. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
   | Etau (v, e, _) when get_type v == type_none ->
-      pr "(t. ((%a) " print_var v; expr o e; pr "))";
+      (*pr "(t. ((%a) " print_var v; expr o e; pr "))";*)
+     pr "Tau_%d" (Index.get_number e);
   | Etau (v, e, _) ->
-      pr "(t. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
+      (*pr "(t. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";*)
+     pr "Tau_%d" (Index.get_number e);
   | Elam (v, e, _) when get_type v == type_none ->
       pr "((%a) " print_var v; expr o e; pr ")";
   | Elam (v, e, _) ->
@@ -157,7 +159,7 @@ let rec expr_soft o ex =
   | Eex (Evar (v, _) as var, e, _) ->
       pr "(Ex %s:" v; expr_soft o (get_type var); pr ", "; expr_soft o e; pr ")";
   | Eex _ -> assert false
-  | Etau _ as e -> pr "T_%d" (Index.get_number e);
+  | Etau _ as e -> pr "Tau_%d" (Index.get_number e);
   | Elam (Evar (v, _) as var, e, _) when get_type var == type_none ->
       pr "(lambda %s, " v; expr_soft o e; pr ")";
   | Elam (Evar (v, _) as var, e, _) ->
@@ -678,7 +680,7 @@ let rec expr_esc o ex =
   | Eex (Evar (v, _) as var, e, _) ->
       pr "(Ex %s:" v; expr_esc o (get_type var); pr ", "; expr_esc o e; pr ")";
   | Eex _ -> assert false
-  | Etau _ as e -> pr "T_%d" (Index.get_number e);
+  | Etau _ as e -> pr "Tau_%d" (Index.get_number e);
   | Elam (Evar (v, _) as var, e, _) when get_type var == type_none ->
       pr "(lambda %s, " v; expr_esc o e; pr ")";
   | Elam (Evar (v, _) as var, e, _) ->
