@@ -474,11 +474,11 @@ let do_main () =
   | Error.Abort -> do_exit 11;
   | Expr.Type_Mismatch (t, t', f) ->
           let s = Printexc.get_backtrace () in
-          Format.printf "Mismatched type : expected '%s' but instead received '%s' (in %s)@\nBacktrace :@\n%s@."
+          Format.eprintf "Mismatched type : expected '%s' but instead received '%s' (in %s)@\nBacktrace :@\n%s@."
           (Print.sexpr t) (Print.sexpr t') f s;
   | Expr.Ill_typed_substitution (map) ->
           let s = Printexc.get_backtrace () in
-          Format.printf "Ill-typed substitution [%s].@\nBacktrace :@\n%s@."
+          Format.eprintf "Ill-typed substitution [%s].@\nBacktrace :@\n%s@."
                         (String.concat
                            "; "
                            (List.map (fun (x, y) ->
