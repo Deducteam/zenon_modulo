@@ -168,3 +168,4 @@ val nb_tvar : expr -> int;;
 exception Unsplitable;;
 
 val split_list : int -> expr list -> expr list * expr list;;
+val get_tvar : expr -> expr list;;

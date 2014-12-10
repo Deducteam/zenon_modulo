@@ -307,7 +307,7 @@ let priv_tau v e =
 let rec print b ex =
   match ex with
   | Evar (v, _) -> Printf.bprintf b "%s" v;
-  | Emeta (e, _) -> Printf.bprintf b "M.(%a)" print e;
+  | Emeta (e, _) -> Printf.bprintf b "Meta.(%a)" print e;
   | Earrow (args, ret, _) ->
       Printf.bprintf b "(%a -> %a)"
       (fun b l -> List.iteri (fun i x -> if i > 0 then Printf.bprintf b " * "; Printf.bprintf b "%a" print x) l) args print ret;
@@ -894,6 +894,33 @@ let rec split_list_aux n l accu =
 
 let split_list n l = 
   split_list_aux n l []
+;;
+
+let rec get_tvar_aux accu e = 
+  match e with 
+  | Evar _ 
+  | Emeta _ -> if get_type e == type_type && not (List.memq e accu) 
+	       then e :: accu
+	       else accu
+  | Eapp (_, args, _) -> 
+     List.fold_left get_tvar_aux accu args
+  | Enot (e1, _) -> get_tvar_aux accu e1
+  | Etau _ -> accu
+
+  | Earrow _
+  | Eand _
+  | Eor _ 
+  | Eimply _ 
+  | Eequiv _ 
+  | Etrue 
+  | Efalse  
+  | Eall _ 
+  | Eex _ 
+  | Elam _ -> assert false
+;;
+
+let get_tvar e = 
+  List.rev (get_tvar_aux [] e)
 ;;
 
 

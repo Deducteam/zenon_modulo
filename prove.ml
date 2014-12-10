@@ -232,9 +232,19 @@ let make_notequiv st sym (p, g) (np, ng) =
       else 
 	begin 
 	  try 
-	    let n_tvar = nb_tvar p in 
+(*	    let n_tvar = nb_tvar p in 
 	    let (texp1, _) = split_list n_tvar args1 in 
 	    let (texp2, _) = split_list n_tvar args2 in	      
+	    let subst = Expr.preunify_list texp1 texp2 in 
+	    let compare_size (m1, _) (m2, _) = 
+	      - Pervasives.compare (Expr.size m1) (Expr.size m2)
+	    in
+	    let subst = List.sort compare_size subst in
+	    let (m, term) = List.hd subst in 
+            fst (make_inst st m term (min g ng))*)
+	    
+	    let texp1 = get_tvar p in 
+	    let texp2 = get_tvar np in 
 	    let subst = Expr.preunify_list texp1 texp2 in 
 	    let compare_size (m1, _) (m2, _) = 
 	      - Pervasives.compare (Expr.size m1) (Expr.size m2)
@@ -843,25 +853,105 @@ let newnodes_match_trans st fm g _ =
   try
     let fmg = (fm, g) in
     match fm with
-    | Eapp (Evar("=",_), [Emeta (m1, _); Emeta (m2, _)], _) ->
-       let nodes = List.map (mknode_transeq false fmg) (Index.find_neg "=") in
-       add_node_list st nodes, false
+    | Eapp (Evar("=",_), [Emeta (m1, _) as m1'; Emeta (m2, _) as m2'], _) ->
+       Log.debug 17 " |- m1 = m2 >> '%a' ::: %a = '%a' ::: %a"
+		 Print.pp_expr m1' Print.pp_expr (get_type m1')
+		 Print.pp_expr m2' Print.pp_expr (get_type m2');
+       let nfmg = Index.find_neg "=" in 
+       let select a (b, c) = 
+	 match a, b with 
+	 | Eapp (s1, _, _), Enot (Eapp (s2, _, _), _) -> 
+	    get_type s1 == get_type s2
+	 | _ -> assert false 
+       in
+       let nfmg' = List.filter (select fm) nfmg in 
+       if (List.length nfmg' > 0) 
+       then
+	 let nodes = List.map (mknode_transeq false fmg) nfmg' in
+	 add_node_list st nodes, false
+       else
+	 begin
+	   try
+	     let texp1 = get_tvar fm in 
+	     let l_texp2 = List.map (fun (x, y) -> get_tvar x) nfmg in 
+	     let l_subst = List.map (Expr.preunify_list texp1) l_texp2 in 
+	     let subst = List.concat l_subst in
+	     let compare_size (m1, _) (m2, _) = 
+	       - Pervasives.compare (Expr.size m1) (Expr.size m2)
+	     in
+	     let subst = List.sort compare_size subst in
+	     let (m, term) = List.hd subst in 
+             make_inst st m term g
+	   with Ununifiable | Unsplitable | Failure _ -> st, false
+	 end
     | Eapp (Evar("=",_), [e1; e2], _) ->
-        Index.add_trans fm;
-        let h1 = Index.get_head e1 in
-        let h2 = Index.get_head e2 in
-        let matches_ll = Index.find_all_negtrans_left h1 in
-        let matches_rr = Index.find_all_negtrans_right h2 in
-        let matches_lr = Index.find_all_negtrans_left h2 in
-        let matches_rl = Index.find_all_negtrans_right h1 in
-        let nodes = List.flatten [
-          List.map (mknode_transeq false fmg) matches_ll;
-          List.map (mknode_transeq true fmg) matches_lr;
-          List.map (mknode_transeq true fmg) matches_rl;
-          List.map (mknode_transeq false fmg) matches_rr;
-        ] in
-        add_node_list st nodes, false
+       Log.debug 17 " |- e1 = e2 >> '%a' ::: %a = '%a' ::: %a"
+		 Print.pp_expr e1 Print.pp_expr (get_type e1)
+		 Print.pp_expr e2 Print.pp_expr (get_type e2);
+       Index.add_trans fm;
+       let h1 = Index.get_head e1 in
+       let h2 = Index.get_head e2 in
+       let select a (b, c) = 
+	 match a, b with 
+	 | Eapp (s1, _, _), Enot (Eapp (s2, _, _), _) -> 
+	    get_type s1 == get_type s2
+	 | _ -> assert false 
+       in
+       let matches_ll = Index.find_all_negtrans_left h1 in
+       let matches_rr = Index.find_all_negtrans_right h2 in
+       let matches_lr = Index.find_all_negtrans_left h2 in
+       let matches_rl = Index.find_all_negtrans_right h1 in
+       let matches_ll' = List.filter (select fm) matches_ll in 
+       let matches_rr' = List.filter (select fm) matches_rr in 
+       let matches_lr' = List.filter (select fm) matches_lr in 
+       let matches_rl' = List.filter (select fm) matches_rl in
+       if (List.length matches_ll' > 0 
+	   || List.length matches_rr' > 0
+	   || List.length matches_lr' > 0
+	   || List.length matches_rl' > 0)
+       then
+	 let nodes = List.flatten [
+			 List.map (mknode_transeq false fmg) matches_ll';
+			 List.map (mknode_transeq true fmg) matches_lr';
+			 List.map (mknode_transeq true fmg) matches_rl';
+			 List.map (mknode_transeq false fmg) matches_rr';
+		       ] in
+	 add_node_list st nodes, false
+       else
+	 begin
+	   try
+	     Log.debug 1 "Test try it 1";
+	     let texp1 = get_tvar fm in 
+	     let l_texp2_ll = List.map (fun (x, y) -> get_tvar x) matches_ll in
+	     let l_texp2_rr = List.map (fun (x, y) -> get_tvar x) matches_rr in 
+	     let l_texp2_lr = List.map (fun (x, y) -> get_tvar x) matches_lr in 
+	     let l_texp2_rl = List.map (fun (x, y) -> get_tvar x) matches_rl in 
+	     Log.debug 1 "            2";
+	     let l_subst_ll = List.map (Expr.preunify_list texp1) l_texp2_ll in  
+	     let l_subst_rr = List.map (Expr.preunify_list texp1) l_texp2_rr in  
+	     let l_subst_lr = List.map (Expr.preunify_list texp1) l_texp2_lr in  
+	     let l_subst_rl = List.map (Expr.preunify_list texp1) l_texp2_rl in 
+	     let compare_size (m1, _) (m2, _) = 
+	       - Pervasives.compare (Expr.size m1) (Expr.size m2)
+	     in
+	     Log.debug 1 "            3";
+	     let subst_ll = List.concat l_subst_ll in 
+	     let subst_rr = List.concat l_subst_rr in 
+	     let subst_lr = List.concat l_subst_lr in 
+	     let subst_rl = List.concat l_subst_rl in
+ 	     let subst = subst_ll @ subst_rr @ subst_lr @ subst_rl in 
+	     let subst = List.sort compare_size subst in
+	     Log.debug 1 "            4";
+	     let (m, term) = List.hd subst in 
+	     Log.debug 1 " INSTANTIATE '%a' with '%a'" 
+		       Print.pp_expr m Print.pp_expr term;
+             make_inst st m term g
+	   with Ununifiable | Unsplitable | Failure _ -> st, false
+	 end
     | Eapp (s, [e1; e2], _) when Eqrel.trans s ->
+       Log.debug 17 " |- s(e1,e2) >> '%a' ::: %a = '%a' ::: %a"
+		 Print.pp_expr e1 Print.pp_expr (get_type e1)
+		 Print.pp_expr e2 Print.pp_expr (get_type e2);
         Index.add_trans fm;
         let h1 = Index.get_head e1 in
         let h2 = Index.get_head e2 in
