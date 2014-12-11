@@ -73,17 +73,17 @@ let bool3 = arr bool1 bool2;;
 let t_prop = type_prop;;
 
 let ret_prop_to_bool = function
-  | Earrow (l, ret, _) when ret == type_prop -> earrow l t_bool
+  | Earrow (l, ret, _) when ret == type_prop -> earrow l bool1
   | _ ->
      raise (Invalid_argument "ret_prop_to_bool")
 ;;
 let ret_bool_to_prop = function
-  | Earrow (l, ret, _) when ret == t_bool -> earrow l type_prop
+  | Earrow (l, ret, _) when ret == bool1 -> earrow l type_prop
   | _ -> raise (Invalid_argument "ret_bool_to_prop")
 ;;
 
 let prop_to_bool_args args ty =
-  if ty == type_none then earrow (List.map get_type args) t_bool
+  if ty == type_none then earrow (List.map get_type args) bool1
   else ret_prop_to_bool ty
 ;;
 
@@ -92,7 +92,7 @@ let bool_to_prop_args args ty =
   else ret_bool_to_prop ty
 ;;
 
-let istrue e = eapp (tvar "Is_true" (arr t_bool t_prop), [e]);;
+let istrue e = eapp (tvar "Is_true" (arr bool1 t_prop), [e]);;
 let isfalse e = enot (istrue e);;
 
 let is_true_equal x =
@@ -695,8 +695,8 @@ List.iter Typer.declare_constant
 ;;
 
 let built_in_defs () =
-  let b1 = Expr.newtvar t_bool in
-  let b2 = Expr.newtvar t_bool in
+  let b1 = Expr.newtvar bool1 in
+  let b2 = Expr.newtvar bool1 in
   let x = Expr.newvar () in
   let y = Expr.newvar () in
   let xy = Expr.newvar () in
