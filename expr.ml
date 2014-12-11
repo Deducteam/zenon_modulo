@@ -656,7 +656,7 @@ and inst_app map s args = match s, args with
   | _ -> substitute_safe map s, args
 
 and type_app s args =
-    if List.memq type_none (s :: args) then
+    if List.memq type_none (s :: List.map get_type args) then
         type_none
     else match inst_app [] s args with
     | Earrow(l, ret, _), args' ->
