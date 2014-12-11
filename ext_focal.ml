@@ -57,7 +57,7 @@ let higher_order_warning s =
 ;;
 (* Functions for building types (/!\ too specific to Dedukti) *)
 let eT = tvar "cc.eT" (earrow [type_type] type_type);;
-let eps ty = assert (get_type ty == type_type); ty
+let eps ty = eapp (eT, [ty])
    (* was "eapp (eT, [ty])",
       TODO test input_format to choose between Dedukti and Coq typing. *)
 ;;
@@ -676,6 +676,8 @@ let rec pp_expr e =
 
 List.iter Typer.declare_constant
   [
+    ("cc.eT", arr type_type type_type);
+
     ("Is_true", arr bool1 t_prop);
     ("true", bool1);
     ("false", bool1);

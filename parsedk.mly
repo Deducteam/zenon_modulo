@@ -9,13 +9,14 @@ open Printf
 
 let pos () = (Parsing.symbol_start_pos (), Parsing.symbol_end_pos ())
 
-let ttype = eapp (tvar "cc.uT" type_type, []);;
-let eps ty = eapp (tvar "cc.eT" (earrow [ttype] type_type), [ty]);;
 let arr ty1 ty2 = match ty2 with
   | Earrow (l, ret, _) ->
      earrow (ty1 :: l) ret
   | _ -> earrow [ty1] ty2
 ;;
+let eps ty = eapp (tvar "cc.eT" (arr type_type type_type), [ty]);;
+let bool_t = tvar "basics.bool__t" type_type;;
+let bool1 = eapp (bool_t, []);;
 
 let rec mk_type e = match e with
   | Evar ("dk_logic.Prop", _) -> type_prop
@@ -55,6 +56,10 @@ let rec mk_pat (constr : string) (arity : int) (body : expr) : expr =
    produce the corresponding formulae *)
 let mk_eapp : string * expr list -> expr =
   function
+  | "cc.Arrow", [t1 ; t2] ->
+     eapp (tvar "cc.Arrow" (earrow [type_type; type_type] type_type), [t1; t2])
+  | "cc.eT", [t] ->
+     eapp (tvar "cc.eT" (arr type_type type_type), [t])
   | "dk_tuple.pair", [t1; t2; e1; e2] ->
      eapp (evar "@", [evar "dk_tuple.pair"; t1; t2; e1; e2])
   | "dk_tuple.match__pair", [t1; t2; x; rt; pat; fail] ->
@@ -71,7 +76,7 @@ let mk_eapp : string * expr list -> expr =
   | "dk_logic.forall", [_; _] -> assert false
   | "dk_logic.forall", l -> raise (Bad_arity ("forall", List.length l))
   | "dk_logic.exists", [_; Elam (x, e, _)] -> eex (x, e)
-  | "dk_logic.ebP", [e1] -> eapp (evar "Is_true", [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
+  | "dk_logic.ebP", [e1] -> eapp (tvar "Is_true" (arr bool1 type_type), [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
   | "dk_logic.eP", [e] -> e                        (* eP is ignored *)
   (* There should not be any other logical connectives *)
   | s, args ->
@@ -205,7 +210,7 @@ applicatives:
 | simple { [$1] }
 | applicatives simple { $2 :: $1 }
 simple:
-| TYPE { evar "Type" }
+| TYPE { type_type }
 | qid { evar $1 }
 | LPAREN term RPAREN { $2 }
 typ:
