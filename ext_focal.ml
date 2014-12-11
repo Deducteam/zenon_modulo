@@ -4,10 +4,10 @@ Version.add "$Id$";;
 (* Extension for Coq's "bool" type, as used in focal. *)
 (* Symbols:
      Is_true
-     coq_builtins.bi__and_b
-     coq_builtins.bi__or_b
-     coq_builtins.bi__xor_b
-     coq_builtins.bi__not_b
+     basics._amper__amper_
+     basics._bar__bar_
+     basics._bar__lt__gt__bar_
+     basics._tilda__tilda_
      false
      true
      FOCAL.ifthenelse
@@ -465,19 +465,19 @@ let to_llargs tr_expr r =
   match r with
   | Ext (_, "and", [e1; e2]) ->
       let h = tr_expr (eand (istrue e1, istrue e2)) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__and_b" bool3, [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._amper__amper_" bool3, [e1; e2]))) in
       ("zenon_focal_and", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "or", [e1; e2]) ->
       let h = tr_expr (eor (istrue e1, istrue e2)) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__or_b" bool3, [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._bar__bar_" bool3, [e1; e2]))) in
       ("zenon_focal_or", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "xor", [e1; e2]) ->
       let h = tr_expr (enot (eequiv (istrue e1, istrue e2))) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__xor_b" bool3, [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._bar__lt__gt__bar_" bool3, [e1; e2]))) in
       ("zenon_focal_xor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "not", [e1]) ->
       let h = tr_expr (enot (istrue e1)) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__not_b" bool2, [e1]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._tilda__tilda_" bool2, [e1]))) in
       ("zenon_focal_not", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "equal", [Evar (name, _)as a; e1; e2; e3]) ->
       let h = tr_expr (eeq e2 e3) in
@@ -487,19 +487,19 @@ let to_llargs tr_expr r =
        List.map tr_expr [eqdec; e1; e2; e3], [c], [ [h] ])
   | Ext (_, "notand", [e1; e2]) ->
       let h = tr_expr (enot (eand (istrue e1, istrue e2))) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__and_b" bool3, [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._amper__amper_" bool3, [e1; e2])))) in
       ("zenon_focal_notand", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notor", [e1; e2]) ->
       let h = tr_expr (enot (eor (istrue e1, istrue e2))) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__or_b" bool3, [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._bar__bar_" bool3, [e1; e2])))) in
       ("zenon_focal_notor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notxor", [e1; e2]) ->
       let h = tr_expr (eequiv (istrue e1, istrue e2)) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__xor_b" bool3, [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._bar__lt__gt__bar_" bool3, [e1; e2])))) in
       ("zenon_focal_notxor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notnot", [e1]) ->
       let h = tr_expr (istrue e1) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__not_b" bool2, [e1])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._tilda__tilda_" bool2, [e1])))) in
       ("zenon_focal_notnot", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notequal", [Evar (name, _) as a; e1; e2; e3]) ->
       let h = tr_expr (enot (eeq e2 e3)) in
@@ -685,12 +685,7 @@ List.iter Typer.declare_constant
     ("basics._tilda__tilda_", bool2);
     ("basics._amper__amper_", bool3);
     ("basics._bar__bar_", bool3);
-    ("basics._bar__lt__gt__bar_", bool3);
-
-    ("coq_builtins.bi__not_b", bool2);
-    ("coq_builtins.bi__and_b", bool3);
-    ("coq_builtins.bi__or_b", bool3);
-    ("coq_builtins.bi__xor_b", bool3)
+    ("basics._bar__lt__gt__bar_", bool3)
   ]
 ;;
 
@@ -714,15 +709,6 @@ let built_in_defs () =
   in
   let case = eapp (evar "$match-case", [evar (pair_str); x]) in
   [
-    Def (DefReal ("_amper__amper_", "basics._amper__amper_", bool3, [b1; b2],
-                  eapp (tvar "coq_builtins.bi__and_b" bool3, [b1; b2]), None));
-    Def (DefReal ("_bar__bar_", "basics._bar__bar_", bool3, [b1; b2],
-                  eapp (tvar "coq_builtins.bi__or_b" bool3, [b1; b2]), None));
-    Def (DefReal ("_tilda__tilda_", "basics._tilda__tilda_", bool2, [b1],
-                  eapp (tvar "coq_builtins.bi__not_b" bool2, [b1]), None));
-    Def (DefReal ("_bar__lt__gt__bar_", "basics._bar__lt__gt__bar_", bool3, [b1; b2],
-                  eapp (tvar "coq_builtins.bi__xor_b" bool3, [b1; b2]), None));
-
     Def (DefReal ("pair", "basics.pair", type_none, [tx; ty; x; y],
                   eapp (evar "Datatypes.pair", [tx; ty; x; y]), None));
     Def (DefReal ("fst", "basics.fst", type_none, [tx; ty; xy],
