@@ -307,7 +307,7 @@ let priv_tau v e =
 let rec print b ex =
   match ex with
   | Evar (v, _) -> Printf.bprintf b "%s" v;
-  | Emeta (e, _) -> Printf.bprintf b "M.(%a)" print e;
+  | Emeta (e, _) -> Printf.bprintf b "Meta.(%a)" print e;
   | Earrow (args, ret, _) ->
       Printf.bprintf b "(%a -> %a)"
       (fun b l -> List.iteri (fun i x -> if i > 0 then Printf.bprintf b " * "; Printf.bprintf b "%a" print x) l) args print ret;
@@ -543,6 +543,7 @@ let compare x y =
 (************************)
 
 exception Mismatch;;
+exception Ununifiable;;
 
 let rec xpreunify accu e1 e2 =
   match e1, e2 with
@@ -565,6 +566,13 @@ let preunifiable e1 e2 =
   try ignore (xpreunify [] e1 e2);
       true
   with Mismatch -> false
+;;
+
+let preunify_list l1 l2 = 
+  try List.fold_left2 xpreunify [] l1 l2
+  with 
+  | Mismatch
+  | Invalid_argument _ -> []
 ;;
 
 let occurs_as_meta e f = List.exists ((==) e) (get_metas f);;
@@ -648,7 +656,7 @@ and inst_app map s args = match s, args with
   | _ -> substitute_safe map s, args
 
 and type_app s args =
-    if List.memq type_none (s :: args) then
+    if List.memq type_none (s :: List.map get_type args) then
         type_none
     else match inst_app [] s args with
     | Earrow(l, ret, _), args' ->
@@ -671,9 +679,9 @@ and eeq a b =
     eapp (s, [a; b])
 
 and substitute_unsafe map e =
-  Log.debug 15 "Substitute unsafe '%a'" print e;
-  Log.debug 15 "-- with map";
-  List.iter (fun (x, y) -> Log.debug 15 " |- (%a, %a)" print x print y) map;
+  Log.debug 25 "Substitute unsafe '%a'" print e;
+  Log.debug 25 "-- with map";
+  List.iter (fun (x, y) -> Log.debug 25 " |- (%a, %a)" print x print y) map;
   let aux f map v body =
       let t = substitute_unsafe map (get_type v) in
       let map1 = rm_binding v map in
@@ -766,9 +774,9 @@ let rec substitute_expr map e =
 *)
 
 let rec substitute_2nd_unsafe map e =
-  Log.debug 15 "Substitute 2nd unsafe '%a'" print e;
-  Log.debug 15 "-- with map";
-  List.iter (fun (x, y) -> Log.debug 15 " |- (%a, %a)" print x print y) map;
+  Log.debug 25 "Substitute 2nd unsafe '%a'" print e;
+  Log.debug 25 "-- with map";
+  List.iter (fun (x, y) -> Log.debug 25 " |- (%a, %a)" print x print y) map;
   match e with
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
@@ -862,5 +870,58 @@ let rec remove_scope e =
   | Evar _ | Emeta _ | Etrue | Efalse | Etau _ | Elam _
   -> e
 ;;
+
+let nb_tvar e = 
+  match e with 
+  | Eapp (s, _, _) -> 
+     let rec aux count ee = 
+       match ee with 
+       | Eall (_, ee', _) -> aux (count + 1) ee'
+       | _ -> count
+     in
+     aux 0 (get_type s)
+  | _ -> assert false
+;;
+
+exception Unsplitable;;
+
+let rec split_list_aux n l accu = 
+  match n, l with 
+  | 0, _  -> (List.rev accu), l
+  | _, [] -> raise Unsplitable
+  | _, h :: tl -> split_list_aux (n - 1) tl (h :: accu)
+;;
+
+let split_list n l = 
+  split_list_aux n l []
+;;
+
+let rec get_tvar_aux accu e = 
+  match e with 
+  | Evar _ 
+  | Emeta _ -> if get_type e == type_type && not (List.memq e accu) 
+	       then e :: accu
+	       else accu
+  | Eapp (_, args, _) -> 
+     List.fold_left get_tvar_aux accu args
+  | Enot (e1, _) -> get_tvar_aux accu e1
+  | Etau _ -> accu
+
+  | Earrow _
+  | Eand _
+  | Eor _ 
+  | Eimply _ 
+  | Eequiv _ 
+  | Etrue 
+  | Efalse  
+  | Eall _ 
+  | Eex _ 
+  | Elam _ -> assert false
+;;
+
+let get_tvar e = 
+  List.rev (get_tvar_aux [] e)
+;;
+
 
 type goalness = int;;
