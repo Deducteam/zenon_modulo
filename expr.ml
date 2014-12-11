@@ -572,7 +572,7 @@ let preunify_list l1 l2 =
   try List.fold_left2 xpreunify [] l1 l2
   with 
   | Mismatch
-  | Invalid_argument _ -> raise Ununifiable
+  | Invalid_argument _ -> []
 ;;
 
 let occurs_as_meta e f = List.exists ((==) e) (get_metas f);;
