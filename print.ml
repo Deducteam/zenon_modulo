@@ -825,29 +825,32 @@ let sexpr_t e = Log.on_buffer pp_expr_t e
 
 (* Full type debug printing for expr *)
 let rec expr_type o ex =
-  let pr f = oprintf o f in
-  expr_soft o ex;
-  pr " : '";
-  expr_soft o (get_type ex);
-  pr "'\n";
-  match ex with
-  | Evar (v, _) -> ()
-  | Emeta (e, _) -> ()
-  | Eapp(s, l, _) -> List.iter (expr_type o) (s :: l)
-  | Enot (e, _) -> expr_type o e
-  | Eand (e1, e2, _)
-  | Eor (e1, e2, _)
-  | Eimply (e1, e2, _)
-  | Eequiv (e1, e2, _) ->
-          expr_type o e1; expr_type o e2
-  | Etrue
-  | Efalse -> ()
-  | Eall (Evar (v, _), e, _)
-  | Eex (Evar (v, _), e, _)
-  | Elam (Evar (v, _), e, _) ->
-          expr_type o e
-  | Etau _  -> ()
-  | _ -> assert false
+  if ex == type_type then expr_soft o ex (* Don't ask the type of type_type *)
+  else (
+    let pr f = oprintf o f in
+    expr_soft o ex;
+    pr " : '";
+    expr_soft o (get_type ex);
+    pr "'\n";
+    match ex with
+    | Evar (v, _) -> ()
+    | Emeta (e, _) -> ()
+    | Eapp(s, l, _) -> List.iter (expr_type o) (s :: l)
+    | Enot (e, _) -> expr_type o e
+    | Eand (e1, e2, _)
+    | Eor (e1, e2, _)
+    | Eimply (e1, e2, _)
+    | Eequiv (e1, e2, _) ->
+       expr_type o e1; expr_type o e2
+    | Etrue
+    | Efalse -> ()
+    | Eall (Evar (v, _), e, _)
+    | Eex (Evar (v, _), e, _)
+    | Elam (Evar (v, _), e, _) ->
+       expr_type o e
+    | Etau _  -> ()
+    | _ -> assert false)
+;;
 
 let pp_expr_type b e = expr_type (Buff b) e;;
 let sexpr_type e = Log.on_buffer pp_expr_type e;;
