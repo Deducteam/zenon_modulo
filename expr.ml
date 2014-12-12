@@ -552,8 +552,17 @@ let rec xpreunify accu e1 e2 =
       List.fold_left2 xpreunify accu a1 a2
   | Earrow (a1, r1, _), Earrow (a2, r2, _) ->
       List.fold_left2 xpreunify accu (r1 :: a1) (r2 :: a2)
-  | Emeta (m1, _), _ -> (m1, e2) :: accu
-  | _, Emeta (m2, _) -> (m2, e1) :: accu
+  | Emeta (m1, _), e
+  | e, Emeta (m1, _) ->
+     begin
+       try
+	 if not (e == List.assq m1 accu) then
+	   raise Mismatch
+	 else
+	   accu
+       with Not_found ->
+	    (m1, e) :: accu
+     end
   | _, _ -> raise Mismatch
 ;;
 

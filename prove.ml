@@ -204,7 +204,7 @@ let make_notequiv st sym (p, g) (np, ng) =
     -> st
   | Eapp (Evar("Is_true",_), _, _), _ when Extension.is_active "focal" -> st
   | Eapp (Evar(s1,_) as s1', args1, _), 
-    Enot (Eapp (Evar(s2,_) as s2', args2, _), _) ->
+    Enot (Eapp (Evar(s2,_) as s2', args2, _) as nnp, _) ->
       assert (s1 =%= s2);
       if not (get_type s1' == get_type s2') then st
       else if sym && List.length args2 != 2
@@ -241,28 +241,22 @@ let make_notequiv st sym (p, g) (np, ng) =
 	end
       else 
 	begin 
-	  try 
-(*	    let n_tvar = nb_tvar p in 
-	    let (texp1, _) = split_list n_tvar args1 in 
-	    let (texp2, _) = split_list n_tvar args2 in	      
-	    let subst = Expr.preunify_list texp1 texp2 in 
+	  try 	    
+	    Log.debug 25 " |- list of args of p : '%a' ::: %a" Print.pp_expr s1' Print.pp_expr (get_type s1');
+	    List.iter (fun x -> Log.debug 17 "  |- '%a' ::: %a" Print.pp_expr x Print.pp_expr (get_type x)) args1;
+	    Log.debug 25 " |- list of args of nnp : '%a' ::: %a" Print.pp_expr s2' Print.pp_expr (get_type s2');
+	    List.iter (fun x -> Log.debug 17 "  |- '%a' ::: %a" Print.pp_expr x Print.pp_expr (get_type x)) args2;
 	    let compare_size (m1, _) (m2, _) = 
 	      - Pervasives.compare (Expr.size m1) (Expr.size m2)
 	    in
-	    let subst = List.sort compare_size subst in
+	    let (tyvar1, _) = Expr.split_list (Expr.nb_tvar p) args1 in 
+	    let (tyvar2, _) = Expr.split_list (Expr.nb_tvar nnp) args2 in 
+	    let subst_l = List.map2 preunify tyvar1 tyvar2 in 
+	    let subst = List.concat subst_l in    
+	    let subst = List.sort compare_size subst in 
 	    let (m, term) = List.hd subst in 
-            fst (make_inst st m term (min g ng))*)
-	    
-	    let texp1 = get_tvar p in 
-	    let texp2 = get_tvar np in 
-	    let subst = Expr.preunify_list texp1 texp2 in 
-	    let compare_size (m1, _) (m2, _) = 
-	      - Pervasives.compare (Expr.size m1) (Expr.size m2)
-	    in
-	    let subst = List.sort compare_size subst in
-	    let (m, term) = List.hd subst in 
-            fst (make_inst st m term (min g ng))
-	  with  Ununifiable | Unsplitable | Failure _ -> st
+            fst (make_inst st m term (min g ng)) 
+	  with  Unsplitable | Failure _ -> st
 	end
   | _ -> assert false
 ;;
@@ -760,16 +754,46 @@ let newnodes_match_congruence st fm g _ =
      (st, false)
   | Enot (Eapp (Evar("=",_), [(Eapp (Evar(f1,_), a1, _) as e1);
                               (Eapp (Evar(f2,_), a2, _) as e2)], _), _)
-    when f1 =%= f2 ->
-      if List.length a1 == List.length a2 then begin
-        add_node st {
-          nconc = [fm];
-          nrule = NotEqual (e1, e2);
-          nprio = Arity;
-          ngoal = g;
-          nbranches = make_inequals a1 a2;
-        }, false
-      end else (arity_warning f1; (st, false))
+       when f1 =%= f2 
+	    && (List.for_all2 (fun x y -> Expr.equal (get_type x) (get_type y)) a1 a2) ->
+     if List.length a1 == List.length a2 
+     then begin
+	 add_node st {
+		    nconc = [fm];
+		    nrule = NotEqual (e1, e2);
+		    nprio = Arity;
+		    ngoal = g;
+		    nbranches = make_inequals a1 a2;
+		  }, false
+       end 
+     else (arity_warning f1; (st, false))
+  | Enot (Eapp (Evar ("=", _), [(Eapp (Evar (f1, _), a1, _) as e1); 
+				(Eapp (Evar (f2, _), a2, _) as e2)], _), _)
+       when f1 =%= f2 -> 
+     begin
+       try
+	 let compare_size (m1, _) (m2, _) = 
+	   - Pervasives.compare (Expr.size m1) (Expr.size m2)
+	 in
+	 Log.debug 25 "Match congruence '%a' ::: %a" Print.pp_expr e1 Print.pp_expr (get_type e1);
+	 Log.debug 25 " |- with '%a' ::: %a" Print.pp_expr e2 Print.pp_expr (get_type e2);
+	 let (tyvar1, _) = Expr.split_list (Expr.nb_tvar e1) a1 in 
+	 Log.debug 25 " |- tyvar1 is";
+	 List.iter (fun x -> Log.debug 25 "  |- '%a' ::: %a" Print.pp_expr x Print.pp_expr (get_type x)) tyvar1;
+	 let (tyvar2, _) = Expr.split_list (Expr.nb_tvar e2) a2 in 
+	 Log.debug 25 " |- tyvar2 is";
+	 List.iter (fun x -> Log.debug 25 "  |- '%a' ::: %a" Print.pp_expr x Print.pp_expr (get_type x)) tyvar2;
+	 let subst_l = List.map2 preunify tyvar1 tyvar2 in
+	 let subst = List.concat subst_l in 
+	 Log.debug 25 " |- subst is";
+	 List.iter (fun (x, y) -> Log.debug 25 "  |- ( '%a' ::: %a ; '%a' ::: %a)" 
+					    Print.pp_expr x Print.pp_expr (get_type x)
+					    Print.pp_expr y Print.pp_expr (get_type y)) subst;
+	 let subst = List.sort compare_size subst in 
+	 let (m, term) = List.hd subst in 
+	 make_inst st m term g
+       with  Unsplitable | Failure _ -> st, false
+     end
 (*
   FIXME determiner si c'est utile...
   | Enot (Eapp ("=", [Etau (v1, t1, f1, _); Etau (v2, t2, f2, _)], _), _) ->
@@ -872,7 +896,7 @@ let newnodes_match_trans st fm g _ =
   try
     let fmg = (fm, g) in
     match fm with
-    | Eapp (Evar("=",_), [Emeta (m1, _) as m1'; Emeta (m2, _) as m2'], _) ->
+    | Eapp (Evar("=",_) as seq, [Emeta (m1, _) as m1'; Emeta (m2, _) as m2'], _) ->
        Log.debug 17 " |- m1 = m2 >> '%a' ::: %a = '%a' ::: %a"
 		 Print.pp_expr m1' Print.pp_expr (get_type m1')
 		 Print.pp_expr m2' Print.pp_expr (get_type m2');
@@ -891,17 +915,20 @@ let newnodes_match_trans st fm g _ =
        else
 	 begin
 	   try
-	     let texp1 = get_tvar fm in 
-	     let l_texp2 = List.map (fun (x, y) -> get_tvar x) nfmg in 
-	     let l_subst = List.map (Expr.preunify_list texp1) l_texp2 in 
-	     let subst = List.concat l_subst in
 	     let compare_size (m1, _) (m2, _) = 
 	       - Pervasives.compare (Expr.size m1) (Expr.size m2)
 	     in
-	     let subst = List.sort compare_size subst in
+	     let tyvar1 = get_type seq in 
+	     let tyvar2 = List.map (fun (x, y) -> match x with 
+						  | Enot (Eapp (nseq, _, _), _) -> get_type nseq;
+						  | _ -> assert false)
+				   nfmg in 
+	     let subst_l = List.map (fun x -> preunify tyvar1 x) tyvar2 in 
+	     let subst = List.concat subst_l in 
+	     let subst = List.sort compare_size subst in 
 	     let (m, term) = List.hd subst in 
-             make_inst st m term g
-	   with Ununifiable | Unsplitable | Failure _ -> st, false
+	     make_inst st m term g
+	   with Failure _ -> st, false
 	 end
     | Eapp (Evar("=",_), [e1; e2], _) ->
        Log.debug 17 " |- e1 = e2 >> '%a' ::: %a = '%a' ::: %a"
@@ -971,7 +998,7 @@ let newnodes_match_trans st fm g _ =
         let h2 = Index.get_head e2 in
 	let select a (b, c) = 
 	  match a, b with 
-	  | Eapp (s1, _, _), Enot (Eapp (s2, _, _), _) -> 
+	  | Enot (Eapp (s1, _, _), _), Eapp (s2, _, _) -> 
 	     get_type s1 == get_type s2
 	  | _ -> assert false 
 	in
