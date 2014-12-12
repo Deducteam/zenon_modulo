@@ -487,8 +487,11 @@ let emeta (e) = he_merge (Emeta (e, priv_meta e));;
 let earrow args ret =
   match ret with
   | Earrow _ -> assert false
-  | _ ->
-     he_merge (Earrow (args, ret, priv_arrow args ret))
+  | _ -> begin match args with
+    | [] -> ret
+    | _ ->
+        he_merge (Earrow (args, ret, priv_arrow args ret))
+    end
 ;;
 let add_arg ty1 ty2 =
   match ty2 with

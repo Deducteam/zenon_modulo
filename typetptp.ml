@@ -32,7 +32,7 @@ let rec rm_binding v map =
 ;;
 
 (* Typing specifications for tff *)
-let type_tff_i = tvar "$i" type_type
+let type_tff_i = eapp (tvar "$i" type_type, [])
 
 (* Environment for typing *)
 type env = {
@@ -163,7 +163,7 @@ let var_name s =
         s
 
 (* Typing *)
-let type_tff_var t env = function
+let type_tff_var ty env = function
     | Evar(v, _) as e ->
             begin try
                 (List.assq e env.map, env)
@@ -171,11 +171,11 @@ let type_tff_var t env = function
                 begin match get_type e with
                 | t when type_none == t ->
                         if tff_mem v env then
-                            let t = tff_app v [] env in
-                            (tvar v t, env)
+                            let ty = tff_app v [] env in
+                            (tvar v ty, env)
                         else begin
-                            Log.debug 5 "Inferring type of var '%a' : '%a'" Print.pp_expr e Print.pp_expr t;
-                            (tvar v t, tff_add_type v t env)
+                            Log.debug 5 "Inferring type of var '%a' : '%a'" Print.pp_expr e Print.pp_expr ty;
+                            (tvar v ty, tff_add_type v ty env)
                         end
                 | t -> e, env
                 end
@@ -185,10 +185,8 @@ let type_tff_var t env = function
 let rec type_tff_app env is_pred e = match e with
     (* Type typechecking *)
     | _ when e == type_type || e == type_prop -> e, env
-    | Eapp(Evar("$i", _), [], _) -> eapp (tvar "$i" type_type, []), env
-    | Eapp(Evar("$int", _), [], _) -> eapp (tvar "Int" type_type, []), env
-    | Eapp(Evar("$rat", _), [], _) -> eapp (tvar "Rat" type_type, []), env
-    | Eapp(Evar("$real", _), [], _) -> eapp (tvar "Real" type_type, []), env
+    | Eapp(Evar("$i", _), [], _) -> type_tff_i, env
+    (* Application typechecking *)
     | Eapp(Evar("=", _), [a; b], _) ->
             let a', env' = type_tff_term env a in
             let b', env'' = type_tff_term env' b in
@@ -207,7 +205,8 @@ let rec type_tff_app env is_pred e = match e with
             begin try
                 eapp (f, args), env''
             with
-            | Type_Mismatch _ ->
+            | Type_Mismatch (t, t', s) ->
+                    Log.debug 0 "Expected %a but received %a in %s" Print.pp_expr t Print.pp_expr t' s;
                     raise (Type_error (Printf.sprintf "Inferred type for %s '%s' not valid."
                         (if is_pred then "predicate" else "function") s))
             end
@@ -272,7 +271,7 @@ and type_tff_term env e = match e with
     | _ -> raise (Type_error ("Ill-formed expression"))
 
 and type_tff_type env e = match e with
-    | Evar(v, _) -> type_tff_var (lazy (assert false)) env e
+    | Evar(v, _) -> type_tff_var type_type env e
     | Eapp(_) -> type_tff_app env false e
     | Eall(_) -> type_tff_quant type_tff_type eall env e
     | Earrow(args, ret, _) ->
