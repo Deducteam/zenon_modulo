@@ -6,10 +6,10 @@ let new_terms = ref []
 
 let new_tau =
   let r = ref 0 in
-  fun () ->
+  fun ty ->
     let n = !r in
     incr r;
-    evar (sprintf "tau%d" n)
+    tvar (sprintf "tau%d" n) ty
 
 let rec lltollm_expr defs e =
   match e with
@@ -39,13 +39,13 @@ let rec lltollm_expr defs e =
     eall (x, lltollm_expr defs e)
   | Eex (x, e, _) ->
     eex (x, lltollm_expr defs e)
-  | Etau (x, e, _) ->
+  | Etau (x, e, _) as taux ->
     let tau = etau (x, e) in
     if List.mem_assoc tau !new_terms
     then
       List.assoc tau !new_terms
     else
-      let z = new_tau () in
+      let z = new_tau (get_type taux) in
       new_terms := (tau, z) :: !new_terms;
       z
   | Elam (x, e, _) ->
