@@ -691,9 +691,6 @@ and eeq a b =
     eapp (s, [a; b])
 
 and substitute_unsafe map e =
-  Log.debug 25 "Substitute unsafe '%a'" print e;
-  Log.debug 25 "-- with map";
-  List.iter (fun (x, y) -> Log.debug 25 " |- (%a, %a)" print x print y) map;
   let aux f map v body =
       let t = substitute_unsafe map (get_type v) in
       let map1 = rm_binding v map in
@@ -786,9 +783,6 @@ let rec substitute_expr map e =
 *)
 
 let rec substitute_2nd_unsafe map e =
-  Log.debug 25 "Substitute 2nd unsafe '%a'" print e;
-  Log.debug 25 "-- with map";
-  List.iter (fun (x, y) -> Log.debug 25 " |- (%a, %a)" print x print y) map;
   match e with
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
