@@ -43,6 +43,10 @@ type definition =
   | DefRec of expr * string * expr * expr list * expr
 ;;
 
+type rwrt_tbl = (string, expr * expr) Hashtbl.t;;
+type rwrt_tbls = rwrt_tbl * rwrt_tbl;;
+
+
 exception Higher_order;;
 exception Type_Mismatch of expr * expr * string;;
 exception Bad_Arity of expr * expr list;;
@@ -931,4 +935,7 @@ let get_tvar e =
 
 
 type goalness = int;;
+
+let tbl_term = ref (Hashtbl.create 42);;
+let tbl_prop = ref (Hashtbl.create 42);;
 

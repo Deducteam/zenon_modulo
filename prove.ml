@@ -1541,14 +1541,29 @@ and next_node prm stk st =
   match remove st.queue with
   | None -> unwind prm stk (prm.fail ())
   | Some (n, q1) ->
+      (* begin of the rewrite on branches
+      *)
+      let size = Array.length n.nbranches in 
+      let new_branches = Array.make size [] in 
+      for i=0 to size-1
+      do
+	new_branches.(i) <- Rewrite.normalize_list n.nbranches.(i);
+      done;
+      let new_node = {nconc = n.nconc;
+		      nrule = n.nrule;
+		      nprio = n.nprio;
+		      ngoal = n.ngoal;
+		      nbranches = new_branches;} in 
+      (* end of rewrite
+      *)
       let st1 = {(*st with*) queue = q1} in
-      match reduce_branches n with
+      match reduce_branches new_node with
       | Some n1 ->
 (*
           let (n2, brstate) = add_virtual_branch n1 in
           next_branch stk n2 st1 brstate
 *)
-         let brstate = Array.make (Array.length n.nbranches) Open in
+         let brstate = Array.make (Array.length new_node.nbranches) Open in
          next_branch prm stk n1 st1 brstate
       | None -> next_node prm stk st1
 

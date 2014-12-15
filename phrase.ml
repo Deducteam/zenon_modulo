@@ -14,6 +14,7 @@ type phrase =
   | Sig of string * string list * string
   | Inductive of
      string * string list * (string * inductive_arg list) list * string
+  | Rew of string * expr * int
 ;;
 
 type zphrase =
@@ -192,6 +193,7 @@ let rec xseparate predef deps multi defs hyps l =
   | Hyp (_, e, p) :: t -> xseparate predef deps multi defs ((e, p) :: hyps) t
   | Sig _ :: t -> xseparate predef deps multi defs hyps t
   | Inductive _ :: t -> xseparate predef deps multi defs hyps t
+  | Rew _ :: t -> xseparate predef deps multi defs hyps t
 ;;
 
 let separate predef l = xseparate predef [] [] [] [] l;;

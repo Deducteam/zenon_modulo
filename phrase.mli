@@ -14,6 +14,7 @@ type phrase =
   | Sig of string * string list * string  (* sym, args, result *)
   | Inductive of
      string * string list * (string * inductive_arg list) list * string
+  | Rew of string * expr * int
 ;;
 
 type zphrase =

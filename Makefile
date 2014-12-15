@@ -20,7 +20,7 @@ SOURCES = log.ml version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
           progress.ml namespace.ml type.ml expr.ml \
           phrase.ml llproof.ml mlproof.ml index.ml print.ml \
 	  watch.ml eqrel.ml \
-	  step.ml node.ml extension.ml mltoll.ml \
+	  step.ml node.ml extension.ml rewrite.ml mltoll.ml \
           CCVector.ml \
           parsezen.mly lexzen.mll \
 	  parsetptp.mly lextptp.mll typetptp.ml \
