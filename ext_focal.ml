@@ -651,8 +651,8 @@ let rec pp_expr e =
   | Evar _ -> e
   | Emeta _ -> e
   | Earrow _ -> assert false
-  | Eapp (Evar("Is_true",_), [Eapp (Evar(s,_), args, _)], _) ->
-      eapp (evar ("Is_true**" ^ s), List.map pp_expr args)
+  | Eapp (Evar("Is_true",_), [Eapp (Evar(s,_) as var, args, _)], _) ->
+      eapp (tvar ("Is_true**" ^ s) (ret_bool_to_prop (get_type var)), List.map pp_expr args)
   | Eapp (s, args, _) -> eapp (s, List.map pp_expr args)
   | Enot (e1, _) -> enot (pp_expr e1)
   | Eand (e1, e2, _) -> eand (pp_expr e1, pp_expr e2)
