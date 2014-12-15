@@ -106,6 +106,10 @@ let newnodes_select e g =
 	 when contains_sub sym "$select_" -> 
        begin 
 	 match r with 
+	 | Evar (s, _) 
+	      when Index.has_def s -> 
+	    let ctx x = eapp (sym, [l; x]) in 
+	    mk_unfold ctx s None
 	 | Eapp (s, args, _) 
 	      when Index.has_def s -> 
 	    let ctx x = eapp (sym, [l; x]) in 
@@ -126,6 +130,10 @@ let newnodes_select e g =
 	 when contains_sub sym "$select_" -> 
        begin
 	 match r with 
+	 | Evar (s, _) 
+	      when Index.has_def s -> 
+	    let ctx x = enot( eapp (sym, [l; x])) in 
+	    mk_unfold ctx s None
 	 | Eapp (s, args, _)
 	      when Index.has_def s -> 
 	    let ctx x = enot (eapp (sym, [l; x])) in 
@@ -146,6 +154,10 @@ let newnodes_select e g =
 	 when contains_sub sym "$select_" -> 
        begin 
 	 match r with 
+	 | Evar (s, _) 
+	      when Index.has_def s -> 
+	    let ctx x = eapp ("=", [eapp (sym, [l; x]); b]) in 
+	    mk_unfold ctx s None
 	 | Eapp (s, args, _) 
 	      when Index.has_def s -> 
 	    let ctx x = eapp ("=", [eapp (sym, [l; x]); b]) in 
@@ -166,6 +178,10 @@ let newnodes_select e g =
 	 when contains_sub sym "$select_" -> 
        begin 
 	 match r with 
+	 | Evar (s, _) 
+	      when Index.has_def s -> 
+	    let ctx x = eapp ("=", [a; eapp (sym, [l; x])]) in 
+	    mk_unfold ctx s None
 	 | Eapp (s, args, _) 
 	      when Index.has_def s -> 
 	    let ctx x = eapp ("=", [a; eapp (sym, [l; x])]) in 
@@ -186,6 +202,10 @@ let newnodes_select e g =
 	 when contains_sub sym "$select_" -> 
        begin 
 	 match r with 
+	 | Evar (s, _) 
+	      when Index.has_def s -> 
+	    let ctx x = enot( eapp ("=", [eapp (sym, [l; x]); b])) in 
+	    mk_unfold ctx s None
 	 | Eapp (s, args, _) 
 	      when Index.has_def s -> 
 	    let ctx x = enot (eapp ("=", [eapp (sym, [l; x]); b])) in 
@@ -206,6 +226,10 @@ let newnodes_select e g =
 	 when contains_sub sym "$select_" -> 
        begin 
 	 match r with 
+	 | Evar (s, _) 
+	      when Index.has_def s -> 
+	    let ctx x = enot( eapp ("=", [a; eapp (sym, [l; x])])) in 
+	    mk_unfold ctx s None
 	 | Eapp (s, args, _) 
 	      when Index.has_def s -> 
 	    let ctx x = enot(eapp ("=", [a; eapp (sym, [l; x])])) in 
@@ -226,6 +250,10 @@ let newnodes_select e g =
 	 when contains_sub sym "Is_true**$select_" -> 
        begin 
 	 match r with 
+	 | Evar (s, _) 
+	      when Index.has_def s -> 
+	    let ctx x = eapp (sym, [l; x]) in 
+	    mk_unfold ctx s None
 	 | Eapp (s, args, _)
 	      when Index.has_def s -> 
 	    let ctx x = eapp (sym, [l; x]) in 
@@ -246,6 +274,10 @@ let newnodes_select e g =
 	 when contains_sub sym "Is_true**$select_" -> 
        begin 
 	 match r with 
+	 | Evar (s, _) 
+	      when Index.has_def s -> 
+	    let ctx x = enot (eapp (sym, [l; x])) in 
+	    mk_unfold ctx s None
 	 | Eapp (s, args, _)
 	      when Index.has_def s -> 
 	    let ctx x = enot (eapp (sym, [l; x])) in 
