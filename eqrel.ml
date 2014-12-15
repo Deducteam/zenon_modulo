@@ -66,12 +66,11 @@ let rec do_disj env e =
 let get_leaves path env e =
   symbol := None;
   leaves := [];
-  typ := type_none;
   try
     do_disj env e;
-    (List.rev path, env, !leaves, !typ)
+    (List.rev path, env, !leaves)
   with Wrong_shape ->
-    (List.rev path, env, [], type_none)
+    (List.rev path, env, [])
 ;;
 
 let subexprs = ref [];;
@@ -173,7 +172,6 @@ type info = {
   mutable sym : (Expr.expr * direction list * int list) option;
   mutable trans : (Expr.expr * direction list * int list) option;
   mutable transsym : (Expr.expr * direction list * int list) option;
-  mutable typ : Expr.expr;
   mutable refl_hyp : Expr.expr option;
   mutable sym_hyp : Expr.expr option;
   mutable trans_hyp : Expr.expr option;
@@ -187,10 +185,10 @@ let find_aux tbl s =
   with Not_found ->
     let result = match s with
     | Evar("=", _) -> { refl = eq_origin; sym = eq_origin; trans = eq_origin;
-                        transsym = eq_origin; typ = type_none; refl_hyp = None;
+                        transsym = eq_origin; refl_hyp = None;
                         sym_hyp = None; trans_hyp = None; }
     | _ -> { refl = None; sym = None; trans = None;
-             transsym = None; typ = type_none; refl_hyp = None;
+             transsym = None; refl_hyp = None;
              sym_hyp = None; trans_hyp = None}
     in
     false, result
@@ -200,13 +198,13 @@ let find tbl s = snd (find_aux tbl s)
 let get_record s =
     let b, res = find_aux tbl s in
     if not b then begin
-        Log.debug 5 "Adding '%a' to eqrel table" Print.pp_expr s;
+        Log.debug 5 "Adding '%a' to eqrel table" Print.pp_expr_t s;
         Hashtbl.add tbl s res
     end;
     res
 ;;
 
-let analyse_subexpr e (path, env, sb, typ) =
+let analyse_subexpr e (path, env, sb) =
   let refl = is_refl sb e path env in
   let sym = is_sym sb e path env in
   let trans = is_trans sb e path env in
@@ -219,12 +217,11 @@ let analyse_subexpr e (path, env, sb, typ) =
       if sym <> None then r.sym <- sym;
       if trans <> None then r.trans <- trans;
       if transsym <> None then r.transsym <- transsym;
-      if not (typ = type_none) then r.typ <- typ
 ;;
 
 let analyse e = List.iter (analyse_subexpr e) (get_subexprs e);;
 
-let subsumed_subexpr e (path, env, sb, typ) =
+let subsumed_subexpr e (path, env, sb) =
   if is_refl sb e path env <> None then
     (get_record (get_symbol sb)).refl <> None
   else if is_sym sb e path env <> None then
@@ -287,9 +284,15 @@ let hyps_tbl =
   (HE.create 97 : hyp_kind HE.t)
 ;;
 
+let argument_type s =
+  match Expr.get_type s with
+    | Earrow ([arg1; arg2], ret, _) when ret == type_prop && arg1 == arg2 -> arg1
+    | _ -> failwith (Printf.sprintf "Not a relation type %s."  (Print.sexpr_t s))
+;;
+
 let get_refl_hyp s =
   assert (get_name s <> "=");
-  let arg_ty = (get_record s).typ in
+  let arg_ty = argument_type s in
   let r = Hashtbl.find tbl s in
   match r.refl_hyp with
   | Some e -> e
@@ -306,7 +309,7 @@ let get_refl_hyp s =
 
 let get_sym_hyp s =
   assert (get_name s <> "=");
-  let arg_ty = (get_record s).typ in
+  let arg_ty = argument_type s in
   let r = Hashtbl.find tbl s in
   match r.sym_hyp with
   | Some e -> e
@@ -328,7 +331,7 @@ let get_sym_hyp s =
 
 let get_trans_hyp s =
   assert (get_name s <> "=");
-  let arg_ty = (get_record s).typ in
+  let arg_ty = argument_type s in
   let r = Hashtbl.find tbl s in
   match r.trans_hyp with
   | Some e -> e
@@ -559,7 +562,7 @@ let get_proof e =
 
 let print_rels oc =
   let f k r =
-    Printf.fprintf oc " %s:%s%s%s%s" (get_name k)
+    Printf.fprintf oc " %s:%s%s%s%s" (Print.sexpr k)
                    (if r.refl = None then "" else "R")
                    (if r.sym = None then "" else "S")
                    (if r.trans = None then "" else "T")
