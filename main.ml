@@ -78,12 +78,12 @@ let parse_size_time s =
 ;;
 
 let short_version () =
-  printf "zenon version %s\n" Versionnum.full;
+  printf "zenon_modulo version %s\n" Versionnum.full;
   exit 0;
 ;;
 
 let cvs_version () =
-  printf "zenon version %s\n" Versionnum.full;
+  printf "zenon_modulo version %s\n" Versionnum.full;
   Version.print_cvs stdout;
   printf "source checksum: %s\n" Checksum.v;
   exit 0;
@@ -99,7 +99,7 @@ let set_random seed =
 
 let print_libdir () = Printf.printf "%s\n%!" Config.libdir; exit 0
 
-let usage_msg = "Usage: zenon [options] <file>";;
+let usage_msg = "Usage: zenon_modulo [options] <file>";;
 
 let argspec = [
   "-", Arg.Unit (fun () -> input_file "-"),

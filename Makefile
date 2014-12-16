@@ -64,32 +64,32 @@ COQOBJ = $(COQSRC:%.v=%.vo)
 
 .PHONY: all byt bin coq
 
-all: byt bin zenon coq
+all: byt bin zenon_modulo coq
 
 coq: $(COQOBJ)
 
-byt: zenon.byt
+byt: zenon_modulo.byt
 
-bin: zenon.bin
+bin: zenon_modulo.bin
 
-zenon.bin: $(BINOBJS)
-	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon.bin unix.cmxa $(BINOBJS)
+zenon_modulo.bin: $(BINOBJS)
+	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa $(BINOBJS)
 
-zenon.byt: $(BYTOBJS)
-	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon.byt unix.cma $(BYTOBJS)
+zenon_modulo.byt: $(BYTOBJS)
+	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_modulo.byt unix.cma $(BYTOBJS)
 
-zenon: zenon.byt
-	if test -x zenon.bin; then \
-	  cp zenon.bin zenon; \
+zenon_modulo: zenon_modulo.byt
+	if test -x zenon_modulo.bin; then \
+	  cp zenon_modulo.bin zenon_modulo; \
         else \
-	  cp zenon.byt zenon; \
+	  cp zenon_modulo.byt zenon_modulo; \
 	fi
 
 
 .PHONY: install
 install:
 	mkdir -p "$(DESTDIR)$(INSTALL_BIN_DIR)"
-	cp zenon "$(DESTDIR)$(INSTALL_BIN_DIR)/"
+	cp zenon_modulo "$(DESTDIR)$(INSTALL_BIN_DIR)/"
 	mkdir -p "$(DESTDIR)$(INSTALL_LIB_DIR)"
 	cp $(COQSRC) "$(DESTDIR)$(INSTALL_LIB_DIR)/"
 	for i in $(COQOBJ); \
@@ -98,8 +98,8 @@ install:
 
 .PHONY: uninstall
 uninstall:
-	rm -f "$(DESTDIR)$(BIN_DIR)/zenon$(EXE)"
-	rm -rf "$(DESTDIR)$(LIB_DIR)/zenon"
+	rm -f "$(DESTDIR)$(BIN_DIR)/zenon_modulo$(EXE)"
+	rm -rf "$(DESTDIR)$(LIB_DIR)/zenon_modulo"
 
 .SUFFIXES: .ml .mli .cmo .cmi .cmx .v .vo
 
@@ -154,9 +154,9 @@ checksum.ml: $(IMPL:checksum.ml=)
 
 .PHONY: dist
 dist: $(ALLSRC)
-	mkdir -p dist/zenon
-	cp $(ALLSRC) dist/zenon
-	cd dist && tar cf - zenon | gzip >../zenon.tar.gz
+	mkdir -p dist/zenon_modulo
+	cp $(ALLSRC) dist/zenon_modulo
+	cd dist && tar cf - zenon_modulo | gzip >../zenon_modulo.tar.gz
 
 .PHONY: doc odoc docdir
 doc docdir:
@@ -172,8 +172,8 @@ clean:
 	rm -f parsetptp.ml parsetptp.mli lextptp.ml
 	rm -f parsecoq.ml parsecoq.mli lexcoq.ml
 	rm -f checksum.ml
-	rm -f zenon *.bin *.byt
-	rm -rf dist zenon.tar.gz
+	rm -f zenon_modulo *.bin *.byt
+	rm -rf dist zenon_modulo.tar.gz
 
 .PHONY: depend
 depend: $(IMPL) $(INTF) $(COQSRC)
