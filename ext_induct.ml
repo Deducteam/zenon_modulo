@@ -21,7 +21,7 @@ exception Empty;;
 type constructor_desc = {
   cd_num : int;
   cd_name : string;
-  cd_type : string;
+  cd_type : expr;
   cd_args : inductive_arg list;
 };;
 
@@ -31,7 +31,7 @@ let constructor_table =
 
 let type_table =
   (Hashtbl.create 100 :
-     (string, string list * (string * inductive_arg list) list * string)
+     (expr, string list * (string * inductive_arg list) list * string)
      Hashtbl.t)
 ;;
 
@@ -75,10 +75,9 @@ let rec remove_parens i j s =
 let remove_parens s = remove_parens 0 (String.length s) s;;
 
 let parse_type t =
-  match string_split (remove_parens t) with
-  | [] -> assert false
-  | c :: a -> (c, List.rev (List.map evar a))
-              (* TODO check type arity vs declaration *)
+  match t with
+  | Eapp (c, l, _) -> (c, List.rev l)
+  | c -> (c, [])
 ;;
 
 module HE = Hashtbl.Make (Expr);;
@@ -241,7 +240,7 @@ let newnodes_match_cases e g =
     let key = if is_t then "Is_true**$match" else "$match" in
     let mctx = elam (x, ctx (eapp (evar key, x :: cases)))
     in
-    let ty = evar tycon in
+    let ty = tycon in
     [ Node {
       nconc = [e];
       nrule = Ext ("induct", "cases", e :: ty :: mctx :: ee :: List.flatten br);
@@ -303,14 +302,14 @@ let newnodes_induction e g =
   | Enot (Eall (v, body, _), _) ->
      begin try
        let ty = Expr.get_type v in
-       let (tycon, targs) = parse_type (Print.sexpr ty) in
+       let (tycon, targs) = parse_type ty in
        let (args, cons, schema) = Hashtbl.find type_table tycon in
        let p = elam (v, body) in
        let br = List.map (make_induction_branch (Print.sexpr ty) targs p) cons in
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "induction_notall",
-                      e :: evar (tycon) :: p :: List.flatten br);
+                      e :: tycon :: p :: List.flatten br);
          nprio = Inst e;
          nbranches = Array.of_list br;
          ngoal = g;
@@ -321,14 +320,14 @@ let newnodes_induction e g =
   | Eex (v, Enot (body, _), _) ->
      begin try
        let ty = Expr.get_type v in
-       let (tycon, targs) = parse_type (Print.sexpr ty) in
+       let (tycon, targs) = parse_type ty in
        let (args, cons, schema) = Hashtbl.find type_table tycon in
        let p = elam (v, body) in
        let br = List.map (make_induction_branch (Print.sexpr ty) targs p) cons in
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "induction_exnot",
-                      e :: evar (tycon) :: p :: List.flatten br);
+                      e :: tycon :: p :: List.flatten br);
          nprio = Inst e;
          nbranches = Array.of_list br;
          ngoal = g;
@@ -338,7 +337,7 @@ let newnodes_induction e g =
   | Eex (v, body, _) ->
      begin try
        let ty = Expr.get_type v in
-       let (tycon, targs) = parse_type (Print.sexpr ty) in
+       let (tycon, targs) = parse_type ty in
        let (args, cons, schema) = Hashtbl.find type_table tycon in
        let np = elam (v, enot (body)) in
        let p = elam (v, body) in
@@ -346,7 +345,7 @@ let newnodes_induction e g =
        [ Node {
          nconc = [e];
          nrule = Ext ("induct", "induction_ex",
-                      e :: evar (tycon) :: p :: List.flatten br);
+                      e :: tycon :: p :: List.flatten br);
          nprio = Inst e;
          nbranches = Array.of_list br;
          ngoal = g;
@@ -373,7 +372,7 @@ let newnodes_injective e g =
      begin try
        let args1 = get_args e1 in
        let args2 = get_args e2 in
-       let ty = evar ((Hashtbl.find constructor_table (get_constr e1)).cd_type)
+       let ty = (Hashtbl.find constructor_table (get_constr e1)).cd_type
        in
        let branch = List.map2 (fun x y -> eeq x y) args1 args2 in
        [ Node {
@@ -431,7 +430,7 @@ let newnodes_injective e g =
        with Not_found -> assert false
      in
      if is_multiconstr then begin
-       let any = eapp (evar "$any-induct", [evar (desc.cd_type); e1]) in
+       let any = eapp (evar "$any-induct", [desc.cd_type; e1]) in
        let h = enot (eeq e1 any) in
        [ Node {
          nconc = [];
@@ -586,7 +585,7 @@ let to_llproof tr_expr mlp args =
   | Ext ("induct", "injection",
          [Eapp (Evar("=",_), [Eapp (Evar("@",_), Evar (g, _) :: args1, _) as xx;
                               Eapp (Evar("@",_), Evar (_, _) :: args2, _) as yy], _) as con;
-          Evar (ty, _)]) ->
+          ty]) ->
      let n_under =
        try
          let (params, _, _) = (Hashtbl.find type_table ty) in
@@ -634,7 +633,7 @@ let to_llproof tr_expr mlp args =
   | Ext ("induct", "injection",
          [Eapp (Evar("=",_), [Eapp (Evar(g,_), args1, _) as xx;
                               Eapp (_, args2, _) as yy], _) as con;
-          Evar (ty, _)]) ->
+          ty]) ->
      let tc = List.map tr_expr mlp.mlconc in
      let subproof =
        match hyps with
@@ -704,7 +703,7 @@ let to_llproof tr_expr mlp args =
           Eapp (Evar("$fix",_) as f', (Elam (f, body, _) as r)
                         :: a :: args, _)]) ->
      begin try
-       let (tname, _) = parse_type (Print.sexpr (get_decreasing_arg body [])) in
+       let (tname, _) = parse_type (get_decreasing_arg body []) in
        let nx = Expr.newvar () in
        let foldx = elam (nx, eapp (f', [r; nx] @ args)) in
        let xbody = substitute_2nd [(f, eapp (f', [r]))] body in
@@ -712,7 +711,7 @@ let to_llproof tr_expr mlp args =
        let node = {
          conc = List.map tr_expr mlp.mlconc;
          rule = Rextension ("induct", "zenon_induct_fix",
-                            List.map tr_expr [evar (tname); ctx; foldx; unfx; a],
+                            List.map tr_expr [tname; ctx; foldx; unfx; a],
                             [tr_expr folded],
                             [ [tr_expr unfolded] ]);
          hyps = hyps;
@@ -809,7 +808,7 @@ let add_phrase x =
   | Def _ -> ()
   | Sig _ -> ()
   | Inductive (ty, args, constrs, schema) ->
-     add_induct_def ty args constrs schema;
+     add_induct_def (tvar ty type_type) args constrs schema;
 ;;
 
 let postprocess l = l;;
@@ -897,7 +896,7 @@ let p_rule_coq oc r =
        fprintf oc "apply NNPP; zenon_intro %s\n" (getname ahyp);
      in
      fprintf oc "%a].\n" (p_list "" p_case "  | ") params;
-  | Rextension (_, "zenon_induct_induction_notall", [Evar (ty, _); p], [c], hs)
+  | Rextension (_, "zenon_induct_induction_notall", [ty; p], [c], hs)
     ->
      fprintf oc "apply %s.\n" (getname c);
      let (args, constrs, schema) = Hashtbl.find type_table ty in
