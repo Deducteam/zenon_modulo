@@ -153,7 +153,7 @@ struct
     let rec get_distinctshyps distincts = 
       match distincts with
       | (x, n) :: (y, m) :: l ->
-	(None, enot (eapp (evar "=", [y; x]))) :: (get_distinctshyps ((x, n) :: l))
+	(None, enot (eeq y x)) :: (get_distinctshyps ((x, n) :: l))
 	@ (get_distinctshyps ((y, m) :: l))
       | _ -> [] in
     (((get_distinctshyps distincts)@hyps), distincts)

@@ -57,9 +57,9 @@ struct
     | Lkproof.SCeqsym (a, b) ->
        let term = new_term () in
        let dkterm = Dk.mk_var term in
-       Dk.mk_app3 (trhyp (eapp (evar "=", [a; b])))
-         (Dk.mk_lam dkterm Dk.mk_termtype (trexpr (eapp (evar "=", [evar term; a]))))
-         (trproof (Lkproof.sceqref (a, []), eapp (evar "=", [a; a]), gamma))
+       Dk.mk_app3 (trhyp (eeq a b))
+         (Dk.mk_lam dkterm Dk.mk_termtype (trexpr (eeq (evar term) a)))
+         (trproof (Lkproof.sceqref (a, []), eeq a a, gamma))
     | Lkproof.SCcut (e, lkrule1, lkrule2) ->
        trproof
          (lkrule2, goal,
@@ -206,7 +206,7 @@ struct
          | t :: ts, u :: us ->
 	    let term = new_term () in
 	    let dkterm = Dk.mk_var term in
-	    Dk.mk_app3 (trhyp (eapp (evar "=", [t; u])))
+	    Dk.mk_app3 (trhyp (eeq t u))
 	      (Dk.mk_lam dkterm Dk.mk_termtype
 	         (trexpr (eapp (evar pred, [eapp (p, xts @ ((evar term) :: us))]))))
 	      (itereq ((xts@[t]), ts, us))
@@ -221,7 +221,7 @@ struct
          | t :: ts, u :: us ->
 	    let term = new_term () in
 	    let dkterm = Dk.mk_var term in
-	    Dk.mk_app3 (trhyp (eapp (evar "=", [t; u])))
+	    Dk.mk_app3 (trhyp (eeq t u))
 	      (Dk.mk_lam dkterm Dk.mk_termtype ((trexpr (eapp (p, xts @ ((evar term) :: us))))))
 	      (itereq ((xts@[t]), ts, us))
          | _ -> assert false;
