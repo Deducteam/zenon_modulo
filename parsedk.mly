@@ -41,14 +41,21 @@ let startwith pref s =
 exception Unknown_builtin of string;;
 exception Bad_arity of string * int;;
 
-let rec mk_pat (constr : string) (arity : int) (body : expr) : expr =
+let rec mk_pat (constr : string) (arity : int) (body : expr) ret_ty : expr =
   if arity = 0
-  then eapp (evar "$match-case", [evar constr; body])
+  then
+    let ret_ty_arr = eall (tvar "__dummy" type_type, arr ret_ty ret_ty) in
+    eapp (tvar "$match-case" ret_ty_arr, [tvar constr type_type; body])
   else
     (match body with
      | Elam (x, e, _) ->
-        elam (x, mk_pat constr (arity - 1) e)
+        elam (x, mk_pat constr (arity - 1) e ret_ty)
      | _ -> failwith "Bad pattern : not a lambda")
+;;
+
+let mk_prod a b =
+  (* eps (eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type), [a; b])) *)
+  eps (mk_type (evar "abst_T"))
 ;;
 
 (* create an expression application,
@@ -61,11 +68,25 @@ let mk_eapp : string * expr list -> expr =
   | "cc.eT", [t] ->
      eapp (tvar "cc.eT" (arr type_type type_type), [t])
   | "dk_tuple.pair", [t1; t2; e1; e2] ->
-     eapp (evar "@", [evar "dk_tuple.pair"; t1; t2; e1; e2])
-  | "dk_tuple.match__pair", [t1; t2; x; rt; pat; fail] ->
-     eapp (evar "$match", x :: mk_pat "dk_tuple.pair" 2 pat :: [])
+     let ty =
+       let dummy = tvar "__dummypairvar" type_type in
+       let a = tvar "_pairvarA" type_type in
+       let b = tvar "_pairvarB" type_type in
+       eall (dummy, eall (a, eall (b, earrow [eps a; eps b] (mk_prod a b))))
+     in
+     eapp (tvar "@" ty, [tvar "dk_tuple.pair" type_type;
+                         mk_type t1; mk_type t2; e1; e2])
 
-  | "dk_fail.fail", [t] -> eapp (evar "dk_fail.fail", [t])
+  | "dk_tuple.match__pair", [t1; t2; rt; x; pat; fail] ->
+     let t1 = eps (mk_type t1) in
+     let t2 = eps (mk_type t2) in
+     let rt = eps (mk_type rt) in
+     let ty = earrow [mk_prod t1 t2; earrow [t1; t2] rt] rt in
+     eapp (tvar "$match" ty, [x; mk_pat "dk_tuple.pair" 2 pat rt])
+
+  | "dk_fail.fail", [t] -> eapp (tvar "dk_fail.fail"
+                                     (let x = tvar "_failvar" type_type in
+                                      eall (x, eps x)), [mk_type t])
 
   | "dk_logic.and", [e1; e2] -> eand (e1, e2)
   | "dk_logic.or", [e1; e2] -> eor (e1, e2)
@@ -99,7 +120,7 @@ let rec mk_apply (e, l) =
        | Eapp (Evar(s, _), args, _) -> mk_eapp (s, args @ l)
        | Evar (s, _) -> mk_eapp (s, l)
        | Elam (x, body, _) ->
-          mk_apply (substitute_2nd [(x, arg)] body, tail)
+          mk_apply (substitute_2nd_unsafe [(x, arg)] body, tail)
        | _ ->
           Printf.eprintf "Error: application head is not a variable %a @ [%a]\n"
                          (fun oc -> Print.expr (Print.Chan oc)) e

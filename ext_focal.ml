@@ -692,11 +692,11 @@ List.iter Typer.declare_constant
 let built_in_defs () =
   let b1 = Expr.newtvar bool1 in
   let b2 = Expr.newtvar bool1 in
-  let x = Expr.newvar () in
-  let y = Expr.newvar () in
+  let tx = Expr.newtvar type_type in
+  let ty = Expr.newtvar type_type in
+  let x = Expr.newtvar (eps tx) in
+  let y = Expr.newtvar (eps ty) in
   let xy = Expr.newvar () in
-  let tx = Expr.newvar () in
-  let ty = Expr.newvar () in
   let dk = !(Globals.input_format) = Globals.I_dk in
   let pair_str =
     if dk then "dk_tuple.pair" else "Datatypes.pair"
@@ -704,13 +704,20 @@ let built_in_defs () =
   let prod_str =
     if dk then "dk_tuple.prod" else "Datatypes.prod"
   in
+  let prod a b =
+    eps (eapp (tvar prod_str (earrow [type_type; type_type] type_type), [a; b]))
+  in
   let list_file =
     if dk then "dk_list" else "List"
   in
-  let case = eapp (evar "$match-case", [evar (pair_str); x]) in
+  let case = eapp (evar "$match-case", [evar (pair_str); xy]) in
   [
-    Def (DefReal ("pair", "basics.pair", type_none, [tx; ty; x; y],
-                  eapp (evar "Datatypes.pair", [tx; ty; x; y]), None));
+    Def (DefReal ("pair",
+                  "basics.pair",
+                  eall (tx, eall (ty, earrow [eps tx; eps ty] (eps (prod tx ty)))),
+                  [tx; ty; x; y],
+                  eapp (tvar pair_str (eall (tx, eall (ty, earrow [eps tx; eps ty] (eps (prod tx ty))))), [tx; ty; x; y]),
+                  None));
     Def (DefReal ("fst", "basics.fst", type_none, [tx; ty; xy],
                   eapp (evar "$match", [xy; elam (x, elam (y, case))]),
                   None));
