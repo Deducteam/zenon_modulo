@@ -312,7 +312,9 @@ let parse_file f =
               Typer.register_new_constants = true;
               Typer.fully_type = true }
           in
-          (name, Typer.phrasebl typer_options result)
+          (* Phrases are given by the Dedukti parser in reversed order
+             compared to Coq parser, so reverse them *)
+          (name, Typer.phrasebl typer_options (List.rev result))
       | I_zenon ->
           let zphrases = Parsezen.file Lexzen.token lexbuf in
           closer ();
