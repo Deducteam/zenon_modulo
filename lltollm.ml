@@ -4,13 +4,6 @@ open Printf
 
 let new_terms = ref []
 
-let new_tau =
-  let r = ref 0 in
-  fun ty ->
-    let n = !r in
-    incr r;
-    tvar (sprintf "tau%d" n) ty
-
 let rec lltollm_expr defs e =
   match e with
   | Evar (v, _) when Hashtbl.mem defs v ->
@@ -45,7 +38,7 @@ let rec lltollm_expr defs e =
     then
       List.assoc tau !new_terms
     else
-      let z = new_tau (get_type taux) in
+      let z = tvar (sprintf "t%d" (Index.get_number e)) (get_type taux) in
       new_terms := (tau, z) :: !new_terms;
       z
   | Elam (x, e, _) ->
