@@ -168,6 +168,12 @@ let get_fv e = (get_priv e).free_vars;;
 let get_size e = (get_priv e).size;;
 let get_taus e = (get_priv e).taus;;
 let get_metas e = (get_priv e).metas;;
+let get_unsafe_type e =
+  if e == v_type_type then assert false
+  else match (get_priv e).typ with
+       | Some ty -> ty
+       | None -> type_type
+;;
 let get_type e =
   if e == type_type || e == v_type_type
   then raise Trying_to_type_type
@@ -563,8 +569,10 @@ let rec xpreunify accu e1 e2 =
 	   raise Mismatch
 	 else
 	   accu
-       with Not_found ->
-	    (m1, e) :: accu
+       with Not_found -> begin match e with
+       | Emeta(m2, _) when get_size m1 > get_size m2 -> (m2, e) :: accu
+       | _ -> (m1, e) :: accu
+       end
      end
   | _, _ -> raise Mismatch
 ;;
@@ -582,9 +590,7 @@ let preunifiable e1 e2 =
 
 let preunify_list l1 l2 = 
   try List.fold_left2 xpreunify [] l1 l2
-  with 
-  | Mismatch
-  | Invalid_argument _ -> []
+  with Invalid_argument _ -> raise Mismatch
 ;;
 
 let occurs_as_meta e f = List.exists ((==) e) (get_metas f);;
@@ -651,7 +657,7 @@ let rec priv_app s args =
   let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
   let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
   Log.debug 15 "Typing %a ::: %a" print s print (get_type s);
-  List.iter (fun x -> Log.debug 15 " |- %a ::: %a" print x print (get_type x)) args;
+  List.iter (fun x -> Log.debug 15 " |- %a ::: %a" print x print (get_unsafe_type x)) args;
   let typ = type_app (get_type s) args in
   mkpriv skel fv sz taus metas typ
 
@@ -668,7 +674,7 @@ and inst_app map s args = match s, args with
   | _ -> substitute_safe map s, args
 
 and type_app s args =
-    if List.memq type_none (s :: List.map get_type args) then
+    if s == type_none || List.memq type_none (List.map get_type args) then
         type_none
     else match inst_app [] s args with
     | Earrow(l, ret, _), args' ->

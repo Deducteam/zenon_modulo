@@ -197,11 +197,8 @@ let make_notequiv st sym (p, g) (np, ng) =
   | Eapp (Evar("Is_true",_), _, _), _ when Extension.is_active "focal" -> st
   | Eapp (Evar(s1,_) as s1', args1, _), 
     Enot (Eapp (Evar(s2,_) as s2', args2, _) as nnp, _) ->
-      assert (s1 =%= s2);
+      assert (s1' = s2');
       if not (get_type s1' == get_type s2') then st
-      else if sym && List.length args2 != 2
-         || List.length args1 <> List.length args2
-      then (arity_warning s1; st)
       else if Extension.is_active "induct"
               && List.exists2 constructor_mismatch args1 args2 then st
       else if (List.for_all2 
@@ -233,21 +230,20 @@ let make_notequiv st sym (p, g) (np, ng) =
 		     nbranches = make_inequals myargs1 args2;
 		   }
 	end
-      else 
-	begin 
-	  try 
-	    let compare_size (m1, _) (m2, _) = 
+      else
+	begin
+	  try
+	    let compare_size (m1, _) (m2, _) =
 	      - Pervasives.compare (Expr.size m1) (Expr.size m2)
 	    in
-	    let (tyvar1, _) = Expr.split_list (Expr.nb_tvar p) args1 in 
-	    let (tyvar2, _) = Expr.split_list (Expr.nb_tvar nnp) args2 in 
-	    let subst_l = List.map2 preunify tyvar1 tyvar2 in 
-	    let subst = List.concat subst_l in    
-	    let subst = List.sort compare_size subst in 
+	    let (tyvar1, _) = Expr.split_list (Expr.nb_tvar p) args1 in
+	    let (tyvar2, _) = Expr.split_list (Expr.nb_tvar nnp) args2 in
+            let subst = Expr.preunify_list tyvar1 tyvar2 in
+	    let subst = List.sort compare_size subst in
+            assert (subst <> []);
 	    let (m, term) = List.hd subst in
-            fst (make_inst st m term (min g ng)) 
-	  with  Unsplitable 
-	      | Failure _ -> st
+            fst (make_inst st m term (min g ng))
+	  with Unsplitable -> st
 	end
   | _ -> assert false
 ;;
@@ -727,13 +723,11 @@ let newnodes_match_congruence st fm g _ =
                               Eapp (Evar("$string",_), [s2], _)], _), _)
     when not (Expr.equal s1 s2) ->
      (st, false)
-  | Enot (Eapp (Evar("=",_), [(Eapp (Evar(f1,_), a1, _) as e1);
-                              (Eapp (Evar(f2,_), a2, _) as e2)], _), _)
-       when f1 =%= f2 
+  | Enot (Eapp (Evar("=",_), [(Eapp (f1, a1, _) as e1);
+                              (Eapp (f2, a2, _) as e2)], _), _)
+       when f1 = f2
 	    && (List.for_all2 (fun x y -> Expr.equal (get_type x) (get_type y)) 
 			      a1 a2) ->
-     if List.length a1 == List.length a2 
-     then begin
 	 let (_, a1) = Expr.split_list (Expr.nb_tvar e1) a1 in
 	 let (_, a2) = Expr.split_list (Expr.nb_tvar e2) a2 in
 	 add_node st {
@@ -743,11 +737,9 @@ let newnodes_match_congruence st fm g _ =
 		    ngoal = g;
 		    nbranches = make_inequals a1 a2;
 		  }, false
-       end 
-     else (arity_warning f1; (st, false))
-  | Enot (Eapp (Evar ("=", _), [(Eapp (Evar (f1, _), a1, _) as e1); 
-				(Eapp (Evar (f2, _), a2, _) as e2)], _), _)
-       when f1 =%= f2 -> 
+  | Enot (Eapp (Evar ("=", _), [(Eapp (f1, a1, _) as e1); 
+				(Eapp (f2, a2, _) as e2)], _), _)
+       when f1 = f2 -> 
      begin
        try
 	 let compare_size (m1, _) (m2, _) = 
@@ -755,14 +747,12 @@ let newnodes_match_congruence st fm g _ =
 	 in
 	 let (tyvar1, _) = Expr.split_list (Expr.nb_tvar e1) a1 in 
 	 let (tyvar2, _) = Expr.split_list (Expr.nb_tvar e2) a2 in 
-	 let subst_l = List.map2 preunify tyvar1 tyvar2 in
-	 let subst = List.concat subst_l in 
+         let subst = Expr.preunify_list tyvar1 tyvar2 in
+         assert (subst <> []);
 	 let subst = List.sort compare_size subst in 
 	 let (m, term) = List.hd subst in
 	 make_inst st m term g
-       with  Unsplitable 
-	   | Failure _ -> 
-	      st, false
+       with Unsplitable -> st, false
      end
 (*
   FIXME determiner si c'est utile...
@@ -858,37 +848,38 @@ let newnodes_match_trans st fm g _ =
     match fm with
     | Eapp (Evar("=",_) as seq, [Emeta _ ; Emeta _ ], _) ->
        let nfmg = Index.find_neg "=" in 
-       let select a (b, c) = 
-	 match a, b with 
-	 | Eapp (s1, _, _), Enot (Eapp (s2, _, _), _) -> 
+       let select a (b, c) =
+	 match a, b with
+	 | Eapp (s1, _, _), Enot (Eapp (s2, _, _), _) ->
 	    get_type s1 == get_type s2
 	 | _ -> assert false 
        in
-       let nfmg' = List.filter (select fm) nfmg in 
-       if (List.length nfmg' > 0) 
+       let nfmg' = List.filter (select fm) nfmg in
+       if (List.length nfmg' > 0)
        then
 	 let nodes = List.map (mknode_transeq false fmg) nfmg' in
 	 add_node_list st nodes, false
        else
 	 begin
 	   try
-	     let compare_size (m1, _) (m2, _) = 
+	     let compare_size (m1, _) (m2, _) =
 	       - Pervasives.compare (Expr.size m1) (Expr.size m2)
 	     in
-	     let tyvar1 = get_type seq in 
-	     let tyvar2 = 
-	       List.map (fun (x, y) -> 
-			 match x with 
+	     let tyvar1 = get_type seq in
+	     let tyvar2 =
+	       List.map (fun (x, y) ->
+			 match x with
 			 | Enot (Eapp (nseq, _, _), _) -> get_type nseq;
 			 | _ -> assert false)
-			nfmg 
-	     in 
-	     let subst_l = List.map (fun x -> preunify tyvar1 x) tyvar2 in 
-	     let subst = List.concat subst_l in 
-	     let subst = List.sort compare_size subst in 
-	     let (m, term) = List.hd subst in 
+			nfmg
+	     in
+	     let subst_l = List.map (fun x -> preunify tyvar1 x) tyvar2 in
+	     let subst = List.concat subst_l in
+	     let subst = List.sort compare_size subst in
+             (* TODO: DO ALL substitutions in subst, not just the head *)
+	     let (m, term) = List.hd subst in
 	     make_inst st m term g
-	   with Failure _ -> 
+	   with Failure _ ->
 	     st, false
 	 end
     | Eapp (Evar("=",_), [e1; e2], _) ->
