@@ -60,7 +60,7 @@ and expr o ex =
   | Evar (v, _) -> pr "%s" v;
   | Emeta (e, _) -> pr "%s%d" meta_prefix (Index.get_number e);
   | Earrow (args, ret, _) ->
-      pr "("; List.iteri (fun i x -> if i > 0 then pr " * "; expr o x) args; pr " -> "; expr o ret; pr ")"
+      pr "("; List.iteri (fun i x -> if i > 0 then pr " -> "; expr o x) args; pr " -> "; expr o ret; pr ")"
   | Eapp (s, es, _) ->
       pr "(%s" (get_name s); List.iter (fun x -> pr " "; expr o x) es; pr ")";
   | Enot (e, _) -> pr "(-. "; expr o e; pr ")";
@@ -123,7 +123,7 @@ let rec expr_soft o ex =
   | Evar (v, _) -> pr "%s" v;
   | Emeta (e, _) -> pr "%s%d" meta_prefix (Index.get_number e);
   | Earrow (args, ret, _) ->
-      pr "("; List.iteri (fun i x -> if i > 0 then pr " * "; expr_soft o x) args; pr " -> "; expr_soft o ret; pr ")"
+      pr "("; List.iteri (fun i x -> if i > 0 then pr " -> "; expr_soft o x) args; pr " -> "; expr_soft o ret; pr ")"
   | Eapp (Evar(s,_), [e1; e2], _) when is_infix_op s ->
      pr "("; expr_soft o e1; pr " %s " (to_infix s); expr_soft o e2; pr ")";
   | Eapp(Evar(s, _), [], _) ->

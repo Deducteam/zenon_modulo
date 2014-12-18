@@ -131,7 +131,7 @@ let type_type =
     typ = None;
 })
 
-let v_type_prop = Evar("$o", mkpriv 0 ["$o"] 1 0 [] type_type)
+let v_type_prop = Evar("Prop", mkpriv 0 ["$o"] 1 0 [] type_type)
 let type_prop = Eapp(v_type_prop, [], mkpriv 0 [] 1 0 [] type_type)
 
 let v_type_none = Evar("$none", mkpriv 0 ["$none"] 1 0 [] type_type)

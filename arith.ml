@@ -378,13 +378,12 @@ and coqify_prop e = match e with
     | _ -> coqify_term e
 
 let coqify e =
-    let t = get_type e in
-    if Expr.equal t type_none then
-        e
-    else if Expr.equal type_prop t then
-        coqify_prop e
-    else
-        coqify_term e
+    Log.debug 15 "Coqifying term : %a ::: %a" Print.pp_expr e Print.pp_expr (get_type e);
+    match get_type e with
+    | t when Expr.equal t type_none -> e
+    | t when Expr.equal type_prop t -> coqify_prop e
+    | Earrow _ -> coqify_prop e
+    | _ -> coqify_term e
 
 (* Analog to circular lists with a 'stop' element, imperative style *)
 exception EndReached

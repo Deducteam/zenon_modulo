@@ -101,6 +101,9 @@ exception Cannot_infer of string;;
 (* For now, [synthesize] is very simple-minded. *)
 let synthesize = function
   | t when t == type_none -> any_name
+  | t when t == Arith.type_int -> "0%Z"
+  | t when t == Arith.type_rat -> "(0 # 1)%Q"
+  | t when t == Arith.type_real -> "0%R"
   | Eapp(Evar ("nat", _), [], _) -> "O"
   | Eapp(Evar ("bool", _), [], _) -> "true"
   (*
