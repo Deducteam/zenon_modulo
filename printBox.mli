@@ -72,7 +72,7 @@ we go toward the bottom (same order as a printer) *)
 val origin : position
 (** Initial position *)
 
-val set_string_len : (string -> int) -> unit
+val set_string_len : (Bytes.t -> int) -> unit
 (** Set which function is used to compute string length. Typically
     to be used with a unicode-sensitive length function *)
 
@@ -146,6 +146,8 @@ val vpad : int -> Box.t -> Box.t
 
 val hpad : int -> Box.t -> Box.t
 (** Pad horizontally *)
+
+(* TODO: right-align/left-align *)
 
 val grid : ?pad:(Box.t -> Box.t) -> ?bars:bool ->
            Box.t array array -> Box.t

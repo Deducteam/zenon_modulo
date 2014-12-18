@@ -41,7 +41,7 @@ let check_args env args =
     let arg = extract_args args in
     let senv = List.sort compare env in
     let sarg = List.sort compare arg in
-    senv = sarg && no_duplicates senv
+    list_var_equal senv sarg && no_duplicates senv
   with Bad_arg -> false
 ;;
 
@@ -49,6 +49,7 @@ let rec check_body env s e =
   match e with
   | Evar (v, _) -> v <> s || List.mem e env
   | Emeta _ -> assert false
+  | Earrow _ -> false
   | Eapp (Evar(ss,_), args, _) -> ss <> s && List.for_all (check_body env s) args
   | Eapp(_) -> assert false
   | Enot (f, _) -> check_body env s f
@@ -56,14 +57,14 @@ let rec check_body env s e =
     -> check_body env s f1 && check_body env s f2
   | Etrue | Efalse
     -> true
-  | Eall (v, _, f, _) | Eex (v, _, f, _)
-  | Etau (v, _, f, _) | Elam (v, _, f, _)
+  | Eall (v, f, _) | Eex (v, f, _)
+  | Etau (v, f, _) | Elam (v, f, _)
     -> check_body (v::env) s f
 ;;
 
 let rec is_def predef env e =
   match e with
-  | Eall (v, t, f, _) -> is_def predef (v::env) f
+  | Eall (v, f, _) -> is_def predef (v::env) f
   | Eequiv (Eapp (Evar(s,_), args, _), body, _) when not (List.mem s predef) ->
      check_args env args && check_body [] s body
   | Eequiv (body, Eapp (Evar(s,_), args, _), _) when not (List.mem s predef) ->
@@ -85,27 +86,27 @@ let rec is_def predef env e =
 
 let rec make_def predef orig env e =
   match e with
-  | Eall (v, t, f, _) -> make_def predef orig (v::env) f
+  | Eall (v, f, _) -> make_def predef orig (v::env) f
   | Eequiv (Eapp (Evar(s,_), args, _), body, _)
     when not (List.mem s predef) && check_args env args ->
-      DefPseudo (orig, s, extract_args args, body)
+      DefPseudo (orig, s, type_none, extract_args args, body)
   | Eequiv (body, Eapp (Evar(s,_), args, _), _) when
     not (List.mem s predef) && check_args env args ->
-      DefPseudo (orig, s, extract_args args, body)
+      DefPseudo (orig, s, type_none, extract_args args, body)
   | Eequiv (Evar (s, _), body, _) when not (List.mem s predef) ->
-      DefPseudo (orig, s, [], body)
+      DefPseudo (orig, s, type_none, [], body)
   | Eequiv (body, Evar (s, _), _) when not (List.mem s predef) ->
-      DefPseudo (orig, s, [], body)
+      DefPseudo (orig, s, type_none, [], body)
   | Eapp (Evar("=",_), [Evar (s, _); body], _) when not (List.mem s predef) ->
-      DefPseudo (orig, s, [], body)
+      DefPseudo (orig, s, type_none, [], body)
   | Eapp (Evar("=",_), [body; Evar (s, _)], _) when not (List.mem s predef) ->
-      DefPseudo (orig, s, [], body)
+      DefPseudo (orig, s, type_none, [], body)
   | Eapp (Evar("=",_), [Eapp (Evar(s,_), args, _); body], _)
     when not (List.mem s predef) && check_args env args ->
-      DefPseudo (orig, s, extract_args args, body)
+      DefPseudo (orig, s, type_none, extract_args args, body)
   | Eapp (Evar("=",_), [body; Eapp (Evar(s,_), args, _)], _)
     when not (List.mem s predef) && check_args env args ->
-      DefPseudo (orig, s, extract_args args, body)
+      DefPseudo (orig, s, type_none, extract_args args, body)
   | _ -> assert false
 ;;
 
@@ -114,22 +115,22 @@ let rec free_syms env accu e =
   | Evar (v, _) -> if List.mem e env then accu else v :: accu
   | Emeta _ -> assert false
   | Eapp (Evar(s,_), args, _) -> List.fold_left (free_syms env) (s ::accu) args
-  | Eapp (_) -> assert false
+  | Eapp (_) | Earrow _ -> assert false
   | Enot (f, _) -> free_syms env accu f
   | Eand (f, g, _) -> free_syms env (free_syms env accu f) g
   | Eor (f, g, _) -> free_syms env (free_syms env accu f) g
   | Eimply (f, g, _) -> free_syms env (free_syms env accu f) g
   | Eequiv (f, g, _) -> free_syms env (free_syms env accu f) g
   | Etrue | Efalse -> accu
-  | Eall (v, t, f, _)
-  | Eex (v, t, f, _)
-  | Etau (v, t, f, _)
-  | Elam (v, t, f, _)
+  | Eall (v, f, _)
+  | Eex (v, f, _)
+  | Etau (v, f, _)
+  | Elam (v, f, _)
     -> free_syms (v::env) accu f
 ;;
 
 let extract_dep = function
-  | DefPseudo (_, s, args, body) -> (s, free_syms args [] body)
+  | DefPseudo (_, s, _, args, body) -> (s, free_syms args [] body)
   | _ -> assert false
 ;;
 
@@ -154,7 +155,7 @@ let rec is_redef d ds =
   | _, [] -> false
   | _, (DefReal _ :: t) -> is_redef d t
   | _, (DefRec _ :: t) -> is_redef d t
-  | DefPseudo (_, s1, _, _), (DefPseudo(_, s2, _, _) :: t) ->
+  | DefPseudo (_, s1, _, _, _), (DefPseudo(_, s2, _, _, _) :: t) ->
       s1 = s2 || is_redef d t
   | DefReal _, _ -> assert false
   | DefRec _, _ -> assert false
@@ -163,12 +164,12 @@ let rec is_redef d ds =
 let rec remove_def accu sym defs =
   match defs with
   | [] -> assert false
-  | DefPseudo (orig, s, _, _) :: t when s = sym -> (accu @ t, orig)
+  | DefPseudo (orig, s, _, _, _) :: t when s = sym -> (accu @ t, orig)
   | h::t -> remove_def (h::accu) sym t
 ;;
 
 let get_symbol = function
-  | DefPseudo (_, s, _, _) -> s
+  | DefPseudo (_, s, _, _, _) -> s
   | _ -> assert false
 ;;
 
@@ -198,7 +199,7 @@ let separate predef l = xseparate predef [] [] [] [] l;;
 let change_to_def predef body =
   if is_def predef [] body then begin
     match make_def predef (body, 0) [] body with
-    | DefPseudo (_, s, args, def) -> DefReal ("", s, args, def, None)
+    | DefPseudo (_, s, ty, args, def) -> DefReal ("", s, ty, args, def, None)
     | _ -> assert false
   end else begin
     raise (Invalid_argument "change_to_def")

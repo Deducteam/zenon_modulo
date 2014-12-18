@@ -177,7 +177,8 @@ let mk_node_conflict e e' =
     }
 
 let mk_node_inst e v = match e with
-  | Eall (e', t, p, _) ->
+  | Eall (e', p, _) ->
+          let t = get_type e' in
           let term = coerce t v in
           let n = Expr.substitute [(e', term)] p in
           Node {
@@ -187,7 +188,8 @@ let mk_node_inst e v = match e with
               ngoal = 0;
               nbranches = [| [n] |];
           }
-  | Eex (e', t, p, _) ->
+  | Eex (e', p, _) ->
+          let t = get_type e' in
           let term = coerce t v in
           let n = Expr.substitute [(e', term)] (enot p) in
           let ne = enot e in
@@ -200,11 +202,12 @@ let mk_node_inst e v = match e with
           }
   | _ -> assert false
 
+(*
 let mk_node_switch e a m =
     let new_branch k =
-        let a' = eapp (tvar (newname ()) (find_type a), []) in
+        let a' = eapp (tvar (newname ()) (get_type a), []) in
         let b = to_nexpr [(Q.of_int m), a'; (Q.of_int k), etrue] in
-        [ eapp (eeq, [a; b]);
+        [ eeq a b;
           Expr.substitute_expr (a, b) e]
     in
     let n = {
@@ -215,6 +218,7 @@ let mk_node_switch e a m =
         nbranches = Array.init m new_branch;
     }
     in Node n
+    *)
 
 (* Helper around the simplex module *)
 type simplex_state = {
@@ -433,8 +437,8 @@ let simplex_add t f (e, s, c) =
             (add_binding t x f (e, s, c)), []
     | _ ->
             let expr = to_nexpr e in
-            let v = tvar (newname ()) (find_type expr) in
-            let e1 = eapp (eeq, [v; expr]) in
+            let v = tvar (newname ()) (get_type expr) in
+            let e1 = eeq v expr in
             let e2 = mk_bop s v (const (Q.to_string c)) in
             Log.debug 7 "arith -- new variable : %a == %a" Print.pp_expr v Print.pp_expr expr;
             S.add_eq t.core (v, e);
@@ -462,7 +466,7 @@ let nodes_of_tree s f t =
             let l = v :: (List.map snd expr) in
             let relevant = List.map (fun (_, z, _, _) -> z)
                 (List.filter (fun (y, y', _, _) -> not (equal y y') && List.exists (fun x -> equal x y) l) s.bindings) in
-            let clin = expr_norm (eapp (eeq, [to_nexpr expr; v])) in
+            let clin = expr_norm (eeq (to_nexpr expr) v) in
             let bounds, nb, conflict = bounds_of_clin v expr s.bindings in
             if bounds = [] && not is_zero then
                 [f, mk_node_conflict nb conflict]
@@ -751,7 +755,7 @@ let ll_p oc r =
     match r with
     | LL.Rextension("arith", s, args, l, ll) ->
             pr "(* ARITH -- '%s' : " s;
-            List.iter (fun e -> pr "%a : '%s', " Lltocoq.p_expr e (Type.opt_string (get_type e))) args;
+            List.iter (fun e -> pr "%a : '%s', " Lltocoq.p_expr e (Print.sexpr (get_type e))) args;
             pr "\n * ->";
             List.iter (fun e -> pr "%a, " Lltocoq.p_expr e) l;
             List.iter (fun l ->
@@ -838,7 +842,7 @@ let lltocoq oc r =
     | LL.Rextension("arith", "simplex_bound", x :: _, e :: l, [[f]]) when List.exists is_rexpr (e :: l) ->
             let (b, _, _) = of_bexpr e in
             let k, b = fsep b x in
-            let ee = eapp (eeq, [x; to_nexpr b]) in
+            let ee = eeq x (to_nexpr b) in
             pr "cut (%a); [ zenon_intro %s | real_simpl %a %s ].\n" Lltocoq.p_expr ee (Coqterm.getname ee)
             Lltocoq.pp_expr (coqify_to_r (const (Q.to_string (Q.inv k)))) (Coqterm.getname e);
             let b = List.map (fun (c, y) -> (c, y,
@@ -864,7 +868,7 @@ let lltocoq oc r =
     | LL.Rextension("arith", "simplex_bound", x :: _, e :: l, [[f]]) ->
             let (b, _, _) = of_bexpr e in
             let k, b = fsep b x in
-            let ee = eapp (eeq, [x; to_nexpr b]) in
+            let ee = eeq x (to_nexpr b) in
             pr "cut (%a); [ zenon_intro %s | arith_simpl %a %s ].\n" Lltocoq.p_expr ee (Coqterm.getname ee)
             Lltocoq.pp_expr (coqify_to_q (const (Q.to_string (Q.inv k)))) (Coqterm.getname e);
             let b = List.map (fun (c, y) -> (c, y,

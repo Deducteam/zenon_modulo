@@ -1,10 +1,13 @@
-(*  Copyright 2014 INRIA  *)
+(* Copyright 2014 INRIA  *)
 
 open Expr
-open Type
 open Mlproof
 
 let equal = Expr.equal
+
+let type_int = eapp (tvar "Z" type_type, [])
+let type_rat = eapp (tvar "Q" type_type, [])
+let type_real = eapp (tvar "R" type_type, [])
 
 (* String to rational conversion *)
 let of_string s =
@@ -36,30 +39,28 @@ let of_string s =
         | _ -> aux s 0 0 Q.zero
     end
 
-(* Types manipulation *)
-let find_type e = match get_type e with
-    | Some t -> t
-    | None -> raise Exit
-
-let mk_int v = eapp (tvar v type_int,[])
+(* Exprs manipulation *)
+let mk_int v = eapp (tvar v type_int, [])
 let mk_rat v = eapp (tvar v type_rat, [])
 let mk_real v = eapp (tvar v type_real, [])
 
 let is_num_string s = try ignore (of_string s); true with Invalid_argument _ -> false
 
-let is_int e = try Type.equal type_int (find_type e) with Exit -> false
-let is_rat e = try Type.equal type_rat (find_type e) with Exit -> false
-let is_real e = try Type.equal type_real (find_type e) with Exit -> false
-let is_num e = try is_type_num (find_type e) with Exit -> false
+let is_int e = Expr.equal type_int (Expr.get_type e)
+let is_rat e = Expr.equal type_rat (Expr.get_type e)
+let is_real e = Expr.equal type_real (Expr.get_type e)
+
+let is_type_num t = List.exists (Expr.equal t) [type_int; type_rat; type_real]
+let is_num e = is_type_num (Expr.get_type e)
 
 (* We assume t a t' are numeric types *)
 let mix_type t t' =
     assert (is_type_num t && is_type_num t');
-    match (Type.equal type_real t), (Type.equal type_real t') with
+    match (Expr.equal type_real t), (Expr.equal type_real t') with
     | true, _
     | _, true -> type_real
     | false, false ->
-    begin match (Type.equal type_rat t), (Type.equal type_rat t') with
+    begin match (Expr.equal type_rat t), (Expr.equal type_rat t') with
     | true, _
     | _, true -> type_rat
     | false, false -> type_int
@@ -89,9 +90,9 @@ let comp_neg = function
 let const s = if is_z (of_string s) then mk_int s else mk_rat s
 
 let mk_op s a b =
-    let ta = find_type a in
-    let tb = find_type b in
-    eapp (tvar s (mk_arrow [ta; tb] (mix_type ta tb)), [a; b])
+    let ta = Expr.get_type a in
+    let tb = Expr.get_type b in
+    eapp (tvar s (Expr.earrow [ta; tb] (mix_type ta tb)), [a; b])
 
 let sum a b = mk_op "$sum" a b
 let diff a b = mk_op "$difference" a b
@@ -100,15 +101,15 @@ let minus_one e = diff e (const "1")
 let plus_one e = sum e (const "1")
 
 let mk_uop s a =
-    let t = find_type a in
-    eapp (tvar s (mk_arrow [t] t), [a])
+    let t = Expr.get_type a in
+    eapp (tvar s (Expr.earrow [t] t), [a])
 
 let uminus a = mk_uop "$uminus" a
 
 let mk_bop s a b =
-    let ta = find_type a in
-    let tb = find_type b in
-    eapp (tvar s (mk_arrow [ta; tb] type_bool), [a; b])
+    let ta = Expr.get_type a in
+    let tb = Expr.get_type b in
+    eapp (tvar s (Expr.earrow [ta; tb] Expr.type_prop), [a; b])
 
 let less a b = mk_bop "$less" a b
 let lesseq a b = mk_bop "$lesseq" a b
@@ -120,9 +121,9 @@ let rec coerce t = function
     | Evar(_, _) as v -> v
     | Eapp(Evar(s, _), [], _) as c ->
             let aux =
-                if Type.equal type_int t then mk_int
-                else if Type.equal type_rat t then mk_rat
-                else if Type.equal type_real t then mk_real
+                if Expr.equal type_int t then mk_int
+                else if Expr.equal type_rat t then mk_rat
+                else if Expr.equal type_real t then mk_real
                 else (fun s -> assert false)
             in
             begin try
@@ -136,8 +137,8 @@ let rec coerce t = function
     | e -> e
 
 let mk_ubop s a =
-    let t = find_type a in
-    eapp (tvar s (mk_arrow [t] type_bool), [a])
+    let t = Expr.get_type a in
+    eapp (tvar s (Expr.earrow [t] Expr.type_prop), [a])
 
 
 let rec find_coef x = function
@@ -268,7 +269,7 @@ let is_rexpr = function
 
 (* Coq translation *)
 let mk_coq_q p q =
-    let div = tvar "$coq_div" (mk_arrow [type_int; type_int] type_rat) in
+    let div = tvar "$coq_div" (Expr.earrow [type_int; type_int] type_rat) in
     eapp (div, [p; q])
 
 let coq_const c = mk_coq_q (const (Z.to_string (Q.num c))) (const (Z.to_string (Q.den c)))
@@ -279,9 +280,11 @@ let coq_var x =
     else
         x
 
+let type_scope = tvar "#coq_scope" Expr.type_type
+
 let coq_scope s e =
-    let t = find_type e in
-    let scope = tvar "$coq_scope" (mk_arrow [type_scope; t] t) in
+    let t = Expr.get_type e in
+    let scope = tvar "$coq_scope" (Expr.earrow [type_scope; t] t) in
     eapp (scope, [tvar s type_scope; e])
 
 let z_scope = coq_scope "Z"
@@ -291,7 +294,7 @@ let r_scope = coq_scope "R"
 let rec coqify_real e = match e with
     | Evar(s, _) ->
             begin try
-                tvar (Q.to_string (of_string s)) (find_type e)
+                tvar (Q.to_string (of_string s)) (Expr.get_type e)
             with Exit | Invalid_argument _ ->
                 e
             end
@@ -302,9 +305,9 @@ let rec coqify_real e = match e with
     | Eor (e1, e2, _) -> eor (coqify_real e1, coqify_real e2)
     | Eimply (e1, e2, _) -> eimply (coqify_real e1, coqify_real e2)
     | Eequiv (e1, e2, _) -> eequiv (coqify_real e1, coqify_real e2)
-    | Eall (v, t, e', _) -> eall (v, t, coqify_real e')
-    | Eex (v, t, e', _) -> eex (v, t, coqify_real e')
-    | Elam (v, t, e', _) -> elam (v, t, coqify_real e')
+    | Eall (v, e', _) -> eall (v, coqify_real e')
+    | Eex (v, e', _) -> eex (v, coqify_real e')
+    | Elam (v, e', _) -> elam (v, coqify_real e')
     | _ -> e
 
 let rec coqify_aux b e =
@@ -368,16 +371,20 @@ and coqify_prop e = match e with
     | Eequiv(f, g, _) -> eequiv (coqify_prop f, coqify_prop g)
     | Etrue
     | Efalse -> e
-    | Eall(v, t, body, _) -> eall (v, t, coqify_prop body)
-    | Eex(v, t, body, _) -> eex (v, t, coqify_prop body)
-    | Etau(v, t, body, _) -> e
-    | Elam(v, t, body, _) -> elam (v, t, coqify_prop body)
+    | Eall(v, body, _) -> eall (v, coqify_prop body)
+    | Eex(v, body, _) -> eex (v, coqify_prop body)
+    | Etau(v, body, _) -> e
+    | Elam(v, body, _) -> elam (v, coqify_prop body)
     | _ -> coqify_term e
 
-let coqify e = match get_type e with
-    | None -> e
-    | Some t when Type.equal type_bool t -> coqify_prop e
-    | _ -> coqify_term e
+let coqify e =
+    let t = get_type e in
+    if Expr.equal t type_none then
+        e
+    else if Expr.equal type_prop t then
+        coqify_prop e
+    else
+        coqify_term e
 
 (* Analog to circular lists with a 'stop' element, imperative style *)
 exception EndReached

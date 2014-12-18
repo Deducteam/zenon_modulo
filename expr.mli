@@ -3,12 +3,13 @@
 
 type private_info;;
 
-type etype = Type.t;;
-
+(* Expression definition *)
 type expr = private
   | Evar of string * private_info
   | Emeta of expr * private_info    (* expr = Eall (...)  or   Eex (...) *)
   | Eapp of expr * expr list * private_info   (* expr = Evar (...) *)
+
+  | Earrow of expr list * expr * private_info (* args -> ret *)
 
   | Enot of expr * private_info
   | Eand of expr * expr * private_info
@@ -18,35 +19,42 @@ type expr = private
   | Etrue
   | Efalse
 
-  | Eall of expr * etype * expr * private_info
-  | Eex of expr * etype * expr * private_info
-  | Etau of expr * etype * expr * private_info
-  | Elam of expr * etype * expr * private_info
+  | Eall of expr * expr * private_info
+  | Eex of expr * expr * private_info
+  | Etau of expr * expr * private_info
+  | Elam of expr * expr * private_info
       (* variable, type, body *)
 ;;
 
 type definition =
-  | DefReal of string * string * expr list * expr * string option
-     (* definition-name, defined-ident, params, body, decreasing-arg *)
-  | DefPseudo of (expr * int) * string * expr list * expr
-  | DefRec of expr * string * expr list * expr
+  | DefReal of string * string * expr * expr list * expr * string option
+     (* definition-name, defined-ident, type, params, body, decreasing-arg *)
+  | DefPseudo of (expr * int) * string * expr * expr list * expr
+  | DefRec of expr * string * expr * expr list * expr
 ;;
+
+(* Exceptions *)
+exception Type_Mismatch of expr * expr * string;;
+exception Bad_Arity of expr * expr list;;
+exception Ill_typed_substitution of (expr * expr) list;;
 
 type t = expr;;
 
+(* Expr comparison *)
 val equal : t -> t -> bool;;
 val compare : t -> t -> int;;
-val compare_type : t -> t -> int;;
 val hash : t -> int;;
 
-val get_type : expr -> etype option;;
-val extract_args : etype option -> expr list -> etype option list;;
-
+(* Term construction *)
 val evar : string -> expr;;
-val tvar : string -> etype -> expr;;
+val tvar : string -> expr -> expr;;
 val emeta : expr -> expr;;
 val eapp : expr * expr list -> expr;;
 
+val eeq : expr -> expr -> expr;;
+val estring : expr;;
+
+(* Prop construction *)
 val enot : expr -> expr;;
 val eand : expr * expr -> expr;;
 val eor : expr * expr -> expr;;
@@ -55,17 +63,31 @@ val eimply : expr * expr -> expr;;
 val eequiv : expr * expr -> expr;;
 val etrue : expr;;
 val efalse : expr;;
-val eall : expr * etype * expr -> expr;;
-val eex : expr * etype * expr -> expr;;
-val etau : expr * etype * expr -> expr;;
-val elam : expr * etype * expr -> expr;;
-
-val eeq : expr;;
-val estring : expr;;
+val eall : expr * expr -> expr;;
+val eex : expr * expr -> expr;;
+val etau : expr * expr -> expr;;
+val elam : expr * expr -> expr;;
 
 val all_list : expr list -> expr -> expr;;
 val ex_list : expr list -> expr -> expr;;
 
+(* Typing *)
+val type_type : expr;;
+val type_prop : expr;;
+val type_none : expr;;
+val earrow : expr list -> expr -> expr;;
+
+val get_name : expr -> string;;
+val get_type : expr -> expr;;
+
+val type_app : expr -> expr list -> expr;;
+(* [type_app t args]
+   checks that type t can be applied to the given arguments, and reutrns the return type.
+   @raise Type_Mismatch if the type and arguments do not match.
+*)
+
+
+(* Misc functions *)
 val diff : expr list -> expr list -> expr list;;
 (* [diff l1 l2]
    return [l1] without the formulas present in [l2]
@@ -93,23 +115,33 @@ val preunify : expr -> expr -> (expr * expr) list;;
    A pre-unifier is: (metavariable, value)
 *)
 
+exception Ununifiable;;
+
+val preunify_list : expr list -> expr list -> (expr * expr) list;;
+
 val occurs_as_meta : expr -> expr -> bool;;
 (* [occurs e1 e2] returns true if [Emeta (e1, _)] occurs in [e2] *)
 
 exception Higher_order;;
 val substitute : (expr * expr) list -> expr -> expr;;
-val substitute_type : (expr * expr) list -> etype -> etype;;
+(* Same as substitute but also check that the substitution is well-typed. *)
+val substitute_safe : (expr * expr) list -> expr -> expr;;
+val substitute_unsafe : (expr * expr) list -> expr -> expr;;
 val substitute_meta : (expr * expr) -> expr -> expr;;
+(*
 val substitute_expr : (expr * expr) -> expr -> expr;;
+*)
 val substitute_2nd : (expr * expr) list -> expr -> expr;;
+(* Same as substitute but also check that the substitution is well-typed. *)
+val substitute_2nd_safe : (expr * expr) list -> expr -> expr;;
+val substitute_2nd_unsafe : (expr * expr) list -> expr -> expr;;
 val apply : expr -> expr -> expr;;
 val add_argument : expr -> expr -> expr;;
 val remove_scope : expr -> expr;;
 
-val type_of_expr : expr -> Type.t;;
-
 (* gensym *)
 val newvar : unit -> expr;;
+val newtvar : expr -> expr;;
 val newname : unit -> string;;
 
 val size : expr -> int;;
@@ -123,3 +155,17 @@ type goalness = int;;
 
 val print_stats : out_channel -> unit;;
 
+(* Helper for defined symbols in coq proofs *)
+val add_defs : (string * t) list -> unit
+val get_defs : unit -> (string * t) list
+
+(* Comparison of variables without comparing their types *)
+val var_equal : expr -> expr -> bool
+val list_var_equal : expr list -> expr list -> bool
+
+val nb_tvar : expr -> int;;
+
+exception Unsplitable;;
+
+val split_list : int -> expr list -> expr list * expr list;;
+val get_tvar : expr -> expr list;;

@@ -9,36 +9,31 @@ open Expr;;
 open Namespace;;
 open Phrase;;
 
-let rec mk_type_string e =
+let rec mk_type e =
   match e with
-  | Evar (s, _) -> s
-  | Emeta _ -> assert false
-  | Eapp (Evar("*",_), [e1; e2], _) ->
-     sprintf "(%s*%s)" (mk_type_string e1) (mk_type_string e2)
-  | Eapp (Evar("%",_), [e1; e2], _) ->
-     sprintf "((%s)%%%s)" (mk_type_string e1) (mk_type_string e2)
-  | Eapp (Evar(s,_), args, _) ->
-     let inside =
-       List.fold_left (fun s a -> sprintf "%s %s" s (mk_type_string a)) s args
-     in
-     sprintf "(%s)" inside
+  | Evar (s, _) -> eapp (tvar s type_type, []) (* All type idents are parsed as constants,
+                                                 TODO: allow real type variables *)
+  | Eapp (s, args, _) ->
+     eapp (s, List.map mk_type args)
   | Eimply (e1, e2, _) ->
-     sprintf "(%s -> %s)" (mk_type_string e1) (mk_type_string e2)
-  | _ -> assert false (* FIXME TODO *)
+     (match mk_type e2 with
+      | Earrow (l, ret, _) -> earrow (mk_type e1 :: l) ret
+      | ty -> earrow [mk_type e1] ty)
+  | e -> e
 ;;
 
 let mk_eapp (s, args) =
   match (s, args) with
-  | "and", [e1; e2] -> eand (e1, e2)
-  | "or", [e1; e2] -> eor (e1, e2)
-  | "not", [e1] -> enot (e1)
-  | _ -> eapp (evar s, args)
+  | Evar ("and", _), [e1; e2] -> eand (e1, e2)
+  | Evar ("or", _), [e1; e2] -> eor (e1, e2)
+  | Evar ("not", _), [e1] -> enot (e1)
+  | _ -> eapp (s, args)
 ;;
 
 let mk_apply (e, l) =
   match e with
-  | Eapp (Evar(s,_), args, _) -> mk_eapp (s, args @ l)
-  | Evar (s, _) -> mk_eapp (s, l)
+  | Eapp (s, args, _) -> mk_eapp (s, args @ l)
+  | Evar _ as s -> mk_eapp (s, l)
   | _ -> raise Parse_error
 ;;
 
@@ -50,28 +45,28 @@ let rec mk_arobas_apply (id, l) =
 ;;
 
 let mk_all bindings body =
-  let f (var, ty) e = eall (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = eall (tvar var ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_ex bindings body =
-  let f (var, ty) e = eex (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = eex (tvar var ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_lam bindings body =
-  let f (var, ty) e = elam (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = elam (tvar var ty, e) in
   List.fold_right f bindings body
 ;;
 
 let mk_fix ident ty bindings body =
-  let f (var, ty) e = elam (evar var, Type.atomic ty, e) in
+  let f (var, ty) e = elam (tvar var ty, e) in
   (ident, eapp (evar "$fix", [ List.fold_right f ((ident, ty) :: bindings) body ]))
 ;;
 
 let rec get_params e =
   match e with
-  | Elam (v, _, body, _) ->
+  | Elam (v, body, _) ->
       let (p, e1) = get_params body in
       (v :: p, e1)
   | _ -> ([], e)
@@ -84,11 +79,11 @@ let mk_let id expr body =
 let mk_let_fix (id, def) body = mk_let id def body;;
 
 let mk_pattern (constr, args) body =
-  let bindings = List.map (fun v -> (v, "")) args in
+  let bindings = List.map (fun v -> (v, type_none)) args in
   mk_lam bindings (eapp (evar "$match-case", [evar (constr); body]))
 ;;
 
-let mk_inductive name bindings constrs =
+let mk_inductive name ty bindings constrs =
   let args = List.map fst bindings in
   let g (tcon, targs) =
     if tcon = name && targs = args then Self
@@ -207,6 +202,7 @@ let mk_string s = evar ("\"" ^ s ^ "\"") ;;
 
 %start file
 %type <string * (Phrase.phrase * bool) list> file
+%type <expr> typ
 
 %%
 
@@ -277,9 +273,9 @@ expr:
       { eand ($1, $3) }
 
   | expr EQ_ expr
-      { eapp (eeq, [$1; $3]) }
+      { eeq $1 $3 }
   | expr LT_GT_ expr
-      { enot (eapp (eeq, [$1; $3])) }
+      { enot (eeq $1 $3) }
 
   | TILDE_ expr
       { enot ($2) }
@@ -288,10 +284,10 @@ expr:
       { mk_apply ($1, $2) }
 
   | AROBAS_ IDENT expr1_list %prec apply
-      { mk_eapp ("@", evar ($2) :: $3) }
+      { mk_eapp (evar "@", evar ($2) :: $3) }
 
   | AROBAS_ IDENT %prec apply
-      { mk_eapp ("@", [evar ($2)]) }
+      { mk_eapp (evar "@", [evar ($2)]) }
 
   | expr1
       { $1 }
@@ -371,13 +367,13 @@ binding_list:
   | /* empty */
       { [] }
   | IDENT binding_list
-      { ($1, "") :: $2 }
+      { ($1, type_none) :: $2 }
   | LPAREN_ simplebinding RPAREN_ binding_list
       { $2 @ $4 }
 ;
 
 typ:
-  | expr                   { mk_type_string $1 }
+  | expr                   { mk_type $1 }
 ;
 
 /* normal identifier or unparsed  expression */
@@ -392,31 +388,35 @@ hyp_def:
       { Hyp ($2, $4, 1) }
   | DEFINITION id_or_expr COLON_EQ_ expr PERIOD_
       { let (params, expr) = get_params $4 in
-        Def (DefReal ($2, $2, params, expr, None)) }
+        Def (DefReal ($2, $2, type_none, params, expr, None)) }
   | DEFINITION IDENT compact_args COLON_ typ COLON_EQ_ expr PERIOD_
       {
        let compact_params = $3 in
        let (other_params, expr) = get_params $7 in
-       Def (DefReal ($2, $2, (compact_params @ other_params), expr, None))
+       let params = compact_params @ other_params in
+       let ty = earrow (List.map get_type params) $5 in
+       Def (DefReal ($2, $2, ty, params, expr, None))
       }
   | FIXPOINT IDENT compact_args LBRACE_ STRUCT IDENT RBRACE_
              COLON_ typ COLON_EQ_ expr PERIOD_
       {
        let compact_params = $3 in
        let (other_params, expr) = get_params $11 in
-       Def (DefReal ($2, $2, (compact_params @ other_params), expr, Some $6))
+       let params = compact_params @ other_params in
+       let ty = earrow (List.map get_type params) $9 in
+       Def (DefReal ($2, $2, ty, params, expr, Some $6))
       }
   | FUNCTION IDENT compact_args COLON_ typ LBRACE_ expr RBRACE_ COLON_EQ_
     expr PERIOD_
-      { Def (DefRec ($7, $2, $3, $10)) }
-  | INDUCTIVE IDENT binding_list COLON_ IDENT COLON_EQ_ constr_list PERIOD_
-      { mk_inductive $2 $3 $7 }
+      { Def (DefRec ($7, $2, $5, $3, $10)) }
+  | INDUCTIVE IDENT binding_list COLON_ typ COLON_EQ_ constr_list PERIOD_
+      { mk_inductive $2 $5 $3 $7 }
 ;
 
 
 compact_args:
     /* empty */                                          { [] }
-  | LPAREN_ IDENT COLON_ typ RPAREN_ compact_args    { (evar $2) :: $6 }
+  | LPAREN_ IDENT COLON_ typ RPAREN_ compact_args    { (tvar $2 $4) :: $6 }
 ;
 
 

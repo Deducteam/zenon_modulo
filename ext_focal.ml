@@ -55,9 +55,40 @@ let arity_warning s =
 let higher_order_warning s =
   Error.warn (sprintf "symbol %s is used in higher-order substitution" s);
 ;;
+(* Functions for building types (/!\ too specific to Dedukti) *)
+let eT = tvar "cc.eT" (earrow [type_type] type_type);;
+let eps ty = assert (get_type ty == type_type); ty
+   (* was "eapp (eT, [ty])",
+      TODO test input_format to choose between Dedukti and Coq typing. *)
+;;
+let arr ty1 ty2 =
+  match ty2 with
+  | Earrow (l, ret, _) -> earrow (ty1 :: l) ret
+  | _ -> earrow [ty1] ty2
+;;
+let t_bool = eapp (tvar "basics.bool__t" type_type, []);;
+let bool1 = eps t_bool;;
+let bool2 = arr bool1 bool1;;
+let bool3 = arr bool1 bool2;;
+let t_prop = type_prop;;
 
-let istrue e = eapp (evar "Is_true", [e]);;
-let isfalse e = enot (eapp (evar "Is_true", [e]));;
+let ret_prop_to_bool = function
+  | Earrow (l, ret, _) when ret == type_prop -> earrow l t_bool
+  | _ ->
+     raise (Invalid_argument "ret_prop_to_bool")
+;;
+let ret_bool_to_prop = function
+  | Earrow (l, ret, _) when ret == t_bool -> earrow l type_prop
+  | _ -> raise (Invalid_argument "ret_bool_to_prop")
+;;
+
+let prop_to_bool_args args ty =
+  if ty == type_none then earrow (List.map get_type args) t_bool
+  else ret_prop_to_bool ty
+;;
+
+let istrue e = eapp (tvar "Is_true" (arr t_bool t_prop), [e]);;
+let isfalse e = enot (istrue e);;
 
 let is_true_equal x =
   List.exists (fun y -> x = "Is_true**" ^ y) names_of_equality
@@ -66,7 +97,7 @@ let is_true_equal x =
 let newnodes_istrue e g =
   let mk_unfold ctx p args =
     try
-      let (d, params, body) = Index.get_def p in
+      let (d, ty, params, body) = Index.get_def p in
       let prio = match d with DefRec _ -> Inst e | _ -> Prop in
       match params, args, body with
       | [], Some aa, (Evar (b, _) as b') ->
@@ -131,12 +162,13 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = branches;
       }; Stop ]
-  | Eapp (Evar(op,_), [e1; e2; e3], _) when is_true_equal op ->
-     let branches = [| [eapp (eeq, [e2; e3])] |] in
+  | Eapp (Evar(op,_) as var, [e1; e2; e3], _) when is_true_equal op ->
+     let branches = [| [eeq e2 e3] |] in
      let name = chop_prefix "Is_true**" op in
+     let vssty = prop_to_bool_args [e1; e2; e3] (get_type var) in
        [ Node {
          nconc = [e];
-         nrule = Ext ("focal", "equal", [evar (name); e1; e2; e3]);
+         nrule = Ext ("focal", "equal", [tvar name vssty; e1; e2; e3]);
          nprio = Arity;
          ngoal = g;
          nbranches = branches;
@@ -177,12 +209,13 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = branches;
       }; Stop ]
-  | Enot (Eapp (Evar(op,_), [e1; e2; e3], _), _) when is_true_equal op ->
-     let branches = [| [enot (eapp (eeq, [e2; e3]))] |] in
+  | Enot (Eapp (Evar(op,_) as var, [e1; e2; e3], _), _) when is_true_equal op ->
+     let branches = [| [enot (eeq e2 e3)] |] in
      let name = chop_prefix "Is_true**" op in
+     let vssty = prop_to_bool_args [e1; e2; e3] (get_type var) in
        [ Node {
          nconc = [e];
-         nrule = Ext ("focal", "notequal", [evar (name); e1; e2; e3]);
+         nrule = Ext ("focal", "notequal", [tvar name vssty; e1; e2; e3]);
          nprio = Arity;
          ngoal = g;
          nbranches = branches;
@@ -214,7 +247,7 @@ let newnodes_istrue e g =
         nrule = Ext ("focal", "trueequal", [e1]);
         nprio = Arity;
         ngoal = g;
-        nbranches = [| [eapp (evar "Is_true", [e1])] |];
+        nbranches = [| [istrue e1] |];
       }; Stop ]
   | Eapp (Evar("=",_), [e1; Evar ("true", _)], _) ->
       [ Node {
@@ -222,7 +255,7 @@ let newnodes_istrue e g =
         nrule = Ext ("focal", "equaltrue", [e1]);
         nprio = Arity;
         ngoal = g;
-        nbranches = [| [eapp (evar "Is_true", [e1])] |];
+        nbranches = [| [istrue e1] |];
       }; Stop ]
   | Enot (Eapp (Evar("=",_), [Evar ("true", _); e1], _), _) ->
       [ Node {
@@ -230,7 +263,7 @@ let newnodes_istrue e g =
         nrule = Ext ("focal", "truenotequal", [e1]);
         nprio = Arity;
         ngoal = g;
-        nbranches = [| [enot (eapp (evar "Is_true", [e1]))] |];
+        nbranches = [| [isfalse e1] |];
       }; Stop ]
   | Enot (Eapp (Evar("=",_), [e1; Evar ("true", _)], _), _) ->
       [ Node {
@@ -238,7 +271,7 @@ let newnodes_istrue e g =
         nrule = Ext ("focal", "notequaltrue", [e1]);
         nprio = Arity;
         ngoal = g;
-        nbranches = [| [enot (eapp (evar "Is_true", [e1]))] |];
+        nbranches = [| [isfalse e1] |];
       }; Stop ]
   | Eapp (Evar("=",_), [Evar ("false", _); e1], _) ->
       [ Node {
@@ -246,7 +279,7 @@ let newnodes_istrue e g =
         nrule = Ext ("focal", "falseequal", [e1]);
         nprio = Arity;
         ngoal = g;
-        nbranches = [| [enot (eapp (evar "Is_true", [e1]))] |];
+        nbranches = [| [isfalse e1] |];
       }; Stop ]
   | Eapp (Evar("=",_), [e1; Evar ("false", _)], _) ->
       [ Node {
@@ -254,7 +287,7 @@ let newnodes_istrue e g =
         nrule = Ext ("focal", "equalfalse", [e1]);
         nprio = Arity;
         ngoal = g;
-        nbranches = [| [enot (eapp (evar "Is_true", [e1]))] |];
+        nbranches = [| [isfalse e1] |];
       }; Stop ]
   | Enot (Eapp (Evar("=",_), [Evar ("false", _); e1], _), _) ->
       [ Node {
@@ -262,7 +295,7 @@ let newnodes_istrue e g =
         nrule = Ext ("focal", "falsenotequal", [e1]);
         nprio = Arity;
         ngoal = g;
-        nbranches = [| [eapp (evar "Is_true", [e1])] |];
+        nbranches = [| [istrue e1] |];
       }; Stop ]
   | Enot (Eapp (Evar("=",_), [e1; Evar ("false", _)], _), _) ->
       [ Node {
@@ -270,7 +303,7 @@ let newnodes_istrue e g =
         nrule = Ext ("focal", "notequalfalse", [e1]);
         nprio = Arity;
         ngoal = g;
-        nbranches = [| [eapp (evar "Is_true", [e1])] |];
+        nbranches = [| [istrue e1] |];
       }; Stop ]
 (*
   | Eapp ("Is_true", [Emeta _], _) -> FIXME TODO instancier par false
@@ -282,7 +315,7 @@ let newnodes_istrue e g =
           nrule = Ext ("focal", "istrue_true", [e1]);
           nprio = Arity;
           ngoal = g;
-          nbranches = [| [eapp (eeq, [e1; evar "true"])] |];
+          nbranches = [| [eeq e1 (evar "true")] |];
       } ]
   | Enot (Eapp (Evar("Is_true",_), [Eapp (Evar("$fix",_), _, _) as e1], _), _) ->
       [ Node {
@@ -290,22 +323,22 @@ let newnodes_istrue e g =
           nrule = Ext ("focal", "notistrue_false", [e1]);
           nprio = Arity;
           ngoal = g;
-          nbranches = [| [eapp (eeq, [e1; evar "false"])] |];
+          nbranches = [| [eeq e1 (evar "false")] |];
       } ]
   | Eapp (Evar("Is_true",_), [Eapp (Evar(s,_), args, _)], _) when Index.has_def s ->
-     let ctx x = eapp (evar "Is_true", [x]) in
+     let ctx x = istrue x in
      mk_unfold ctx s (Some args)
   | Enot (Eapp (Evar("Is_true",_), [Eapp (Evar(s,_), args, _)], _), _) when Index.has_def s ->
-     let ctx x = enot (eapp (evar "Is_true", [x])) in
+     let ctx x = enot (istrue x) in
      mk_unfold ctx s (Some args)
   | Eapp (Evar("Is_true",_), [Evar (s, _)], _) when Index.has_def s ->
-     let ctx x = eapp (evar "Is_true", [x]) in
+     let ctx x = istrue x in
      mk_unfold ctx s None
   | Enot (Eapp (Evar("Is_true",_), [Evar (s, _)], _), _) when Index.has_def s ->
-     let ctx x = enot (eapp (evar "Is_true", [x])) in
+     let ctx x = enot (istrue x) in
      mk_unfold ctx s None
-  | Eapp (Evar("Is_true",_), [Eapp (Evar(s,_), args, _)], _) ->
-      let branches = [| [eapp (evar ("Is_true**" ^ s), args)] |] in
+  | Eapp (Evar("Is_true",_), [Eapp (Evar(s,_) as var, args, _)], _) ->
+      let branches = [| [eapp (tvar ("Is_true**" ^ s) (ret_bool_to_prop (get_type var)), args)] |] in
       [ Node {
           nconc = [e];
           nrule = Ext ("focal", "merge", []);
@@ -313,9 +346,10 @@ let newnodes_istrue e g =
           ngoal = g;
           nbranches = branches;
       }; Stop ]
-  | Eapp (Evar(s,_), args, _) when is_prefix 0 "Is_true**" s ->
+  | Eapp (Evar(s,_) as vs, args, _) when is_prefix 0 "Is_true**" s ->
       let ss = chop_prefix "Is_true**" s in
-      let branches = [| [eapp (evar "Is_true", [eapp (evar ss, args)])] |] in
+      let vssty = prop_to_bool_args args (get_type vs) in
+      let branches = [| [istrue (eapp (tvar ss vssty, args))] |] in
       [ Node {
           nconc = [e];
           nrule = Ext ("focal", "split", []);
@@ -332,9 +366,10 @@ let newnodes_istrue e g =
           ngoal = g;
           nbranches = branches;
       }; Stop ]
-  | Enot (Eapp (Evar(s,_), args, _), _) when is_prefix 0 "Is_true**" s ->
+  | Enot (Eapp (Evar(s,_) as var, args, _), _) when is_prefix 0 "Is_true**" s ->
       let ss = chop_prefix "Is_true**" s in
-      let branches = [| [enot (eapp (evar "Is_true", [eapp (evar ss, args)]))] |] in
+      let vssty = prop_to_bool_args args (get_type var) in
+      let branches = [| [isfalse (eapp (tvar ss vssty, args))] |] in
       [ Node {
           nconc = [e];
           nrule = Ext ("focal", "split", []);
@@ -424,44 +459,44 @@ let to_llargs tr_expr r =
   match r with
   | Ext (_, "and", [e1; e2]) ->
       let h = tr_expr (eand (istrue e1, istrue e2)) in
-      let c = tr_expr (istrue (eapp (evar "coq_builtins.bi__and_b", [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__and_b" bool3, [e1; e2]))) in
       ("zenon_focal_and", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "or", [e1; e2]) ->
       let h = tr_expr (eor (istrue e1, istrue e2)) in
-      let c = tr_expr (istrue (eapp (evar "coq_builtins.bi__or_b", [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__or_b" bool3, [e1; e2]))) in
       ("zenon_focal_or", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "xor", [e1; e2]) ->
       let h = tr_expr (enot (eequiv (istrue e1, istrue e2))) in
-      let c = tr_expr (istrue (eapp (evar "coq_builtins.bi__xor_b", [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__xor_b" bool3, [e1; e2]))) in
       ("zenon_focal_xor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "not", [e1]) ->
       let h = tr_expr (enot (istrue e1)) in
-      let c = tr_expr (istrue (eapp (evar "coq_builtins.bi__not_b", [e1]))) in
+      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__not_b" bool2, [e1]))) in
       ("zenon_focal_not", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "equal", [Evar (name, _)as a; e1; e2; e3]) ->
-      let h = tr_expr (eapp (eeq, [e2; e3])) in
+      let h = tr_expr (eeq e2 e3) in
       let c = tr_expr (istrue (eapp (a, [e1; e2; e3]))) in
       let eqdec = evar ("zenon_focal_eqdec") in
       (name_of_equality_lemma,
        List.map tr_expr [eqdec; e1; e2; e3], [c], [ [h] ])
   | Ext (_, "notand", [e1; e2]) ->
       let h = tr_expr (enot (eand (istrue e1, istrue e2))) in
-      let c = tr_expr (enot (istrue (eapp (evar "coq_builtins.bi__and_b", [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__and_b" bool3, [e1; e2])))) in
       ("zenon_focal_notand", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notor", [e1; e2]) ->
       let h = tr_expr (enot (eor (istrue e1, istrue e2))) in
-      let c = tr_expr (enot (istrue (eapp (evar "coq_builtins.bi__or_b", [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__or_b" bool3, [e1; e2])))) in
       ("zenon_focal_notor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notxor", [e1; e2]) ->
       let h = tr_expr (eequiv (istrue e1, istrue e2)) in
-      let c = tr_expr (enot (istrue (eapp (evar "coq_builtins.bi__xor_b", [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__xor_b" bool3, [e1; e2])))) in
       ("zenon_focal_notxor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notnot", [e1]) ->
       let h = tr_expr (istrue e1) in
-      let c = tr_expr (enot (istrue (eapp (evar "coq_builtins.bi__not_b", [e1])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__not_b" bool2, [e1])))) in
       ("zenon_focal_notnot", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notequal", [Evar (name, _) as a; e1; e2; e3]) ->
-      let h = tr_expr (enot (eapp (eeq, [e2; e3]))) in
+      let h = tr_expr (enot (eeq e2 e3)) in
       let c = tr_expr (enot (istrue (eapp (a, [e1; e2; e3])))) in
       (name_of_notequality_lemma,
        [tr_expr e1; tr_expr e2; tr_expr e3], [c], [ [h] ])
@@ -472,36 +507,36 @@ let to_llargs tr_expr r =
       let c = tr_expr (enot (istrue (evar "true"))) in
       ("zenon_focal_nottrue", [], [c], []);
   | Ext (_, "trueequal", [e1]) ->
-     let c = tr_expr (eapp (eeq, [evar "true"; e1])) in
-     let h = tr_expr (eapp (evar "Is_true", [e1])) in
+     let c = tr_expr (eeq (evar "true") e1) in
+     let h = tr_expr (istrue e1) in
      ("zenon_focal_trueequal", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "equaltrue", [e1]) ->
-     let c = tr_expr (eapp (eeq, [e1; evar "true"])) in
-     let h = tr_expr (eapp (evar "Is_true", [e1])) in
+     let c = tr_expr (eeq e1 (evar "true")) in
+     let h = tr_expr (istrue e1) in
      ("zenon_focal_equaltrue", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "truenotequal", [e1]) ->
-     let c = tr_expr (enot (eapp (eeq, [evar "true"; e1]))) in
-     let h = tr_expr (enot (eapp (evar "Is_true", [e1]))) in
+     let c = tr_expr (enot (eeq (evar "true") e1)) in
+     let h = tr_expr (enot (istrue e1)) in
      ("zenon_focal_truenotequal", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notequaltrue", [e1]) ->
-     let c = tr_expr (enot (eapp (eeq, [e1; evar "true"]))) in
-     let h = tr_expr (enot (eapp (evar "Is_true", [e1]))) in
+     let c = tr_expr (enot (eeq e1 (evar "true"))) in
+     let h = tr_expr (enot (istrue e1)) in
      ("zenon_focal_notequaltrue", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "falseequal", [e1]) ->
-     let c = tr_expr (eapp (eeq, [evar "false"; e1])) in
-     let h = tr_expr (enot (eapp (evar "Is_true", [e1]))) in
+     let c = tr_expr (eeq (evar "false") e1) in
+     let h = tr_expr (enot (istrue e1)) in
      ("zenon_focal_falseequal", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "equalfalse", [e1]) ->
-     let c = tr_expr (eapp (eeq, [e1; evar "false"])) in
-     let h = tr_expr (enot (eapp (evar "Is_true", [e1]))) in
+     let c = tr_expr (eeq e1 (evar "false")) in
+     let h = tr_expr (enot (istrue e1)) in
      ("zenon_focal_equalfalse", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "falsenotequal", [e1]) ->
-     let c = tr_expr (enot (eapp (eeq, [evar "false"; e1]))) in
-     let h = tr_expr (eapp (evar "Is_true", [e1])) in
+     let c = tr_expr (enot (eeq (evar "false") e1)) in
+     let h = tr_expr (istrue e1) in
      ("zenon_focal_falsenotequal", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notequalfalse", [e1]) ->
-     let c = tr_expr (enot (eapp (eeq, [e1; evar "false"]))) in
-     let h = tr_expr (eapp (evar "Is_true", [e1])) in
+     let c = tr_expr (enot (eeq e1 (evar "false"))) in
+     let h = tr_expr (istrue e1) in
      ("zenon_focal_notequalfalse", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "merge", _) -> ("zenon_focal_merge", [], [], [])
   | Ext (_, "split", _) -> ("zenon_focal_split", [], [], [])
@@ -533,7 +568,7 @@ let to_llargs tr_expr r =
       let he2 = tr_expr (eapp (r, [e; e2])) in
       let concl = tr_expr a in
       let v1 = newvar () and v2 = newvar () in
-      let rf = elam (v1, Type.atomic "", elam (v2, Type.atomic "", eapp (r, [v1; v2]))) in
+      let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_l", List.map tr_expr [rf; c; t; e; e2],
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "ite_rel_r",
@@ -545,7 +580,7 @@ let to_llargs tr_expr r =
       let he2 = tr_expr (eapp (r, [e1; e])) in
       let concl = tr_expr a in
       let v1 = newvar () and v2 = newvar () in
-      let rf = elam (v1, Type.atomic "", elam (v2, Type.atomic "", eapp (r, [v1; v2]))) in
+      let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_r", List.map tr_expr [rf; e1; c; t; e],
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "ite_rel_nl",
@@ -558,7 +593,7 @@ let to_llargs tr_expr r =
       let he2 = tr_expr (enot (eapp (r, [e; e2]))) in
       let concl = tr_expr a in
       let v1 = newvar () and v2 = newvar () in
-      let rf = elam (v1, Type.atomic "", elam (v2, Type.atomic "", eapp (r, [v1; v2]))) in
+      let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_nl", List.map tr_expr [rf; c; t; e; e2],
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "ite_rel_nr",
@@ -571,15 +606,15 @@ let to_llargs tr_expr r =
       let he2 = tr_expr (enot (eapp (r, [e1; e]))) in
       let concl = tr_expr a in
       let v1 = newvar () and v2 = newvar () in
-      let rf = elam (v1, Type.atomic "", elam (v2, Type.atomic "", eapp (r, [v1; v2]))) in
+      let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_nr", List.map tr_expr [rf; e1; c; t; e],
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "istrue_true", [e1]) ->
-     let h = tr_expr (eapp (eeq, [e1; evar "true"])) in
+     let h = tr_expr (eeq e1 (evar "true")) in
      let c = tr_expr (istrue e1) in
      ("zenon_focal_istrue_true", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notistrue_false", [e1]) ->
-     let h = tr_expr (eapp (eeq, [e1; evar "false"])) in
+     let h = tr_expr (eeq e1 (evar "false")) in
      let c = tr_expr (enot (istrue e1)) in
      ("zenon_focal_notistrue_false", [tr_expr e1], [c], [ [h] ])
   | Ext (x, y, _) ->
@@ -605,8 +640,9 @@ let rec pp_expr e =
   match e with
   | Evar _ -> e
   | Emeta _ -> e
-  | Eapp (Evar("Is_true",_), [Eapp (Evar(s,_), args, _)], _) ->
-      eapp (evar ("Is_true**" ^ s), List.map pp_expr args)
+  | Earrow _ -> assert false
+  | Eapp (Evar("Is_true",_), [Eapp (Evar(s,_) as var, args, _)], _) ->
+      eapp (tvar ("Is_true**" ^ s) (ret_bool_to_prop (get_type var)), List.map pp_expr args)
   | Eapp (s, args, _) -> eapp (s, List.map pp_expr args)
   | Enot (e1, _) -> enot (pp_expr e1)
   | Eand (e1, e2, _) -> eand (pp_expr e1, pp_expr e2)
@@ -615,18 +651,40 @@ let rec pp_expr e =
   | Eequiv (e1, e2, _) -> eequiv (pp_expr e1, pp_expr e2)
   | Etrue -> e
   | Efalse -> e
-  | Eall (v, t, e, _) -> eall (v, t, pp_expr e)
-  | Eex (v, t, e, _) -> eex (v, t, pp_expr e)
-  | Etau (v, t, e, _) -> etau (v, t, pp_expr e)
+  | Eall (v, e, _) -> eall (v, pp_expr e)
+  | Eex (v, e, _) -> eex (v, pp_expr e)
+  | Etau (v, e, _) -> etau (v, pp_expr e)
 (*
   | Elam (v, t, e, _) when occurs "basics.list__t" t ->
       let t1 = replace_first "basics.list__t" "List.list" t in
       elam (v, t1, pp_expr e)
 *)
-  | Elam (v, t, e, _) -> elam (v, t, pp_expr e)
+  | Elam (v, e, _) -> elam (v, pp_expr e)
+;;
+
+(* Registering of constants for type-checking *)
+
+List.iter Typer.declare_constant
+  [
+    ("Is_true", arr bool1 t_prop);
+    ("true", bool1);
+    ("false", bool1);
+
+    ("basics._tilda__tilda_", bool2);
+    ("basics._amper__amper_", bool3);
+    ("basics._bar__bar_", bool3);
+    ("basics._bar__lt__gt__bar_", bool3);
+
+    ("coq_builtins.bi__not_b", bool2);
+    ("coq_builtins.bi__and_b", bool3);
+    ("coq_builtins.bi__or_b", bool3);
+    ("coq_builtins.bi__xor_b", bool3)
+  ]
 ;;
 
 let built_in_defs =
+  let b1 = Expr.newtvar t_bool in
+  let b2 = Expr.newtvar t_bool in
   let x = Expr.newvar () in
   let y = Expr.newvar () in
   let xy = Expr.newvar () in
@@ -634,22 +692,22 @@ let built_in_defs =
   let ty = Expr.newvar () in
   let case = eapp (evar "$match-case", [evar ("Datatypes.pair"); x]) in
   [
-    Def (DefReal ("_amper__amper_", "basics._amper__amper_", [x; y],
-                  eapp (evar "coq_builtins.bi__and_b", [x; y]), None));
-    Def (DefReal ("_bar__bar_", "basics._bar__bar_", [x; y],
-                  eapp (evar "coq_builtins.bi__or_b", [x; y]), None));
-    Def (DefReal ("_tilda__tilda_", "basics._tilda__tilda_", [x],
-                  eapp (evar "coq_builtins.bi__not_b", [x]), None));
-    Def (DefReal ("_bar__lt__gt__bar_", "basics._bar__lt__gt__bar_", [x; y],
-                  eapp (evar "coq_builtins.bi__xor_b", [x; y]), None));
+    Def (DefReal ("_amper__amper_", "basics._amper__amper_", bool3, [b1; b2],
+                  eapp (tvar "coq_builtins.bi__and_b" bool3, [b1; b2]), None));
+    Def (DefReal ("_bar__bar_", "basics._bar__bar_", bool3, [b1; b2],
+                  eapp (tvar "coq_builtins.bi__or_b" bool3, [b1; b2]), None));
+    Def (DefReal ("_tilda__tilda_", "basics._tilda__tilda_", bool2, [b1],
+                  eapp (tvar "coq_builtins.bi__not_b" bool2, [b1]), None));
+    Def (DefReal ("_bar__lt__gt__bar_", "basics._bar__lt__gt__bar_", bool3, [b1; b2],
+                  eapp (tvar "coq_builtins.bi__xor_b" bool3, [b1; b2]), None));
 
-    Def (DefReal ("pair", "basics.pair", [tx; ty; x; y],
+    Def (DefReal ("pair", "basics.pair", type_none, [tx; ty; x; y],
                   eapp (evar "Datatypes.pair", [tx; ty; x; y]), None));
-    Def (DefReal ("fst", "basics.fst", [tx; ty; xy],
-                  eapp (evar "$match", [xy; elam (x, Type.atomic "", elam (y, Type.atomic "", case))]),
+    Def (DefReal ("fst", "basics.fst", type_none, [tx; ty; xy],
+                  eapp (evar "$match", [xy; elam (x, elam (y, case))]),
                   None));
-    Def (DefReal ("snd", "basics.snd", [tx; ty; xy],
-                  eapp (evar "$match", [xy; elam (y, Type.atomic "", elam (x, Type.atomic "", case))]),
+    Def (DefReal ("snd", "basics.snd", type_none, [tx; ty; xy],
+                  eapp (evar "$match", [xy; elam (y, elam (x, case))]),
                   None));
     Inductive ("basics.list__t", ["A"], [
                  ("List.nil", []);
@@ -663,14 +721,14 @@ let built_in_defs =
                [ ("true", []); ("false", []) ], "basics.bool__t_ind");
 
     (* deprecated, kept for compatibility only *)
-    Def (DefReal ("and_b", "basics.and_b", [x; y],
-                  eapp (evar "basics._amper__amper_", [x; y]), None));
-    Def (DefReal ("or_b", "basics.or_b", [x; y],
-                  eapp (evar "basics._bar__bar_", [x; y]), None));
-    Def (DefReal ("not_b", "basics.not_b", [x; y],
-                  eapp (evar "basics._tilda__tilda_", [x; y]), None));
-    Def (DefReal ("xor_b", "basics.xor_b", [x; y],
-                  eapp (evar "basics._bar__lt__gt__bar_", [x; y]), None));
+    Def (DefReal ("and_b", "basics.and_b", bool3, [b1; b2],
+                  eapp (tvar "basics._amper__amper_" bool3, [b1; b2]), None));
+    Def (DefReal ("or_b", "basics.or_b", bool3, [b1; b2],
+                  eapp (tvar "basics._bar__bar_" bool3, [b1; b2]), None));
+    Def (DefReal ("not_b", "basics.not_b", bool2, [b1],
+                  eapp (tvar "basics._tilda__tilda_" bool2, [b1]), None));
+    Def (DefReal ("xor_b", "basics.xor_b", bool3, [b1; b2],
+                  eapp (tvar "basics._bar__lt__gt__bar_" bool3, [b1; b2]), None));
   ]
 ;;
 
@@ -678,10 +736,10 @@ let preprocess l =
   let f x =
     match x with
     | Hyp (name, e, goalness) -> Hyp (name, pp_expr e, goalness)
-    | Def (DefReal (name, sym, formals, body, decarg)) ->
-        Def (DefReal (name, sym, formals, pp_expr body, decarg))
-    | Def (DefRec (eqn, sym, formals, body)) ->
-        Def (DefRec (eqn, sym, formals, pp_expr body))
+    | Def (DefReal (name, sym, ty, formals, body, decarg)) ->
+        Def (DefReal (name, sym, ty, formals, pp_expr body, decarg))
+    | Def (DefRec (eqn, sym, ty, formals, body)) ->
+        Def (DefRec (eqn, sym, ty, formals, pp_expr body))
     | Def (DefPseudo _) -> assert false
     | Sig _ -> x
     | Inductive _ -> x
@@ -695,9 +753,11 @@ let rec process_expr e =
   match e with
   | Evar _ -> e
   | Emeta _ -> e
-  | Eapp (Evar(s,_), args, _) when is_prefix 0 "Is_true**" s ->
+  | Earrow _ -> assert false
+  | Eapp (Evar(s,_) as vs, args, _) when is_prefix 0 "Is_true**" s ->
       let s1 = chop_prefix "Is_true**" s in
-      eapp (evar "Is_true", [eapp (evar s1, List.map process_expr args)])
+      let vssty = prop_to_bool_args args (get_type vs) in
+      istrue (eapp (tvar s1 vssty, List.map process_expr args))
   | Eapp (s, args, _) -> eapp (s, List.map process_expr args)
   | Enot (e1, _) -> enot (process_expr e1)
   | Eand (e1, e2, _) -> eand (process_expr e1, process_expr e2)
@@ -706,10 +766,10 @@ let rec process_expr e =
   | Eequiv (e1, e2, _) -> eequiv (process_expr e1, process_expr e2)
   | Etrue -> e
   | Efalse -> e
-  | Eall (e1, t, e2, _) -> eall (process_expr e1, t, process_expr e2)
-  | Eex (e1, t, e2, _) -> eex (process_expr e1, t, process_expr e2)
-  | Etau (e1, t, e2, _) -> etau (process_expr e1, t, process_expr e2)
-  | Elam (e1, t, e2, _) -> elam (process_expr e1, t, process_expr e2)
+  | Eall (e1, e2, _) -> eall (process_expr e1, process_expr e2)
+  | Eex (e1, e2, _) -> eex (process_expr e1, process_expr e2)
+  | Etau (e1, e2, _) -> etau (process_expr e1, process_expr e2)
+  | Elam (e1, e2, _) -> elam (process_expr e1, process_expr e2)
 ;;
 
 let rec process_expr_set accu l =
@@ -724,20 +784,21 @@ let rec process_prooftree p =
   let pconc = process_expr_set [] p.conc in
   let phyps = List.map process_prooftree p.hyps in
   match p.rule with
-  | Rpnotp (Eapp (Evar(s1,_), args1, _), Enot (Eapp (Evar(s2,_), args2, _), _))
+  | Rpnotp (Eapp (Evar(s1,_) as var, args1, _), Enot (Eapp (Evar(s2,_), args2, _), _))
     when is_prefix 0 "Is_true**" s1 ->
       assert (s1 = s2);
       let s = chop_prefix "Is_true**" s1 in
-      let fa1 = eapp (evar s, List.map process_expr args1) in
-      let fa2 = eapp (evar s, List.map process_expr args2) in
+      let vssty = prop_to_bool_args args1 (get_type var) in
+      let fa1 = eapp (tvar s vssty, List.map process_expr args1) in
+      let fa2 = eapp (tvar s vssty, List.map process_expr args2) in
       let step1 = {
-        conc = Expr.union [enot (eapp (eeq, [fa1; fa2]))] pconc;
+        conc = Expr.union [enot (eeq fa1 fa2)] pconc;
         rule = Rnotequal (fa1, fa2);
         hyps = phyps;
       } in
       let step2 = {
         conc = pconc;
-        rule = Rpnotp (eapp (evar "Is_true", [fa1]), enot (eapp (evar "Is_true", [fa2])));
+        rule = Rpnotp (istrue fa1, isfalse fa2);
         hyps = [step1];
       } in
       step2

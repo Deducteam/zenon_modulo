@@ -32,7 +32,6 @@ type input_format =
   | I_zenon
   | I_focal
   | I_tptp
-  | I_smtlib
 ;;
 let input_format = ref I_zenon;;
 
@@ -121,8 +120,6 @@ let argspec = [
           "            read input file in Focal format";
   "-itptp", Arg.Unit (fun () -> input_format := I_tptp),
          "             read input file in TPTP format";
-  "-ismt", Arg.Unit (fun () -> input_format := I_smtlib),
-         "             read input file in SMTLIB format";
   "-iz", Arg.Unit (fun () -> input_format := I_zenon),
       "                read input file in Zenon format (default)";
   "-k", Arg.Unit (fun () -> keep_open := Open_last 0),
@@ -279,12 +276,6 @@ let parse_file f =
     let (lexbuf, closer) = make_lexbuf true f in
     try
       match !input_format with
-      | I_smtlib ->
-          let commands = Parsesmtlib.main Lexsmtlib.token lexbuf in
-          closer ();
-          let forms = Smtlib.translate commands in
-          let phrases = Typesmtlib.typecheck forms in
-          ("dummy", List.map (fun x -> (x, false)) phrases)
       | I_tptp ->
           let tpphrases = Parsetptp.file Lextptp.token lexbuf in
           closer ();
@@ -298,7 +289,14 @@ let parse_file f =
       | I_focal ->
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
           closer ();
-          (name, result)
+          let typer_options =
+            { Typer.default_type = Expr.type_none;
+              Typer.scope_warnings = true;
+              Typer.undeclared_functions_warning = true;
+              Typer.register_new_constants = true;
+              Typer.fully_type = false }
+          in
+          (name, Typer.phrasebl typer_options result)
       | I_zenon ->
           let zphrases = Parsezen.file Lexzen.token lexbuf in
           closer ();
@@ -311,7 +309,14 @@ let parse_file f =
           in
           let goal_found = List.exists is_goal result in
           if not goal_found then Error.warn "no goal given";
-          (thm_default_name, result)
+          let typer_options =
+            { Typer.default_type = Expr.type_none;
+              Typer.scope_warnings = false;
+              Typer.undeclared_functions_warning = false;
+              Typer.register_new_constants = false;
+              Typer.fully_type = false }
+          in
+          (thm_default_name, Typer.phrasebl typer_options result)
     with
     | Parsing.Parse_error -> report_error lexbuf "syntax error."
     | Error.Lex_error msg -> report_error lexbuf msg
@@ -362,6 +367,9 @@ let main () =
       eprintf "relations: ";
       Eqrel.print_rels stderr;
       eprintf "\n";
+      eprintf "typing declarations: ";
+      eprintf "\n";
+      Typer.print_constant_decls stderr;
       eprintf "----\n";
       flush stderr;
       Gc.set {(Gc.get ()) with Gc.verbose = 0x010};
@@ -436,11 +444,23 @@ let do_main () =
   try main ()
   with
   | Error.Abort -> do_exit 11;
+  | Expr.Type_Mismatch (t, t', f) ->
+          let s = Printexc.get_backtrace () in
+          Format.eprintf "Mismatched type : expected '%s' but instead received '%s' (in %s)@\nBacktrace :@\n%s@."
+          (Print.sexpr t) (Print.sexpr t') f s;
+  | Expr.Ill_typed_substitution (map) ->
+          let s = Printexc.get_backtrace () in
+          Format.eprintf "Ill-typed substitution [%s].@\nBacktrace :@\n%s@."
+                        (String.concat
+                           "; "
+                           (List.map (fun (x, y) ->
+                                      Printf.sprintf "%s ↦ %s"
+                                                     (Print.sexpr_t x)
+                                                     (Print.sexpr_t y))
+                                     map))
+                        s;
+
   (*
-  | Type.Mismatch(t, t') as e->
-          Format.printf "Mismatched type : expected '%s' but instead received '%s'@." (Type.to_string t) (Type.to_string t');
-          raise e
-          *)
-  (* | e -> eprintf "Zenon error: uncaught exception %s\n" (Printexc.to_string e);
+  | e -> eprintf "Zenon error: uncaught exception %s\n" (Printexc.to_string e);
          do_exit 14; *)
 ;;

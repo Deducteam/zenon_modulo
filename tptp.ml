@@ -66,21 +66,22 @@ let rec make_annot_expr e =
   match e with
   | Evar _ -> e
   | Emeta _  -> e
-  | Eapp (Evar(s,_), l, _) ->
+  | Eapp (Evar(s,_) as v, l, _) ->
       let s = tptp_to_coq s in
       let l = List.map make_annot_expr l in
-      eapp (evar s, l)
+      eapp (tvar s (get_type v), l)
   | Eapp(_) -> assert false
+  | Earrow _ -> e
   | Enot (e,_) -> enot (make_annot_expr e)
   | Eand (e1,e2,_) -> eand (make_annot_expr e1, make_annot_expr e2)
   | Eor (e1,e2,_) -> eor (make_annot_expr e1, make_annot_expr e2)
   | Eimply (e1,e2,_) -> eimply (make_annot_expr e1, make_annot_expr e2)
   | Eequiv (e1,e2,_) -> eequiv (make_annot_expr e1, make_annot_expr e2)
   | Etrue | Efalse -> e
-  | Eall (x,s,e,_) -> eall (x, s, make_annot_expr e)
-  | Eex (x,s,e,_) -> eex (x, s, make_annot_expr e)
-  | Etau (x,s,e,_) -> etau (x, s, make_annot_expr e)
-  | Elam (x,s,e,_) -> elam (x, s, make_annot_expr e)
+  | Eall (x,e,_) -> eall (x, make_annot_expr e)
+  | Eex (x,e,_) -> eex (x, make_annot_expr e)
+  | Etau (x,e,_) -> etau (x, make_annot_expr e)
+  | Elam (x,e,_) -> elam (x, make_annot_expr e)
 ;;
 
 let make_definition name form body p =

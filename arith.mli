@@ -7,8 +7,11 @@ exception NotaFormula
 exception EndReached
 
 (* Type manipulation *)
-val find_type : Expr.expr -> Expr.etype
-val mix_type : Expr.etype -> Expr.etype -> Expr.etype
+val type_int : Expr.expr
+val type_rat : Expr.expr
+val type_real : Expr.expr
+
+val mix_type : Expr.expr -> Expr.expr -> Expr.expr
 
 (* Q manipulation *)
 val is_z : Q.t -> bool
@@ -48,7 +51,7 @@ val lesseq : Expr.expr -> Expr.expr -> Expr.expr
 val greater : Expr.expr -> Expr.expr -> Expr.expr
 val greatereq : Expr.expr -> Expr.expr -> Expr.expr
 
-val coerce : Expr.etype -> Expr.expr -> Expr.expr
+val coerce : Expr.expr -> Expr.expr -> Expr.expr
 
 (* Formula manipulation *)
 val find_coef : Expr.t -> ('a * Expr.t) list -> 'a
