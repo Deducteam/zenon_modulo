@@ -998,8 +998,8 @@ let newnodes e g _ =
         end
     in
     update e;
-    List.map (gnode g) (res @ todo e) @ (
-        if is_bexpr e then [Stop] else [])
+    List.map (gnode g) (res @ todo e)
+    @ (if is_bexpr e then match e with | Enot(Eapp(Evar("=", _), _, _), _) | Eapp(Evar("=", _), _, _) -> [] | _ -> [Stop] else [])
 
 let make_inst term g = assert false
 
