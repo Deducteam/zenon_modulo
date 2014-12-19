@@ -207,7 +207,7 @@ let mk_node_switch e a m =
     let new_branch k =
         let a' = eapp (tvar (newname ()) (get_type a), []) in
         let b = to_nexpr [(Q.of_int m), a'; (Q.of_int k), etrue] in
-        [ eeq a b;
+        [ Arith.arith_eq a b;
           Expr.substitute_expr (a, b) e]
     in
     let n = {
@@ -438,7 +438,7 @@ let simplex_add t f (e, s, c) =
     | _ ->
             let expr = to_nexpr e in
             let v = tvar (newname ()) (get_type expr) in
-            let e1 = eeq v expr in
+            let e1 = Arith.arith_eq v expr in
             let e2 = mk_bop s v (const (Q.to_string c)) in
             Log.debug 7 "arith -- new variable : %a == %a" Print.pp_expr v Print.pp_expr expr;
             S.add_eq t.core (v, e);
@@ -466,7 +466,7 @@ let nodes_of_tree s f t =
             let l = v :: (List.map snd expr) in
             let relevant = List.map (fun (_, z, _, _) -> z)
                 (List.filter (fun (y, y', _, _) -> not (equal y y') && List.exists (fun x -> equal x y) l) s.bindings) in
-            let clin = expr_norm (eeq (to_nexpr expr) v) in
+            let clin = expr_norm (Arith.arith_eq (to_nexpr expr) v) in
             let bounds, nb, conflict = bounds_of_clin v expr s.bindings in
             if bounds = [] && not is_zero then
                 [f, mk_node_conflict nb conflict]
@@ -842,7 +842,7 @@ let lltocoq oc r =
     | LL.Rextension("arith", "simplex_bound", x :: _, e :: l, [[f]]) when List.exists is_rexpr (e :: l) ->
             let (b, _, _) = of_bexpr e in
             let k, b = fsep b x in
-            let ee = eeq x (to_nexpr b) in
+            let ee = Arith.arith_eq x (to_nexpr b) in
             pr "cut (%a); [ zenon_intro %s | real_simpl %a %s ].\n" Lltocoq.p_expr ee (Coqterm.getname ee)
             Lltocoq.pp_expr (coqify_to_r (const (Q.to_string (Q.inv k)))) (Coqterm.getname e);
             let b = List.map (fun (c, y) -> (c, y,
@@ -868,7 +868,7 @@ let lltocoq oc r =
     | LL.Rextension("arith", "simplex_bound", x :: _, e :: l, [[f]]) ->
             let (b, _, _) = of_bexpr e in
             let k, b = fsep b x in
-            let ee = eeq x (to_nexpr b) in
+            let ee = Arith.arith_eq x (to_nexpr b) in
             pr "cut (%a); [ zenon_intro %s | arith_simpl %a %s ].\n" Lltocoq.p_expr ee (Coqterm.getname ee)
             Lltocoq.pp_expr (coqify_to_q (const (Q.to_string (Q.inv k)))) (Coqterm.getname e);
             let b = List.map (fun (c, y) -> (c, y,

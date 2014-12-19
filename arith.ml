@@ -116,6 +116,8 @@ let lesseq a b = mk_bop "$lesseq" a b
 let greater a b = mk_bop "$greater" a b
 let greatereq a b = mk_bop "$greatereq" a b
 
+let arith_eq a b = mk_bop "=" a b
+
 (* Possibly unsafe... *)
 let rec coerce t = function
     | Evar(_, _) as v -> v

@@ -51,6 +51,8 @@ val lesseq : Expr.expr -> Expr.expr -> Expr.expr
 val greater : Expr.expr -> Expr.expr -> Expr.expr
 val greatereq : Expr.expr -> Expr.expr -> Expr.expr
 
+val arith_eq : Expr.expr -> Expr.expr -> Expr.expr
+
 val coerce : Expr.expr -> Expr.expr -> Expr.expr
 
 (* Formula manipulation *)
