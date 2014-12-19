@@ -719,8 +719,12 @@ and substitute_unsafe map e =
      earrow (List.map (substitute_unsafe map) args) (substitute_unsafe map ret)
   (* Equality symbol need to be re-generated with correct type, 
      in case we have substituted a type argument *)
-  | Eapp (Evar ("=", _), [a; b], _) -> 
-     eeq (substitute_unsafe map a) (substitute_unsafe map b)
+  | Eapp (Evar ("=", _) as s, ([a; b] as args), _) ->
+    begin try
+        eapp (s, List.map (substitute_unsafe map) args)
+    with Type_Mismatch _ ->
+        eeq (substitute_unsafe map a) (substitute_unsafe map b)
+    end
   | Eapp (s, args, _) -> 
      eapp (s, List.map (substitute_unsafe map) args)
   | Enot (f, _) -> 
