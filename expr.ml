@@ -565,10 +565,10 @@ let rec xpreunify accu e1 e2 =
   | e, Emeta (m1, _) ->
      begin
        try
-	 if not (e == List.assq m1 accu) then
-	   raise Mismatch
-	 else
-	   accu
+     if not (e == List.assq m1 accu) then
+       raise Mismatch
+     else
+       accu
        with Not_found -> begin match e with
        | Emeta(m2, _) when get_size m1 > get_size m2 -> (m2, e) :: accu
        | _ -> (m1, e) :: accu
@@ -916,8 +916,8 @@ let rec get_tvar_aux accu e =
   match e with 
   | Evar _ 
   | Emeta _ -> if get_type e == type_type && not (List.memq e accu) 
-	       then e :: accu
-	       else accu
+           then e :: accu
+           else accu
   | Eapp (_, args, _) -> 
      List.fold_left get_tvar_aux accu args
   | Enot (e1, _) -> get_tvar_aux accu e1
