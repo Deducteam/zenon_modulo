@@ -37,6 +37,7 @@ type definition =
 exception Type_Mismatch of expr * expr * string;;
 exception Bad_Arity of expr * expr list;;
 exception Ill_typed_substitution of (expr * expr) list;;
+exception Mismatch;;
 
 type t = expr;;
 

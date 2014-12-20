@@ -97,6 +97,7 @@ let warn_unused_var phr_dep =
     | Phrase.Def (DefPseudo _) -> assert false
     | Phrase.Sig _ -> ()
     | Phrase.Inductive _ -> ()
+    | Phrase.Rew _ -> ()
   in
   List.iter f phr_dep
 ;;

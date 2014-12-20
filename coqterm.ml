@@ -47,6 +47,7 @@ let rec make_mapping phrases =
   | Phrase.Def _ :: t -> make_mapping t
   | Phrase.Sig _ :: t -> make_mapping t
   | Phrase.Inductive _ :: t -> make_mapping t
+  | Phrase.Rew _ :: t -> make_mapping t
 ;;
 
 let init_mapping phrases =
@@ -78,7 +79,7 @@ let init_induct phrases =
     | Phrase.Inductive (name, args, cons, schema) ->
        induct_map := (name, (args, cons, schema)) :: !induct_map;
        List.iter (fun (c, _) -> Hashtbl.add constructor_table c ()) cons;
-    | Phrase.Hyp _ | Phrase.Def _ | Phrase.Sig _ -> ()
+    | Phrase.Hyp _ | Phrase.Def _ | Phrase.Sig _ | Phrase.Rew _ -> ()
   in
   List.iter add_induct phrases;
 ;;
@@ -816,6 +817,7 @@ let get_signatures ps ext_decl =
     | Phrase.Inductive (ty, args, constrs, schema) ->
         set_type ty (Declared "Type");  (* FIXME add arguments *)
         List.iter (fun (x, _) -> set_type x (Declared ty)) constrs;
+    | Phrase.Rew _ -> ()
   in
   List.iter do_phrase ps;
   let rec follow_indirect path s =
@@ -919,6 +921,7 @@ let declare_hyp oc h =
       List.iter (print_constr oc name args) constrs;
       fprintf oc " (* %s *)" schema;
       fprintf oc ".\n";
+  | Phrase.Rew _ -> ()
 ;;
 
 let declare_context oc phrases =

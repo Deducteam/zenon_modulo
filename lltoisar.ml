@@ -1042,6 +1042,7 @@ let output oc phrases ppphrases llp =
       | Phrase.Sig _ -> failwith "signatures not implemented in isar output"
       | Phrase.Inductive _ ->
          failwith "inductives not implemented in isar output"
+      | Phrase.Rew _ -> ()
     in
     List.iter f phrases;
     fprintf oc "theorem zenon_tmp_thm:\n";

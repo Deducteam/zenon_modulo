@@ -88,7 +88,7 @@ let b_axiom_to_rwrt_prop = [
 let b_axiom_to_rwrt_term = [
   "tuple2_proj_1_def";
   "tuple2_proj_2_def";
-  "tuple2_inversion";
+  (*"tuple2_inversion";*)
   "semicolon_back1";
   "power_1";
   "seq_length_def"; 
@@ -241,7 +241,6 @@ let rec rewrite_prop (l, r) p =
   try
     let subst = unif l p in
     Expr.substitute subst r 
-
   with
   | Unif_failed -> 
     (match p with 
@@ -279,11 +278,8 @@ let rec norm_prop_aux rules fm =
 ;;
 
 let norm_prop fm = 
-  
   let rules = Hashtbl.find_all !Expr.tbl_prop (find_first_sym fm) in
-
   let rules_sort = List.sort (ordering_two fm) rules in
-
   norm_prop_aux rules_sort fm
 ;;
 

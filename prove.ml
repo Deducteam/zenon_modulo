@@ -209,8 +209,17 @@ let make_notequiv st sym (p, g) (np, ng) =
 		 args1 args2)
       then
 	begin
+	  Log.debug 20 "Not Equiv 1 '%a' and '%a'" 
+		    Print.pp_expr p 
+		    Print.pp_expr np;
+	  Log.debug 20 " |- nb tvar p  = %i" (Expr.nb_tvar p);
+	  Log.debug 20 " |- nb tvar np = %i" (Expr.nb_tvar nnp);
 	  let (_, args1) = Expr.split_list (Expr.nb_tvar p) args1 in 
-	  let (_, args2) = Expr.split_list (Expr.nb_tvar nnp) args2 in 
+	  let (_, args2) = Expr.split_list (Expr.nb_tvar nnp) args2 in
+	  Log.debug 20 " |- args of p";
+	  List.iter (fun x -> Log.debug 20 "  > '%a'" Print.pp_expr x) args1;
+	  Log.debug 20 " |- args of np";
+	  List.iter (fun x -> Log.debug 20 "  > '%a'" Print.pp_expr x) args2;
 	  let myrule = 
 	    if sym 
 	    then P_NotP_sym (s1', p, np) 
@@ -236,18 +245,26 @@ let make_notequiv st sym (p, g) (np, ng) =
       else 
 	begin 
 	  try 
+	    Log.debug 20 "Not Equiv 2 '%a' and '%a'" 
+		      Print.pp_expr p 
+		      Print.pp_expr np;
+	    Log.debug 20 " |- nb tvar p  = %i" (Expr.nb_tvar p);
+	    Log.debug 20 " |- nb tvar np = %i" (Expr.nb_tvar nnp);
 	    let compare_size (m1, _) (m2, _) = 
 	      - Pervasives.compare (Expr.size m1) (Expr.size m2)
 	    in
 	    let (tyvar1, _) = Expr.split_list (Expr.nb_tvar p) args1 in 
 	    let (tyvar2, _) = Expr.split_list (Expr.nb_tvar nnp) args2 in 
-	    let subst_l = List.map2 preunify tyvar1 tyvar2 in 
-	    let subst = List.concat subst_l in    
+	    Log.debug 20 " |- tyvar 1";
+	    List.iter (fun x -> Log.debug 20 "  > '%a'" Print.pp_expr x) tyvar1;
+	    Log.debug 20 " |- tyvar 2";	    
+	    List.iter (fun x -> Log.debug 20 "  > '%a'" Print.pp_expr x) tyvar2;
+	    let subst = Expr.preunify_list tyvar1 tyvar2 in
+	    assert (subst <> []);
 	    let subst = List.sort compare_size subst in 
 	    let (m, term) = List.hd subst in
             fst (make_inst st m term (min g ng)) 
-	  with  Unsplitable 
-	      | Failure _ -> st
+	  with  Unsplitable | Mismatch -> st
 	end
   | _ -> assert false
 ;;

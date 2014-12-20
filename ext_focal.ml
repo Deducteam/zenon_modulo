@@ -743,6 +743,7 @@ let preprocess l =
     | Def (DefPseudo _) -> assert false
     | Sig _ -> x
     | Inductive _ -> x
+    | Rew _ -> x
   in
   built_in_defs @ List.map f l
 ;;
