@@ -243,7 +243,7 @@ let make_notequiv st sym (p, g) (np, ng) =
             assert (subst <> []);
 	    let (m, term) = List.hd subst in
             fst (make_inst st m term (min g ng))
-	  with Unsplitable -> st
+	  with Unsplitable | Mismatch -> st
 	end
   | _ -> assert false
 ;;
