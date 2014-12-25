@@ -360,7 +360,7 @@ let rec trtree env node =
                             [trexpr a; trexpr car; Cvar "I"; trexpr b]),
            subp)
   | Rextension (_, "zenon_induct_discriminate_diff", _, _, _) -> assert false
-  | Rextension (_, "zenon_induct_cases", [Evar (ty, _); ctx; e1], [c], hs) ->
+  | Rextension (_, "zenon_induct_cases", [ty; ctx; e1], [c], hs) ->
      let (args, cstrs, schema) = get_induct ty in
      let typargs = List.map (fun _ -> Cwild) args in
      let make_hyp h (c, cargs) =
@@ -390,7 +390,7 @@ let rec trtree env node =
      let refl = Capp (Cvar "refl_equal", [tropt e1]) in
      Capp (Cvar schema, typargs @ pred :: recargs @ tropt e1 :: [refl])
   | Rextension (_, "zenon_induct_cases", _, _, _) -> assert false
-  | Rextension (_, "zenon_induct_induction_notall", [Evar (ty, _); p], [c], hs) ->
+  | Rextension (_, "zenon_induct_induction_notall", [ty; p], [c], hs) ->
      let (args, _, schema) = get_induct ty in
      let typargs = List.map (fun _ -> Cwild) args in
      let mksub h prf =
@@ -404,7 +404,7 @@ let rec trtree env node =
      let nap = getname c in
      Capp (Cvar nap, [ap])
   | Rextension (_, "zenon_induct_induction_notall", _, _, _) -> assert false
-  | Rextension (_, "zenon_induct_fix", [Evar (ty, _); ctx; foldx; unfx; a],
+  | Rextension (_, "zenon_induct_fix", [ty; ctx; foldx; unfx; a],
                 [c], [ [h] ]) ->
      let (args, cstrs, schema) = get_induct ty in
      let typargs = List.map (fun _ -> Cwild) args in
@@ -814,8 +814,8 @@ let get_signatures ps ext_decl =
     | Phrase.Sig (sym, args, res) ->
         set_type sym (Declared res);
     | Phrase.Inductive (ty, args, constrs, schema) ->
-        set_type ty (Declared "Type");  (* FIXME add arguments *)
-        List.iter (fun (x, _) -> set_type x (Declared ty)) constrs;
+        set_type (get_name ty) (Declared "Type");  (* FIXME add arguments *)
+        List.iter (fun (x, _) -> set_type x (Declared (get_name ty))) constrs;
   in
   List.iter do_phrase ps;
   let rec follow_indirect path s =
@@ -913,10 +913,10 @@ let declare_hyp oc h =
       List.iter (fun x -> fprintf oc "%s -> " (tr_ty x)) args;
       fprintf oc "%s.\n" (tr_ty res);
   | Phrase.Inductive (name, args, constrs, schema) ->
-      fprintf oc "Inductive %s" name;
+      fprintf oc "Inductive %s" (get_name name);
       List.iter (fprintf oc " %s") args;
       fprintf oc " : Type :=\n";
-      List.iter (print_constr oc name args) constrs;
+      List.iter (print_constr oc (get_name name) args) constrs;
       fprintf oc " (* %s *)" schema;
       fprintf oc ".\n";
 ;;
