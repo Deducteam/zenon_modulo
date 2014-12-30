@@ -88,7 +88,7 @@ let b_axiom_to_rwrt_prop = [
 let b_axiom_to_rwrt_term = [
   "tuple2_proj_1_def";
   "tuple2_proj_2_def";
-  (*"tuple2_inversion";*)
+  "tuple2_inversion";
   "semicolon_back1";
   "power_1";
   "seq_length_def"; 

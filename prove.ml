@@ -889,9 +889,9 @@ let newnodes_match_trans st fm g _ =
        else
 	 begin
 	   try
-(*	     let compare_size (m1, _) (m2, _) = 
+	     let compare_size (m1, _) (m2, _) = 
 	       - Pervasives.compare (Expr.size m1) (Expr.size m2)
-	     in *)
+	     in 
 	     let tyvar1 = get_type seq in 
 	     let tyvar2 = 
 	       List.map (fun (x, y) -> 
@@ -902,10 +902,11 @@ let newnodes_match_trans st fm g _ =
 	     in 
 	     let subst_l = List.map (fun x -> preunify tyvar1 x) tyvar2 in 
 	     let subst = List.concat subst_l in 
-	   (*  let subst = List.sort compare_size subst in  
-	     let (m, term) = List.hd subst in *)
-             let f (st1,x) (m, e) = make_inst st1 m e g in
-             List.fold_left f (st,false) subst
+	     let subst = List.sort compare_size subst in  
+	     let (m, term) = List.hd subst in 
+	     make_inst st m term g
+(*             let f (st1,x) (m, e) = make_inst st1 m e g in
+             List.fold_left f (st,false) subst *)
 	   with Failure _ -> 
 	     st, false
 	 end
