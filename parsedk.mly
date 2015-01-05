@@ -18,7 +18,14 @@ let eps ty = eapp (tvar "cc.eT" (arr type_type type_type), [ty]);;
 let bool_t = tvar "basics.bool__t" type_type;;
 let bool1 = eapp (bool_t, []);;
 
+(* Global list of type aliases *)
+let ty_aliases = ref [];;
+
 let rec mk_type e = match e with
+  (* Alias unfolding *)
+  | Eapp (Evar ("cc.eT", _), [Evar (x, _)], _) when List.mem_assoc x !ty_aliases ->
+     mk_type (eps (List.assoc x !ty_aliases))
+
   | Evar ("dk_logic.Prop", _) -> type_prop
   | Evar (s, _) -> eapp (tvar s type_type, []) (* See coq parser *)
   (* (eT (Arrow t1 t2)) is convertible with (eT t1 -> eT t2) *)
@@ -154,6 +161,7 @@ let rec get_params e =
 
 %token MUSTUSE
 %token BEGINPROOF
+%token TYPEALIAS
 %token BEGIN_TY
 %token BEGIN_VAR
 %token BEGIN_HYP
@@ -196,6 +204,8 @@ proofheaders:
       { $2 }
   | BEGIN_TY ID proofheaders
       { $3 }
+  | TYPEALIAS ID DEF typ proofheaders
+      { ty_aliases := ($2, $4) :: !ty_aliases; $5 }
   | BEGIN_VAR ID COLON typ END_VAR proofheaders
               { (Phrase.Def (DefReal ("Typing declaration",
                                       $2,

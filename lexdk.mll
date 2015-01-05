@@ -36,6 +36,7 @@ rule token = parse
 
 | "%%begin-auto-proof"                      { BEGINPROOF }
 | "%%type:"                                 { BEGIN_TY }
+| "%%type_alias:"                           { TYPEALIAS }
 | "%%begin-variable:"                       { BEGIN_VAR }
 | "%%begin-hypothesis:"                     { BEGIN_HYP }
 | "%%end-variable"                          { END_VAR }
