@@ -320,9 +320,6 @@ expr:
 
   | expr1
       { $1 }
-
-  | expr PERIOD_LPAREN_ IDENT RPAREN_ 
-      { eapp ("$select_"^$3, [evar $3; $1]) }
 ;
 
 fix:
@@ -349,6 +346,8 @@ expr1:
       { $2 }
   | LBRACE_BAR_ record_expr_list RBRACE_BAR_ 
       { mk_record $2 }
+  | expr PERIOD_LPAREN_ IDENT RPAREN_ 
+      { eapp ("$select_"^$3, [evar $3; $1]) }
   | TRUE
       { etrue }
   | FALSE

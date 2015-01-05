@@ -124,7 +124,7 @@ let newnodes_select e g =
 		  ngoal = g;
 		  nbranches = [| [value] |];
 		}; Stop ]
-	 | _ -> assert false
+	 | _ -> []
        end
     | Enot (Eapp (sym , [l; r], _), _) 
 	 when contains_sub sym "$select_" -> 
@@ -148,7 +148,7 @@ let newnodes_select e g =
 		  ngoal = g;
 		  nbranches = [| [enot value] |];
 		}; Stop ]
-	 | _ -> assert false 
+	 | _ -> [] 
        end
     | Eapp ("=", [Eapp (sym, [l; r], _); b], _) 
 	 when contains_sub sym "$select_" -> 
@@ -172,7 +172,7 @@ let newnodes_select e g =
 		  ngoal = g;
 		  nbranches = [| [eapp ("=", [value; b])] |];
 		}; Stop ]
-	 | _ -> assert false
+	 | _ -> []
        end
     | Eapp ("=", [a; Eapp (sym, [l; r], _)], _) 
 	 when contains_sub sym "$select_" -> 
@@ -196,7 +196,7 @@ let newnodes_select e g =
 		  ngoal = g;
 		  nbranches = [| [eapp ("=", [a; value])] |];
 		}; Stop ]
-	 | _ -> assert false
+	 | _ -> []
        end
     | Enot (Eapp ("=", [Eapp (sym, [l; r], _); b], _), _) 
 	 when contains_sub sym "$select_" -> 
@@ -220,7 +220,7 @@ let newnodes_select e g =
 		  ngoal = g;
 		  nbranches = [| [enot(eapp ("=", [value; b]))] |];
 		}; Stop ]
-	 | _ -> assert false
+	 | _ -> []
        end
     | Enot( Eapp ("=", [a; Eapp (sym, [l; r], _)], _), _) 
 	 when contains_sub sym "$select_" -> 
@@ -244,7 +244,7 @@ let newnodes_select e g =
 		  ngoal = g;
 		  nbranches = [| [enot(eapp ("=", [a; value]))] |];
 		}; Stop ]
-	 | _ -> assert false
+	 | _ -> []
        end
     | Eapp (sym, [l; r], _) 
 	 when contains_sub sym "Is_true**$select_" -> 
@@ -268,7 +268,7 @@ let newnodes_select e g =
 		  ngoal = g;
 		  nbranches = [| [istrue value] |];
 		}; Stop ]
-	 | _ -> assert false 
+	 | _ -> [] 
        end
     | Enot (Eapp (sym, [l; r], _), _) 
 	 when contains_sub sym "Is_true**$select_" -> 
@@ -292,7 +292,7 @@ let newnodes_select e g =
 		  ngoal = g;
 		  nbranches = [| [isfalse value] |];
 		}; Stop ]
-	 | _ -> assert false 
+	 | _ -> []
        end
     | _ -> []
   with 
