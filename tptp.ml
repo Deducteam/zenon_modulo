@@ -67,10 +67,10 @@ let rec make_annot_expr e =
   match e with
   | Evar _ -> e
   | Emeta _  -> e
-  | Eapp (Evar(s,_), l, _) ->
+  | Eapp (Evar(s,_) as v, l, _) ->
       let s = tptp_to_coq s in
       let l = List.map make_annot_expr l in
-      eapp (evar s, l)
+      eapp (tvar s (get_type v), l)
   | Eapp(_) -> assert false
   | Earrow _ -> e
   | Enot (e,_) -> enot (make_annot_expr e)

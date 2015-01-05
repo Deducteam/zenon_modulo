@@ -135,7 +135,7 @@ let type_type =
     typ = None;
 })
 
-let v_type_prop = Evar("$o", mkpriv 0 ["$o"] 1 0 [] type_type)
+let v_type_prop = Evar("Prop", mkpriv 0 ["$o"] 1 0 [] type_type)
 let type_prop = Eapp(v_type_prop, [], mkpriv 0 [] 1 0 [] type_type)
 
 let v_type_none = Evar("$none", mkpriv 0 ["$none"] 1 0 [] type_type)
@@ -172,6 +172,12 @@ let get_fv e = (get_priv e).free_vars;;
 let get_size e = (get_priv e).size;;
 let get_taus e = (get_priv e).taus;;
 let get_metas e = (get_priv e).metas;;
+let get_unsafe_type e =
+  if e == v_type_type then assert false
+  else match (get_priv e).typ with
+       | Some ty -> ty
+       | None -> type_type
+;;
 let get_type e =
   if e == type_type || e == v_type_type
   then raise Trying_to_type_type
@@ -563,12 +569,14 @@ let rec xpreunify accu e1 e2 =
   | e, Emeta (m1, _) ->
      begin
        try
-	 if not (e == List.assq m1 accu) then
-	   raise Mismatch
-	 else
-	   accu
-       with Not_found ->
-	    (m1, e) :: accu
+     if not (e == List.assq m1 accu) then
+       raise Mismatch
+     else
+       accu
+       with Not_found -> begin match e with
+       | Emeta(m2, _) when get_size m1 > get_size m2 -> (m2, e) :: accu
+       | _ -> (m1, e) :: accu
+       end
      end
   | _, _ -> raise Mismatch
 ;;
@@ -653,7 +661,7 @@ let rec priv_app s args =
   let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
   let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
   Log.debug 15 "Typing %a ::: %a" print s print (get_type s);
-  List.iter (fun x -> Log.debug 15 " |- %a ::: %a" print x print (get_type x)) args;
+  List.iter (fun x -> Log.debug 15 " |- %a ::: %a" print x print (get_unsafe_type x)) args;
   let typ = type_app (get_type s) args in
   mkpriv skel fv sz taus metas typ
 
@@ -670,7 +678,7 @@ and inst_app map s args = match s, args with
   | _ -> substitute_safe map s, args
 
 and type_app s args =
-    if List.memq type_none (s :: List.map get_type args) then
+    if s == type_none || List.memq type_none (List.map get_type args) then
         type_none
     else match inst_app [] s args with
     | Earrow(l, ret, _), args' ->
@@ -715,8 +723,12 @@ and substitute_unsafe map e =
      earrow (List.map (substitute_unsafe map) args) (substitute_unsafe map ret)
   (* Equality symbol need to be re-generated with correct type, 
      in case we have substituted a type argument *)
-  | Eapp (Evar ("=", _), [a; b], _) -> 
-     eeq (substitute_unsafe map a) (substitute_unsafe map b)
+  | Eapp (Evar ("=", _) as s, ([a; b] as args), _) ->
+    begin try
+        eapp (s, List.map (substitute_unsafe map) args)
+    with Type_Mismatch _ ->
+        eeq (substitute_unsafe map a) (substitute_unsafe map b)
+    end
   | Eapp (s, args, _) -> 
      eapp (s, List.map (substitute_unsafe map) args)
   | Enot (f, _) -> 
@@ -745,7 +757,6 @@ and substitute_safe map e =
 
 let substitute = substitute_unsafe;;
 
-(*
 let rec substitute_meta map e =
   match e with
   | Evar (v, _) -> e
@@ -764,6 +775,7 @@ let rec substitute_meta map e =
   | Elam (v, f, _) -> elam (v, substitute_meta map f)
 ;;
 
+(*
 let rec substitute_expr map e =
   match e with
   | _ when e == (fst map) -> snd map
@@ -908,8 +920,8 @@ let rec get_tvar_aux accu e =
   match e with 
   | Evar _ 
   | Emeta _ -> if get_type e == type_type && not (List.memq e accu) 
-	       then e :: accu
-	       else accu
+           then e :: accu
+           else accu
   | Eapp (_, args, _) -> 
      List.fold_left get_tvar_aux accu args
   | Enot (e1, _) -> get_tvar_aux accu e1
