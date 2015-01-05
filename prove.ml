@@ -245,20 +245,11 @@ let make_notequiv st sym (p, g) (np, ng) =
       else 
 	begin 
 	  try 
-	    Log.debug 20 "Not Equiv 2 '%a' and '%a'" 
-		      Print.pp_expr p 
-		      Print.pp_expr np;
-	    Log.debug 20 " |- nb tvar p  = %i" (Expr.nb_tvar p);
-	    Log.debug 20 " |- nb tvar np = %i" (Expr.nb_tvar nnp);
 	    let compare_size (m1, _) (m2, _) = 
 	      - Pervasives.compare (Expr.size m1) (Expr.size m2)
 	    in
 	    let (tyvar1, _) = Expr.split_list (Expr.nb_tvar p) args1 in 
 	    let (tyvar2, _) = Expr.split_list (Expr.nb_tvar nnp) args2 in 
-	    Log.debug 20 " |- tyvar 1";
-	    List.iter (fun x -> Log.debug 20 "  > '%a'" Print.pp_expr x) tyvar1;
-	    Log.debug 20 " |- tyvar 2";	    
-	    List.iter (fun x -> Log.debug 20 "  > '%a'" Print.pp_expr x) tyvar2;
 	    let subst = Expr.preunify_list tyvar1 tyvar2 in
 	    assert (subst <> []);
 	    let subst = List.sort compare_size subst in 
@@ -425,8 +416,6 @@ let newnodes_eq_str st fm g _ =
 ;;
 
 let newnodes_jtree st fm g _ =
-  Log.debug 17 "Newnodes Jtree '%a' ::: %a" 
-	    Print.pp_expr fm Print.pp_expr (get_type fm);
   match fm with
   | Eand _ | Enot (Eor _, _) | Enot (Eimply _, _)
     when is_conj fm 3 == 0 ->
