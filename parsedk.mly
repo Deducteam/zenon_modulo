@@ -63,8 +63,7 @@ let rec mk_pat (constr : string) (arity : int) (body : expr) ret_ty : expr =
 ;;
 
 let mk_prod a b =
-  (* eps (eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type), [a; b])) *)
-  eps (mk_type (evar "abst_T"))
+  eps (eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type), [a; b]))
 ;;
 
 (* create an expression application,
