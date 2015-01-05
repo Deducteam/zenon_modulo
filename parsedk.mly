@@ -18,6 +18,8 @@ let eps ty = eapp (tvar "cc.eT" (arr type_type type_type), [ty]);;
 let bool_t = tvar "basics.bool__t" type_type;;
 let bool1 = eapp (bool_t, []);;
 
+let mk_const_t s = eapp (tvar s type_type, []);;
+
 (* Global list of type aliases *)
 let ty_aliases = ref [];;
 
@@ -27,7 +29,7 @@ let rec mk_type e = match e with
      mk_type (eps (List.assoc x !ty_aliases))
 
   | Evar ("dk_logic.Prop", _) -> type_prop
-  | Evar (s, _) -> eapp (tvar s type_type, []) (* See coq parser *)
+  | Evar (s, _) -> mk_const_t s (* See coq parser *)
   (* (eT (Arrow t1 t2)) is convertible with (eT t1 -> eT t2) *)
   | Eapp (Evar ("cc.eT", _), [Eapp (Evar ("cc.Arrow", _), [t1; t2], _)], _) ->
      arr (mk_type (eps t1)) (mk_type (eps t2))
