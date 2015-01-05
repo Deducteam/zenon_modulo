@@ -216,6 +216,7 @@ let phrase o ph =
       List.iter (fun x -> pro " %s" x) args;
       pro ") %s\n" res;
   | Phrase.Inductive _ -> assert false (* FIXME *)
+  | Phrase.Rew _ -> ()
   end;
   flush ();
 ;;

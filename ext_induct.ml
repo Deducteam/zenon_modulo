@@ -809,6 +809,7 @@ let add_phrase x =
   | Hyp _ -> ()
   | Def _ -> ()
   | Sig _ -> ()
+  | Rew _ -> ()
   | Inductive (ty, args, constrs, schema) ->
      add_induct_def ty args constrs schema;
 ;;
