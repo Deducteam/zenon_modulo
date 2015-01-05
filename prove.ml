@@ -241,7 +241,7 @@ let make_notequiv st sym (p, g) (np, ng) =
           assert (subst <> []);
           let (m, term) = List.hd subst in
           fst (make_inst st m term (min g ng))
-        with Unsplitable -> st
+        with Unsplitable | Mismatch -> st
       end
   | _ -> assert false
 ;;
@@ -402,8 +402,6 @@ let newnodes_eq_str st fm g _ =
 ;;
 
 let newnodes_jtree st fm g _ =
-  Log.debug 17 "Newnodes Jtree '%a' ::: %a" 
-    Print.pp_expr fm Print.pp_expr (get_type fm);
   match fm with
   | Eand _ | Enot (Eor _, _) | Enot (Eimply _, _)
     when is_conj fm 3 == 0 ->
