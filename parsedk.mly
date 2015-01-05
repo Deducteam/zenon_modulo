@@ -76,6 +76,10 @@ let mk_eapp : string * expr list -> expr =
      eapp (tvar "cc.Arrow" (earrow [type_type; type_type] type_type), [t1; t2])
   | "cc.eT", [t] ->
      eapp (tvar "cc.eT" (arr type_type type_type), [t])
+
+  | "dk_tuple.prod", [t1; t2] ->
+     eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type), [mk_type t1; mk_type t2])
+
   | "dk_tuple.pair", [t1; t2; e1; e2] ->
      let ty =
        let dummy = tvar "__dummypairvar" type_type in
