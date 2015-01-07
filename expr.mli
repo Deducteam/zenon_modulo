@@ -150,6 +150,7 @@ val get_taus : expr -> int;;   (* tau nesting level *)
 val has_metas : expr -> bool;;
 val count_metas : expr -> int;;
 val get_metas : expr -> expr list;;
+val get_submetas : expr -> expr list;;
 val get_fv : expr -> string list;;
 
 type goalness = int;;

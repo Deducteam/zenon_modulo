@@ -34,6 +34,7 @@ and private_info = {
   size : int;
   taus : int;           (* depth of tau nesting *)
   metas : expr list;
+  submetas : expr list; (* all metas for all subterms *)
   typ : expr option;
 };;
 
@@ -101,13 +102,14 @@ and k_lam   = 0x24adcb3
 ;;
 
 
-let mkpriv skel fv sz taus metas typ = {
+let mkpriv skel fv sz taus metas submetas typ = {
   hash = Hashtbl.hash (skel, fv);
   skel_hash = skel;
   free_vars = fv;
   size = sz;
   taus = taus;
   metas = metas;
+  submetas = submetas;
   typ = Some typ;
 };;
 
@@ -121,6 +123,7 @@ let rec v_type_type = Evar("$tType", {
     size = 1;
     taus = 0;
     metas = [];
+    submetas = [];
     typ = None;
 });;
 
@@ -132,18 +135,19 @@ let type_type =
     size = 1;
     taus = 0;
     metas = [];
+    submetas = [];
     typ = None;
 })
 
-let v_type_prop = Evar("Prop", mkpriv 0 ["$o"] 1 0 [] type_type)
-let type_prop = Eapp(v_type_prop, [], mkpriv 0 [] 1 0 [] type_type)
+let v_type_prop = Evar("Prop", mkpriv 0 ["$o"] 1 0 [] [] type_type)
+let type_prop = Eapp(v_type_prop, [], mkpriv 0 [] 1 0 [] [] type_type)
 
-let v_type_none = Evar("$none", mkpriv 0 ["$none"] 1 0 [] type_type)
-let type_none = Eapp(v_type_none, [], mkpriv 0 [] 1 0 [] type_type)
+let v_type_none = Evar("$none", mkpriv 0 ["$none"] 1 0 [] [] type_type)
+let type_none = Eapp(v_type_none, [], mkpriv 0 [] 1 0 [] [] type_type)
 
 (* Expr creation *)
-let priv_true = mkpriv k_true [] 1 0 [] type_prop;;
-let priv_false = mkpriv k_false [] 1 0 [] type_prop;;
+let priv_true = mkpriv k_true [] 1 0 [] [] type_prop;;
+let priv_false = mkpriv k_false [] 1 0 [] [] type_prop;;
 
 let get_priv = function
   | Evar (_, h) -> h
@@ -172,6 +176,7 @@ let get_fv e = (get_priv e).free_vars;;
 let get_size e = (get_priv e).size;;
 let get_taus e = (get_priv e).taus;;
 let get_metas e = (get_priv e).metas;;
+let get_submetas e = (get_priv e).submetas;;
 let get_unsafe_type e =
   if e == v_type_type then assert false
   else match (get_priv e).typ with
@@ -242,7 +247,7 @@ let prop_app l =
 (* Since expressions are hashconsed, actual constructors are defined a bit later *)
 (* Additionally, the application needs more work and is defined together with substitution *)
 let priv_var s t =
-  mkpriv 0 [s] 1 0 [] t
+  mkpriv 0 [s] 1 0 [] [] t
 ;;
 let rec priv_arrow args ret =
   let comb_skel accu e = combine (get_skel e) accu in
@@ -251,14 +256,16 @@ let rec priv_arrow args ret =
   let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
   let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
   let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
-  mkpriv skel fv sz taus metas type_type
+  let submetas = List.fold_left (fun a e -> union (get_submetas e) a) [] args in 
+  mkpriv skel fv sz taus metas submetas type_type
 ;;
 let priv_meta e =
-  mkpriv (combine k_meta (get_skel e)) [] 1 0 [e] (get_meta_type e)
+  mkpriv (combine k_meta (get_skel e)) [] 1 0 [e] 
+	 (get_metas e) (get_meta_type e)
 ;;
 let priv_not e =
   mkpriv (combine k_not (get_skel e)) (get_fv e) (get_size e + 1)
-         (get_taus e) (get_metas e) (prop_app [get_type e])
+         (get_taus e) (get_metas e) (get_submetas e) (prop_app [get_type e])
 ;;
 let priv_and e1 e2 =
   mkpriv (combine k_and (combine (get_skel e1) (get_skel e2)))
@@ -266,6 +273,7 @@ let priv_and e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (union (get_submetas e1) (get_submetas e2))
          (prop_app [get_type e1; get_type e2])
 ;;
 let priv_or e1 e2 =
@@ -274,6 +282,7 @@ let priv_or e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (union (get_submetas e1) (get_submetas e2))
          (prop_app [get_type e1; get_type e2])
 ;;
 let priv_imply e1 e2 =
@@ -282,6 +291,7 @@ let priv_imply e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (union (get_submetas e1) (get_submetas e2))
          (prop_app [get_type e1; get_type e2])
 ;;
 let priv_equiv e1 e2 =
@@ -290,11 +300,13 @@ let priv_equiv e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (union (get_submetas e1) (get_submetas e2))
          (prop_app [get_type e1; get_type e2])
 ;;
 let priv_all v e =
   mkpriv (combine k_all (combine (get_hash (get_type v)) (get_skel e)))
-         (remove v (get_fv e)) (1 + get_size e) (get_taus e) (get_metas e)
+         (remove v (get_fv e)) (1 + get_size e) (get_taus e) (get_metas e) 
+	 (get_submetas e)
          (if get_type e == type_type then type_type
           else if get_type e == type_prop then type_prop
           else if get_type e == type_none then type_none
@@ -304,12 +316,12 @@ let priv_all v e =
 let priv_ex v e =
   mkpriv (combine k_ex (combine (get_hash (get_type v)) (get_skel e)))
          (remove v (get_fv e)) (1 + get_size e) (get_taus e) (get_metas e)
-         (prop_app [get_type e])
+         (get_submetas e) (prop_app [get_type e])
 ;;
 let priv_tau v e =
   mkpriv (combine k_tau (combine (get_hash (get_type v)) (get_skel e)))
          (remove v (get_fv e)) 1 (1 + get_taus e) (get_metas e)
-         (get_type v)
+         (get_submetas e) (get_type v)
 ;;
 
 (************************)
@@ -523,7 +535,7 @@ let exor (e1,e2) = eor (eand (e1, enot e2), eand (enot e1, e2));;
 
 let priv_lam v e =
   mkpriv (combine k_lam (combine (get_hash (get_type v)) (get_skel e)))
-         (remove v (get_fv e)) 1 (get_taus e) (get_metas e)
+         (remove v (get_fv e)) 1 (get_taus e) (get_metas e) (get_submetas e)
          (add_arg (get_type v) (get_type e))
 
 let elam (v, e) = he_merge (Elam (v, e, priv_lam v e))
@@ -660,10 +672,11 @@ let rec priv_app s args =
   let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
   let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
   let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
+  let submetas = List.fold_left (fun a e -> union (get_submetas e) a) [] args in 
   Log.debug 15 "Typing %a ::: %a" print s print (get_type s);
   List.iter (fun x -> Log.debug 15 " |- %a ::: %a" print x print (get_unsafe_type x)) args;
   let typ = type_app (get_type s) args in
-  mkpriv skel fv sz taus metas typ
+  mkpriv skel fv sz taus metas submetas typ
 
 and eapp (s, args) = he_merge (Eapp (s, args, priv_app s args))
 
