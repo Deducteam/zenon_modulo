@@ -748,7 +748,7 @@ let newnodes_match_congruence st fm g _ =
         let subst = List.sort compare_size subst in 
         let (m, term) = List.hd subst in
         make_inst st m term g
-      with Unsplitable -> st, false
+      with Unsplitable | Mismatch -> st, false
     end
         (*
   FIXME determiner si c'est utile...
@@ -879,112 +879,123 @@ let newnodes_match_trans st fm g _ =
             st, false
         end
     | Eapp (Evar("=",_), [e1; e2], _) ->
-      Index.add_trans fm;
-      let h1 = Index.get_head e1 in
-      let h2 = Index.get_head e2 in
-      let select a (b, c) = 
-        match a, b with 
-        | Eapp (s1, _, _), Enot (Eapp (s2, _, _), _) -> 
-          get_type s1 == get_type s2
-        | _ -> assert false 
-      in
-      let matches_ll = 
-        List.filter (select fm) (Index.find_all_negtrans_left h1) in
-      let matches_rr = 
-        List.filter (select fm) (Index.find_all_negtrans_right h2) in
-      let matches_lr = 
-        List.filter (select fm) (Index.find_all_negtrans_left h2) in
-      let matches_rl = 
-        List.filter (select fm) (Index.find_all_negtrans_right h1) in
-      let nodes = List.flatten [
-          List.map (mknode_transeq false fmg) matches_ll;
-          List.map (mknode_transeq true fmg) matches_lr;
-          List.map (mknode_transeq true fmg) matches_rl;
-          List.map (mknode_transeq false fmg) matches_rr;
-        ] in
-
-      add_node_list st nodes, false
+       begin
+	 try
+	   Index.add_trans fm;
+	   let h1 = Index.get_head e1 in
+	   let h2 = Index.get_head e2 in
+	   let select a (b, c) = 
+             match a, b with 
+             | Eapp (s1, _, _), Enot (Eapp (s2, _, _), _) -> 
+		get_type s1 == get_type s2
+             | _ -> assert false 
+	   in
+	   let matches_ll = 
+             List.filter (select fm) (Index.find_all_negtrans_left h1) in
+	   let matches_rr = 
+             List.filter (select fm) (Index.find_all_negtrans_right h2) in
+	   let matches_lr = 
+             List.filter (select fm) (Index.find_all_negtrans_left h2) in
+	   let matches_rl = 
+             List.filter (select fm) (Index.find_all_negtrans_right h1) in
+	   let nodes = List.flatten [
+			   List.map (mknode_transeq false fmg) matches_ll;
+			   List.map (mknode_transeq true fmg) matches_lr;
+			   List.map (mknode_transeq true fmg) matches_rl;
+			   List.map (mknode_transeq false fmg) matches_rr;
+			 ] in
+	   add_node_list st nodes, false
+	 with Not_found -> st, false
+       end
     | Eapp (s, [e1; e2], _) when Eqrel.trans s ->
-      Index.add_trans fm;
-      let h1 = Index.get_head e1 in
-      let h2 = Index.get_head e2 in
-      let select a (b, c) = 
-        match a, b with 
-        | Eapp (s1, _, _), Enot (Eapp (s2, _, _), _) -> 
-          get_type s1 == get_type s2
-        | _ -> assert false 
-      in
-      let matches_ll = 
-        List.filter (select fm) (Index.find_negtrans_left s h1) in
-      let matches_rr = 
-        List.filter (select fm) (Index.find_negtrans_right s h2) in
-      let matches_lr =
-        if Eqrel.sym s 
-        then List.filter (select fm) (Index.find_negtrans_left s h2) 
-        else []
-      in
-      let matches_rl =
-        if Eqrel.sym s 
-        then List.filter (select fm) (Index.find_negtrans_right s h1) 
-        else []
-      in
-      let nodes = List.flatten [
-          List.map (mknode_trans false fmg) matches_ll;
-          List.map (mknode_trans true fmg) matches_lr;
-          List.map (mknode_trans true fmg) matches_rl;
-          List.map (mknode_trans false fmg) matches_rr;
-        ] in
-      add_node_list st nodes, false
+       begin
+	 try 
+	   Index.add_trans fm;
+	   let h1 = Index.get_head e1 in
+	   let h2 = Index.get_head e2 in
+	   let select a (b, c) = 
+             match a, b with 
+             | Eapp (s1, _, _), Enot (Eapp (s2, _, _), _) -> 
+		get_type s1 == get_type s2
+             | _ -> assert false 
+	   in
+	   let matches_ll = 
+             List.filter (select fm) (Index.find_negtrans_left s h1) in
+	   let matches_rr = 
+             List.filter (select fm) (Index.find_negtrans_right s h2) in
+	   let matches_lr =
+             if Eqrel.sym s 
+             then List.filter (select fm) (Index.find_negtrans_left s h2) 
+             else []
+	   in
+	   let matches_rl =
+             if Eqrel.sym s 
+             then List.filter (select fm) (Index.find_negtrans_right s h1) 
+             else []
+	   in
+	   let nodes = List.flatten [
+			   List.map (mknode_trans false fmg) matches_ll;
+			   List.map (mknode_trans true fmg) matches_lr;
+			   List.map (mknode_trans true fmg) matches_rl;
+			   List.map (mknode_trans false fmg) matches_rr;
+			 ] in
+	   add_node_list st nodes, false
+	 with Not_found -> st, false
+       end
     | Enot (Eapp (Evar(s',_) as s, [e1; e2], _), _) when Eqrel.trans s ->
-      Index.add_negtrans fm;
-      let h1 = Index.get_head e1 in
-      let h2 = Index.get_head e2 in
-      let select a (b, c) = 
-        match a, b with 
-        | Enot (Eapp (s1, _, _), _), Eapp (s2, _, _) -> 
-          get_type s1 == get_type s2
-        | _ -> assert false 
-      in
-      let matches_ll = 
-        List.filter (select fm) (Index.find_trans_left s h1) in
-      let matches_rr = 
-        List.filter (select fm) (Index.find_trans_right s h2) in
-      let matches_lr =
-        if Eqrel.sym s 
-        then List.filter (select fm) (Index.find_trans_right s h1) 
-        else []
-      in
-      let matches_rl =
-        if Eqrel.sym s 
-        then List.filter (select fm) (Index.find_trans_left s h2) 
-        else []
-      in
-      let nodes = List.flatten [
-          List.map (mknode_negtrans false fmg) matches_ll;
-          List.map (mknode_negtrans true fmg) matches_lr;
-          List.map (mknode_negtrans true fmg) matches_rl;
-          List.map (mknode_negtrans false fmg) matches_rr;
-        ] in
-      let eqnodes =
-        if s' =%= "=" then [] else
-          let eq1 = tvar "=" (earrow [get_type e1; get_type e1] type_prop) in
-          let eq2 = tvar "=" (earrow [get_type e2; get_type e2] type_prop) in
-          let eqmatches_ll = 
-            List.filter (select fm) (Index.find_trans_left eq1 h1) in
-          let eqmatches_rr = 
-            List.filter (select fm) (Index.find_trans_right eq2 h2) in
-          let eqmatches_lr = 
-            List.filter (select fm) (Index.find_trans_right eq1 h1) in
-          let eqmatches_rl = 
-            List.filter (select fm) (Index.find_trans_left eq2 h2) in
-          List.flatten [
-            List.map (mknode_negtranseq false fmg) eqmatches_ll;
-            List.map (mknode_negtranseq true fmg) eqmatches_lr;
-            List.map (mknode_negtranseq true fmg) eqmatches_rl;
-            List.map (mknode_negtranseq false fmg) eqmatches_rr;
-          ]
-      in
-      add_node_list st (eqnodes @@ nodes), false
+       begin
+	 try 
+	   Index.add_negtrans fm;
+	   let h1 = Index.get_head e1 in
+	   let h2 = Index.get_head e2 in
+	   let select a (b, c) = 
+             match a, b with 
+             | Enot (Eapp (s1, _, _), _), Eapp (s2, _, _) -> 
+		get_type s1 == get_type s2
+             | _ -> assert false 
+	   in
+	   let matches_ll = 
+             List.filter (select fm) (Index.find_trans_left s h1) in
+	   let matches_rr = 
+             List.filter (select fm) (Index.find_trans_right s h2) in
+	   let matches_lr =
+             if Eqrel.sym s 
+             then List.filter (select fm) (Index.find_trans_right s h1) 
+             else []
+	   in
+	   let matches_rl =
+             if Eqrel.sym s 
+             then List.filter (select fm) (Index.find_trans_left s h2) 
+             else []
+	   in
+	   let nodes = List.flatten [
+			   List.map (mknode_negtrans false fmg) matches_ll;
+			   List.map (mknode_negtrans true fmg) matches_lr;
+			   List.map (mknode_negtrans true fmg) matches_rl;
+			   List.map (mknode_negtrans false fmg) matches_rr;
+			 ] in
+	   let eqnodes =
+             if s' =%= "=" then [] else
+               let eq1 = tvar "=" (earrow [get_type e1; get_type e1] type_prop) in
+               let eq2 = tvar "=" (earrow [get_type e2; get_type e2] type_prop) in
+               let eqmatches_ll = 
+		 List.filter (select fm) (Index.find_trans_left eq1 h1) in
+               let eqmatches_rr = 
+		 List.filter (select fm) (Index.find_trans_right eq2 h2) in
+               let eqmatches_lr = 
+		 List.filter (select fm) (Index.find_trans_right eq1 h1) in
+               let eqmatches_rl = 
+		 List.filter (select fm) (Index.find_trans_left eq2 h2) in
+               List.flatten [
+		   List.map (mknode_negtranseq false fmg) eqmatches_ll;
+		   List.map (mknode_negtranseq true fmg) eqmatches_lr;
+		   List.map (mknode_negtranseq true fmg) eqmatches_rl;
+		   List.map (mknode_negtranseq false fmg) eqmatches_rr;
+		 ]
+	   in
+	   add_node_list st (eqnodes @@ nodes), false
+	 with Not_found -> st, false
+       end
     | _ -> st, false
   with Index.No_head -> st, false
 ;;
