@@ -873,8 +873,9 @@ let newnodes_match_trans st fm g _ =
             let subst = List.concat subst_l in
             let subst = List.sort compare_size subst in
             (* TODO: DO ALL substitutions in subst, not just the head *)
-            let (m, term) = List.hd subst in
-            make_inst st m term g
+            (*let (m, term) = List.hd subst in
+            make_inst st m term g*)
+	    List.fold_left (fun x (y, z) -> fst (make_inst x y z g)) st subst, false
           with Failure _ ->
             st, false
         end
