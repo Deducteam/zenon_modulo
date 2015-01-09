@@ -115,23 +115,23 @@ let make_nimpl p q n0 =
 ;;
 
 let make_nall nap n0 =
-  let (v, t, p) =
+  let (v, p) =
     match nap with
-    | Enot (Eall (v, t, body, _), _) -> (v, t, body)
+    | Enot (Eall (v, body, _), _) -> (v, body)
     | _ -> assert false
   in
-  let tnp = etau (v, t, enot p) in
+  let tnp = etau (v, enot p) in
   let nptnp = enot (substitute [(v, tnp)] p) in
   make_node [nap] (NotAll nap) [[nptnp]] [n0]
 ;;
 
 let make_ex ep n0 =
-  let (v, t, p) =
+  let (v, p) =
     match ep with
-    | Eex (v, t, body, _) -> (v, t, body)
+    | Eex (v, body, _) -> (v, body)
     | _ -> assert false
   in
-  let tp = etau (v, t, p) in
+  let tp = etau (v, p) in
   let ptp = substitute [(v, tp)] p in
   make_node [ep] (Ex ep) [[ptp]] [n0]
 ;;
@@ -139,7 +139,7 @@ let make_ex ep n0 =
 let make_all ap a n0 =
   let (v, p) =
     match ap with
-    | Eall (v, _, body, _) -> (v, body)
+    | Eall (v, body, _) -> (v, body)
     | _ -> assert false
   in
   let pa = substitute [(v, a)] p in
@@ -149,7 +149,7 @@ let make_all ap a n0 =
 let make_nex nep a n0 =
   let (v, p) =
     match nep with
-    | Enot (Eall (v, _, body, _), _) -> (v, body)
+    | Enot (Eall (v, body, _), _) -> (v, body)
     | _ -> assert false
   in
   let npa = enot (substitute [(v, a)] p) in
@@ -178,7 +178,7 @@ let make_neqv p q n0 n1 =
 ;;
 
 let mk_neqs l1 l2 =
-  try List.map2 (fun x y -> [enot (eapp (eeq, [x; y]))]) l1 l2
+  try List.map2 (fun x y -> [enot (eeq x y)]) l1 l2
   with Invalid_argument _ -> assert false
 ;;
 
@@ -208,7 +208,7 @@ let make_pnps r rab nrcd n0 n1 =
     | _ -> assert false
   in
   make_node [rab; nrcd] (P_NotP_sym (r, rab, nrcd))
-            [[enot (eapp (eeq, [b; c]))]; [enot (eapp (eeq, [a; d]))]] [n0; n1]
+            [[enot (eeq b c)]; [enot (eeq a d)]] [n0; n1]
 ;;
 
 let make_neql fa fb ns =
@@ -222,7 +222,7 @@ let make_neql fa fb ns =
     | Eapp (Evar(g,_), bb, _) -> assert (g = f); bb
     | _ -> assert false
   in
-  make_node [enot (eapp (eeq, [fa; fb]))] (NotEqual (fa, fb)) (mk_neqs aa bb) ns
+  make_node [enot (eeq fa fb)] (NotEqual (fa, fb)) (mk_neqs aa bb) ns
 ;;
 
 let make_def d folded unfolded n0 =
@@ -230,12 +230,12 @@ let make_def d folded unfolded n0 =
 ;;
 
 let make_conglr p a b n0 =
-  make_node [apply p a; eapp (eeq, [a; b])] (CongruenceLR (p, a, b))
+  make_node [apply p a; eeq a b] (CongruenceLR (p, a, b))
             [[apply p b]] [n0]
 ;;
 
 let make_congrl p a b n0 =
-  make_node [apply p a; eapp (eeq, [b; a])] (CongruenceRL (p, a, b))
+  make_node [apply p a; eeq b a] (CongruenceRL (p, a, b))
             [[apply p b]] [n0]
 ;;
 

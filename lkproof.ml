@@ -66,20 +66,20 @@ let rec rm a list =
 let scaxiom (e, g) = e :: g, e, SCaxiom e
 let scfalse (g, e) = efalse :: g, e, SCfalse
 let sctrue (g) = g, etrue, SCtrue
-let sceqref (a, g) = g, eapp (evar "=", [a; a]), SCeqref (a)
+let sceqref (a, g) = g, eeq a a, SCeqref (a)
 let sceqsym (a, b, g) =
-  eapp (evar "=", [a; b]) :: g, eapp (evar "=", [b; a]), SCeqsym (a, b)
+  eeq a b :: g, eeq b a, SCeqsym (a, b)
 let sceqprop (e1, e2, g) =
   match e1, e2 with
   | Eapp (p, ts, _), Eapp (q, us, _) when p = q ->
-    e1 :: g @ List.map2 (fun t u -> eapp (evar "=", [t; u])) ts us, e2,
+    e1 :: g @ List.map2 (fun t u -> eeq t u) ts us, e2,
     SCeqprop (e1, e2)
   | _, _ -> assert false
 let sceqfunc (e1, e2, g) =
   match e1, e2 with
   | Eapp (p, ts, _), Eapp (q, us, _) when p = q ->
-    g @ List.map2 (fun t u -> eapp (evar "=", [t; u])) ts us,
-    eapp (evar "=", [e1; e2]), SCeqfunc (e1, e2)
+    g @ List.map2 (fun t u -> eeq t u) ts us,
+    eeq e1 e2, SCeqfunc (e1, e2)
   | _, _ -> assert false
 let scrweak (e, proof) =
   let g, c, rule = proof in
@@ -119,14 +119,14 @@ let sclnot (e, proof) =
   (enot e) :: g, efalse, SClnot (e, proof)
 let sclall (e1, t, proof) =
   match e1 with
-  | Eall (x, ty, p, _) ->
+  | Eall (x, p, _) ->
     let (g, c, rule) = proof in
     assert (ingamma (substitute [(x, t)] p) proof);
     e1 :: rm (substitute [(x, t)] p) g, c, SClall (e1, t, proof)
   | _ -> assert false
 let sclex (e1, v, proof) =
   match e1 with
-  | Eex (x, ty, p, _) ->
+  | Eex (x, p, _) ->
     let (g, c, rule) = proof in
     assert (ingamma (substitute [(x, v)] p) proof);
     e1 :: rm (substitute [(x, v)] p) g, c, SClex (e1, v, proof)
@@ -152,13 +152,13 @@ let scrnot (e, proof) =
   rm e g, enot e, SCrnot (e, proof)
 let scrall (e1, v, proof) =
   match e1 with
-  | Eall (x, ty, p, _) ->
+  | Eall (x, p, _) ->
     let (g, c, rule) = proof in
     g, e1, SCrall (e1, v, proof)
   | _ -> assert false
 let screx (e1, t, proof) =
   match e1 with
-  | Eex (x, ty, p, _) ->
+  | Eex (x, p, _) ->
     let (g, c, rule) = proof in
     g, e1, SCrex (e1, t, proof)
   | _ -> assert false

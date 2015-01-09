@@ -1,7 +1,8 @@
 open Printf
+open Expr
 
 type var = string
-type ty = Type.t
+type ty = Expr.expr
 
 type term =
   | Coqvar of var
@@ -29,12 +30,19 @@ type line =
   | Coqprelude of string
   | Coqrewrite of (term * term) list * term * term
 
-let term_of_ty ty = Coqvar (Type.to_string ty)
+let rec term_of_ty = function
+  | Evar (s, _) -> Coqvar s
+  | Eapp (s, l, _) -> Coqapp (List.map term_of_ty (s :: l))
+  | Earrow ([], ret, _) -> term_of_ty ret
+  | Earrow (hd :: tl, ret, _) ->
+     Coqarrow (term_of_ty hd, term_of_ty (earrow tl ret))
+  | e -> Coqvar (Print.sexpr e)
+
 let mk_var var = Coqvar var
 let mk_lam var t term = Coqlam (var, t, term)
 let mk_lams vars types e =
   List.fold_left2 (fun term var t -> mk_lam var t term) e (List.rev vars) (List.rev types)
-let mk_pi var ty term = Coqpi (var, term_of_ty ty, term)
+let mk_pi var ty term = Coqpi (var, ty, term)
 let mk_app t ts = Coqapp (t :: ts)
 let mk_app2 t1 t2 = mk_app t1 [t2]
 let mk_app3 t1 t2 t3 = mk_app t1 [t2; t3]

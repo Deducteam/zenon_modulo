@@ -22,22 +22,22 @@ let mkequiv e el = myfold eequiv e el;;
 let mkrimply e el = myfold (fun (a, b) -> eimply (b, a)) e el;;
 
 let mk_eall (vars, typ, body) =
-  let f v b = eall (evar v, typ, b) in
+  let f v b = eall (tvar v typ, b) in
   List.fold_right f vars body
 ;;
 
 let mk_eex (vars, typ, body) =
-  let f v b = eex (evar v, typ, b) in
+  let f v b = eex (tvar v typ, b) in
   List.fold_right f vars body
 ;;
 
 let mk_elam (vars, typ, body) =
-  let f v b = elam (evar v, typ, b) in
+  let f v b = elam (tvar v typ, b) in
   List.fold_right f vars body
 ;;
 
 let mk_pattern constr vars body =
-  mk_elam (vars, Type.atomic "", eapp (evar "$match-case", [evar constr; body]))
+  mk_elam (vars, type_none, eapp (evar "$match-case", [evar constr; body]))
 ;;
 
 let hyp_counter = ref 0;;
@@ -96,10 +96,10 @@ file:
 
 phrase:
   | DEF hyp_name OPEN IDENT ident_list CLOSE expr
-      { let idl = List.map evar $5 in Zdef (DefReal ($2, $4, idl, $7, None)) }
+      { let idl = List.map evar $5 in Zdef (DefReal ($2, $4, type_none, idl, $7, None)) }
   | FIXPOINT hyp_name IDENT OPEN IDENT ident_list CLOSE expr
       { let idl = List.map evar $6 in
-        Zdef (DefReal ($2, $5, idl, $8, Some $3))
+        Zdef (DefReal ($2, $5, type_none, idl, $8, Some $3))
       }
   | HYP int_opt hyp_name expr
       { Zhyp ($3, $4, $2) }
@@ -108,7 +108,7 @@ phrase:
   | SIG IDENT OPEN string_list CLOSE STRING
       { Zsig ($2, $4, $6) }
   | INDSET IDENT OPEN ident_list CLOSE OPEN constr_list CLOSE
-      { Zinductive ($2, $4, $7, $2 ^ "_ind") }
+      { Zinductive (evar $2, $4, $7, $2 ^ "_ind") }
   | INCLUDE STRING
       { Zinclude ($2) }
 ;
@@ -131,7 +131,7 @@ expr:
   | OPEN EX mlambda CLOSE                { mk_eex $3 }
   | mlambda                              { mk_elam $1 }
   | OPEN TAU lambda CLOSE                { etau $3 }
-  | OPEN EQUAL expr expr CLOSE           { eapp (eeq, [$3; $4]) }
+  | OPEN EQUAL expr expr CLOSE           { eeq $3 $4 }
   | OPEN MATCH expr case_list CLOSE      { eapp (evar "$match", $3 :: $4) }
   | OPEN LET id_expr_list_expr CLOSE     { eapp (evar "$let", $3) }
   | OPEN FIX mlambda expr_list CLOSE     { eapp (evar "$fix", mk_elam $3 :: $4) }
@@ -143,13 +143,13 @@ expr_list:
 ;
 
 lambda:
-  | OPEN OPEN IDENT STRING CLOSE expr CLOSE      { (evar $3, Type.atomic $4, $6) }
-  | OPEN OPEN IDENT CLOSE expr CLOSE             { (evar $3, Type.atomic univ_name, $5) }
+  | OPEN OPEN IDENT STRING CLOSE expr CLOSE      { (tvar $3 (tvar $4 type_type), $6) }
+  | OPEN OPEN IDENT CLOSE expr CLOSE             { (tvar $3 (type_none), $5) }
 ;
 
 mlambda:
-  | OPEN OPEN ident_list STRING CLOSE expr CLOSE { ($3, Type.atomic $4, $6) }
-  | OPEN OPEN ident_list CLOSE expr CLOSE        { ($3, Type.atomic univ_name, $5) }
+  | OPEN OPEN ident_list STRING CLOSE expr CLOSE { ($3, eapp (tvar $4 type_type, []), $6) }
+  | OPEN OPEN ident_list CLOSE expr CLOSE        { ($3, type_none, $5) }
 ;
 
 ident_list:
@@ -184,7 +184,7 @@ id_expr_list_expr:
   | IDENT expr id_expr_list_expr
       { match $3 with
         | [] -> assert false
-        | body :: vals -> elam (evar ($1), Type.atomic "", body) :: $2 :: vals
+        | body :: vals -> elam (tvar ($1) type_none, body) :: $2 :: vals
       }
 ;
 

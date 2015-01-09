@@ -37,17 +37,6 @@ else
   exit 2
 fi
 
-if check ocamlfind; then
-    OCAMLLIB=" -I `ocamlfind query zarith`"
-    if [ ! $? -eq 0 ]; then
-        echo 'Cannot find library zarith' >&2
-        exit 2
-    fi
-else
-    echo 'Cannot find ocamlfind in path' &>2
-    exit 2
-fi
-
 if check convert; then CONVERT=convert; else CONVERT=:; fi
 if check coqc; then COQC=coqc; else COQC=:; fi
 if check coqdep; then COQDEP=coqdep; else COQDEP=:; fi

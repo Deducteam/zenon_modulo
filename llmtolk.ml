@@ -47,7 +47,7 @@ let sceqpropbis (e1, e2, proofs, gamma) =
   match e1, e2 with
   | Eapp (_, ts, _), Eapp (_, us, _) ->
     let prf = sceqprop (e1, e2, gamma) in
-    let eqs = List.map2 (fun t u -> eapp (evar "=", [t; u])) ts us in
+    let eqs = List.map2 (fun t u -> eeq t u) ts us in
     let _, proof =
       List.fold_left2
 	(fun (l, prf) eq proof ->
@@ -64,7 +64,7 @@ let sceqfuncbis (e1, e2, proofs, gamma) =
   match e1, e2 with
   | Eapp (_, ts, _), Eapp (_, us, _) ->
     let prf = sceqfunc (e1, e2, gamma) in
-    let eqs = List.map2 (fun t u -> eapp (evar "=", [t; u])) ts us in
+    let eqs = List.map2 (fun t u -> eeq t u) ts us in
     let _, proof =
       List.fold_left2
 	(fun (l, prf) eq proof ->
@@ -84,9 +84,9 @@ let rec hypstoadd rule =
   | Rnottrue -> [], [enot etrue]
   | Raxiom (p) -> [], [p; enot p]
   | Rcut (p) -> [[p]; [enot p]], []
-  | Rnoteq (a) -> [], [enot (eapp (evar "=", [a; a]))]
+  | Rnoteq (a) -> [], [enot (eeq a a)]
   | Reqsym (a, b) ->
-    [], [eapp (evar "=", [a; b]); enot (eapp (evar "=", [b; a]))]
+    [], [eeq a b; enot (eeq b a)]
   | Rnotnot (p) -> [[p]], [enot (enot p)]
   | Rconnect (b, p, q) ->
     begin match b with
@@ -106,40 +106,40 @@ let rec hypstoadd rule =
       [enot (eand (eimply (p, q), eimply (q, p)))]  end
   | Rex (ep, v) ->
     begin match ep with
-    | Eex (x, ty, p, _) -> [[substitute [(x, v)] p]], [ep]
+    | Eex (x, p, _) -> [[substitute [(x, v)] p]], [ep]
     | _ -> assert false end
   | Rall (ap, t) ->
     begin match ap with
-    | Eall (x, ty, p, _) -> [[substitute [(x, t)] p]], [ap]
+    | Eall (x, p, _) -> [[substitute [(x, t)] p]], [ap]
     | _ -> assert false end
   | Rnotex (ep, t) ->
     begin match ep with
-    | Eex (x, ty, p, _) ->
+    | Eex (x, p, _) ->
       [[enot (substitute [(x, t)] p)]], [enot ep]
     | _ -> assert false end
   | Rnotall (ap, v) ->
     begin match ap with
-    | Eall (x, ty, p, _) ->
+    | Eall (x, p, _) ->
       [[enot (substitute [(x, v)] p)]], [enot ap]
     | _ -> assert false end
   | Rpnotp (e1, e2) ->
     begin match e1, e2 with
     | Eapp (p, ts, _), Enot (Eapp (q, us, _), _) ->
       List.map2
-	(fun x y -> [enot (eapp (evar "=", [x; y]))]) ts us,
+	(fun x y -> [enot (eeq x y)]) ts us,
       [e1; e2]
     | _ -> assert false end
   | Rnotequal (e1, e2) ->
     begin match e1, e2 with
     | Eapp (p, ts, _), Eapp (q, us, _) ->
       List.map2
-	(fun x y -> [enot (eapp (evar "=", [x; y]))]) ts us,
-      [enot (eapp (evar "=", [e1; e2]))]
+	(fun x y -> [enot (eeq x y)]) ts us,
+      [enot (eeq e1 e2)]
     | _ -> assert false end
   | RcongruenceLR (p, a, b) ->
-    [[apply p b]], [apply p a; eapp (evar "=", [a; b])]
+    [[apply p b]], [apply p a; eeq a b]
   | RcongruenceRL (p, a, b) ->
-    [[apply p b]], [apply p a; eapp (evar "=", [b; a])]
+    [[apply p b]], [apply p a; eeq b a]
   | Rextension (ext, name, args, concs, hyps) ->
     hyps, concs
   | Rlemma (name, args) ->
@@ -149,26 +149,26 @@ let rec hypstoadd rule =
 let rec deduce_inequality e1 e2 v1 v2 c1 c2 b1 b2 gamma proof distincts =
   let n1 = List.assoc v1 distincts in
   let n2 = List.assoc v2 distincts in
-  let eq = eapp (evar "=", [e1; e2]) in
+  let eq = eeq e1 e2 in
   let b3 = n1 < n2 in
   let ax =
     if b3
-    then eapp (evar "=", [v1; v2])
-    else eapp (evar "=", [v2; v1]) in
+    then eeq v1 v2
+    else eeq v2 v1 in
   let rec f b1 b2 b3 =
     match b1, b2, b3 with
     | true, true, true -> sceqprop (eq, ax, [])
     | _, _, false ->
       sccut (
-	eapp (evar "=", [v1; v2]),
+	eeq v1 v2,
 	f b1 b2 true, sceqsym (v1, v2, [c1; c2; eq]))
     | _, false, _ ->
       sccut (
-	eapp (evar "=", [e2; v2]),
+	eeq e2 v2,
 	sceqsym (v2, e2, [c1; eq]), addhyp [c2] (f b1 true b3))
     | false, _, _ ->
       sccut (
-	eapp (evar "=", [e1; v1]),
+	eeq e1 v1,
 	sceqsym (v1, e1, [c2; eq]), addhyp [c1] (f true b2 b3))
   in
   sccut (
@@ -225,7 +225,7 @@ and useful e proof =
   let g, c, rule = proof in
   match rule with
   | SCeqsym (a, b) ->
-    equal e (eapp (evar "=", [a; b])) && not (List.mem e (rm e g))
+    equal e (eeq a b) && not (List.mem e (rm e g))
   | SCeqref (a) -> false
   | SCtrue -> false
   | SCaxiom (a) -> equal e a && not (List.mem e (rm e g))
@@ -233,12 +233,12 @@ and useful e proof =
   | SCeqprop (Eapp (p, ts, _) as f1, Eapp (_, us, _)) ->
     let x = equal e f1 in
     List.fold_left2
-      (fun x t u -> (x || equal e (eapp (evar "=", [t; u]))))
+      (fun x t u -> (x || equal e (eeq t u)))
       x ts us
   | SCeqprop _ -> assert false
   | SCeqfunc (Eapp (p, ts, _), Eapp (_, us, _)) ->
     List.fold_left2
-      (fun x t u -> (x || equal e (eapp (evar "=", [t; u]))))
+      (fun x t u -> (x || equal e (eeq t u)))
       false ts us
   | SCeqfunc _ -> assert false
   | SClcontr (f, _)
@@ -333,12 +333,12 @@ and optimize proof =
 let rec xrmcongruence s x t a b =
   let eq =
     if s
-    then eapp (evar "=", [a; b])
-    else eapp (evar "=", [b; a]) in
+    then eeq a b
+    else eeq b a in
   match t with
   | Evar (v, _) when (equal x t) ->
     if s
-    then scaxiom (eapp (evar "=", [a; b]), [])
+    then scaxiom (eeq a b, [])
     else sceqsym (b, a, [])
   | Eapp (f, args, _) ->
     sceqfuncbis (
@@ -354,8 +354,8 @@ let rec xrmcongruence s x t a b =
 let rec rmcongruence s x e a b =
   let eq =
     if s
-    then eapp (evar "=", [a; b])
-    else eapp (evar "=", [b; a]) in
+    then eeq a b
+    else eeq b a in
   match e with
   | Etrue | Efalse | Evar _ -> scaxiom (e, [])
   | Eapp (f, args, _) ->
@@ -391,7 +391,7 @@ let rec rmcongruence s x e a b =
       sclnot (
 	substitute [(x, a)] e0,
 	rmcongruence (not s) x e0 b a))
-  | Eall (y, ty, e0, _) ->
+  | Eall (y, e0, _) ->
     let z = new_var () in
     scrall (
       substitute [(x, b)] e,
@@ -401,7 +401,7 @@ let rec rmcongruence s x e a b =
 	substitute [(x, a)] z,
 	rmcongruence s x
 	  (substitute [(y, z)] e0) a b))
-  | Eex (y, ty, e0, _) ->
+  | Eex (y, e0, _) ->
     let z = new_var () in
     screx (
       substitute [(x, b)] e,
@@ -411,7 +411,7 @@ let rec rmcongruence s x e a b =
 	substitute [(x, a)] z,
 	rmcongruence s x
 	  (substitute [(y, z)] e0) a b))
-    | Etau _ | Elam _ | Emeta _ | Eequiv _ ->
+    | Etau _ | Elam _ | Emeta _ | Eequiv _ | Earrow _ ->
     assert false
 
 let xlltolkrule distincts rule hyps gamma =
@@ -425,9 +425,9 @@ let xlltolkrule distincts rule hyps gamma =
   | Rcut (p), [proof1; proof2] ->
     sccut (enot p, scrnot (p, proof1), proof2)
   | Rnoteq (a), [] ->
-    righttoleft (eapp (evar "=", [a; a])) (sceqref (a, gamma));
+    righttoleft (eeq a a) (sceqref (a, gamma));
   | Reqsym (a, b), [] ->
-    righttoleft (eapp (evar "=", [b; a]))
+    righttoleft (eeq b a)
       (sceqsym (a, b, gamma))
   | Rnotnot (p), [proof] ->
     righttoleft (enot (p))
@@ -519,11 +519,11 @@ let xlltolkrule distincts rule hyps gamma =
     sclex (ep, v, proof)
   | Rall (ap, t), [proof] ->
     sclall (ap, t, proof)
-  | Rnotex (Eex(x, ty, p, _) as ep, t), [proof] ->
+  | Rnotex (Eex(x, p, _) as ep, t), [proof] ->
     assert (ingamma (enot (substitute [(x, t)] p)) proof);
     righttoleft ep
       (screx (ep, t, lefttoright (substitute [(x, t)] p) proof))
-  | Rnotall (Eall(x, ty, p, _) as ap, v), [proof] ->
+  | Rnotall (Eall(x, p, _) as ap, v), [proof] ->
     assert (ingamma (enot (substitute [(x, v)] p)) proof);
     righttoleft ap (
       scrall (
@@ -532,7 +532,7 @@ let xlltolkrule distincts rule hyps gamma =
   | Rpnotp (Eapp (_, ts, _) as e1,
 	    Enot (Eapp (_, us, _) as e2, _)), proofs ->
     let prf = sceqprop (e1, e2, gamma) in
-    let eqs = List.map2 (fun t u -> eapp (evar "=", [t; u])) ts us in
+    let eqs = List.map2 (fun t u -> eeq t u) ts us in
     let _, proof =
       List.fold_left2
 	(fun (l, prf) eq proof ->
@@ -546,7 +546,7 @@ let xlltolkrule distincts rule hyps gamma =
   | Rnotequal (Eapp (_, ts, _) as e1,
 	       (Eapp (_, us, _) as e2)), proofs ->
     let prf = sceqfunc (e1, e2, gamma) in
-    let eqs = List.map2 (fun t u -> eapp (evar "=", [t; u])) ts us in
+    let eqs = List.map2 (fun t u -> eeq t u) ts us in
     let _, proof =
       List.fold_left2
 	(fun (l, prf) eq proof ->
@@ -556,41 +556,41 @@ let xlltolkrule distincts rule hyps gamma =
 	     gamma_length (addhyp hyps (lefttoright eq proof)) + 1);
 	  hyps, sccut (eq, addhyp hyps (lefttoright eq proof), prf))
 	(eqs, prf) eqs proofs in
-    righttoleft (eapp (evar "=", [e1; e2])) proof
+    righttoleft (eeq e1 e2) proof
   | RcongruenceLR (p, a, b), [proof] ->
     let g, c, rule = proof in
     begin match p with
-    | Elam (x, ty, e, _) ->
+    | Elam (x, e, _) ->
       let prf1 =
 	addhyp (rm (apply p b) g) (rmcongruence true x e a b) in
-      let prf2 = addhyp [apply p a; eapp (evar "=", [a; b])] proof in
+      let prf2 = addhyp [apply p a; eeq a b] proof in
       assert (gamma_length prf2 =
 	  gamma_length prf1 + 1);
       sccut (
 	apply p b,
 	addhyp (rm (apply p b) g) (rmcongruence true x e a b),
-	addhyp [apply p a; eapp (evar "=", [a; b])] proof)
+	addhyp [apply p a; eeq a b] proof)
     | _ -> assert false end
   | RcongruenceLR (p, a, b), _ -> assert false
   | RcongruenceRL (p, a, b), [proof] ->
     let g, c, rule = proof in
     begin match p with
-    | Elam (x, ty, e, _) ->
+    | Elam (x, e, _) ->
       let prf1 =
 	addhyp (rm (apply p b) g) (rmcongruence false x e a b) in
-      let prf2 = addhyp [apply p a; eapp (evar "=", [a; b])] proof in
+      let prf2 = addhyp [apply p a; eeq a b] proof in
       assert (gamma_length prf2 =
 	  gamma_length prf1 + 1);
       sccut (
 	apply p b,
 	addhyp (rm (apply p b) g) (rmcongruence false x e a b),
-	addhyp [apply p a; eapp (evar "=", [a; b])] proof)
+	addhyp [apply p a; eeq a b] proof)
     | _ -> assert false end
   | Rdefinition (name, sym, args, body, recarg, fld, unf), [proof]
     -> assert false
   | Rextension (
-    "", "zenon_notallex", [Elam (v, t, p, _)],
-    [Enot (Eall (x, s, e, _) as ap, _)], [[ep]]), [proof] ->
+    "", "zenon_notallex", [Elam (v, p, _)],
+    [Enot (Eall (x, e, _) as ap, _)], [[ep]]), [proof] ->
     let g, c, rule = proof in
     begin match rule with
     | SClex (exp, y, prf)
@@ -616,7 +616,7 @@ let xlltolkrule distincts rule hyps gamma =
     let v2 = eapp (evar "$string", [s2]) in
     let n1 = List.assoc v1 distincts in
     let n2 = List.assoc v2 distincts in
-    let c = eapp (evar "=", [v1; v2]) in
+    let c = eeq v1 v2 in
     if n1 < n2
     then righttoleft c (scaxiom (c, rm (enot c) gamma))
     else righttoleft c (sceqsym (v1, v2, rm (enot c) gamma))
@@ -650,7 +650,7 @@ let rec lltolkrule distincts proof gamma =
   (* newcontr : list of things to be contracted later *)
   let newcontr, list =
     List.fold_left (fun (cs, es) e ->
-      if (List.mem e es)
+      if (List.memq e es)
       then
 	cs, rm e es
       else

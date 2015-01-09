@@ -1,7 +1,8 @@
 open Printf
+open Expr
 
 type var = string
-type ty = Type.t
+type ty = Expr.expr
 
 type term =
   | Dkvar of var
@@ -45,7 +46,17 @@ type line =
   | Dkprelude of string
   | Dkrewrite of (term * term) list * term * term
 
-let term_of_ty ty = Dkvar (Type.to_string ty)
+let rec term_of_ty ty =
+  if ty == type_none
+  then Dkvar "logic.Term"
+  else match ty with
+       | Evar (s, _) -> Dkvar s
+       | Eapp (s, l, _) -> Dkapp (List.map term_of_ty (s :: l))
+       | Earrow ([], ret, _) -> term_of_ty ret
+       | Earrow (hd :: tl, ret, _) ->
+          Dkarrow (term_of_ty hd, term_of_ty (earrow tl ret))
+       | e -> Dkvar (Print.sexpr e)
+
 let mk_var var = Dkvar var
 let mk_lam var ty term = Dklam (var, ty, term)
 let mk_lams vars types e =
@@ -56,7 +67,7 @@ let mk_app3 t1 t2 t3 = mk_app t1 [t2; t3]
 let mk_arrow t1 t2 = Dkarrow (t1, t2)
 let mk_prf t = mk_app2 Dkprf t
 let mk_term ty = ty
-let mk_pi var ty term = Dkpi (var, mk_term (term_of_ty ty), term)
+let mk_pi var ty term = Dkpi (var, mk_term ty, term)
 let mk_termtype = mk_var "logic.Term"
 let mk_proptype = mk_var "logic.Prop"
 let mk_anyterm = Dkanyterm
@@ -65,47 +76,34 @@ let mk_and p q = mk_app3 Dkand p q
 let mk_or p q = mk_app3 Dkor p q
 let mk_imply p q = mk_app3 Dkimply p q
 let mk_forall x ty p =
-  if Type.to_string ty = "zenon_U" then
-    mk_app2 DkforallTerm (mk_lam x mk_termtype p)
-  else
-    let t = term_of_ty ty in
-    mk_app3 Dkforall t (mk_lam x t p)
+  mk_app3 Dkforall ty (mk_lam x ty p)
 let mk_exists x ty p =
-  if Type.to_string ty = "zenon_U" then
-    mk_app2 DkexistsTerm (mk_lam x mk_termtype p)
-  else
-    let t = term_of_ty ty in
-    mk_app3 Dkexists t (mk_lam x t p)
+  mk_app3 Dkexists ty (mk_lam x ty p)
 let mk_true = Dktrue
 let mk_false = Dkfalse
 
-let mk_eq oty t1 t2 =
-  match oty with
-  | None -> mk_app3 DkeqTerm t1 t2
-  | Some ty -> mk_app Dkeq [term_of_ty ty; t1; t2]
+let mk_eq ty t1 t2 =
+  if ty = mk_termtype then
+    mk_app3 DkeqTerm t1 t2
+  else
+    mk_app Dkeq [ty; t1; t2]
 
 let mk_notc term = mk_app2 Dknotc term
 let mk_andc p q = mk_app3 Dkandc p q
 let mk_orc p q = mk_app3 Dkorc p q
 let mk_implyc p q = mk_app3 Dkimplyc p q
 let mk_forallc x ty p =
-    if Type.to_string ty = "zenon_U" then
-    mk_app2 DkforallcTerm (mk_lam x mk_termtype p)
-  else
-    let t = term_of_ty ty in
-    mk_app3 Dkforallc t (mk_lam x t p)
+  mk_app3 Dkforallc ty (mk_lam x ty p)
 let mk_existsc x ty p =
-    if Type.to_string ty = "zenon_U" then
-    mk_app2 DkexistscTerm (mk_lam x mk_termtype p)
-  else
-    let t = term_of_ty ty in
-    mk_app3 Dkexistsc t (mk_lam x t p)
+  mk_app3 Dkexistsc ty (mk_lam x ty p)
 let mk_truec = Dktruec
 let mk_falsec = Dkfalsec
-let mk_eqc oty t1 t2 =
-  match oty with
-  | None -> mk_app3 DkeqcTerm t1 t2
-  | Some ty -> mk_app Dkeqc [term_of_ty ty; t1; t2]
+let mk_eqc ty t1 t2 =
+  if ty = mk_termtype then
+    mk_app3 DkeqcTerm t1 t2
+  else
+    mk_app Dkeqc [ty; t1; t2]
+
 let mk_equiv p q = mk_app3 Dkequiv p q
 
 let mk_decl t term = Dkdecl (t, term)

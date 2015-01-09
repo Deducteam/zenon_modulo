@@ -10,18 +10,16 @@ type direction = L | R;;
 
 let symbol = ref None;;
 let leaves = ref [];;
-let typ = ref None;;
+let typ = ref type_none;;
 
-let get_name = function
-    | Evar(s, _) -> s
-    | _ -> assert false
+let mem_assoc x env = List.exists (fun (y, _) -> get_name x = get_name y) env;;
 
 let rec check_pattern env sym e =
   match e with
   | Eapp (s, [(Evar _ as x); (Evar _ as y)], _)
   | Enot (Eapp (s, [(Evar _ as x); (Evar _ as y)], _), _)
-    when compare s sym = 0 ->
-      if List.mem_assoc x env && List.mem_assoc y env then ()
+    when var_equal s sym ->
+      if mem_assoc x env && mem_assoc y env then ()
       else raise Wrong_shape;
   | _ -> raise Wrong_shape;
 ;;
@@ -33,10 +31,12 @@ let get_skeleton e =
   | _ -> raise Wrong_shape
 ;;
 
+let assoc x env = List.assoc (get_name x) (List.map (fun (x, y) -> (get_name x, y)) env);;
+
 let get_type env e =
   match e with
-  | Enot (Eapp (_, [Evar _ as x; _], _), _) -> List.assoc x env
-  | Eapp (_, [Evar _ as x; _], _) -> List.assoc x env
+  | Enot (Eapp (_, [Evar _ as x; _], _), _) -> assoc x env
+  | Eapp (_, [Evar _ as x; _], _) -> assoc x env
   | _ -> assert false
 ;;
 
@@ -66,12 +66,11 @@ let rec do_disj env e =
 let get_leaves path env e =
   symbol := None;
   leaves := [];
-  typ := None;
   try
     do_disj env e;
-    (List.rev path, env, !leaves, !typ)
+    (List.rev path, env, !leaves)
   with Wrong_shape ->
-    (List.rev path, env, [], None)
+    (List.rev path, env, [])
 ;;
 
 let subexprs = ref [];;
@@ -79,12 +78,12 @@ let subexprs = ref [];;
 let rec do_conj path env e =
   match e with
   | Eand (e1, e2, _) -> do_conj (L::path) env e1; do_conj (R::path) env e2;
-  | Eall (v, t, e1, _) -> do_conj path ((v, Some t)::env) e1;
+  | Eall (v, e1, _) -> do_conj path ((v, Expr.get_type v)::env) e1;
   | Enot (Eor (e1, e2, _), _) ->
       do_conj (L::path) env (enot e1); do_conj (R::path) env (enot e2);
   | Enot (Eimply (e1, e2, _), _) ->
       do_conj (L::path) env e1; do_conj (R::path) env (enot e2);
-  | Enot (Eex (v, t, e1, _), _) -> do_conj path ((v, Some t)::env) (enot e1);
+  | Enot (Eex (v, e1, _), _) -> do_conj path ((v, Expr.get_type v)::env) (enot e1);
   | Enot (Enot (e1, _), _) -> do_conj path env e1;
   | Eequiv (e1, e2, _) ->
       do_conj (L::path) env (eimply (e1, e2));
@@ -173,7 +172,6 @@ type info = {
   mutable sym : (Expr.expr * direction list * int list) option;
   mutable trans : (Expr.expr * direction list * int list) option;
   mutable transsym : (Expr.expr * direction list * int list) option;
-  mutable typ : Type.t option;
   mutable refl_hyp : Expr.expr option;
   mutable sym_hyp : Expr.expr option;
   mutable trans_hyp : Expr.expr option;
@@ -181,18 +179,32 @@ type info = {
 
 let tbl = (Hashtbl.create 97 : (Expr.t, info) Hashtbl.t);;
 
-let get_record s =
-  try Hashtbl.find tbl s
+let eq_origin = Some (etrue, [], []);;
+let find_aux tbl s =
+  try true, Hashtbl.find tbl s
   with Not_found ->
-    let result = {refl = None; sym = None; trans = None;
-                  transsym = None; typ = None;
-                  refl_hyp = None; sym_hyp = None; trans_hyp = None}
+    let result = match s with
+    | Evar("=", _) -> { refl = eq_origin; sym = eq_origin; trans = eq_origin;
+                        transsym = eq_origin; refl_hyp = None;
+                        sym_hyp = None; trans_hyp = None; }
+    | _ -> { refl = None; sym = None; trans = None;
+             transsym = None; refl_hyp = None;
+             sym_hyp = None; trans_hyp = None}
     in
-    Hashtbl.add tbl s result;
-    result
+    false, result
+
+let find tbl s = snd (find_aux tbl s)
+
+let get_record s =
+    let b, res = find_aux tbl s in
+    if not b then begin
+        Log.debug 5 "Adding '%a' to eqrel table" Print.pp_expr_t s;
+        Hashtbl.add tbl s res
+    end;
+    res
 ;;
 
-let analyse_subexpr e (path, env, sb, typ) =
+let analyse_subexpr e (path, env, sb) =
   let refl = is_refl sb e path env in
   let sym = is_sym sb e path env in
   let trans = is_trans sb e path env in
@@ -205,12 +217,11 @@ let analyse_subexpr e (path, env, sb, typ) =
       if sym <> None then r.sym <- sym;
       if trans <> None then r.trans <- trans;
       if transsym <> None then r.transsym <- transsym;
-      r.typ <- typ
 ;;
 
 let analyse e = List.iter (analyse_subexpr e) (get_subexprs e);;
 
-let subsumed_subexpr e (path, env, sb, typ) =
+let subsumed_subexpr e (path, env, sb) =
   if is_refl sb e path env <> None then
     (get_record (get_symbol sb)).refl <> None
   else if is_sym sb e path env <> None then
@@ -225,20 +236,8 @@ let subsumed_subexpr e (path, env, sb, typ) =
 
 let subsumed e = List.for_all (subsumed_subexpr e) (get_subexprs e);;
 
-let eq_origin = Some (etrue, [], []);;
-Hashtbl.add tbl (eeq) {
-  refl = eq_origin;
-  sym = eq_origin;
-  trans = eq_origin;
-  transsym = eq_origin;
-  typ = None;
-  refl_hyp = None;
-  sym_hyp = None;
-  trans_hyp = None;
-};;
-
 let refl s =
-  try let r = Hashtbl.find tbl s in
+  try let r = find tbl s in
       match r.refl with
       | None -> false
       | Some _ -> true
@@ -246,7 +245,7 @@ let refl s =
 ;;
 
 let sym s =
-  try let r = Hashtbl.find tbl s in
+  try let r = find tbl s in
       match r.sym, r.refl, r.transsym with
       | Some _, _, _ -> true
       | _, Some _, Some _ -> true
@@ -255,7 +254,7 @@ let sym s =
 ;;
 
 let trans s =
-  try let r = Hashtbl.find tbl s in
+  try let r = find tbl s in
       match r.trans, r.refl, r.transsym with
       | Some _, _, _ -> true
       | _, Some _, Some _ -> true
@@ -264,7 +263,7 @@ let trans s =
 ;;
 
 let any s =
-  try let r = Hashtbl.find tbl s in
+  try let r = find tbl s in
       match r.refl, r.sym, r.trans with
       | None, None, None -> false
       | _, _, _ -> true
@@ -285,15 +284,21 @@ let hyps_tbl =
   (HE.create 97 : hyp_kind HE.t)
 ;;
 
+let argument_type s =
+  match Expr.get_type s with
+    | Earrow ([arg1; arg2], ret, _) when ret == type_prop && arg1 == arg2 -> arg1
+    | _ -> failwith (Printf.sprintf "Not a relation type %s."  (Print.sexpr_t s))
+;;
+
 let get_refl_hyp s =
   assert (get_name s <> "=");
+  let arg_ty = argument_type s in
   let r = Hashtbl.find tbl s in
   match r.refl_hyp with
   | Some e -> e
   | None ->
-      let typ = match r.typ with Some t -> t | None -> assert false in
-      let vx = tvar "x" typ in
-      let result = eall (vx, typ, eapp (s, [vx; vx])) in
+      let vx = tvar "x" arg_ty in
+      let result = eall (vx, eapp (s, [vx; vx])) in
       r.refl_hyp <- Some result;
       begin match r.refl with
       | Some (e, dirs, vars) -> HE.add hyps_tbl result (Refl ((e, dirs, vars)))
@@ -304,13 +309,13 @@ let get_refl_hyp s =
 
 let get_sym_hyp s =
   assert (get_name s <> "=");
+  let arg_ty = argument_type s in
   let r = Hashtbl.find tbl s in
   match r.sym_hyp with
   | Some e -> e
   | None ->
-      let typ = match r.typ with Some t -> t | None -> assert false in
-      let vx = tvar "x" typ and vy = tvar "y" typ in
-      let result = eall (vx, typ, eall (vy, typ,
+      let vx = tvar "x" arg_ty and vy = tvar "y" arg_ty in
+      let result = eall (vx, eall (vy,
                      eimply (eapp (s, [vx; vy]), eapp (s, [vy; vx]))))
       in
       r.sym_hyp <- Some result;
@@ -326,13 +331,13 @@ let get_sym_hyp s =
 
 let get_trans_hyp s =
   assert (get_name s <> "=");
+  let arg_ty = argument_type s in
   let r = Hashtbl.find tbl s in
   match r.trans_hyp with
   | Some e -> e
   | None ->
-      let typ = match r.typ with Some t -> t | None -> assert false in
-      let vx = tvar "x" typ and vy = tvar "y" typ and vz = tvar "z" typ in
-      let result = eall (vx, typ, eall (vy, typ, eall (vz, typ,
+      let vx = tvar "x" arg_ty and vy = tvar "y" arg_ty and vz = tvar "z" arg_ty in
+      let result = eall (vx, eall (vy, eall (vz,
                      eimply (eapp (s, [vx; vy]),
                        eimply (eapp (s, [vy; vz]), eapp (s, [vx; vz]))))))
       in
@@ -350,9 +355,9 @@ let get_trans_hyp s =
 
 let inst_nall e =
   match e with
-  | Enot (Eall (v, ty, f, _), _) ->
+  | Enot (Eall (v, f, _), _) ->
       let nf = enot f in
-      let t = etau (v, ty, nf) in
+      let t = etau (v, nf) in
       (Expr.substitute [(v, t)] nf, t)
   | _ -> assert false
 ;;
@@ -397,7 +402,7 @@ let rec decompose_conj n e dirs vars forms taus =
   | Eand (e1, e2, _), R::rest, _ ->
       let n1 = decompose_conj n e2 rest vars forms taus in
       make_node [e] (And (e1, e2)) [[e2]] [n1]
-  | Eall (v, ty, e1, _), _, w::rest when n = w ->
+  | Eall (v, e1, _), _, w::rest when n = w ->
       begin match taus with
       | [] -> assert false
       | x::t ->
@@ -405,7 +410,7 @@ let rec decompose_conj n e dirs vars forms taus =
           let n1 = decompose_conj (n+1) f dirs rest forms t in
           make_node [e] (All (e, x)) [[f]] [n1]
       end
-  | Eall (v, ty, e1, _), _, _ ->
+  | Eall (v, e1, _), _, _ ->
       let x = emeta (e) in
       let f = Expr.substitute [(v, x)] e1 in
       let n1 = decompose_conj (n+1) f dirs vars forms taus in
@@ -425,7 +430,7 @@ let rec decompose_conj n e dirs vars forms taus =
       let ne2 = enot e2 in
       let n1 = decompose_conj n ne2 rest vars forms taus in
       make_node [e] (NotOr (e1, e2)) [[ne2]] [n1]
-  | Enot (Eex (v, ty, e1, _), _), _, w::rest when n = w ->
+  | Enot (Eex (v, e1, _), _), _, w::rest when n = w ->
       begin match taus with
       | [] -> assert false
       | x::t ->
@@ -433,7 +438,7 @@ let rec decompose_conj n e dirs vars forms taus =
           let n1 = decompose_conj (n+1) f dirs rest forms t in
           make_node [e] (NotEx (e, x)) [[f]] [n1]
       end
-  | Enot (Eex (v, ty, e1, _) as e2, _), _, _ ->
+  | Enot (Eex (v, e1, _) as e2, _), _, _ ->
       let x = emeta (e2) in
       let f = Expr.substitute [(v, x)] (enot e1) in
       let n1 = decompose_conj (n+1) f dirs vars forms taus in
@@ -557,7 +562,7 @@ let get_proof e =
 
 let print_rels oc =
   let f k r =
-    Printf.fprintf oc " %s:%s%s%s%s" (get_name k)
+    Printf.fprintf oc " %s:%s%s%s%s" (Print.sexpr k)
                    (if r.refl = None then "" else "R")
                    (if r.sym = None then "" else "S")
                    (if r.trans = None then "" else "T")

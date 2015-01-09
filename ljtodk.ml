@@ -41,7 +41,9 @@ struct
        let dkprop = Dk.mk_var prop in
        let var = new_hypo () in
        let dkvar = Dk.mk_var var in
-       Dk.mk_lam dkprop Dk.mk_proptype (Dk.mk_lam dkvar (Dk.mk_prf dkprop) dkvar)
+       Dk.mk_lam dkprop
+                 Dk.mk_proptype
+                 (Dk.mk_lam dkvar (Dk.mk_prf dkprop) dkvar)
     | Lkproof.SCeqref (a) ->
        let prop = new_prop () in
        let dkprop = Dk.mk_var prop in
@@ -55,9 +57,9 @@ struct
     | Lkproof.SCeqsym (a, b) ->
        let term = new_term () in
        let dkterm = Dk.mk_var term in
-       Dk.mk_app3 (trhyp (eapp (evar "=", [a; b])))
-         (Dk.mk_lam dkterm Dk.mk_termtype (trexpr (eapp (evar "=", [evar term; a]))))
-         (trproof (Lkproof.sceqref (a, []), eapp (evar "=", [a; a]), gamma))
+       Dk.mk_app3 (trhyp (eeq a b))
+         (Dk.mk_lam dkterm Dk.mk_termtype (trexpr (eeq (evar term) a)))
+         (trproof (Lkproof.sceqref (a, []), eeq a a, gamma))
     | Lkproof.SCcut (e, lkrule1, lkrule2) ->
        trproof
          (lkrule2, goal,
@@ -93,26 +95,24 @@ struct
        trproof (lkrule2, goal, (e2, traux) :: gamma)
     | Lkproof.SClnot (e, lkrule) ->
        Dk.mk_app2 (trhyp (enot e)) (trproof (lkrule, e, gamma))
-    | Lkproof.SClall (Eall (x, ty, p, _) as ap, t, lkrule) ->
+    | Lkproof.SClall (Eall (x, p, _) as ap, t, lkrule) ->
        let traux =
          Dk.mk_app2 (trhyp ap) (trexpr t) in
        trproof
          (lkrule, goal, (substitute [(x, t)] p, traux) :: gamma)
-    | Lkproof.SClex (Eex (x, s, p, _) as ep, v, lkrule) ->
-       let ty =
-         if Type.to_string s = "zenon_U"
-         then Dk.mk_termtype
-         else (Dk.mk_term (Dk.mk_var (Type.to_string s)))
-       in
+    | Lkproof.SClex (Eex (x, p, _) as ep, v, lkrule) ->
+       let ty = get_type x in
        let q = substitute [(x, v)] p in
        let var = new_hypo () in
        let dkvar = Dk.mk_var var in
        Dk.mk_app3 (trhyp ep)
          (trexpr goal)
-         (Dk.mk_lam (trexpr v) ty
+         (Dk.mk_lam
+            (trexpr v)
+            (Dk.term_of_ty ty)
 	    (Dk.mk_lam dkvar
-	       (Dk.mk_prf (trexpr q))
-	       (trproof  (lkrule, goal, (q,dkvar) :: gamma))))
+	               (Dk.mk_prf (trexpr q))
+	               (trproof  (lkrule, goal, (q,dkvar) :: gamma))))
     | Lkproof.SCrand (e1, e2, lkrule1, lkrule2) ->
        let prop = new_prop () in
        let dkprop = Dk.mk_var prop in
@@ -159,28 +159,27 @@ struct
        let dkvar = Dk.mk_var var in
        Dk.mk_lam dkvar (Dk.mk_prf (trexpr e))
          (trproof (lkrule, efalse, (e, dkvar) :: gamma))
-    | Lkproof.SCrall (Eall (x, s, p, _), v, lkrule) ->
-       let ty =
-         if Type.to_string s = "zenon_U"
-         then Dk.mk_termtype
-         else (Dk.mk_term (Dk.mk_var (Type.to_string s)))
-       in
+    | Lkproof.SCrall (Eall (x, p, _), v, lkrule) ->
+       let ty = get_type x in
        let q = substitute [(x, v)] p in
-       Dk.mk_lam (trexpr v) ty
+       Dk.mk_lam
+         (trexpr v)
+         (Dk.term_of_ty ty)
          (trproof (lkrule, q, gamma))
-    | Lkproof.SCrex (Eex (x, s, p, _), t, lkrule) ->
-       let ty =
-         if Type.to_string s = "zenon_U"
-         then Type.atomic "logic.Term"
-         else s
-       in
+    | Lkproof.SCrex (Eex (x, p, _), t, lkrule) ->
+       let ty = get_type x in
        let prop = new_prop () in
        let dkprop = Dk.mk_var prop in
        let var = new_hypo () in
        let dkvar = Dk.mk_var var in
-       Dk.mk_lam dkprop Dk.mk_proptype
-         (Dk.mk_lam dkvar
-	    (Dk.mk_pi (trexpr x) ty
+       Dk.mk_lam
+         dkprop
+         Dk.mk_proptype
+         (Dk.mk_lam
+            dkvar
+	    (Dk.mk_pi
+               (trexpr x)
+               (Dk.term_of_ty ty)
 	       (Dk.mk_arrow (Dk.mk_prf (trexpr p)) (Dk.mk_prf dkprop)))
 	    (Dk.mk_app3 dkvar (trexpr t) (trproof (lkrule, substitute [(x, t)] p, gamma))))
     | Lkproof.SCcnot (e, lkrule) ->
@@ -207,7 +206,7 @@ struct
          | t :: ts, u :: us ->
 	    let term = new_term () in
 	    let dkterm = Dk.mk_var term in
-	    Dk.mk_app3 (trhyp (eapp (evar "=", [t; u])))
+	    Dk.mk_app3 (trhyp (eeq t u))
 	      (Dk.mk_lam dkterm Dk.mk_termtype
 	         (trexpr (eapp (evar pred, [eapp (p, xts @ ((evar term) :: us))]))))
 	      (itereq ((xts@[t]), ts, us))
@@ -222,7 +221,7 @@ struct
          | t :: ts, u :: us ->
 	    let term = new_term () in
 	    let dkterm = Dk.mk_var term in
-	    Dk.mk_app3 (trhyp (eapp (evar "=", [t; u])))
+	    Dk.mk_app3 (trhyp (eeq t u))
 	      (Dk.mk_lam dkterm Dk.mk_termtype ((trexpr (eapp (p, xts @ ((evar term) :: us))))))
 	      (itereq ((xts@[t]), ts, us))
          | _ -> assert false;

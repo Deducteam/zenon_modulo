@@ -17,7 +17,10 @@ let ns_fun s = ns "" s;; (* "f_" *)
 let rec mk_quant q vs body =
   match vs with
   | [] -> body
-  | (h, s)::t -> q (h, s, mk_quant q t body)
+  | h::t ->
+          let body = mk_quant q t body in
+          Log.debug 10 "Quantifying over %a" Print.pp_expr h;
+          q (h, body)
 ;;
 
 let cnf_to_formula l =
@@ -28,7 +31,7 @@ let cnf_to_formula l =
     | [] -> assert false
     | a::l2 -> List.fold_left (fun x y -> eor (x,y)) a l2
   in
-  mk_quant eall (List.map (fun x -> (evar x, Type.atomic Namespace.univ_name)) vs) body
+  mk_quant eall (List.map (fun x -> (tvar x type_none)) vs) body
 ;;
 
 %}
@@ -39,6 +42,7 @@ let cnf_to_formula l =
 %token AND
 %token OR
 %token NOT
+%token PROP
 %token TRUE
 %token FALSE
 %token TTYPE
@@ -114,13 +118,14 @@ phrase:
 expr:
   | UIDENT                             { evar (ns_var $1) }
   | LIDENT arguments                   { eapp (evar @@ ns_fun $1, $2) }
-  | TTYPE                              { evar "$tType" }
+  | PROP                               { type_prop }
+  | TTYPE                              { type_type }
   | STRING                             { eapp (evar "$string", [evar $1]) }
   | INT                                { eapp (evar "$int", [evar $1]) }
   | RAT                                { eapp (evar "$rat", [evar $1]) }
   | REAL                               { eapp (evar "$real", [evar $1]) }
-  | expr EQSYM expr                    { eapp (eeq, [$1; $3]) }
-  | expr NEQSYM expr                   { enot (eapp (eeq, [$1; $3])) }
+  | expr EQSYM expr                    { eeq $1 $3 }
+  | expr NEQSYM expr                   { enot (eeq $1 $3) }
 ;
 arguments:
   | OPEN expr_list CLOSE         { $2 }
@@ -157,14 +162,14 @@ atom:
   | expr                           { $1 }
 ;
 var_list:
-  | UIDENT COMMA var_list             { (evar (ns_var $1), Type.atomic Namespace.univ_name) :: $3 }
-  | UIDENT COLON expr COMMA var_list  { (evar (ns_var $1), Type.tff (type_of_expr $3)) :: $5 }
-  | UIDENT                            { [evar (ns_var $1), Type.atomic Namespace.univ_name] }
-  | UIDENT COLON expr                 { [evar (ns_var $1), Type.tff (type_of_expr $3)] }
+  | UIDENT COMMA var_list             { (tvar (ns_var $1) type_none) :: $3 }
+  | UIDENT COLON expr COMMA var_list  { (tvar (ns_var $1) $3) :: $5 }
+  | UIDENT                            { [tvar (ns_var $1) type_none] }
+  | UIDENT COLON expr                 { [tvar (ns_var $1) $3] }
 ;
 tff_type_arrow:
-  | expr RANGL expr                   { eapp(evar "->", [$3; $1]) }
-  | OPEN tff_tuple CLOSE RANGL expr   { eapp(evar "->",  $5 :: $2) }
+  | expr RANGL expr                   { earrow [$1] $3 }
+  | OPEN tff_tuple CLOSE RANGL expr   { earrow $2 $5 }
 ;
 tff_tuple:
   | expr                  { [$1] }
@@ -176,13 +181,13 @@ tff_type_sig:
   | tff_type_arrow
      { $1 }
   | ALL RANGL LBRACKET tff_quant RBRACKET COLON expr
-     { eapp (evar "!>", $7 :: $4) }
+     { mk_quant eall $4 $7 }
   | ALL RANGL LBRACKET tff_quant RBRACKET COLON OPEN tff_type_arrow CLOSE
-     { eapp (evar "!>", $8 :: $4) }
+     { mk_quant eall $4 $8 }
 ;
 tff_quant:
-  | UIDENT COLON TTYPE COMMA tff_quant  { (evar (ns_var $1)) :: $5 }
-  | UIDENT COLON TTYPE                  { [evar (ns_var $1)] }
+  | UIDENT COLON TTYPE COMMA tff_quant  { (tvar (ns_var $1) type_type) :: $5 }
+  | UIDENT COLON TTYPE                  { [tvar (ns_var $1) type_type] }
 ;
 name_list:
   | LIDENT COMMA name_list         { $1 :: $3 }
