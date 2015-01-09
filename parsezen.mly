@@ -108,7 +108,7 @@ phrase:
   | SIG IDENT OPEN string_list CLOSE STRING
       { Zsig ($2, $4, $6) }
   | INDSET IDENT OPEN ident_list CLOSE OPEN constr_list CLOSE
-      { Zinductive ($2, $4, $7, $2 ^ "_ind") }
+      { Zinductive (evar $2, $4, $7, $2 ^ "_ind") }
   | INCLUDE STRING
       { Zinclude ($2) }
 ;

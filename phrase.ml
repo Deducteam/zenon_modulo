@@ -13,7 +13,7 @@ type phrase =
   | Def of definition
   | Sig of string * string list * string
   | Inductive of
-     string * string list * (string * inductive_arg list) list * string
+     expr * string list * (string * inductive_arg list) list * string
 ;;
 
 type zphrase =
@@ -21,7 +21,7 @@ type zphrase =
   | Zdef of definition
   | Zsig of string * string list * string
   | Zinductive of
-     string * string list * (string * inductive_arg list) list * string
+     expr * string list * (string * inductive_arg list) list * string
   | Zinclude of string
 ;;
 

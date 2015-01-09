@@ -90,7 +90,8 @@ let mk_inductive name ty bindings constrs =
     else Param (String.concat " " (tcon :: targs))
   in
   let f (cname, args) = (cname, List.map g args) in
-  Inductive (name, args, List.map f constrs, name ^ "_ind")
+  let name_ty = tvar name (earrow (List.map (fun _ -> type_type) args) type_type) in
+  Inductive (name_ty, args, List.map f constrs, name ^ "_ind")
 ;;
 
 let mk_pairs e l =
