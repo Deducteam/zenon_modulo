@@ -724,15 +724,15 @@ let built_in_defs () =
     Def (DefReal ("snd", "basics.snd", type_none, [tx; ty; xy],
                   eapp (evar "$match", [xy; elam (y, elam (x, case))]),
                   None));
-    Inductive ("basics.list__t", ["A"], [
+    Inductive (evar "basics.list__t", ["A"], [
                  (list_file ^ ".nil", []);
                  (list_file ^ ".cons", [Param "A"; Self]);
                ],
                "@List.list_ind");
-    Inductive (prod_str, ["A"; "B"],
+    Inductive (evar prod_str, ["A"; "B"],
                [ (pair_str, [Param "A"; Param "B"]) ],
                "@Datatypes.prod_ind");
-    Inductive ("basics.bool__t", [],
+    Inductive (evar "basics.bool__t", [],
                [ ("true", []); ("false", []) ], "basics.bool__t_ind");
 
     (* deprecated, kept for compatibility only *)

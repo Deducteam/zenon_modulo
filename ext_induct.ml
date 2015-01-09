@@ -31,7 +31,7 @@ let constructor_table =
 
 let type_table =
   (Hashtbl.create 100 :
-     (expr, string list * (string * inductive_arg list) list * string)
+     (expr, expr list * (string * inductive_arg list) list * string)
      Hashtbl.t)
 ;;
 
@@ -62,6 +62,18 @@ let get_args e =
   | Eapp (Evar(s,_), a, _) -> a
   | Evar (s, _) -> []
   | _ -> assert false
+;;
+
+let get_constructor_type constr =
+  try
+    let desc = Hashtbl.find constructor_table constr in
+    let rec f ty = function
+      | [] -> ty
+      | Param param :: params -> eall (tvar param type_type, f ty params)
+      | Self :: _ -> assert false
+    in
+    f desc.cd_type desc.cd_args
+  with Not_found -> assert false
 ;;
 
 let rec remove_parens i j s =
@@ -178,7 +190,7 @@ let get_unders constr =
   try
     let desc = Hashtbl.find constructor_table constr in
     let (params, _ , _) = Hashtbl.find type_table desc.cd_type in
-    List.map (fun _ -> evar "_") params
+    List.map (fun _ -> tvar "_" type_type) params
   with Not_found -> assert false
 ;;
 
@@ -188,8 +200,14 @@ let make_match_branches e cases =
   | _ ->
       let c = normalize_cases cases in
       let f (constr, vars, body) =
-        let rvars = List.map (fun _ -> Expr.newvar ()) vars in
-        let pattern = eapp (evar "@", evar constr :: (get_unders constr) @ rvars) in
+        let rvars = List.map (fun var -> Expr.newtvar (get_type var)) vars in
+        let constr_ty = get_constructor_type constr in
+        let args = (List.map get_type rvars) @ rvars in
+        let typed_constr = tvar constr constr_ty in
+        let ret_type = get_type e in
+        let pattern = eapp (tvar "@" (earrow (constr_ty :: List.map get_type args) ret_type),
+                            typed_constr :: args)
+        in
 (*
         let pattern =
           match rvars with
@@ -802,13 +820,16 @@ let add_induct_def ty args constrs schema =
 
 let preprocess l = l;;
 
+let eps t = eapp (tvar "cc.eT" (earrow [type_type] type_type), [t]);;
+
 let add_phrase x =
   match x with
   | Hyp _ -> ()
   | Def _ -> ()
   | Sig _ -> ()
   | Inductive (ty, args, constrs, schema) ->
-     add_induct_def (tvar ty type_type) args constrs schema;
+     let args_var = List.map (fun t -> tvar t type_type) args in
+     add_induct_def (eps (eapp (ty, args_var))) args_var constrs schema;
 ;;
 
 let postprocess l = l;;
@@ -913,7 +934,7 @@ let p_rule_coq oc r =
      in
      p_list "" p_case " | " oc hs;
      fprintf oc "].\n";
-  | Rextension (_, "zenon_induct_fix", [Evar (ty, _); ctx; foldx; unfx; a],
+  | Rextension (_, "zenon_induct_fix", [ty; ctx; foldx; unfx; a],
                 [c], [ [h] ]) ->
      let (_, cstrs, schema) = Coqterm.get_induct ty in
      poc "assert (%s : %a).\n" (getname h) p_expr h;
