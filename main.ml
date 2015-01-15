@@ -17,6 +17,7 @@ type proof_level =
   | Proof_coqterm
   | Proof_isar
   | Proof_dot of bool * int
+  | Proof_dk
 ;;
 let proof_level = ref Proof_none;;
 let default_depth = 100;;
@@ -150,6 +151,8 @@ let argspec = [
         "              print the proof in Coq script format (force -rename)";
   "-ocoqterm", Arg.Unit (fun () -> proof_level := Proof_coqterm),
             "          print the proof in Coq term format";
+  "-odk", Arg.Unit (fun () -> namespace_flag := true; proof_level := Proof_dk),
+        "              print the proof in Dk script format (force -rename)";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
       "<n>             print the proof in high-level format up to depth <n>";
   "-oisar", Arg.Unit (fun () -> proof_level := Proof_isar),
@@ -423,6 +426,9 @@ let main () =
     | Proof_coqterm ->
         let (p, u) = Coqterm.trproof phrases ppphrases (Lazy.force llp) in
         Coqterm.print stdout p;
+        Watch.warn phrases_dep llp u;
+    | Proof_dk ->
+        let u = Lltodk.output stdout phrases (Lazy.force llp) in
         Watch.warn phrases_dep llp u;
     | Proof_isar ->
         let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in
