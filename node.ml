@@ -102,7 +102,7 @@ let insert_by_goalness l n =
   in
   list_insert gness nh l
 ;;
-
+(*
 let rec can_instantiate m e =
   match e with
   | Evar _ -> true
@@ -116,6 +116,11 @@ let rec can_instantiate m e =
   | Eall (v, t, e1, _) | Eex (v, t, e1, _) | Etau (v, t, e1, _)
   | Elam (v, t, e1, _)
     -> can_instantiate m e1
+;;
+ *)
+
+let can_instantiate m e = 
+  not (List.exists (Expr.equal m) (get_submetas e))
 ;;
 
 let insert q n =

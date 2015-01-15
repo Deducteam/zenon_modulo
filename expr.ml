@@ -32,6 +32,7 @@ and private_info = {
   size : int;
   taus : int;           (* depth of tau nesting *)
   metas : expr list;
+  submetas : expr list;
 };;
 
 type definition =
@@ -81,17 +82,18 @@ and k_tau   = 0x4ae7fad
 and k_lam   = 0x24adcb3
 ;;
 
-let mkpriv skel fv sz taus metas = {
+let mkpriv skel fv sz taus metas submetas = {
   hash = Hashtbl.hash (skel, fv);
   skel_hash = skel;
   free_vars = fv;
   size = sz;
   taus = taus;
   metas = metas;
+  submetas = submetas;
 };;
 
-let priv_true = mkpriv k_true [] 1 0 [];;
-let priv_false = mkpriv k_false [] 1 0 [];;
+let priv_true = mkpriv k_true [] 1 0 [] [];;
+let priv_false = mkpriv k_false [] 1 0 [] [];;
 
 let get_priv = function
   | Evar (_, h) -> h
@@ -118,6 +120,7 @@ let get_fv e = (get_priv e).free_vars;;
 let get_size e = (get_priv e).size;;
 let get_taus e = (get_priv e).taus;;
 let get_metas e = (get_priv e).metas;;
+let get_submetas e = (get_priv e).submetas;;
 
 let rec str_union l1 l2 =
   match l1, l2 with
@@ -136,9 +139,9 @@ let rec remove x l =
 
 let combine x y = x + y * 131 + 1;;
 
-let priv_var s = mkpriv 0 [s] 1 0 [];;
+let priv_var s = mkpriv 0 [s] 1 0 [] [];;
 let priv_meta e =
-  mkpriv (combine k_meta (get_skel e)) [] 1 0 [e]
+  mkpriv (combine k_meta (get_skel e)) [] 1 0 [e] (get_metas e)
 ;;
 let priv_app s args =
   let comb_skel accu e = combine (get_skel e) accu in
@@ -147,11 +150,12 @@ let priv_app s args =
   let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
   let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
   let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
-  mkpriv skel fv sz taus metas
+  let submetas = List.fold_left (fun a e -> union (get_submetas e) a) [] args in  
+  mkpriv skel fv sz taus metas submetas
 ;;
 let priv_not e =
   mkpriv (combine k_not (get_skel e)) (get_fv e) (get_size e + 1)
-         (get_taus e) (get_metas e)
+         (get_taus e) (get_metas e) (get_submetas e)
 ;;
 let priv_and e1 e2 =
   mkpriv (combine k_and (combine (get_skel e1) (get_skel e2)))
@@ -159,6 +163,7 @@ let priv_and e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (union (get_submetas e1) (get_submetas e2))
 ;;
 let priv_or e1 e2 =
   mkpriv (combine k_or (combine (get_skel e1) (get_skel e2)))
@@ -166,6 +171,7 @@ let priv_or e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (union (get_submetas e1) (get_submetas e2))
 ;;
 let priv_imply e1 e2 =
   mkpriv (combine k_imply (combine (get_skel e1) (get_skel e2)))
@@ -173,6 +179,7 @@ let priv_imply e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (union (get_submetas e1) (get_submetas e2))
 ;;
 let priv_equiv e1 e2 =
   mkpriv (combine k_equiv (combine (get_skel e1) (get_skel e2)))
@@ -180,22 +187,27 @@ let priv_equiv e1 e2 =
          (get_size e1 + get_size e2 + 1)
          (max (get_taus e1) (get_taus e2))
          (union (get_metas e1) (get_metas e2))
+         (union (get_submetas e1) (get_submetas e2))
 ;;
 let priv_all v t e =
   mkpriv (combine k_all (combine (Hashtbl.hash t) (get_skel e)))
          (remove v (get_fv e)) (1 + get_size e) (get_taus e) (get_metas e)
+	 (get_submetas e)
 ;;
 let priv_ex v t e =
   mkpriv (combine k_ex (combine (Hashtbl.hash t) (get_skel e)))
          (remove v (get_fv e)) (1 + get_size e) (get_taus e) (get_metas e)
+	 (get_submetas e)
 ;;
 let priv_tau v t e =
   mkpriv (combine k_tau (combine (Hashtbl.hash t) (get_skel e)))
          (remove v (get_fv e)) 1 (1 + get_taus e) (get_metas e)
+	 (get_submetas e)
 ;;
 let priv_lam v t e =
   mkpriv (combine k_lam (combine (Hashtbl.hash t) (get_skel e)))
          (remove v (get_fv e)) 1 (get_taus e) (get_metas e)
+	 (get_submetas e)
 ;;
 
 
