@@ -672,6 +672,12 @@ let rec pp_expr e =
   | Elam (v, e, _) -> elam (v, pp_expr e)
 ;;
 
+
+
+let mk_prod a b =
+  eps (eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type), [a; b]))
+;;
+
 (* Registering of constants for type-checking *)
 
 List.iter Typer.declare_constant
@@ -685,31 +691,45 @@ List.iter Typer.declare_constant
     ("basics._tilda__tilda_", bool2);
     ("basics._amper__amper_", bool3);
     ("basics._bar__bar_", bool3);
-    ("basics._bar__lt__gt__bar_", bool3)
+    ("basics._bar__lt__gt__bar_", bool3);
+
+    ("dk_tuple.prod", earrow [type_type; type_type] type_type);
+    ("pair", type_type);
+
+    ("@",
+     let dummy = tvar "__dummypairvar" type_type in
+     let a = tvar "_pairvarA" type_type in
+     let b = tvar "_pairvarB" type_type in
+     eall (dummy, eall (a, eall (b, earrow [eps a; eps b] (mk_prod a b)))));
+    ("$match", type_none);
+    ("$match-case", type_none)
   ]
 ;;
 
 let built_in_defs () =
+  let dk = !(Globals.input_format) = Globals.I_dk in
+  let pair_str =
+    if dk then "pair" else "Datatypes.pair"
+  in
+  let prod_str =
+    if dk then "dk_tuple.prod" else "Datatypes.prod"
+  in
+  let prod_var =
+    tvar prod_str (earrow [type_type; type_type] type_type)
+  in
+  let prod a b =
+    eps (eapp (prod_var, [a; b]))
+  in
+  let list_file =
+    if dk then "dk_list" else "List"
+  in
   let b1 = Expr.newtvar bool1 in
   let b2 = Expr.newtvar bool1 in
   let tx = Expr.newtvar type_type in
   let ty = Expr.newtvar type_type in
   let x = Expr.newtvar (eps tx) in
   let y = Expr.newtvar (eps ty) in
-  let xy = Expr.newvar () in
-  let dk = !(Globals.input_format) = Globals.I_dk in
-  let pair_str =
-    if dk then "dk_tuple.pair" else "Datatypes.pair"
-  in
-  let prod_str =
-    if dk then "dk_tuple.prod" else "Datatypes.prod"
-  in
-  let prod a b =
-    eps (eapp (tvar prod_str (earrow [type_type; type_type] type_type), [a; b]))
-  in
-  let list_file =
-    if dk then "dk_list" else "List"
-  in
+  let xy = Expr.newtvar (eps (prod tx ty)) in
   let case = eapp (evar "$match-case", [evar (pair_str); xy]) in
   [
     Def (DefReal ("pair",
@@ -718,6 +738,7 @@ let built_in_defs () =
                   [tx; ty; x; y],
                   eapp (tvar pair_str (eall (tx, eall (ty, earrow [eps tx; eps ty] (eps (prod tx ty))))), [tx; ty; x; y]),
                   None));
+
     Def (DefReal ("fst", "basics.fst", type_none, [tx; ty; xy],
                   eapp (evar "$match", [xy; elam (x, elam (y, case))]),
                   None));
@@ -744,6 +765,25 @@ let built_in_defs () =
                   eapp (tvar "basics._tilda__tilda_" bool2, [b1]), None));
     Def (DefReal ("xor_b", "basics.xor_b", bool3, [b1; b2],
                   eapp (tvar "basics._bar__lt__gt__bar_" bool3, [b1; b2]), None));
+
+(*     (\* Def (DefReal ("fst", "basics.fst", eall (tx, eall (ty, earrow [eps (prod tx ty)] (eps tx))), [tx; ty; xy], *\) *)
+(*     (\*               eapp (evar "$match", [xy; elam (x, elam (y, case))]), *\) *)
+(*     (\*               None)); *\) *)
+(*     (\* Def (DefReal ("snd", "basics.snd", eall (tx, eall (ty, earrow [eps (prod tx ty)] (eps ty))), [tx; ty; xy], *\) *)
+(*     (\*               eapp (evar "$match", [xy; elam (y, elam (x, case))]), *\) *)
+(*     (\*               None)); *\) *)
+(*     (\* Inductive ("basics.list__t", ["A"], [ *\) *)
+(*     (\*              (list_file ^ ".nil", []); *\) *)
+(*     (\*              (list_file ^ ".cons", [Param "A"; Self]); *\) *)
+(*     (\*            ], *\) *)
+(*     (\*            "@List.list_ind"); *\) *)
+(*     Inductive (prod_var, ["A"; "B"], *)
+(*                [ (pair_str, [Param "A"; Param "B"]) ], *)
+(*                "@Datatypes.prod_ind"); *)
+(*     (\* Inductive ("basics.bool__t", [], *\) *)
+(*     (\*            [ ("true", []); ("false", []) ], "basics.bool__t_ind"); *\) *)
+
+(* >>>>>>> Stashed changes *)
   ]
 ;;
 
