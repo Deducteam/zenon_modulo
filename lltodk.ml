@@ -5,7 +5,8 @@ open Printf;;
 
 open Expr;;
 open Llproof;;
-open Exprtodk;;
+open Dkterm;;
+
 
 let get_signatures phrases = 
   let sig_tbl = (Hashtbl.create 999 : (string,  expr) Hashtbl.t) in 
@@ -54,13 +55,11 @@ let get_signatures phrases =
   Hashtbl.fold (fun x y l -> (x,y)::l) sig_tbl []
 ;;
 
+
+
 let output oc phrases llp =
   fprintf oc "#NAME tocheck";
-  let sigs = get_signatures phrases in 
-  let sigs = List.map (fun (x, y) -> (x, trexprdk y)) sigs in
-  List.iter (fun (x, y) -> fprintf oc "%s : " x;
-			   Dkterm.print_term oc y;
-			   fprintf oc ".\n") 
-	    sigs;
+  fprintf oc ".\n";
+  let sigs = Expr.get_defs in 
   []
 ;;
