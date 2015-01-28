@@ -1,61 +1,63 @@
 (* AST corresponding to a Dedukti output *)
 type var = string
 
-type term =
-  | Dktype                                  (* type type *)
-  | Dkprop                                  (* type prop *)
-  | Dkseq                                   (* type seq *)
-  | Dkproof       of term                   (* type proof of prop *)
-  | Dkterm        of term                   (* type term of type *)
-  | Dkarrow       of term list              (* type arrow of type alphas list *)
-  | Dkpi          of term * term            (* vartype -> arrow *)
+type dkterm =
+  | Dktype                                     (* type type *)
+  | Dkprop                                     (* type prop *)
+  | Dkseq                                      (* type seq *)
+  | Dkproof       of dkterm                    (* type proof of prop *)
+  | Dkterm        of dkterm                    (* type term of type *)
+  | Dkarrow       of dkterm list               (* type arrow of type alphas list *)
+  | Dkpi          of dkterm * dkterm           (* vartype -> arrow *)
 
-  | Dkvar         of var  * term            (* vartype alpha *)
-  | Dklam         of term * term            (* vartype alpha => prop of var *)
-  | Dkapp         of term * term list       (* app term apply to term list *)
+  | Dkvar         of var  * dkterm             (* vartype alpha *)
+  | Dklam         of dkterm * dkterm           (* vartype alpha => prop of var *)
+  | Dkapp         of dkterm * dkterm list      (* app term apply to term list *)
 
-  | Dknot         of term                   (* not of prop *)
-  | Dkand         of term * term            (* and of 2 prop *)
-  | Dkor          of term * term            (* or of 2 prop *)
-  | Dkimply       of term * term            (* imply of 2 prop *)
-  | Dkequiv       of term * term            (* equiv of 2 prop *)
-  | Dkforall      of term * term            (* forall type prop *)
-  | Dkexists      of term * term            (* exists type prop *)
-  | Dkforalltype  of term                   (* foralltype prop lambda *)
-  | Dkexiststype  of term                   (* existstype prop lambda *)
-  | Dktrue                                  (* true *)
-  | Dkfalse                                 (* false *)
-  | Dkequal       of term * term * term     (* equal type term term *)
+  | Dknot         of dkterm                    (* not of prop *)
+  | Dkand         of dkterm * dkterm           (* and of 2 prop *)
+  | Dkor          of dkterm * dkterm           (* or of 2 prop *)
+  | Dkimply       of dkterm * dkterm           (* imply of 2 prop *)
+  | Dkequiv       of dkterm * dkterm           (* equiv of 2 prop *)
+  | Dkforall      of dkterm * dkterm           (* forall type prop *)
+  | Dkexists      of dkterm * dkterm           (* exists type prop *)
+  | Dkforalltype  of dkterm                    (* foralltype prop lambda *)
+  | Dkexiststype  of dkterm                    (* existstype prop lambda *)
+  | Dktrue                                     (* true *)
+  | Dkfalse                                    (* false *)
+  | Dkequal       of dkterm * dkterm * dkterm  (* equal type term term *)
 
 type line =
-  | Dkdecl of var * term                    (* declaration of symbols *)
-  | Dkrwrt of term list * term * term       (* rewrite rules *)
+  | Dkdecl of var * dkterm                     (* declaration of symbols *)
+  | Dkrwrt of dkterm list * dkterm * dkterm    (* rewrite rules *)
 
-val mk_type             : term
-val mk_prop             : term
-val mk_seq              : term 
-val mk_proof            : term -> term 
-val mk_term             : term -> term 
-val mk_arrow            : term list -> term 
-val mk_pi               : term * term -> term
-val mk_var              : var * term -> term
-val mk_lam              : term * term -> term 
-val mk_app              : term * term list -> term
-val mk_not              : term -> term 
-val mk_and              : term * term -> term
-val mk_or               : term * term -> term
-val mk_imply            : term * term -> term
-val mk_equiv            : term * term -> term
-val mk_forall           : term * term -> term
-val mk_exists           : term * term -> term
-val mk_foralltype       : term -> term 
-val mk_existstype       : term -> term 
-val mk_true             : term 
-val mk_false            : term 
-val mk_equal            : term * term * term -> term
+val get_dkvar_type      : dkterm -> dkterm
 
-val mk_decl             : var * term -> line
-val mk_rwrt             : term list * term * term -> line
+val mk_type             : dkterm
+val mk_prop             : dkterm
+val mk_seq              : dkterm 
+val mk_proof            : dkterm -> dkterm 
+val mk_term             : dkterm -> dkterm 
+val mk_arrow            : dkterm list -> dkterm 
+val mk_pi               : dkterm * dkterm -> dkterm
+val mk_var              : var * dkterm -> dkterm
+val mk_lam              : dkterm * dkterm -> dkterm 
+val mk_app              : dkterm * dkterm list -> dkterm
+val mk_not              : dkterm -> dkterm 
+val mk_and              : dkterm * dkterm -> dkterm
+val mk_or               : dkterm * dkterm -> dkterm
+val mk_imply            : dkterm * dkterm -> dkterm
+val mk_equiv            : dkterm * dkterm -> dkterm
+val mk_forall           : dkterm * dkterm -> dkterm
+val mk_exists           : dkterm * dkterm -> dkterm
+val mk_foralltype       : dkterm -> dkterm 
+val mk_existstype       : dkterm -> dkterm 
+val mk_true             : dkterm 
+val mk_false            : dkterm 
+val mk_equal            : dkterm * dkterm * dkterm -> dkterm
+
+val mk_decl             : var * dkterm -> line
+val mk_rwrt             : dkterm list * dkterm * dkterm -> line
 
 val print_line          : out_channel -> line -> unit
 
