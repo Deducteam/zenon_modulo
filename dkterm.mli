@@ -27,6 +27,32 @@ type dkterm =
   | Dkfalse                                    (* false *)
   | Dkequal       of dkterm * dkterm * dkterm  (* equal type term term *)
 
+  | DkRfalse 
+  | DkRnottrue
+  | DkRaxiom      of dkterm                              (* p *)
+  | DkRnoteq      of dkterm * dkterm                     (* a -> t:a *)
+  | DkReqsym      of dkterm * dkterm * dkterm            (* a -> t:a -> u a *)
+  | DkRcut        of dkterm * dkterm * dkterm            (* p -> prf -> prf *)
+  | DkRnotnot     of dkterm * dkterm                     (* p -> prf *)
+  | DkRand        of dkterm * dkterm * dkterm            (* p -> q -> prf *)
+  | DkRor         of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRimply      of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRequiv      of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRnotand     of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRnotor      of dkterm * dkterm * dkterm            (* p -> q -> prf *)
+  | DkRnotimply   of dkterm * dkterm * dkterm            (* p -> q -> prf *)
+  | DkRnotequiv   of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRex         of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
+  | DkRall        of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
+  | DkRnotex      of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
+  | DkRnotall     of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
+  | DkRextype     of dkterm * dkterm                     (* p -> (a -> prf) *)
+  | DkRalltype    of dkterm * dkterm * dkterm            (* p -> a -> prf *)
+  | DkRnotextype  of dkterm * dkterm * dkterm            (* p -> a -> prf *)
+  | DkRnotalltype of dkterm * dkterm                     (* p -> (a -> prf) *)
+  | DkRconglr     of dkterm * dkterm * dkterm * dkterm * dkterm 
+  | DkRcongrl     of dkterm * dkterm * dkterm * dkterm * dkterm 
+
 type line =
   | Dkdecl of var * dkterm                     (* declaration of symbols *)
   | Dkrwrt of dkterm list * dkterm * dkterm    (* rewrite rules *)
@@ -56,8 +82,35 @@ val mk_true             : dkterm
 val mk_false            : dkterm 
 val mk_equal            : dkterm * dkterm * dkterm -> dkterm
 
+val mk_DkRfalse         : dkterm
+val mk_DkRnottrue       : dkterm
+val mk_DkRaxiom         : dkterm -> dkterm
+val mk_DkRnoteq         : dkterm * dkterm -> dkterm
+val mk_DkReqsym         : dkterm * dkterm * dkterm -> dkterm
+val mk_DkRcut           : dkterm * dkterm * dkterm -> dkterm
+val mk_DkRnotnot        : dkterm * dkterm -> dkterm
+val mk_DkRand           : dkterm * dkterm * dkterm -> dkterm
+val mk_DkRor            : dkterm * dkterm * dkterm * dkterm -> dkterm
+val mk_DkRimply         : dkterm * dkterm * dkterm * dkterm -> dkterm
+val mk_DkRequiv         : dkterm * dkterm * dkterm * dkterm -> dkterm
+val mk_DkRnotand        : dkterm * dkterm * dkterm * dkterm -> dkterm
+val mk_DkRnotor         : dkterm * dkterm * dkterm -> dkterm
+val mk_DkRnotimply      : dkterm * dkterm * dkterm -> dkterm
+val mk_DkRnotequiv      : dkterm * dkterm * dkterm * dkterm -> dkterm
+val mk_DkRex            : dkterm * dkterm * dkterm -> dkterm
+val mk_DkRall           : dkterm * dkterm * dkterm * dkterm -> dkterm
+val mk_DkRnotex         : dkterm * dkterm * dkterm * dkterm -> dkterm
+val mk_DkRnotall        : dkterm * dkterm * dkterm -> dkterm
+val mk_DkRextype        : dkterm * dkterm -> dkterm
+val mk_DkRalltype       : dkterm * dkterm * dkterm -> dkterm
+val mk_DkRnotextype     : dkterm * dkterm * dkterm -> dkterm
+val mk_DkRnotalltype    : dkterm * dkterm -> dkterm
+val mk_DkRconglr        : dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
+val mk_DkRcongrl        : dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
+
 val mk_decl             : var * dkterm -> line
 val mk_rwrt             : dkterm list * dkterm * dkterm -> line
 
 val print_line          : out_channel -> line -> unit
 val print_goal_type     : out_channel -> string -> dkterm -> unit
+val print_proof         : out_channel -> string -> dkterm -> unit

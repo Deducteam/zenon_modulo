@@ -168,6 +168,160 @@ let trexpr_dkgoal e =
   mk_proof (trexpr_dkprop goal)
 ;;
 
+let get_type_binder e = 
+  match e with 
+  | Eex (v, _, _) 
+  | Eall (v, _, _) 
+  | Enot (Eex (v, _, _), _) 
+  | Enot (Eall (v, _, _), _) -> 
+     get_type e 
+  | _ -> assert false
+;;
+
+let extract_prooftree lemmas = 
+  match lemmas with 
+  | [] -> assert false
+  | [lemma] -> 
+     let prooftree = match lemma with 
+       | {proof = p} -> p
+     in
+     prooftree
+  | _ -> assert false
+;;
+
+let rec trproof_dk p = 
+  match p with 
+  | {conc = lconc; 
+     rule = llrule;
+     hyps = proofs;} 
+    -> 
+     match llrule with 
+     | Rfalse -> 
+	assert (List.length proofs == 0);
+	mk_DkRfalse
+     | Rnottrue -> 
+	assert (List.length proofs == 0);
+	mk_DkRnottrue
+     | Raxiom (p) -> 
+	assert (List.length proofs == 0);
+	let np = trexpr_dkprop p in 
+	mk_DkRaxiom (np)
+     | Rcut (p) -> 
+	assert (List.length proofs == 2);
+	let np = trexpr_dkprop p in 
+	mk_DkRcut (np, 
+		   trproof_dk (List.nth proofs 0), 
+		   trproof_dk (List.nth proofs 1))
+     | Rnoteq (t) ->  
+	assert (List.length proofs == 0);
+	let a = trexpr_dktype (get_type t) in 
+	let nt = trexpr_dkprop t in 
+	mk_DkRnoteq (a, nt)
+     | Reqsym (t, u) -> 
+	assert (List.length proofs == 0);
+	let a = trexpr_dktype (get_type t) in 
+	let nt = trexpr_dkprop t in 
+	let nu = trexpr_dkprop u in 
+	mk_DkReqsym  (a, nt, nu)
+     | Rnotnot (p) -> 
+	assert (List.length proofs == 1);
+	let np = trexpr_dkprop p in 
+	mk_DkRnotnot (np, 
+		      trproof_dk (List.nth proofs 0))
+     | Rconnect (And, p, q) -> 
+	assert (List.length proofs == 1);
+	let np = trexpr_dkprop p in 
+	let nq = trexpr_dkprop q in 
+	mk_DkRand (np, nq, 
+		   trproof_dk (List.nth proofs 0))
+     | Rconnect (Or, p, q) -> 
+	assert (List.length proofs == 2);
+        let np = trexpr_dkprop p in 
+	let nq = trexpr_dkprop q in 
+	mk_DkRor (np, nq, 
+		  trproof_dk (List.nth proofs 0), 
+		  trproof_dk (List.nth proofs 1))
+     | Rconnect (Imply, p, q) -> 
+	assert (List.length proofs == 2);
+        let np = trexpr_dkprop p in 
+	let nq = trexpr_dkprop q in 
+	mk_DkRimply (np, nq, 
+		     trproof_dk (List.nth proofs 0), 
+		     trproof_dk (List.nth proofs 1))
+     | Rconnect (Equiv, p, q) -> 
+	assert (List.length proofs == 2);
+        let np = trexpr_dkprop p in 
+	let nq = trexpr_dkprop q in 
+	mk_DkRequiv (np, nq, 
+		     trproof_dk (List.nth proofs 0), 
+		     trproof_dk (List.nth proofs 1))
+     | Rnotconnect (And, p, q) -> 
+	assert (List.length proofs == 2);
+	let np = trexpr_dkprop p in 
+	let nq = trexpr_dkprop q in 
+	mk_DkRnotand (np, nq, 
+		      trproof_dk (List.nth proofs 0),
+		      trproof_dk (List.nth proofs 1))
+     | Rnotconnect (Or, p, q) -> 
+	assert (List.length proofs == 1);
+        let np = trexpr_dkprop p in 
+	let nq = trexpr_dkprop q in 
+	mk_DkRnotor (np, nq, 
+		     trproof_dk (List.nth proofs 0)) 
+     | Rnotconnect (Imply, p, q) -> 
+	assert (List.length proofs == 1);
+        let np = trexpr_dkprop p in 
+	let nq = trexpr_dkprop q in 
+	mk_DkRnotimply (np, nq, 
+			trproof_dk (List.nth proofs 0)) 
+     | Rnotconnect (Equiv, p, q) -> 
+	assert (List.length proofs == 2);
+        let np = trexpr_dkprop p in 
+	let nq = trexpr_dkprop q in 
+	mk_DkRnotequiv (np, nq, 
+			trproof_dk (List.nth proofs 0), 
+			trproof_dk (List.nth proofs 1))
+     | Rex (p, t) -> 
+	assert (List.length proofs == 1);
+	let a = trexpr_dktype (get_type_binder p) in
+	let np = trexpr_dkprop p in 
+	let nt = trexpr_dkprop t in 
+	mk_DkRex (a, np, mk_lam (nt, (trproof_dk (List.nth proofs 0))))
+     | Rall (p, t) -> 
+	assert (List.length proofs == 1);
+	let a = trexpr_dktype (get_type_binder p) in 
+	let np = trexpr_dkprop p in 
+	let nt = trexpr_dkprop t in 
+	mk_DkRall (a, np, nt, trproof_dk (List.nth proofs 0))
+     | Rnotex (p, t) -> 
+	assert (List.length proofs == 1);
+	let a = trexpr_dktype (get_type_binder p) in 
+	let np = trexpr_dkprop p in 
+	let nt = trexpr_dkprop t in 
+	mk_DkRnotex (a, np, nt, trproof_dk (List.nth proofs 0))
+     | Rnotall (p, t) -> 
+	assert (List.length proofs == 1);
+	let a = trexpr_dktype (get_type_binder p) in
+	let np = trexpr_dkprop p in 
+	let nt = trexpr_dkprop t in 
+	mk_DkRnotall (a, np, mk_lam (nt, (trproof_dk (List.nth proofs 0))))
+     | RcongruenceLR (p, t1, t2) -> 
+	assert (List.length proofs == 1);
+	let a = trexpr_dktype (get_type t1) in 
+	let np = trexpr_dkprop p in 
+	let nt1 = trexpr_dkprop t1 in 
+	let nt2 = trexpr_dkprop t2 in 
+	mk_DkRconglr (a, np, nt1, nt2, trproof_dk (List.nth proofs 0))
+     | RcongruenceRL (p, t1, t2) -> 
+	assert (List.length proofs == 1);
+	let a = trexpr_dktype (get_type t1) in 
+	let np = trexpr_dkprop p in 
+	let nt1 = trexpr_dkprop t1 in 
+	let nt2 = trexpr_dkprop t2 in 
+	mk_DkRcongrl (a, np, nt1, nt2, trproof_dk (List.nth proofs 0))
+     | _ -> assert false
+;;
+
 let output oc phrases llp =
   let sigs = Expr.get_defs () in
   let dksigs = translate_sigs sigs in 
@@ -179,6 +333,8 @@ let output oc phrases llp =
   let (name, goal) = List.split (select_goal phrases) in 
   let dkgoal = trexpr_dkgoal goal in 
   let dkname = List.hd name in 
+  let prooftree = extract_prooftree llp in 
+  let dkproof = trproof_dk prooftree in 
   
 
   fprintf oc "#NAME tocheck";
@@ -189,7 +345,8 @@ let output oc phrases llp =
   fprintf oc "\n";
   print_goal_type oc dkname dkgoal;
   fprintf oc "\n";
+  print_proof oc dkname dkproof;
   
-  
+
   []
 ;;
