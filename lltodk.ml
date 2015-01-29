@@ -151,6 +151,23 @@ let build_dkrwrt rule =
      mk_rwrt (vars, t1, t2)
 ;;
 
+let select_goal_aux accu phrase = 
+  match phrase with 
+  | Phrase.Hyp (name, body, flag) when flag == 0 -> 
+     (name, body) :: accu
+  | _ -> accu
+;;
+
+let select_goal phrases = 
+  List.fold_left select_goal_aux [] phrases
+;;
+
+let trexpr_dkgoal e = 
+  assert (List.length e == 1);
+  let goal = List.hd e in 
+  mk_proof (trexpr_dkprop goal)
+;;
+
 let output oc phrases llp =
   let sigs = Expr.get_defs () in
   let dksigs = translate_sigs sigs in 
@@ -159,6 +176,10 @@ let output oc phrases llp =
   let rules = List.append rules 
 			  (Hashtbl.fold (fun x y z -> y :: z) !tbl_prop []) in
   let dkrules = List.map build_dkrwrt rules in
+  let (name, goal) = List.split (select_goal phrases) in 
+  let dkgoal = trexpr_dkgoal goal in 
+  let dkname = List.hd name in 
+  
 
   fprintf oc "#NAME tocheck";
   fprintf oc ".\n";
@@ -166,6 +187,9 @@ let output oc phrases llp =
   fprintf oc "\n";
   List.iter (print_line oc) dkrules;
   fprintf oc "\n";
+  print_goal_type oc dkname dkgoal;
+  fprintf oc "\n";
+  
   
   []
 ;;

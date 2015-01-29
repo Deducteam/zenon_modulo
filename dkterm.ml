@@ -141,5 +141,7 @@ let print_line o line =
      fprintf o "[%a]\n %a --> %a.\n" pr_list_var l print_dk t1 print_dk t2
 ;;
 
-
+let print_goal_type o name goal = 
+  fprintf o "%s :\n %a" name print_dk goal
+;;
 
