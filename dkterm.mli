@@ -29,29 +29,31 @@ type dkterm =
 
   | DkRfalse 
   | DkRnottrue
-  | DkRaxiom      of dkterm                              (* p *)
-  | DkRnoteq      of dkterm * dkterm                     (* a -> t:a *)
-  | DkReqsym      of dkterm * dkterm * dkterm            (* a -> t:a -> u a *)
-  | DkRcut        of dkterm * dkterm * dkterm            (* p -> prf -> prf *)
-  | DkRnotnot     of dkterm * dkterm                     (* p -> prf *)
-  | DkRand        of dkterm * dkterm * dkterm            (* p -> q -> prf *)
-  | DkRor         of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRimply      of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRequiv      of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRnotand     of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRnotor      of dkterm * dkterm * dkterm            (* p -> q -> prf *)
-  | DkRnotimply   of dkterm * dkterm * dkterm            (* p -> q -> prf *)
-  | DkRnotequiv   of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRex         of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
-  | DkRall        of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
-  | DkRnotex      of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
-  | DkRnotall     of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
-  | DkRextype     of dkterm * dkterm                     (* p -> (a -> prf) *)
-  | DkRalltype    of dkterm * dkterm * dkterm            (* p -> a -> prf *)
-  | DkRnotextype  of dkterm * dkterm * dkterm            (* p -> a -> prf *)
-  | DkRnotalltype of dkterm * dkterm                     (* p -> (a -> prf) *)
-  | DkRconglr     of dkterm * dkterm * dkterm * dkterm * dkterm 
-  | DkRcongrl     of dkterm * dkterm * dkterm * dkterm * dkterm 
+  | DkRaxiom        of dkterm                              (* p *)
+  | DkRnoteq        of dkterm * dkterm                     (* a -> t:a *)
+  | DkReqsym        of dkterm * dkterm * dkterm            (* a -> t:a -> u a *)
+  | DkRcut          of dkterm * dkterm * dkterm            (* p -> prf -> prf *)
+  | DkRnotnot       of dkterm * dkterm                     (* p -> prf *)
+  | DkRand          of dkterm * dkterm * dkterm            (* p -> q -> prf *)
+  | DkRor           of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRimply        of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRequiv        of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRnotand       of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRnotor        of dkterm * dkterm * dkterm            (* p -> q -> prf *)
+  | DkRnotimply     of dkterm * dkterm * dkterm            (* p -> q -> prf *)
+  | DkRnotequiv     of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRex           of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
+  | DkRall          of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
+  | DkRnotex        of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
+  | DkRnotall       of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
+  | DkRnotallex     of dkterm * dkterm * dkterm
+  | DkRextype       of dkterm * dkterm                     (* p -> (a -> prf) *)
+  | DkRalltype      of dkterm * dkterm * dkterm            (* p -> a -> prf *)
+  | DkRnotextype    of dkterm * dkterm * dkterm            (* p -> a -> prf *)
+  | DkRnotalltype   of dkterm * dkterm                     (* p -> (a -> prf) *)
+  | DkRnotallextype of dkterm * dkterm
+  | DkRconglr       of dkterm * dkterm * dkterm * dkterm * dkterm 
+  | DkRcongrl       of dkterm * dkterm * dkterm * dkterm * dkterm 
 
 type line =
   | Dkdecl of var * dkterm                     (* declaration of symbols *)
@@ -101,10 +103,12 @@ val mk_DkRex            : dkterm * dkterm * dkterm -> dkterm
 val mk_DkRall           : dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRnotex         : dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRnotall        : dkterm * dkterm * dkterm -> dkterm
+val mk_DkRnotallex      : dkterm * dkterm * dkterm -> dkterm
 val mk_DkRextype        : dkterm * dkterm -> dkterm
 val mk_DkRalltype       : dkterm * dkterm * dkterm -> dkterm
 val mk_DkRnotextype     : dkterm * dkterm * dkterm -> dkterm
 val mk_DkRnotalltype    : dkterm * dkterm -> dkterm
+val mk_DkRnotallextype  : dkterm * dkterm -> dkterm
 val mk_DkRconglr        : dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRcongrl        : dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
 

@@ -7,8 +7,9 @@ open Expr;;
 open Llproof;;
 open Dkterm;;
 
+
 let rec trexpr_dktype e =
-  Log.debug 15 "dktype %a" Print.pp_expr e;
+  Log.debug 10 "dktype %a" Print.pp_expr e;
   match e with 
   | e when (Expr.equal e type_type) -> 
      mk_type
@@ -47,6 +48,9 @@ let rec trexpr_dktype e =
        | _ -> assert false
      in
      mk_pi (nvar, np)
+  | Etau _ as e  -> 
+     let v = Printf.sprintf "Tau_%d" (Index.get_number e) in 
+     mk_var (v, trexpr_dktype (get_type e))
   | _ -> assert false
 ;;
 
@@ -95,6 +99,7 @@ let tr_list_vars rule =
 ;;
 
 let rec trexpr_dkprop e = 
+  Log.debug 10 "dkprop %a" Print.pp_expr e;
   match e with 
   | e when (Expr.equal e type_type) -> 
      mk_type
@@ -132,13 +137,18 @@ let rec trexpr_dkprop e =
   | Eall _ -> assert false
   | Eex (Evar (v, _) as v', p, _) 
        when Expr.equal (get_type v') type_type -> 
-     assert false
+     mk_existstype (mk_lam (trexpr_dkvartype v', trexpr_dkprop p))
   | Eex (Evar (v, _) as v', p, _) -> 
      let nv = trexpr_dkvartype v' in 
      let tnv = get_dkvar_type nv in 
      mk_exists (tnv, (mk_lam (nv, trexpr_dkprop p)))
   | Eex _ -> assert false
-  | Etau _ -> assert false
+  | Etau _ as e  -> 
+     let v = Printf.sprintf "Tau_%d" (Index.get_number e) in 
+     mk_var (v, trexpr_dktype (get_type e))
+  | Elam (Evar (v, _) as v', p, _) -> 
+     let nv = trexpr_dkvartype v' in 
+     mk_lam (nv, trexpr_dkprop p)
   | Elam _ -> assert false
 ;;
 
@@ -174,8 +184,14 @@ let get_type_binder e =
   | Eall (v, _, _) 
   | Enot (Eex (v, _, _), _) 
   | Enot (Eall (v, _, _), _) -> 
-     get_type e 
+     get_type v 
+  | Elam (v, _, _) -> 
+     get_type v
   | _ -> assert false
+;;
+
+let is_binder_of_type_var e = 
+  Expr.equal (get_type_binder e) type_type
 ;;
 
 let extract_prooftree lemmas = 
@@ -195,6 +211,9 @@ let rec trproof_dk p =
      rule = llrule;
      hyps = proofs;} 
     -> 
+     Log.debug 8 "Proof step %a" Print.pr_llrule llrule;
+     Log.debug 9 " |- conc";
+     List.iter (fun x -> Log.debug 9 " |- %a" Print.pp_expr x) lconc; 
      match llrule with 
      | Rfalse -> 
 	assert (List.length proofs == 0);
@@ -282,29 +301,64 @@ let rec trproof_dk p =
 			trproof_dk (List.nth proofs 0), 
 			trproof_dk (List.nth proofs 1))
      | Rex (p, t) -> 
+	Log.debug 9 "Rex with";
+	Log.debug 9 " |- p = %a" Print.pp_expr p;
+	Log.debug 9 " |- t = %a" Print.pp_expr t;
 	assert (List.length proofs == 1);
-	let a = trexpr_dktype (get_type_binder p) in
-	let np = trexpr_dkprop p in 
-	let nt = trexpr_dkprop t in 
-	mk_DkRex (a, np, mk_lam (nt, (trproof_dk (List.nth proofs 0))))
+	if (is_binder_of_type_var p) then
+	  let a = trexpr_dktype t in
+	  let np = trexpr_dkprop p in 
+	  mk_DkRextype (np, mk_lam (a, trproof_dk (List.nth proofs 0)))
+	else	  
+	  let a = trexpr_dktype (get_type_binder p) in
+	  let np = trexpr_dkprop p in 
+	  let nt = trexpr_dkprop t in 
+	  mk_DkRex (a, np, mk_lam (nt, trproof_dk (List.nth proofs 0)))
      | Rall (p, t) -> 
 	assert (List.length proofs == 1);
-	let a = trexpr_dktype (get_type_binder p) in 
-	let np = trexpr_dkprop p in 
-	let nt = trexpr_dkprop t in 
-	mk_DkRall (a, np, nt, trproof_dk (List.nth proofs 0))
+	if (is_binder_of_type_var p) then
+	  let a = trexpr_dktype t in 
+	  let np = trexpr_dkprop p in 
+	  mk_DkRalltype (np, a, trproof_dk (List.nth proofs 0))
+	else
+	  let a = trexpr_dktype (get_type_binder p) in 
+	  let np = trexpr_dkprop p in 
+	  let nt = trexpr_dkprop t in 
+	  mk_DkRall (a, np, nt, trproof_dk (List.nth proofs 0))
      | Rnotex (p, t) -> 
 	assert (List.length proofs == 1);
-	let a = trexpr_dktype (get_type_binder p) in 
-	let np = trexpr_dkprop p in 
-	let nt = trexpr_dkprop t in 
-	mk_DkRnotex (a, np, nt, trproof_dk (List.nth proofs 0))
+	if (is_binder_of_type_var p) then 
+	  let a = trexpr_dktype t in 
+	  let np = trexpr_dkprop p in 
+	  mk_DkRnotextype (np, a, trproof_dk (List.nth proofs 0))
+	else
+	  let a = trexpr_dktype (get_type_binder p) in 
+	  let np = trexpr_dkprop p in 
+	  let nt = trexpr_dkprop t in 
+	  mk_DkRnotex (a, np, nt, trproof_dk (List.nth proofs 0))
      | Rnotall (p, t) -> 
 	assert (List.length proofs == 1);
-	let a = trexpr_dktype (get_type_binder p) in
-	let np = trexpr_dkprop p in 
-	let nt = trexpr_dkprop t in 
-	mk_DkRnotall (a, np, mk_lam (nt, (trproof_dk (List.nth proofs 0))))
+	if (is_binder_of_type_var p) then 
+	  let a = trexpr_dktype t in 
+	  let np = trexpr_dkprop p in 
+	  mk_DkRnotalltype (np, mk_lam (a, trproof_dk (List.nth proofs 0)))
+	else
+	  let a = trexpr_dktype (get_type_binder p) in
+	  let np = trexpr_dkprop p in 
+	  let nt = trexpr_dkprop t in 
+	  mk_DkRnotall (a, np, mk_lam (nt, trproof_dk (List.nth proofs 0)))
+     | Rextension (_, "zenon_notallex", args, _, _) -> 
+	assert (List.length proofs == 1);
+	assert (List.length lconc == 1);
+	assert (List.length args == 1);
+        let p = List.hd args in 
+	if (is_binder_of_type_var p) then 
+	  let np = trexpr_dkprop p in 
+	  mk_DkRnotallextype (np, trproof_dk (List.nth proofs 0))
+	else 
+	  let a = trexpr_dktype (get_type_binder p) in 
+	  let np = trexpr_dkprop p in 
+	  mk_DkRnotallex (a, np, trproof_dk (List.nth proofs 0))
      | RcongruenceLR (p, t1, t2) -> 
 	assert (List.length proofs == 1);
 	let a = trexpr_dktype (get_type t1) in 

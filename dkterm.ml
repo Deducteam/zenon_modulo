@@ -31,29 +31,31 @@ type dkterm =
 
   | DkRfalse 
   | DkRnottrue
-  | DkRaxiom      of dkterm                              (* p *)
-  | DkRnoteq      of dkterm * dkterm                     (* a -> t:a *)
-  | DkReqsym      of dkterm * dkterm * dkterm            (* a -> t:a -> u a *)
-  | DkRcut        of dkterm * dkterm * dkterm            (* p -> prf -> prf *)
-  | DkRnotnot     of dkterm * dkterm                     (* p -> prf *)
-  | DkRand        of dkterm * dkterm * dkterm            (* p -> q -> prf *)
-  | DkRor         of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRimply      of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRequiv      of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRnotand     of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRnotor      of dkterm * dkterm * dkterm            (* p -> q -> prf *)
-  | DkRnotimply   of dkterm * dkterm * dkterm            (* p -> q -> prf *)
-  | DkRnotequiv   of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRex         of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
-  | DkRall        of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
-  | DkRnotex      of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
-  | DkRnotall     of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
-  | DkRextype     of dkterm * dkterm                     (* p -> (a -> prf) *)
-  | DkRalltype    of dkterm * dkterm * dkterm            (* p -> a -> prf *)
-  | DkRnotextype  of dkterm * dkterm * dkterm            (* p -> a -> prf *)
-  | DkRnotalltype of dkterm * dkterm                     (* p -> (a -> prf) *)
-  | DkRconglr     of dkterm * dkterm * dkterm * dkterm * dkterm 
-  | DkRcongrl     of dkterm * dkterm * dkterm * dkterm * dkterm 
+  | DkRaxiom        of dkterm                              (* p *)
+  | DkRnoteq        of dkterm * dkterm                     (* a -> t:a *)
+  | DkReqsym        of dkterm * dkterm * dkterm            (* a -> t:a -> u a *)
+  | DkRcut          of dkterm * dkterm * dkterm            (* p -> prf -> prf *)
+  | DkRnotnot       of dkterm * dkterm                     (* p -> prf *)
+  | DkRand          of dkterm * dkterm * dkterm            (* p -> q -> prf *)
+  | DkRor           of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRimply        of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRequiv        of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRnotand       of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRnotor        of dkterm * dkterm * dkterm            (* p -> q -> prf *)
+  | DkRnotimply     of dkterm * dkterm * dkterm            (* p -> q -> prf *)
+  | DkRnotequiv     of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
+  | DkRex           of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
+  | DkRall          of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
+  | DkRnotex        of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
+  | DkRnotall       of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
+  | DkRnotallex     of dkterm * dkterm * dkterm            
+  | DkRextype       of dkterm * dkterm                     (* p -> (a -> prf) *)
+  | DkRalltype      of dkterm * dkterm * dkterm            (* p -> a -> prf *)
+  | DkRnotextype    of dkterm * dkterm * dkterm            (* p -> a -> prf *)
+  | DkRnotalltype   of dkterm * dkterm                     (* p -> (a -> prf) *)
+  | DkRnotallextype of dkterm * dkterm
+  | DkRconglr       of dkterm * dkterm * dkterm * dkterm * dkterm 
+  | DkRcongrl       of dkterm * dkterm * dkterm * dkterm * dkterm 
 ;;
 
 type line =
@@ -91,31 +93,33 @@ let mk_true                    = Dktrue
 let mk_false                   = Dkfalse
 let mk_equal      (t1, t2, t3) = Dkequal (t1, t2, t3)
 
-let mk_DkRfalse                            = DkRfalse
-let mk_DkRnottrue                          = DkRnottrue
-let mk_DkRaxiom      (p)                   = DkRaxiom (p)
-let mk_DkRnoteq      (a, t)                = DkRnoteq (a, t)
-let mk_DkReqsym      (a, t, u)             = DkReqsym (a, t, u)
-let mk_DkRcut        (p, prf1, prf2)       = DkRcut (p, prf1, prf2)
-let mk_DkRnotnot     (p, prf1)             = DkRnotnot (p, prf1)
-let mk_DkRand        (p, q, prf1)          = DkRand (p, q, prf1)
-let mk_DkRor         (p, q, prf1, prf2)    = DkRor (p, q, prf1, prf2)
-let mk_DkRimply      (p, q, prf1, prf2)    = DkRimply (p, q, prf1, prf2)
-let mk_DkRequiv      (p, q, prf1, prf2)    = DkRequiv (p, q, prf1, prf2)
-let mk_DkRnotand     (p, q, prf1, prf2)    = DkRnotand (p, q, prf1, prf2)
-let mk_DkRnotor      (p, q, prf1)          = DkRnotor (p, q, prf1)
-let mk_DkRnotimply   (p, q, prf1)          = DkRnotimply (p, q, prf1)
-let mk_DkRnotequiv   (p, q, prf1, prf2)    = DkRnotequiv (p, q, prf1, prf2)
-let mk_DkRex         (a, p, prf1)          = DkRex (a, p, prf1)
-let mk_DkRall        (a, p, t, prf1)       = DkRall (a, p, t, prf1)
-let mk_DkRnotex      (a, p, t, prf1)       = DkRnotex (a, p, t, prf1)
-let mk_DkRnotall     (a, p, prf1)          = DkRnotall (a, p, prf1)
-let mk_DkRextype     (p, prf1)             = DkRextype (p, prf1)
-let mk_DkRalltype    (p, a, prf1)          = DkRalltype (p, a, prf1)
-let mk_DkRnotextype  (p, a, prf1)          = DkRnotextype (p, a, prf1)
-let mk_DkRnotalltype (p, prf1)             = DkRnotalltype (p, prf1)
-let mk_DkRconglr     (a, p, t1, t2, prf1)  = DkRconglr (a, p, t1, t2, prf1)
-let mk_DkRcongrl     (a, p, t1, t2, prf1)  = DkRcongrl (a, p, t1, t2, prf1)
+let mk_DkRfalse                              = DkRfalse
+let mk_DkRnottrue                            = DkRnottrue
+let mk_DkRaxiom        (p)                   = DkRaxiom (p)
+let mk_DkRnoteq        (a, t)                = DkRnoteq (a, t)
+let mk_DkReqsym        (a, t, u)             = DkReqsym (a, t, u)
+let mk_DkRcut          (p, prf1, prf2)       = DkRcut (p, prf1, prf2)
+let mk_DkRnotnot       (p, prf1)             = DkRnotnot (p, prf1)
+let mk_DkRand          (p, q, prf1)          = DkRand (p, q, prf1)
+let mk_DkRor           (p, q, prf1, prf2)    = DkRor (p, q, prf1, prf2)
+let mk_DkRimply        (p, q, prf1, prf2)    = DkRimply (p, q, prf1, prf2)
+let mk_DkRequiv        (p, q, prf1, prf2)    = DkRequiv (p, q, prf1, prf2)
+let mk_DkRnotand       (p, q, prf1, prf2)    = DkRnotand (p, q, prf1, prf2)
+let mk_DkRnotor        (p, q, prf1)          = DkRnotor (p, q, prf1)
+let mk_DkRnotimply     (p, q, prf1)          = DkRnotimply (p, q, prf1)
+let mk_DkRnotequiv     (p, q, prf1, prf2)    = DkRnotequiv (p, q, prf1, prf2)
+let mk_DkRex           (a, p, prf1)          = DkRex (a, p, prf1)
+let mk_DkRall          (a, p, t, prf1)       = DkRall (a, p, t, prf1)
+let mk_DkRnotex        (a, p, t, prf1)       = DkRnotex (a, p, t, prf1)
+let mk_DkRnotall       (a, p, prf1)          = DkRnotall (a, p, prf1)
+let mk_DkRnotallex     (a, p, prf1)          = DkRnotallex (a, p, prf1)
+let mk_DkRextype       (p, prf1)             = DkRextype (p, prf1)
+let mk_DkRalltype      (p, a, prf1)          = DkRalltype (p, a, prf1)
+let mk_DkRnotextype    (p, a, prf1)          = DkRnotextype (p, a, prf1)
+let mk_DkRnotalltype   (p, prf1)             = DkRnotalltype (p, prf1)
+let mk_DkRnotallextype (p, prf1)             = DkRnotallextype (p, prf1)
+let mk_DkRconglr       (a, p, t1, t2, prf1)  = DkRconglr (a, p, t1, t2, prf1)
+let mk_DkRcongrl       (a, p, t1, t2, prf1)  = DkRcongrl (a, p, t1, t2, prf1)
 
 let mk_decl       (v, t)       = Dkdecl (v, t)
 let mk_rwrt       (l, t1, t2)  = Dkrwrt (l, t1, t2)
@@ -252,6 +256,11 @@ let rec print_dk o t =
 	     print_dk a 
 	     print_dk p 
 	     print_dk prf1
+  | DkRnotallex (a, p, prf1) -> 
+     fprintf o "(zen.Rnotallex %a %a %a)" 
+	     print_dk a 
+	     print_dk p 
+	     print_dk prf1
   | DkRextype (p, prf1) -> 
      fprintf o "(zen.Rextype %a %a)" 
 	     print_dk p 
@@ -267,6 +276,10 @@ let rec print_dk o t =
 	     print_dk a 
 	     print_dk prf1
   | DkRnotalltype (p, prf1) -> 
+     fprintf o "(zen.Rnotalltype %a %a)" 
+	     print_dk p 
+	     print_dk prf1
+  | DkRnotallextype (p, prf1) -> 
      fprintf o "(zen.Rnotalltype %a %a)" 
 	     print_dk p 
 	     print_dk prf1
