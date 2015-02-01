@@ -8,6 +8,13 @@ open Termsig
 module Translate(Dk : TermSig) =
 struct
 
+  (* Same as get_type but when the type is of the form "cc.eT ty"
+     return ty instead *)
+  let get_type_no_epsilon e =
+    match get_type e with
+    | Eapp (Evar ("cc.eT", _), [ty], _) -> ty
+    | ty -> ty
+
   (* Translation function from expressions *)
   let rec trexpr e =
     match e with
@@ -38,7 +45,7 @@ struct
       Eex (e1, Enot (Enot (e2, _), _), _), _), _) ->
        Dk.mk_existsc (trexpr e1) (Dk.term_of_ty (get_type e1)) (trexpr e2)
     | Enot (Enot (Eapp (Evar("=", _), [e1;e2], _), _), _) ->
-       Dk.mk_eqc (Dk.term_of_ty (get_type e1)) (trexpr e1) (trexpr e2)
+       Dk.mk_eqc (Dk.term_of_ty (get_type_no_epsilon e1)) (trexpr e1) (trexpr e2)
     (* Terms *)
     | Evar (v, _) when Mltoll.is_meta v ->
        Dk.mk_anyterm
@@ -48,7 +55,7 @@ struct
        Dk.mk_var ("S"^v)
     | Eapp (Evar("$string", _), _, _) -> assert false
     | Eapp (Evar("=", _), [e1;e2], _) ->
-       Dk.mk_eq (Dk.term_of_ty (get_type e1)) (trexpr e1) (trexpr e2)
+       Dk.mk_eq (Dk.term_of_ty (get_type_no_epsilon e1)) (trexpr e1) (trexpr e2)
     | Eapp (t, args, _) ->
        Dk.mk_app (trexpr t) (List.map trexpr args)
     (* Intuitionistic connectors *)
