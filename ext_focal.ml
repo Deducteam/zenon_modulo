@@ -695,6 +695,10 @@ List.iter Typer.declare_constant
     ("basics._bar__bar_", bool3);
     ("basics._bar__lt__gt__bar_", bool3);
 
+    ("basics.syntactic_equal",
+     let ty = newtvar type_type in
+     eall (ty, earrow [eps ty; eps ty] bool1));
+
     ("dk_tuple.prod", earrow [type_type; type_type] type_type);
     ("pair", type_type);
 
