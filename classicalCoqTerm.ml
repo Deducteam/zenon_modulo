@@ -12,7 +12,7 @@ type term =
   | Coqarrow of term * term
   | Coqtermtype
   | Coqproptype
-  | Coqanyterm
+  | Coqanyterm of term
   | Coqnot of term
   | Coqand of term * term
   | Coqor of term * term
@@ -50,7 +50,7 @@ let mk_arrow t1 t2 = Coqarrow (t1, t2)
 let mk_prf t = t
 let mk_termtype = Coqtermtype
 let mk_proptype = Coqproptype
-let mk_anyterm = Coqanyterm
+let mk_anyterm t = Coqanyterm t
 let mk_not term = Coqnot term
 let mk_and p q = Coqand (p, q)
 let mk_or p q = Coqor (p, q)
@@ -98,7 +98,7 @@ let rec print_term out term =
        print_term_p t1 print_term_p t2
   | Coqtermtype -> fprintf out "_TType"
   | Coqproptype -> fprintf out "Prop"
-  | Coqanyterm -> fprintf out "_anyterm"
+  | Coqanyterm t -> print_term out (Coqapp [Coqvar "_anyterm"; t])
   | Coqnot p -> fprintf out "~ %a" print_term_p p
   | Coqand (p, q) ->
      fprintf out "%a /\\ %a"
@@ -145,11 +145,11 @@ and print_term_p out term =
   | Coqvar _
   | Coqtermtype
   | Coqproptype
-  | Coqanyterm
   | Coqtrue
   | Coqfalse
       ->
      print_term out term
+  | Coqanyterm _
   | Coqlam _
   | Coqpi _
   | Coqapp _

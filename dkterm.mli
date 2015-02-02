@@ -17,7 +17,7 @@ val mk_arrow : term -> term -> term
 val mk_prf : term -> term
 val mk_termtype : term
 val mk_proptype : term
-val mk_anyterm : term
+val mk_anyterm : term -> term
 val mk_not : term -> term
 val mk_and : term -> term -> term
 val mk_or : term -> term -> term

@@ -48,7 +48,7 @@ struct
        Dk.mk_eqc (Dk.term_of_ty (get_type_no_epsilon e1)) (trexpr e1) (trexpr e2)
     (* Terms *)
     | Evar (v, _) when Mltoll.is_meta v ->
-       Dk.mk_anyterm
+       Dk.mk_anyterm (Dk.term_of_ty (get_type_no_epsilon e))
     | Evar (v, _) ->
        Dk.mk_var v
     | Eapp (Evar("$string", _), [Evar (v, _)], _) ->
