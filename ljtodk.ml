@@ -18,9 +18,9 @@ struct
       let n = !r in
       incr r; n
 
-  let new_hypo () = sprintf "H%d" (new_name ())
-  let new_prop () = sprintf "P%d" (new_name ())
-  let new_term () = sprintf "X%d" (new_name ())
+  let new_hypo () = sprintf "zenon_H%d" (new_name ())
+  let new_prop () = sprintf "zenon_P%d" (new_name ())
+  let new_term () = sprintf "zenon_X%d" (new_name ())
 
   (* the left part of sequents can only grow: the left part of the conclusion is always
      contained in the left part of the hypothesis
