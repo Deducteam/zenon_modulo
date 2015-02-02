@@ -10,7 +10,7 @@ let hyp_prefix = prefix ^ "H";;
 let lemma_prefix = prefix ^ "L";;
 let tau_prefix = prefix ^ "T";;
 let var_prefix = prefix ^ "V";;
-let meta_prefix = prefix ^ "X";;
+let meta_prefix = prefix ^ "meta_X";;
 
 let goal_name = prefix ^ "G";;
 let any_name = prefix ^ "E";;
