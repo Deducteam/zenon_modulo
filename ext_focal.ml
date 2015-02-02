@@ -74,11 +74,13 @@ let t_prop = type_prop;;
 
 let ret_prop_to_bool = function
   | Earrow (l, ret, _) when ret == type_prop -> earrow l bool1
+  | ret when ret == type_prop -> bool1
   | _ ->
      raise (Invalid_argument "ret_prop_to_bool")
 ;;
 let ret_bool_to_prop = function
   | Earrow (l, ret, _) when ret == bool1 -> earrow l type_prop
+  | ret when ret == bool1 -> type_prop
   | _ -> raise (Invalid_argument "ret_bool_to_prop")
 ;;
 

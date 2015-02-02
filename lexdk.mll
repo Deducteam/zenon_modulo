@@ -22,6 +22,8 @@ rule token = parse
 | "(;" { comment (pos lexbuf) [] lexbuf }
 | '\"' { string lexbuf }
 | "Type" { TYPE }
+| "dk_bool.true" { TRUE }
+| "dk_bool.false" { FALSE }
 | id as id { ID(id) }
 | qid as qid { QID(qid) }
 | ":" { COLON }

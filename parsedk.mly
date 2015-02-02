@@ -163,6 +163,7 @@ let rec get_params e =
 %token <string> ID QID STRING
 %token TYPE COLON DOT ARROW DOUBLE_ARROW LONG_ARROW DEF
 %token LPAREN RPAREN EOF
+%token TRUE FALSE
 
 %token MUSTUSE
 %token BEGINPROOF
@@ -247,6 +248,8 @@ applicatives:
 | applicatives simple { $2 :: $1 }
 simple:
 | TYPE { type_type }
+| TRUE { tvar "true" bool1 }
+| FALSE { tvar "false" bool1 }
 | qid { evar $1 }
 | LPAREN term RPAREN { $2 }
 typ:
