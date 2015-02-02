@@ -39,11 +39,11 @@ struct
     | Enot (Enot (
       Eall (e1, Enot (Enot (e2, _), _), _), _), _) ->
        Dk.mk_forallc (trexpr e1)
-                     (Dk.term_of_ty (get_type e1))
+                     (Dk.term_of_ty (get_type_no_epsilon e1))
                      (trexpr e2)
     | Enot (Enot (
       Eex (e1, Enot (Enot (e2, _), _), _), _), _) ->
-       Dk.mk_existsc (trexpr e1) (Dk.term_of_ty (get_type e1)) (trexpr e2)
+       Dk.mk_existsc (trexpr e1) (Dk.term_of_ty (get_type_no_epsilon e1)) (trexpr e2)
     | Enot (Enot (Eapp (Evar("=", _), [e1;e2], _), _), _) ->
        Dk.mk_eqc (Dk.term_of_ty (get_type_no_epsilon e1)) (trexpr e1) (trexpr e2)
     (* Terms *)
@@ -72,11 +72,11 @@ struct
     | Efalse -> Dk.mk_false
     | Eall (e1, e2, _) ->
        Dk.mk_forall (trexpr e1)
-                    (Dk.term_of_ty (get_type e1))
+                    (Dk.term_of_ty (get_type_no_epsilon e1))
                     (trexpr e2)
     | Eex (e1, e2, _) ->
        Dk.mk_exists (trexpr e1)
-                    (Dk.term_of_ty (get_type e1))
+                    (Dk.term_of_ty (get_type_no_epsilon e1))
                     (trexpr e2)
     | Eequiv _ -> assert false                  (* Should have been unfolded earlier *)
     | Etau _ -> assert false                    (* Should have been unfolded *)
