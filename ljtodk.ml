@@ -245,6 +245,14 @@ struct
                         (Dk.mk_prf (trexpr hyp))
                         (trproof (proof, efalse, (hyp, dkvar) :: gamma)) ; trhyp conc]
          )
+    | Lkproof.SCext (ext, name, args, [conc], [], []) ->
+       let ext = if ext = "" then "focal" else ext in
+       assert (goal = efalse);
+       Dk.mk_app
+         (Dk.mk_var (ext ^ "." ^ name))
+         (List.map trexpr args)
+    | Lkproof.SCext (ext, name, _, _, _, _) ->
+       failwith ("Don't know how to translate extension rule " ^ ext ^ "." ^ name)
     | _ -> assert false
 
 end
