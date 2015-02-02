@@ -118,11 +118,12 @@ let rec print_term out term =
   match term with
   | Dkvar (var) -> print_var out var
   | Dklam (var, t, term) ->
-    fprintf out "%a: %a => %a"
-      print_term var print_term_p t print_term_p term
+    fprintf out "%a: %a =>\n %a"
+      print_term var print_term_p t print_term term
   | Dkpi (var, t, term) ->
     fprintf out "%a: %a -> %a"
       print_term var print_term_p t print_term_p term
+  | Dkapp (Dkapp ts1 :: ts2) -> print_term out (Dkapp (ts1 @ ts2))
   | Dkapp (ts) -> print_terms out ts
   | Dkarrow (t1, t2) ->
     fprintf out "%a -> %a"
