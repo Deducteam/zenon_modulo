@@ -550,7 +550,7 @@ let newnodes_delta st fm g _ =
       ngoal = g;
       nbranches = [| [h] |];
     }, true
-  | Enot (Eall (v, p, _), _) ->
+ (* | Enot (Eall (v, p, _), _) ->
     let h1 = substitute [(v, etau (v, enot p))] (enot p) in
     let h2 = eex (v, enot p) in
     add_node st {
@@ -559,6 +559,15 @@ let newnodes_delta st fm g _ =
       nprio = Prop;
       ngoal = g;
       nbranches = [| [h1; h2] |];
+    }, true *)
+  | Enot (Eall (v, p, _), _) ->
+    let h1 = substitute [(v, etau (v, enot p))] (enot p) in
+    add_node st {
+      nconc = [fm];
+      nrule = NotAll (fm);
+      nprio = Prop;
+      ngoal = g;
+      nbranches = [| [h1] |];
     }, true
   | _ -> st, false
 ;;

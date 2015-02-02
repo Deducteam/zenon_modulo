@@ -48,9 +48,14 @@ let rec trexpr_dktype e =
        | _ -> assert false
      in
      mk_pi (nvar, np)
-  | Etau _ as e  -> 
+  | Etau _ as e 
+    when Expr.equal (get_type e) type_type -> 
      let v = Printf.sprintf "Tau_%d" (Index.get_number e) in 
-     mk_var (v, trexpr_dktype (get_type e))
+     mk_var (v, mk_type)
+  | Etau _ as e -> 
+     let v = Printf.sprintf "Tau_%d" (Index.get_number e) in 
+     let ty = mk_term (trexpr_dktype (get_type e)) in 
+     mk_var (v, ty)
   | _ -> assert false
 ;;
 
@@ -143,9 +148,14 @@ let rec trexpr_dkprop e =
      let tnv = get_dkvar_type nv in 
      mk_exists (tnv, (mk_lam (nv, trexpr_dkprop p)))
   | Eex _ -> assert false
-  | Etau _ as e  -> 
+  | Etau _ as e 
+       when Expr.equal (get_type e) type_type -> 
      let v = Printf.sprintf "Tau_%d" (Index.get_number e) in 
-     mk_var (v, trexpr_dktype (get_type e))
+     mk_var (v, mk_type)
+  | Etau _ as e -> 
+     let v = Printf.sprintf "Tau_%d" (Index.get_number e) in 
+     let ty = mk_term (trexpr_dktype (get_type e)) in 
+     mk_var (v, ty)
   | Elam (Evar (v, _) as v', p, _) -> 
      let nv = trexpr_dkvartype v' in 
      mk_lam (nv, trexpr_dkprop p)
@@ -205,15 +215,38 @@ let extract_prooftree lemmas =
   | _ -> assert false
 ;;
 
+let trexpr_quant_to_dklam p = 
+  match p with 
+  | Eall (v, body, _) -> 
+     let nv = trexpr_dkvartype v in 
+     let nbody = trexpr_dkprop body in 
+     mk_lam (nv, nbody)
+  | _ -> assert false
+;;
+
+let is_equal_mod e1 e2 =
+  Log.debug 9 " |- is equal mod";
+  Log.debug 9 "   |- e1 : %a" Print.pp_expr e1;
+  Log.debug 9 "   |- e2 : %a" Print.pp_expr e2;
+  Log.debug 9 "   |- normalize e1 : %a" 
+	    Print.pp_expr (Rewrite.normalize_fm e1);
+  Expr.equal (Rewrite.normalize_fm e1) e2
+;;
+
+let mk_var_prfObj p = 
+  let v = "prf_"^(Expr.newname()) in 
+  mk_var (v, mk_proof p)
+;;
+
 let rec trproof_dk p = 
   match p with 
   | {conc = lconc; 
      rule = llrule;
      hyps = proofs;} 
     -> 
-     Log.debug 8 "Proof step %a" Print.pr_llrule llrule;
-     Log.debug 9 " |- conc";
-     List.iter (fun x -> Log.debug 9 " |- %a" Print.pp_expr x) lconc; 
+     Log.debug 7 "Proof step %a" Print.pr_llrule llrule;
+     Log.debug 8 " |- conc";
+     List.iter (fun x -> Log.debug 8 "  - %a" Print.pp_expr x) lconc;
      match llrule with 
      | Rfalse -> 
 	assert (List.length proofs == 0);
@@ -251,8 +284,23 @@ let rec trproof_dk p =
 	assert (List.length proofs == 1);
 	let np = trexpr_dkprop p in 
 	let nq = trexpr_dkprop q in 
-	mk_DkRand (np, nq, 
-		   trproof_dk (List.nth proofs 0))
+	if (List.length (List.nth proofs 0).conc == 2) then 
+	  mk_DkRand (np, nq, trproof_dk (List.nth proofs 0))
+	else if (List.length (List.nth proofs 0).conc == 1) then
+	  let prf_P = mk_var_prfObj np in
+	  let prf_Q = mk_var_prfObj nq in
+	  let conc = (List.nth (List.nth proofs 0).conc 0) in
+	  let param = 
+	    if (is_equal_mod p conc) then 
+	      mk_lam (prf_P, 
+		      mk_lam (prf_Q, mk_app (trproof_dk (List.nth proofs 0), 
+					     [prf_P])))
+	    else if (is_equal_mod q conc) then 
+	      mk_lam (prf_P, trproof_dk (List.nth proofs 0))
+	    else assert false
+	  in
+	  mk_DkRand (np, nq, param)
+	else assert false
      | Rconnect (Or, p, q) -> 
 	assert (List.length proofs == 2);
         let np = trexpr_dkprop p in 
@@ -271,9 +319,43 @@ let rec trproof_dk p =
 	assert (List.length proofs == 2);
         let np = trexpr_dkprop p in 
 	let nq = trexpr_dkprop q in 
-	mk_DkRequiv (np, nq, 
-		     trproof_dk (List.nth proofs 0), 
-		     trproof_dk (List.nth proofs 1))
+	let prf_P = mk_var_prfObj np in 
+	let prf_nP = mk_var_prfObj (mk_not np) in 
+	let prf_Q = mk_var_prfObj nq in 
+	let prf_nQ = mk_var_prfObj (mk_not nq) in 
+	let conc0 = 
+	  if (List.length (List.nth proofs 0).conc == 1) then 
+	    (List.nth (List.nth proofs 0).conc 0) 
+	  else assert false
+	in
+	let conc1 = 
+	  if (List.length (List.nth proofs 1).conc == 1) then 
+	    (List.nth (List.nth proofs 1).conc 0) 
+	  else assert false
+	in
+	let param0 = 
+	  if (is_equal_mod (enot p) conc0) then 
+	    mk_lam (prf_nP, 
+		    mk_lam (prf_nQ, 
+			    mk_app (trproof_dk (List.nth proofs 0), 
+				    [prf_nP])))
+	  else if (is_equal_mod (enot q) conc0) then 
+	    mk_lam (prf_nP, 
+		    trproof_dk (List.nth proofs 0))
+	  else assert false
+	in
+	let param1 = 
+	  if (is_equal_mod p conc1) then 
+	    mk_lam (prf_P, 
+		    mk_lam (prf_Q, 
+			    mk_app (trproof_dk (List.nth proofs 1),
+				    [prf_P])))
+	  else if (is_equal_mod q conc1) then 
+	    mk_lam (prf_P, 
+		    trproof_dk (List.nth proofs 1))
+	  else assert false 
+	in 
+        mk_DkRequiv (np, nq, param0, param1)
      | Rnotconnect (And, p, q) -> 
 	assert (List.length proofs == 2);
 	let np = trexpr_dkprop p in 
@@ -284,26 +366,90 @@ let rec trproof_dk p =
      | Rnotconnect (Or, p, q) -> 
 	assert (List.length proofs == 1);
         let np = trexpr_dkprop p in 
-	let nq = trexpr_dkprop q in 
-	mk_DkRnotor (np, nq, 
-		     trproof_dk (List.nth proofs 0)) 
+	let nq = trexpr_dkprop q in
+	let prf_nP = mk_var_prfObj (mk_not np) in
+	let prf_nQ = mk_var_prfObj (mk_not nq) in 
+	let conc = 
+	  if (List.length (List.nth proofs 0).conc == 1) then 
+	    (List.nth (List.nth proofs 0).conc 0)
+	  else assert false
+	in
+	let param = 
+	  if (is_equal_mod (enot p) conc) then 
+	    mk_lam (prf_nP, 
+		    mk_lam (prf_nQ, mk_app (trproof_dk (List.nth proofs 0), 
+					   [prf_nP])))
+	  else if (is_equal_mod (enot q) conc) then 
+	    mk_lam (prf_nP, trproof_dk (List.nth proofs 0))
+	  else assert false
+	in
+	mk_DkRnotor (np, nq, param) 
      | Rnotconnect (Imply, p, q) -> 
 	assert (List.length proofs == 1);
         let np = trexpr_dkprop p in 
 	let nq = trexpr_dkprop q in 
-	mk_DkRnotimply (np, nq, 
-			trproof_dk (List.nth proofs 0)) 
+	let prf_P = mk_var_prfObj np in
+	let prf_nQ = mk_var_prfObj (mk_not nq) in 
+	let conc = 
+	  if (List.length (List.nth proofs 0).conc == 1) then 
+	    (List.nth (List.nth proofs 0).conc 0)
+	  else assert false
+	in
+	let param = 
+	  if (is_equal_mod p conc) then 
+	    mk_lam (prf_P, 
+		    mk_lam (prf_nQ, mk_app (trproof_dk (List.nth proofs 0), 
+					   [prf_P])))
+	  else if (is_equal_mod (enot q) conc) then 
+	    mk_lam (prf_P, trproof_dk (List.nth proofs 0))
+	  else assert false
+	in
+	mk_DkRnotimply (np, nq, param)
      | Rnotconnect (Equiv, p, q) -> 
 	assert (List.length proofs == 2);
-        let np = trexpr_dkprop p in 
+	let np = trexpr_dkprop p in 
 	let nq = trexpr_dkprop q in 
-	mk_DkRnotequiv (np, nq, 
-			trproof_dk (List.nth proofs 0), 
-			trproof_dk (List.nth proofs 1))
+	let prf_P = mk_var_prfObj np in 
+	let prf_nP = mk_var_prfObj (mk_not np) in 
+	let prf_Q = mk_var_prfObj nq in 
+	let prf_nQ = mk_var_prfObj (mk_not nq) in 
+	let conc0 = 
+	  if (List.length (List.nth proofs 0).conc == 1) then 
+	    (List.nth (List.nth proofs 0).conc 0) 
+	  else assert false
+	in
+	let conc1 = 
+	  if (List.length (List.nth proofs 1).conc == 1) then 
+	    (List.nth (List.nth proofs 1).conc 0) 
+	  else assert false
+	in
+	let param0 = 
+	  if (is_equal_mod (enot p) conc0) then 
+	    mk_lam (prf_nP, 
+		    mk_lam (prf_Q, 
+			    mk_app (trproof_dk (List.nth proofs 0), 
+				    [prf_nP])))
+	  else if (is_equal_mod q conc0) then 
+	    mk_lam (prf_nP, 
+		    trproof_dk (List.nth proofs 0))
+	  else assert false
+	in
+	let param1 = 
+	  if (is_equal_mod p conc1) then 
+	    mk_lam (prf_P, 
+		    mk_lam (prf_nQ, 
+			    mk_app (trproof_dk (List.nth proofs 1),
+				    [prf_P])))
+	  else if (is_equal_mod (enot q) conc1) then 
+	    mk_lam (prf_P, 
+		    trproof_dk (List.nth proofs 1))
+	  else assert false 
+	in 
+        mk_DkRnotequiv (np, nq, param0, param1)
      | Rex (p, t) -> 
-	Log.debug 9 "Rex with";
-	Log.debug 9 " |- p = %a" Print.pp_expr p;
-	Log.debug 9 " |- t = %a" Print.pp_expr t;
+	Log.debug 8 "Rex with";
+	Log.debug 8 " |- p = %a" Print.pp_expr p;
+	Log.debug 8 " |- t = %a" Print.pp_expr t;
 	assert (List.length proofs == 1);
 	if (is_binder_of_type_var p) then
 	  let a = trexpr_dktype t in
@@ -315,6 +461,9 @@ let rec trproof_dk p =
 	  let nt = trexpr_dkprop t in 
 	  mk_DkRex (a, np, mk_lam (nt, trproof_dk (List.nth proofs 0)))
      | Rall (p, t) -> 
+	Log.debug 8 "Rall with";
+	Log.debug 8 " |- p = %a" Print.pp_expr p;
+	Log.debug 8 " |- t = %a" Print.pp_expr t;
 	assert (List.length proofs == 1);
 	if (is_binder_of_type_var p) then
 	  let a = trexpr_dktype t in 
@@ -326,6 +475,9 @@ let rec trproof_dk p =
 	  let nt = trexpr_dkprop t in 
 	  mk_DkRall (a, np, nt, trproof_dk (List.nth proofs 0))
      | Rnotex (p, t) -> 
+	Log.debug 8 "Rnotex with";
+	Log.debug 8 " |- p = %a" Print.pp_expr p;
+	Log.debug 8 " |- t = %a" Print.pp_expr t;
 	assert (List.length proofs == 1);
 	if (is_binder_of_type_var p) then 
 	  let a = trexpr_dktype t in 
@@ -337,28 +489,21 @@ let rec trproof_dk p =
 	  let nt = trexpr_dkprop t in 
 	  mk_DkRnotex (a, np, nt, trproof_dk (List.nth proofs 0))
      | Rnotall (p, t) -> 
+	Log.debug 8 "Rnotall with";
+	Log.debug 8 " |- p = %a" Print.pp_expr p;
+	Log.debug 8 " |- t = %a" Print.pp_expr t;
 	assert (List.length proofs == 1);
 	if (is_binder_of_type_var p) then 
 	  let a = trexpr_dktype t in 
-	  let np = trexpr_dkprop p in 
+	  let np = trexpr_quant_to_dklam p in 
 	  mk_DkRnotalltype (np, mk_lam (a, trproof_dk (List.nth proofs 0)))
 	else
 	  let a = trexpr_dktype (get_type_binder p) in
-	  let np = trexpr_dkprop p in 
+	  let np = trexpr_quant_to_dklam p in 
 	  let nt = trexpr_dkprop t in 
 	  mk_DkRnotall (a, np, mk_lam (nt, trproof_dk (List.nth proofs 0)))
-     | Rextension (_, "zenon_notallex", args, _, _) -> 
-	assert (List.length proofs == 1);
-	assert (List.length lconc == 1);
-	assert (List.length args == 1);
-        let p = List.hd args in 
-	if (is_binder_of_type_var p) then 
-	  let np = trexpr_dkprop p in 
-	  mk_DkRnotallextype (np, trproof_dk (List.nth proofs 0))
-	else 
-	  let a = trexpr_dktype (get_type_binder p) in 
-	  let np = trexpr_dkprop p in 
-	  mk_DkRnotallex (a, np, trproof_dk (List.nth proofs 0))
+     | Rextension (_, "zenon_notallex", _, _, _) -> 
+	assert false
      | RcongruenceLR (p, t1, t2) -> 
 	assert (List.length proofs == 1);
 	let a = trexpr_dktype (get_type t1) in 

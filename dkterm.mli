@@ -46,12 +46,10 @@ type dkterm =
   | DkRall          of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
   | DkRnotex        of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
   | DkRnotall       of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
-  | DkRnotallex     of dkterm * dkterm * dkterm
   | DkRextype       of dkterm * dkterm                     (* p -> (a -> prf) *)
   | DkRalltype      of dkterm * dkterm * dkterm            (* p -> a -> prf *)
   | DkRnotextype    of dkterm * dkterm * dkterm            (* p -> a -> prf *)
   | DkRnotalltype   of dkterm * dkterm                     (* p -> (a -> prf) *)
-  | DkRnotallextype of dkterm * dkterm
   | DkRconglr       of dkterm * dkterm * dkterm * dkterm * dkterm 
   | DkRcongrl       of dkterm * dkterm * dkterm * dkterm * dkterm 
 
@@ -103,12 +101,10 @@ val mk_DkRex            : dkterm * dkterm * dkterm -> dkterm
 val mk_DkRall           : dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRnotex         : dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRnotall        : dkterm * dkterm * dkterm -> dkterm
-val mk_DkRnotallex      : dkterm * dkterm * dkterm -> dkterm
 val mk_DkRextype        : dkterm * dkterm -> dkterm
 val mk_DkRalltype       : dkterm * dkterm * dkterm -> dkterm
 val mk_DkRnotextype     : dkterm * dkterm * dkterm -> dkterm
 val mk_DkRnotalltype    : dkterm * dkterm -> dkterm
-val mk_DkRnotallextype  : dkterm * dkterm -> dkterm
 val mk_DkRconglr        : dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRcongrl        : dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
 
