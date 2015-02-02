@@ -47,7 +47,7 @@ struct
     | Lkproof.SCeqref (a) ->
        let prop = new_prop () in
        let dkprop = Dk.mk_var prop in
-       let ty = TrExpr.get_type_no_epsilon a in
+       let ty = get_type a in
        Dk.mk_lam dkprop (Dk.mk_arrow (TrExpr.trexpr ty) Dk.mk_proptype)
          (trproof (
 	   Lkproof.scrimply (
@@ -58,7 +58,7 @@ struct
     | Lkproof.SCeqsym (a, b) ->
        let term = new_term () in
        let dkterm = Dk.mk_var term in
-       let ty = TrExpr.get_type_no_epsilon a in
+       let ty = get_type a in
        Dk.mk_app3 (trhyp (eeq a b))
          (Dk.mk_lam dkterm (TrExpr.trexpr ty) (trexpr (eeq (evar term) a)))
          (trproof (Lkproof.sceqref (a, []), eeq a a, gamma))
@@ -208,13 +208,13 @@ struct
          | t :: ts, u :: us ->
 	    let term = new_term () in
 	    let dkterm = Dk.mk_var term in
-            let ty = TrExpr.get_type_no_epsilon t in
+            let ty = get_type t in
 	    Dk.mk_app3 (trhyp (eeq t u))
 	      (Dk.mk_lam dkterm (TrExpr.trexpr ty)
 	         (trexpr (eapp (evar pred, [eapp (p, xts @ ((evar term) :: us))]))))
 	      (itereq ((xts@[t]), ts, us))
          | _ -> assert false in
-       let ty = TrExpr.get_type_no_epsilon a in
+       let ty = get_type a in
        Dk.mk_lam dkpred (Dk.mk_arrow (TrExpr.trexpr ty) Dk.mk_proptype)
          (Dk.mk_lam dkvar (Dk.mk_prf (trexpr (eapp (evar pred, [eapp (p, ts)]))))
 	    (itereq ([], ts, us)))
@@ -225,7 +225,7 @@ struct
          | t :: ts, u :: us ->
 	    let term = new_term () in
 	    let dkterm = Dk.mk_var term in
-            let ty = TrExpr.get_type_no_epsilon t in
+            let ty = get_type t in
 	    Dk.mk_app3 (trhyp (eeq t u))
 	      (Dk.mk_lam dkterm (TrExpr.trexpr ty) ((trexpr (eapp (p, xts @ ((evar term) :: us))))))
 	      (itereq ((xts@[t]), ts, us))
