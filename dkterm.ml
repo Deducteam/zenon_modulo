@@ -10,6 +10,7 @@ type term =
   | Dkpi of term * term * term
   | Dkapp of term list
   | Dkarrow of term * term
+  | Dkeps
   | Dkprf
   | Dkanyterm
   | Dknot
@@ -75,16 +76,17 @@ let mk_not term = mk_app2 Dknot term
 let mk_and p q = mk_app3 Dkand p q
 let mk_or p q = mk_app3 Dkor p q
 let mk_imply p q = mk_app3 Dkimply p q
+let mk_eps t = mk_app2 Dkeps t
 let mk_forall x ty p =
-  mk_app3 Dkforall ty (mk_lam x ty p)
+  mk_app3 Dkforall ty (mk_lam x (mk_eps ty) p)
 let mk_exists x ty p =
-  mk_app3 Dkexists ty (mk_lam x ty p)
+  mk_app3 Dkexists ty (mk_lam x (mk_eps ty) p)
 let mk_true = Dktrue
 let mk_false = Dkfalse
 
 let mk_eq ty t1 t2 =
   if ty = mk_termtype then
-    mk_app3 DkeqTerm t1 t2
+    (* mk_app3 DkeqTerm t1 t2 *) assert false
   else
     mk_app Dkeq [ty; t1; t2]
 
@@ -93,9 +95,9 @@ let mk_andc p q = mk_app3 Dkandc p q
 let mk_orc p q = mk_app3 Dkorc p q
 let mk_implyc p q = mk_app3 Dkimplyc p q
 let mk_forallc x ty p =
-  mk_app3 Dkforallc ty (mk_lam x ty p)
+  mk_app3 Dkforallc ty (mk_lam x (mk_eps ty) p)
 let mk_existsc x ty p =
-  mk_app3 Dkexistsc ty (mk_lam x ty p)
+  mk_app3 Dkexistsc ty (mk_lam x (mk_eps ty) p)
 let mk_truec = Dktruec
 let mk_falsec = Dkfalsec
 let mk_eqc ty t1 t2 =
@@ -130,6 +132,7 @@ let rec print_term out term =
       print_term_p t1 print_term_p t2
   | Dkprf -> fprintf out "logic.prf"
   | Dkanyterm -> fprintf out "logic.anyterm"
+  | Dkeps -> fprintf out "cc.eT"
   | Dknot -> fprintf out "logic.not"
   | Dkand -> fprintf out "logic.and"
   | Dkor -> fprintf out "logic.or"
