@@ -250,7 +250,7 @@ let rec trproof_dk p =
     -> 
      Log.debug 7 "Proof step %a" Print.pr_llrule llrule;
      Log.debug 8 " |- conc";
-     List.iter (fun x -> Log.debug 8 "  - %a" Print.pp_expr x) lconc;
+     List.iter (fun x -> Log.debug 8 "  |- %a" Print.pp_expr x) lconc;
      match llrule with 
      | Rfalse -> 
 	assert (List.length proofs == 0);
@@ -288,13 +288,13 @@ let rec trproof_dk p =
 	assert (List.length proofs == 1);
 	let np = trexpr_dkprop p in 
 	let nq = trexpr_dkprop q in 
-	if (List.length (List.nth proofs 0).conc == 2) then 
-	  mk_DkRand (np, nq, trproof_dk (List.nth proofs 0))
-	else if (List.length (List.nth proofs 0).conc == 1) then
-	  let prf_P = mk_var_prfObj np in
-	  let prf_Q = mk_var_prfObj nq in
-	  let conc = (List.nth (List.nth proofs 0).conc 0) in
-	  let param = 
+	let param = 
+	  if (List.length (List.nth proofs 0).conc == 2) then 
+	    trproof_dk (List.nth proofs 0)
+	  else if (List.length (List.nth proofs 0).conc == 1) then
+	    let prf_P = mk_var_prfObj np in
+	    let prf_Q = mk_var_prfObj nq in
+	    let conc = List.nth (List.nth proofs 0).conc 0 in
 	    if (is_equal_mod p conc) then 
 	      mk_lam (prf_P, 
 		      mk_lam (prf_Q, mk_app (trproof_dk (List.nth proofs 0), 
@@ -302,9 +302,9 @@ let rec trproof_dk p =
 	    else if (is_equal_mod q conc) then 
 	      mk_lam (prf_P, trproof_dk (List.nth proofs 0))
 	    else assert false
-	  in
-	  mk_DkRand (np, nq, param)
-	else assert false
+	  else assert false
+	in
+	mk_DkRand (np, nq, param)
      | Rconnect (Or, p, q) -> 
 	assert (List.length proofs == 2);
         let np = trexpr_dkprop p in 
@@ -327,36 +327,36 @@ let rec trproof_dk p =
 	let prf_nP = mk_var_prfObj (mk_not np) in 
 	let prf_Q = mk_var_prfObj nq in 
 	let prf_nQ = mk_var_prfObj (mk_not nq) in 
-	let conc0 = 
-	  if (List.length (List.nth proofs 0).conc == 1) then 
-	    (List.nth (List.nth proofs 0).conc 0) 
-	  else assert false
-	in
-	let conc1 = 
-	  if (List.length (List.nth proofs 1).conc == 1) then 
-	    (List.nth (List.nth proofs 1).conc 0) 
-	  else assert false
-	in
-	let param0 = 
-	  if (is_equal_mod (enot p) conc0) then 
-	    mk_lam (prf_nP, 
-		    mk_lam (prf_nQ, 
-			    mk_app (trproof_dk (List.nth proofs 0), 
-				    [prf_nP])))
-	  else if (is_equal_mod (enot q) conc0) then 
-	    mk_lam (prf_nP, 
-		    trproof_dk (List.nth proofs 0))
+	let param0 =  
+	  if (List.length (List.nth proofs 0).conc == 2) then 
+	    trproof_dk (List.nth proofs 0)
+	  else if (List.length (List.nth proofs 0).conc == 1) then
+	    let conc0 = List.nth (List.nth proofs 0).conc 0 in
+	    if (is_equal_mod (enot p) conc0) then 
+	      mk_lam (prf_nP, 
+		      mk_lam (prf_nQ, 
+			      mk_app (trproof_dk (List.nth proofs 0), 
+				      [prf_nP])))
+	    else if (is_equal_mod (enot q) conc0) then 
+	      mk_lam (prf_nP, 
+		      trproof_dk (List.nth proofs 0))
+	    else assert false
 	  else assert false
 	in
 	let param1 = 
-	  if (is_equal_mod p conc1) then 
-	    mk_lam (prf_P, 
-		    mk_lam (prf_Q, 
+	  if (List.length (List.nth proofs 1).conc == 2) then 
+	    trproof_dk (List.nth proofs 1)
+	  else if (List.length (List.nth proofs 1).conc == 1) then
+	    let conc1 = List.nth (List.nth proofs 1).conc 0 in
+	    if (is_equal_mod p conc1) then 
+	      mk_lam (prf_P, 
+		      mk_lam (prf_Q, 
 			    mk_app (trproof_dk (List.nth proofs 1),
 				    [prf_P])))
-	  else if (is_equal_mod q conc1) then 
-	    mk_lam (prf_P, 
-		    trproof_dk (List.nth proofs 1))
+	    else if (is_equal_mod q conc1) then 
+	      mk_lam (prf_P, 
+		      trproof_dk (List.nth proofs 1))
+	    else assert false
 	  else assert false 
 	in 
         mk_DkRequiv (np, nq, param0, param1)
@@ -371,41 +371,41 @@ let rec trproof_dk p =
 	assert (List.length proofs == 1);
         let np = trexpr_dkprop p in 
 	let nq = trexpr_dkprop q in
-	let prf_nP = mk_var_prfObj (mk_not np) in
-	let prf_nQ = mk_var_prfObj (mk_not nq) in 
-	let conc = 
-	  if (List.length (List.nth proofs 0).conc == 1) then 
-	    (List.nth (List.nth proofs 0).conc 0)
-	  else assert false
-	in
 	let param = 
-	  if (is_equal_mod (enot p) conc) then 
-	    mk_lam (prf_nP, 
-		    mk_lam (prf_nQ, mk_app (trproof_dk (List.nth proofs 0), 
-					   [prf_nP])))
-	  else if (is_equal_mod (enot q) conc) then 
-	    mk_lam (prf_nP, trproof_dk (List.nth proofs 0))
+	  if (List.length (List.nth proofs 0).conc == 2) then 
+	    trproof_dk (List.nth proofs 0)
+	  else if (List.length (List.nth proofs 0).conc == 1) then
+	    let prf_nP = mk_var_prfObj (mk_not np) in
+	    let prf_nQ = mk_var_prfObj (mk_not nq) in 
+	    let conc = List.nth (List.nth proofs 0).conc 0 in
+	    if (is_equal_mod (enot p) conc) then 
+	      mk_lam (prf_nP, 
+		      mk_lam (prf_nQ, mk_app (trproof_dk (List.nth proofs 0), 
+					      [prf_nP])))
+	    else if (is_equal_mod (enot q) conc) then 
+	      mk_lam (prf_nP, trproof_dk (List.nth proofs 0))
+	    else assert false
 	  else assert false
 	in
 	mk_DkRnotor (np, nq, param) 
      | Rnotconnect (Imply, p, q) -> 
 	assert (List.length proofs == 1);
         let np = trexpr_dkprop p in 
-	let nq = trexpr_dkprop q in 
-	let prf_P = mk_var_prfObj np in
-	let prf_nQ = mk_var_prfObj (mk_not nq) in 
-	let conc = 
-	  if (List.length (List.nth proofs 0).conc == 1) then 
-	    (List.nth (List.nth proofs 0).conc 0)
-	  else assert false
-	in
+	let nq = trexpr_dkprop q in
 	let param = 
-	  if (is_equal_mod p conc) then 
-	    mk_lam (prf_P, 
-		    mk_lam (prf_nQ, mk_app (trproof_dk (List.nth proofs 0), 
-					   [prf_P])))
-	  else if (is_equal_mod (enot q) conc) then 
-	    mk_lam (prf_P, trproof_dk (List.nth proofs 0))
+	  if (List.length (List.nth proofs 0).conc == 2) then 
+	    trproof_dk (List.nth proofs 0)
+	  else if (List.length (List.nth proofs 0).conc == 1) then
+	    let prf_P = mk_var_prfObj np in
+	    let prf_nQ = mk_var_prfObj (mk_not nq) in 
+	    let conc = List.nth (List.nth proofs 0).conc 0 in
+	    if (is_equal_mod p conc) then 
+	      mk_lam (prf_P, 
+		      mk_lam (prf_nQ, mk_app (trproof_dk (List.nth proofs 0), 
+					      [prf_P])))
+	    else if (is_equal_mod (enot q) conc) then 
+	      mk_lam (prf_P, trproof_dk (List.nth proofs 0))
+	    else assert false
 	  else assert false
 	in
 	mk_DkRnotimply (np, nq, param)
@@ -417,36 +417,36 @@ let rec trproof_dk p =
 	let prf_nP = mk_var_prfObj (mk_not np) in 
 	let prf_Q = mk_var_prfObj nq in 
 	let prf_nQ = mk_var_prfObj (mk_not nq) in 
-	let conc0 = 
-	  if (List.length (List.nth proofs 0).conc == 1) then 
-	    (List.nth (List.nth proofs 0).conc 0) 
-	  else assert false
-	in
-	let conc1 = 
-	  if (List.length (List.nth proofs 1).conc == 1) then 
-	    (List.nth (List.nth proofs 1).conc 0) 
-	  else assert false
-	in
 	let param0 = 
-	  if (is_equal_mod (enot p) conc0) then 
-	    mk_lam (prf_nP, 
-		    mk_lam (prf_Q, 
-			    mk_app (trproof_dk (List.nth proofs 0), 
-				    [prf_nP])))
-	  else if (is_equal_mod q conc0) then 
-	    mk_lam (prf_nP, 
-		    trproof_dk (List.nth proofs 0))
+	  if (List.length (List.nth proofs 0).conc == 2) then 
+	    trproof_dk (List.nth proofs 0)
+	  else if (List.length (List.nth proofs 0).conc == 1) then
+	    let conc0 = List.nth (List.nth proofs 0).conc 0 in
+	    if (is_equal_mod (enot p) conc0) then 
+	      mk_lam (prf_nP, 
+		      mk_lam (prf_Q, 
+			      mk_app (trproof_dk (List.nth proofs 0), 
+				      [prf_nP])))
+	    else if (is_equal_mod q conc0) then 
+	      mk_lam (prf_nP, 
+		      trproof_dk (List.nth proofs 0))
+	    else assert false
 	  else assert false
 	in
 	let param1 = 
-	  if (is_equal_mod p conc1) then 
-	    mk_lam (prf_P, 
-		    mk_lam (prf_nQ, 
-			    mk_app (trproof_dk (List.nth proofs 1),
-				    [prf_P])))
-	  else if (is_equal_mod (enot q) conc1) then 
-	    mk_lam (prf_P, 
-		    trproof_dk (List.nth proofs 1))
+	  if (List.length (List.nth proofs 1).conc == 2) then 
+	    trproof_dk (List.nth proofs 1)
+	  else if (List.length (List.nth proofs 1).conc == 1) then
+	    let conc1 = List.nth (List.nth proofs 1).conc 0 in 
+	    if (is_equal_mod p conc1) then 
+	      mk_lam (prf_P, 
+		      mk_lam (prf_nQ, 
+			      mk_app (trproof_dk (List.nth proofs 1),
+				      [prf_P])))
+	    else if (is_equal_mod (enot q) conc1) then 
+	      mk_lam (prf_P, 
+		      trproof_dk (List.nth proofs 1))
+	    else assert false
 	  else assert false 
 	in 
         mk_DkRnotequiv (np, nq, param0, param1)
