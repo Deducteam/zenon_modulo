@@ -322,3 +322,139 @@ let print_goal_type o name goal =
 let print_proof o name proof = 
   fprintf o "[] %s -->\n %a.\n" name print_dk proof
 ;;
+
+(* to manage dependances of symbols definitions *)
+
+
+
+type declaration = 
+  | Some of line       (* line is a Dkdecl here *)
+  | None
+;;
+
+type vertex = { 
+  mutable decl : declaration;
+  mutable edge : var list;
+}
+
+type graph = (var, vertex) Hashtbl.t
+;;
+
+let create i = Hashtbl.create i
+;;
+
+let rec get_var_list_aux env accu ty = 
+  match ty with 
+  | Dktype | Dkprop | Dkseq -> accu
+  | Dkterm (t) -> get_var_list_aux env accu t
+  | Dkarrow (l) -> List.fold_left (get_var_list_aux env) accu l
+  | Dkpi (Dkvar(v, _), t) -> get_var_list_aux (v :: env) accu t
+  | Dkvar (v, _) -> 
+     if List.mem v env then accu
+     else v :: accu
+  | Dkapp (Dkvar (v, _), l) -> 
+     if List.mem v env 
+     then List.fold_left (get_var_list_aux env) accu l
+     else List.fold_left (get_var_list_aux env) (v :: accu) l
+  | _ -> assert false
+;;
+
+let get_var_list ty = 
+  get_var_list_aux [] [] ty
+;;
+
+let mk_vertex d = 
+  match d with 
+  | Dkdecl (v, ty) -> 
+     let var_list = get_var_list ty in 
+     {decl = Some d; 
+      edge = var_list;}
+  | _ -> assert false
+;;
+
+let mk_vertex_none = 
+  {decl = None; edge = [];}
+;;
+
+let add_none_dep gr v = 
+  try 
+    match (Hashtbl.find gr v) with 
+    | _ -> () 
+  with Not_found -> 
+    Hashtbl.add gr v mk_vertex_none
+;;
+  
+let add_sym_graph gr d = 
+  match d with 
+  | Dkdecl (v, ty) ->
+     begin
+       try
+	 match Hashtbl.find gr v with 
+	 | {decl = Some _; edge = _;} -> assert false
+	 | {decl = None; edge = _;} -> 
+	    Hashtbl.replace gr v (mk_vertex d)
+       with Not_found -> 
+	 let ver = mk_vertex d in 
+	 Hashtbl.add gr v ver;
+	 List.iter (add_none_dep gr) ver.edge;
+     end
+  | _ -> assert false
+;;
+
+let rm_sym_graph gr v =
+  Hashtbl.replace gr v mk_vertex_none
+;;
+  
+let get_vertex_name v = 
+  match v with 
+  | {decl = Some Dkdecl(v, _); edge = _;} -> v
+  | _ -> assert false
+;;
+
+let select_no_incoming gr = 
+  let f x y z = 
+    let is_some a = 
+      match a with 
+      | {decl = Some _; edge = _;} -> true
+      | _ -> false
+    in
+    let find_sym t = 
+      try
+	match Hashtbl.find gr t with
+	| {decl = Some _; edge = _;} -> true
+	| _ -> false
+      with Not_found -> false
+    in 
+    if (is_some y) && 
+	 not (List.exists find_sym y.edge)
+    then (y :: z)
+    else z
+  in
+  Hashtbl.fold f gr []
+;; 
+
+let test_graph gr = 
+  let f x y = 
+    match y with 
+    | {decl = Some _; edge = _;} -> ()
+    | {decl = None; edge = _;} -> assert false
+  in
+  Hashtbl.iter f gr
+;;
+
+let topo_sort gr = 
+  test_graph gr;
+  let rec f accu gr =
+    match select_no_incoming gr with 
+    | [] -> accu
+    | h :: tl -> 
+       let name = get_vertex_name h in
+       rm_sym_graph gr name;
+       let dec = match h.decl with 
+	 | Some d -> d | None -> assert false 
+       in
+       f (dec :: accu) gr
+  in
+  let res = f [] gr in 
+  List.rev res
+;;

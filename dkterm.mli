@@ -114,3 +114,21 @@ val mk_rwrt             : dkterm list * dkterm * dkterm -> line
 val print_line          : out_channel -> line -> unit
 val print_goal_type     : out_channel -> string -> dkterm -> unit
 val print_proof         : out_channel -> string -> dkterm -> unit
+
+
+type declaration = 
+  | Some of line       (* line is a Dkdecl here *)
+  | None
+;;
+
+type vertex = { 
+  mutable decl : declaration;
+  mutable edge : var list;
+}
+
+type graph = (var, vertex) Hashtbl.t
+;;
+
+val create : int -> graph;;
+val add_sym_graph : graph -> line -> unit;;
+val topo_sort : graph -> line list;;

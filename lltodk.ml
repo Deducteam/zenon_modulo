@@ -8,6 +8,7 @@ open Llproof;;
 open Dkterm;;
 
 
+
 let rec trexpr_dktype e =
   Log.debug 10 "dktype %a" Print.pp_expr e;
   match e with 
@@ -45,6 +46,9 @@ let rec trexpr_dktype e =
 	  let nret = mk_term (trexpr_dktype ret) in 
 	  let nargs = List.map (fun x -> mk_term (trexpr_dktype x)) args in 
 	  mk_arrow (nargs @ [nret])
+       | Eall (Evar (v2, _) as v2', p2, _) 
+	      when Expr.equal (get_type v2') type_type -> 
+	  trexpr_dktype p
        | _ -> assert false
      in
      mk_pi (nvar, np)
@@ -525,6 +529,10 @@ let output oc phrases llp =
   let sigs = Expr.get_defs () in
   let dksigs = translate_sigs sigs in 
   let dksigs = List.map (fun (x,y) -> mk_decl (x, y)) dksigs in
+  let dep_graph = create 42 in
+  List.iter (add_sym_graph dep_graph) dksigs;
+  let dksigs = topo_sort dep_graph in
+
   let rules = Hashtbl.fold (fun x y z -> y :: z) !tbl_term [] in
   let rules = List.append rules 
 			  (Hashtbl.fold (fun x y z -> y :: z) !tbl_prop []) in
