@@ -225,6 +225,10 @@ let trexpr_quant_to_dklam p =
      let nv = trexpr_dkvartype v in 
      let nbody = trexpr_dkprop body in 
      mk_lam (nv, nbody)
+  | Eex (v, body, _) -> 
+     let nv = trexpr_dkvartype v in 
+     let nbody = trexpr_dkprop body in 
+     mk_lam (nv, nbody)
   | _ -> assert false
 ;;
 
@@ -289,7 +293,7 @@ let rec trproof_dk p =
 	let np = trexpr_dkprop p in 
 	let nq = trexpr_dkprop q in 
 	let param = 
-	  if (List.length (List.nth proofs 0).conc == 2) then 
+	  if (List.length (List.nth proofs 0).conc > 1) then 
 	    trproof_dk (List.nth proofs 0)
 	  else if (List.length (List.nth proofs 0).conc == 1) then
 	    let prf_P = mk_var_prfObj np in
@@ -328,7 +332,7 @@ let rec trproof_dk p =
 	let prf_Q = mk_var_prfObj nq in 
 	let prf_nQ = mk_var_prfObj (mk_not nq) in 
 	let param0 =  
-	  if (List.length (List.nth proofs 0).conc == 2) then 
+	  if (List.length (List.nth proofs 0).conc > 1) then 
 	    trproof_dk (List.nth proofs 0)
 	  else if (List.length (List.nth proofs 0).conc == 1) then
 	    let conc0 = List.nth (List.nth proofs 0).conc 0 in
@@ -344,7 +348,7 @@ let rec trproof_dk p =
 	  else assert false
 	in
 	let param1 = 
-	  if (List.length (List.nth proofs 1).conc == 2) then 
+	  if (List.length (List.nth proofs 1).conc > 1) then 
 	    trproof_dk (List.nth proofs 1)
 	  else if (List.length (List.nth proofs 1).conc == 1) then
 	    let conc1 = List.nth (List.nth proofs 1).conc 0 in
@@ -372,7 +376,7 @@ let rec trproof_dk p =
         let np = trexpr_dkprop p in 
 	let nq = trexpr_dkprop q in
 	let param = 
-	  if (List.length (List.nth proofs 0).conc == 2) then 
+	  if (List.length (List.nth proofs 0).conc > 1) then 
 	    trproof_dk (List.nth proofs 0)
 	  else if (List.length (List.nth proofs 0).conc == 1) then
 	    let prf_nP = mk_var_prfObj (mk_not np) in
@@ -393,7 +397,7 @@ let rec trproof_dk p =
         let np = trexpr_dkprop p in 
 	let nq = trexpr_dkprop q in
 	let param = 
-	  if (List.length (List.nth proofs 0).conc == 2) then 
+	  if (List.length (List.nth proofs 0).conc > 1) then 
 	    trproof_dk (List.nth proofs 0)
 	  else if (List.length (List.nth proofs 0).conc == 1) then
 	    let prf_P = mk_var_prfObj np in
@@ -418,7 +422,7 @@ let rec trproof_dk p =
 	let prf_Q = mk_var_prfObj nq in 
 	let prf_nQ = mk_var_prfObj (mk_not nq) in 
 	let param0 = 
-	  if (List.length (List.nth proofs 0).conc == 2) then 
+	  if (List.length (List.nth proofs 0).conc > 1) then 
 	    trproof_dk (List.nth proofs 0)
 	  else if (List.length (List.nth proofs 0).conc == 1) then
 	    let conc0 = List.nth (List.nth proofs 0).conc 0 in
@@ -434,7 +438,7 @@ let rec trproof_dk p =
 	  else assert false
 	in
 	let param1 = 
-	  if (List.length (List.nth proofs 1).conc == 2) then 
+	  if (List.length (List.nth proofs 1).conc > 1) then 
 	    trproof_dk (List.nth proofs 1)
 	  else if (List.length (List.nth proofs 1).conc == 1) then
 	    let conc1 = List.nth (List.nth proofs 1).conc 0 in 
@@ -457,11 +461,11 @@ let rec trproof_dk p =
 	assert (List.length proofs == 1);
 	if (is_binder_of_type_var p) then
 	  let a = trexpr_dktype t in
-	  let np = trexpr_dkprop p in 
+	  let np = trexpr_quant_to_dklam p in 
 	  mk_DkRextype (np, mk_lam (a, trproof_dk (List.nth proofs 0)))
 	else	  
 	  let a = trexpr_dktype (get_type_binder p) in
-	  let np = trexpr_dkprop p in 
+	  let np = trexpr_quant_to_dklam p in 
 	  let nt = trexpr_dkprop t in 
 	  mk_DkRex (a, np, mk_lam (nt, trproof_dk (List.nth proofs 0)))
      | Rall (p, t) -> 
@@ -471,11 +475,11 @@ let rec trproof_dk p =
 	assert (List.length proofs == 1);
 	if (is_binder_of_type_var p) then
 	  let a = trexpr_dktype t in 
-	  let np = trexpr_dkprop p in 
+	  let np = trexpr_quant_to_dklam p in 
 	  mk_DkRalltype (np, a, trproof_dk (List.nth proofs 0))
 	else
 	  let a = trexpr_dktype (get_type_binder p) in 
-	  let np = trexpr_dkprop p in 
+	  let np = trexpr_quant_to_dklam p in 
 	  let nt = trexpr_dkprop t in 
 	  mk_DkRall (a, np, nt, trproof_dk (List.nth proofs 0))
      | Rnotex (p, t) -> 
@@ -485,11 +489,11 @@ let rec trproof_dk p =
 	assert (List.length proofs == 1);
 	if (is_binder_of_type_var p) then 
 	  let a = trexpr_dktype t in 
-	  let np = trexpr_dkprop p in 
+	  let np = trexpr_quant_to_dklam p in 
 	  mk_DkRnotextype (np, a, trproof_dk (List.nth proofs 0))
 	else
 	  let a = trexpr_dktype (get_type_binder p) in 
-	  let np = trexpr_dkprop p in 
+	  let np = trexpr_quant_to_dklam p in 
 	  let nt = trexpr_dkprop t in 
 	  mk_DkRnotex (a, np, nt, trproof_dk (List.nth proofs 0))
      | Rnotall (p, t) -> 
