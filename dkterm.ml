@@ -29,31 +29,31 @@ type dkterm =
   | Dkfalse                                    (* false *)
   | Dkequal       of dkterm * dkterm * dkterm  (* equal type term term *)
 
-  | DkRfalse 
-  | DkRnottrue
-  | DkRaxiom        of dkterm                              (* p *)
-  | DkRnoteq        of dkterm * dkterm                     (* a -> t:a *)
-  | DkReqsym        of dkterm * dkterm * dkterm            (* a -> t:a -> u a *)
-  | DkRcut          of dkterm * dkterm * dkterm            (* p -> prf -> prf *)
-  | DkRnotnot       of dkterm * dkterm                     (* p -> prf *)
-  | DkRand          of dkterm * dkterm * dkterm            (* p -> q -> prf *)
-  | DkRor           of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRimply        of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRequiv        of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRnotand       of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRnotor        of dkterm * dkterm * dkterm            (* p -> q -> prf *)
-  | DkRnotimply     of dkterm * dkterm * dkterm            (* p -> q -> prf *)
-  | DkRnotequiv     of dkterm * dkterm * dkterm * dkterm   (* p -> q -> prf -> prf *)
-  | DkRex           of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
-  | DkRall          of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
-  | DkRnotex        of dkterm * dkterm * dkterm * dkterm   (* a -> p -> t:a -> prf *)
-  | DkRnotall       of dkterm * dkterm * dkterm            (* a -> p -> (t:a -> prf) *)
-  | DkRextype       of dkterm * dkterm                     (* p -> (a -> prf) *)
-  | DkRalltype      of dkterm * dkterm * dkterm            (* p -> a -> prf *)
-  | DkRnotextype    of dkterm * dkterm * dkterm            (* p -> a -> prf *)
-  | DkRnotalltype   of dkterm * dkterm                     (* p -> (a -> prf) *)
-  | DkRconglr       of dkterm * dkterm * dkterm * dkterm * dkterm 
-  | DkRcongrl       of dkterm * dkterm * dkterm * dkterm * dkterm 
+  | DkRfalse        of dkterm
+  | DkRnottrue      of dkterm
+  | DkRaxiom        of dkterm * dkterm * dkterm
+  | DkRnoteq        of dkterm * dkterm * dkterm
+  | DkReqsym        of dkterm * dkterm * dkterm * dkterm * dkterm
+  | DkRcut          of dkterm * dkterm * dkterm
+  | DkRnotnot       of dkterm * dkterm * dkterm
+  | DkRand          of dkterm * dkterm * dkterm * dkterm
+  | DkRor           of dkterm * dkterm * dkterm * dkterm * dkterm
+  | DkRimply        of dkterm * dkterm * dkterm * dkterm * dkterm
+  | DkRequiv        of dkterm * dkterm * dkterm * dkterm * dkterm
+  | DkRnotand       of dkterm * dkterm * dkterm * dkterm * dkterm
+  | DkRnotor        of dkterm * dkterm * dkterm * dkterm
+  | DkRnotimply     of dkterm * dkterm * dkterm * dkterm
+  | DkRnotequiv     of dkterm * dkterm * dkterm * dkterm * dkterm
+  | DkRex           of dkterm * dkterm * dkterm * dkterm
+  | DkRall          of dkterm * dkterm * dkterm * dkterm * dkterm
+  | DkRnotex        of dkterm * dkterm * dkterm * dkterm * dkterm
+  | DkRnotall       of dkterm * dkterm * dkterm * dkterm
+  | DkRextype       of dkterm * dkterm * dkterm
+  | DkRalltype      of dkterm * dkterm * dkterm * dkterm
+  | DkRnotextype    of dkterm * dkterm * dkterm * dkterm
+  | DkRnotalltype   of dkterm * dkterm * dkterm
+  | DkRconglr       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
+  | DkRcongrl       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
 ;;
 
 type line =
@@ -91,31 +91,31 @@ let mk_true                    = Dktrue
 let mk_false                   = Dkfalse
 let mk_equal      (t1, t2, t3) = Dkequal (t1, t2, t3)
 
-let mk_DkRfalse                              = DkRfalse
-let mk_DkRnottrue                            = DkRnottrue
-let mk_DkRaxiom        (p)                   = DkRaxiom (p)
-let mk_DkRnoteq        (a, t)                = DkRnoteq (a, t)
-let mk_DkReqsym        (a, t, u)             = DkReqsym (a, t, u)
-let mk_DkRcut          (p, prf1, prf2)       = DkRcut (p, prf1, prf2)
-let mk_DkRnotnot       (p, prf1)             = DkRnotnot (p, prf1)
-let mk_DkRand          (p, q, prf1)          = DkRand (p, q, prf1)
-let mk_DkRor           (p, q, prf1, prf2)    = DkRor (p, q, prf1, prf2)
-let mk_DkRimply        (p, q, prf1, prf2)    = DkRimply (p, q, prf1, prf2)
-let mk_DkRequiv        (p, q, prf1, prf2)    = DkRequiv (p, q, prf1, prf2)
-let mk_DkRnotand       (p, q, prf1, prf2)    = DkRnotand (p, q, prf1, prf2)
-let mk_DkRnotor        (p, q, prf1)          = DkRnotor (p, q, prf1)
-let mk_DkRnotimply     (p, q, prf1)          = DkRnotimply (p, q, prf1)
-let mk_DkRnotequiv     (p, q, prf1, prf2)    = DkRnotequiv (p, q, prf1, prf2)
-let mk_DkRex           (a, p, prf1)          = DkRex (a, p, prf1)
-let mk_DkRall          (a, p, t, prf1)       = DkRall (a, p, t, prf1)
-let mk_DkRnotex        (a, p, t, prf1)       = DkRnotex (a, p, t, prf1)
-let mk_DkRnotall       (a, p, prf1)          = DkRnotall (a, p, prf1)
-let mk_DkRextype       (p, prf1)             = DkRextype (p, prf1)
-let mk_DkRalltype      (p, a, prf1)          = DkRalltype (p, a, prf1)
-let mk_DkRnotextype    (p, a, prf1)          = DkRnotextype (p, a, prf1)
-let mk_DkRnotalltype   (p, prf1)             = DkRnotalltype (p, prf1)
-let mk_DkRconglr       (a, p, t1, t2, prf1)  = DkRconglr (a, p, t1, t2, prf1)
-let mk_DkRcongrl       (a, p, t1, t2, prf1)  = DkRcongrl (a, p, t1, t2, prf1)
+let mk_DkRfalse        (pr)                  = DkRfalse (pr)
+let mk_DkRnottrue      (pr)                  = DkRnottrue (pr)
+let mk_DkRaxiom        (p, pr1, pr2)         = DkRaxiom (p, pr1, pr2)
+let mk_DkRnoteq        (a, t, pr)                = DkRnoteq (a, t, pr)
+let mk_DkReqsym        (a, t, u, pr1, pr2)             = DkReqsym (a, t, u, pr1, pr2)
+let mk_DkRcut          (p, pr1, pr2)       = DkRcut (p, pr1, pr2)
+let mk_DkRnotnot       (p, pr1, pr2)             = DkRnotnot (p, pr1, pr2)
+let mk_DkRand          (p, q, pr1, pr2)          = DkRand (p, q, pr1, pr2)
+let mk_DkRor           (p, q, pr1, pr2, pr3)    = DkRor (p, q, pr1, pr2, pr3)
+let mk_DkRimply        (p, q, pr1, pr2, pr3)    = DkRimply (p, q, pr1, pr2, pr3)
+let mk_DkRequiv        (p, q, pr1, pr2, pr3)    = DkRequiv (p, q, pr1, pr2, pr3)
+let mk_DkRnotand       (p, q, pr1, pr2, pr3)    = DkRnotand (p, q, pr1, pr2, pr3)
+let mk_DkRnotor        (p, q, pr1, pr2)          = DkRnotor (p, q, pr1, pr2)
+let mk_DkRnotimply     (p, q, pr1, pr2)          = DkRnotimply (p, q, pr1, pr2)
+let mk_DkRnotequiv     (p, q, pr1, pr2, pr3)    = DkRnotequiv (p, q, pr1, pr2, pr3)
+let mk_DkRex           (a, p, pr1, pr2)          = DkRex (a, p, pr1, pr2)
+let mk_DkRall          (a, p, t, pr1, pr2)       = DkRall (a, p, t, pr1, pr2)
+let mk_DkRnotex        (a, p, t, pr1, pr2)       = DkRnotex (a, p, t, pr1, pr2)
+let mk_DkRnotall       (a, p, pr1, pr2)          = DkRnotall (a, p, pr1, pr2)
+let mk_DkRextype       (p, pr1, pr2)             = DkRextype (p, pr1, pr2)
+let mk_DkRalltype      (p, a, pr1, pr2)          = DkRalltype (p, a, pr1, pr2)
+let mk_DkRnotextype    (p, a, pr1, pr2)          = DkRnotextype (p, a, pr1, pr2)
+let mk_DkRnotalltype   (p, pr1, pr2)             = DkRnotalltype (p, pr1, pr2)
+let mk_DkRconglr       (a, p, t1, t2, pr1, pr2, pr3)  = DkRconglr (a, p, t1, t2, pr1, pr2, pr3)
+let mk_DkRcongrl       (a, p, t1, t2, pr1, pr2, pr3)  = DkRcongrl (a, p, t1, t2, pr1, pr2, pr3)
 
 let mk_decl       (v, t)       = Dkdecl (v, t)
 let mk_rwrt       (l, t1, t2)  = Dkrwrt (l, t1, t2)
@@ -162,128 +162,154 @@ let rec print_dk o t =
 	     print_dk t1 
 	     print_dk t2 
 	     print_dk t3 
-  | DkRfalse -> fprintf o "zen.Rfalse"
-  | DkRnottrue -> fprintf o "zen.Rnottrue"
-  | DkRaxiom (p) -> 
-     fprintf o "zen.Raxiom\n (%a)" 
+  | DkRfalse (pr) -> fprintf o "zen.Rfalse\n (%a)" print_dk pr
+  | DkRnottrue (pr) -> fprintf o "zen.Rnottrue\n (%a)" print_dk pr
+  | DkRaxiom (p, pr1, pr2) -> 
+     fprintf o "zen.Raxiom\n (%a) (%a) (%a)" 
 	     print_dk p
-  | DkRnoteq (a, t) -> 
-     fprintf o "zen.Rnoteq\n (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRnoteq (a, t, pr) -> 
+     fprintf o "zen.Rnoteq\n (%a) (%a) (%a)" 
 	     print_dk a 
 	     print_dk t
-  | DkReqsym (a, t, u) -> 
-     fprintf o "zen.Reqsym\n (%a) (%a) (%a)" 
+	     print_dk pr
+  | DkReqsym (a, t, u, pr1, pr2) -> 
+     fprintf o "zen.Reqsym\n (%a) (%a) (%a) (%a) (%a)" 
 	     print_dk a 
 	     print_dk t 
 	     print_dk u
-  | DkRcut (p, prf1, prf2) -> 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRcut (p, pr1, pr2) -> 
      fprintf o "zen.Rcut\n (%a) (%a) (%a)" 
 	     print_dk p 
-	     print_dk prf1 
-	     print_dk prf2
-  | DkRnotnot (p, prf1) -> 
-     fprintf o "zen.Rnotnot\n (%a) (%a)" 
+	     print_dk pr1 
+	     print_dk pr2
+  | DkRnotnot (p, pr1, pr2) -> 
+     fprintf o "zen.Rnotnot\n (%a) (%a) (%a)" 
 	     print_dk p 
-	     print_dk prf1
-  | DkRand (p, q, prf1) -> 
-     fprintf o "zen.Rand\n (%a) (%a) (%a)" 
-	     print_dk p 
-	     print_dk q 
-	     print_dk prf1
-  | DkRor (p, q, prf1, prf2) -> 
-     fprintf o "zen.Ror\n (%a) (%a) (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRand (p, q, pr1, pr2) -> 
+     fprintf o "zen.Rand\n (%a) (%a) (%a) (%a)" 
 	     print_dk p 
 	     print_dk q 
-	     print_dk prf1 
-	     print_dk prf2
-  | DkRimply (p, q, prf1, prf2) -> 
-     fprintf o "zen.Rimply\n (%a) (%a) (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRor (p, q, pr1, pr2, pr3) -> 
+     fprintf o "zen.Ror\n (%a) (%a) (%a) (%a) (%a)" 
 	     print_dk p 
 	     print_dk q 
-	     print_dk prf1 
-	     print_dk prf2
-  | DkRequiv (p, q, prf1, prf2) -> 
-     fprintf o "zen.Requiv\n (%a) (%a) (%a) (%a)" 
+	     print_dk pr1 
+	     print_dk pr2
+	     print_dk pr3
+  | DkRimply (p, q, pr1, pr2, pr3) -> 
+     fprintf o "zen.Rimply\n (%a) (%a) (%a) (%a) (%a)" 
 	     print_dk p 
 	     print_dk q 
-	     print_dk prf1 
-	     print_dk prf2
-  | DkRnotand (p, q, prf1, prf2) -> 
-     fprintf o "zen.Rnotand\n (%a) (%a) (%a) (%a)" 
+	     print_dk pr1 
+	     print_dk pr2
+	     print_dk pr3
+  | DkRequiv (p, q, pr1, pr2, pr3) -> 
+     fprintf o "zen.Requiv\n (%a) (%a) (%a) (%a) (%a)" 
 	     print_dk p 
 	     print_dk q 
-	     print_dk prf1 
-	     print_dk prf2
-  | DkRnotor (p, q, prf1) -> 
-     fprintf o "zen.Rnotor\n (%a) (%a) (%a)" 
+	     print_dk pr1 
+	     print_dk pr2
+	     print_dk pr3
+  | DkRnotand (p, q, pr1, pr2, pr3) -> 
+     fprintf o "zen.Rnotand\n (%a) (%a) (%a) (%a) (%a)" 
 	     print_dk p 
 	     print_dk q 
-	     print_dk prf1
-  | DkRnotimply (p, q, prf1) -> 
-     fprintf o "zen.Rnotimply\n (%a) (%a) (%a)" 
+	     print_dk pr1 
+	     print_dk pr2
+	     print_dk pr3
+  | DkRnotor (p, q, pr1, pr2) -> 
+     fprintf o "zen.Rnotor\n (%a) (%a) (%a) (%a)" 
 	     print_dk p 
 	     print_dk q 
-	     print_dk prf1
-  | DkRnotequiv (p, q, prf1, prf2) -> 
-     fprintf o "zen.Rnotequiv\n (%a) (%a) (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRnotimply (p, q, pr1, pr2) -> 
+     fprintf o "zen.Rnotimply\n (%a) (%a) (%a) (%a)" 
 	     print_dk p 
 	     print_dk q 
-	     print_dk prf1 
-	     print_dk prf2
-  | DkRex (a, p, prf1) -> 
-     fprintf o "zen.Rex\n (%a) (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRnotequiv (p, q, pr1, pr2, pr3) -> 
+     fprintf o "zen.Rnotequiv\n (%a) (%a) (%a) (%a) (%a)" 
+	     print_dk p 
+	     print_dk q 
+	     print_dk pr1 
+	     print_dk pr2
+	     print_dk pr3
+  | DkRex (a, p, pr1, pr2) -> 
+     fprintf o "zen.Rex\n (%a) (%a) (%a) (%a)" 
 	     print_dk a 
 	     print_dk p 
-	     print_dk prf1
-  | DkRall (a, p, t, prf1) -> 
-     fprintf o "zen.Rall\n (%a) (%a) (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRall (a, p, t, pr1, pr2) -> 
+     fprintf o "zen.Rall\n (%a) (%a) (%a) (%a) (%a)" 
 	     print_dk a 
 	     print_dk p 
 	     print_dk t 
-	     print_dk prf1
-  | DkRnotex (a, p, t, prf1) -> 
-     fprintf o "zen.Rnotex\n (%a) (%a) (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRnotex (a, p, t, pr1, pr2) -> 
+     fprintf o "zen.Rnotex\n (%a) (%a) (%a) (%a) (%a)" 
 	     print_dk a 
 	     print_dk p 
 	     print_dk t 
-	     print_dk prf1
-  | DkRnotall (a, p, prf1) -> 
-     fprintf o "zen.Rnotall\n (%a) (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRnotall (a, p, pr1, pr2) -> 
+     fprintf o "zen.Rnotall\n (%a) (%a) (%a) (%a)" 
 	     print_dk a 
 	     print_dk p 
-	     print_dk prf1
-  | DkRextype (p, prf1) -> 
-     fprintf o "zen.Rextype\n (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRextype (p, pr1, pr2) -> 
+     fprintf o "zen.Rextype\n (%a) (%a) (%a)" 
 	     print_dk p 
-	     print_dk prf1
-  | DkRalltype (p, a, prf1) -> 
-     fprintf o "zen.Ralltype\n (%a) (%a) (%a)" 
-	     print_dk p 
-	     print_dk a 
-	     print_dk prf1
-  | DkRnotextype (p, a, prf1) -> 
-     fprintf o "zen.Rnotextype\n (%a) (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRalltype (p, a, pr1, pr2) -> 
+     fprintf o "zen.Ralltype\n (%a) (%a) (%a) (%a)" 
 	     print_dk p 
 	     print_dk a 
-	     print_dk prf1
-  | DkRnotalltype (p, prf1) -> 
-     fprintf o "zen.Rnotalltype\n (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRnotextype (p, a, pr1, pr2) -> 
+     fprintf o "zen.Rnotextype\n (%a) (%a) (%a) (%a)" 
 	     print_dk p 
-	     print_dk prf1
-  | DkRconglr (a, p, t1, t2, prf1) -> 
-     fprintf o "zen.Rconglr\n (%a) (%a) (%a) (%a) (%a)" 
+	     print_dk a 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRnotalltype (p, pr1, pr2) -> 
+     fprintf o "zen.Rnotalltype\n (%a) (%a) (%a)" 
+	     print_dk p 
+	     print_dk pr1
+	     print_dk pr2
+  | DkRconglr (a, p, t1, t2, pr1, pr2, pr3) -> 
+     fprintf o "zen.Rconglr\n (%a) (%a) (%a) (%a) (%a) (%a) (%a)" 
 	     print_dk a 
 	     print_dk p 
 	     print_dk t1 
 	     print_dk t2 
-	     print_dk prf1
-  | DkRcongrl (a, p, t1, t2, prf1) -> 
-     fprintf o "zen.Rcongrl\n (%a) (%a) (%a) (%a) (%a)" 
+	     print_dk pr1
+	     print_dk pr2
+	     print_dk pr3
+  | DkRcongrl (a, p, t1, t2, pr1, pr2, pr3) -> 
+     fprintf o "zen.Rcongrl\n (%a) (%a) (%a) (%a) (%a) (%a) (%a)" 
 	     print_dk a 
 	     print_dk p 
 	     print_dk t1 
 	     print_dk t2 
-	     print_dk prf1
+	     print_dk pr1
+	     print_dk pr2
+	     print_dk pr3
 
 and print_dk_list_arrow o t = 
   match t with 

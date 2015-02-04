@@ -6,77 +6,125 @@ open Printf;;
 open Expr;;
 open Llproof;;
 open Dkterm;;
+open Namespace;;
 
+let context = ref (Hashtbl.create 999);;
+let context_prf = ref (Hashtbl.create 999);;
+let rawname e = sprintf "%s%x" hyp_prefix (Index.get_number e);;
+let rawname_prf e = sprinf "%s%s%x" "prf_" hyp_prefix (Index.get_number e);;
 
+let add_context e dke = 
+  Hashtbl.add !context e dke
+;;
+
+let add_context_prf e dke = 
+  Hashtbl.add !context_prf e dke
+;;
+
+let init_context = 
+  add_context etrue mk_var ("zen.true", mk_prop);
+  add_context efalse mk_var ("zen.false", mk_prop);
+;;
+
+let init_context_prf = 
+  add_context_prf etrue mk_var (rawname_prf etrue, mk_proof (mk_true));
+  add_context_prf efalse mk_var (rawname_prf efalse, mk_proof (mk_false));
+  add_context_prf (enot etrue) mk_var (rawname_prf (enot etrue), 
+				       mk_proof (mk_true));
+  add_context_prf (enot efalse) mk_var (rawname_prf (enot efalse), 
+					mk_proof (mk_false));
+;;
+
+let to_var e = 
+  match e with 
+  | Evar (v, _) -> v
+  | _ -> assert false
+;;
 
 let rec trexpr_dktype e =
-  Log.debug 10 "dktype %a" Print.pp_expr e;
-  match e with 
-  | e when (Expr.equal e type_type) -> 
-     mk_type
-  | e when (Expr.equal e type_prop) -> 
-     mk_prop
-  | e when (Expr.equal e type_none) -> 
-     assert false
-  | Evar (s, _) -> 
-     mk_var (s, trexpr_dktype (get_type e))
-  | Eapp (Evar(s, _) as s', args, _) -> 
-     let nvar = mk_var (s, trexpr_dktype (get_type s')) in 
-     let nargs = List.map trexpr_dktype args in 
-     mk_app (nvar, nargs)
-  | Earrow (args, ret, _) 
-       when (Expr.equal ret type_type) -> 
-     let nret = trexpr_dktype ret in 
-     let nargs = List.map trexpr_dktype args in 
-     mk_arrow (nargs @ [nret])
-  | Eall (Evar(v, _) as v', p, _) 
-       when Expr.equal (get_type v') type_type -> 
-     let nvar = mk_var (v, mk_type) in 
-     let np = 
-       match p with 
-       | Eapp (Evar(s, _) as s', args, _) -> 
-	  let nvar = mk_var (s, trexpr_dktype (get_type s')) in 
-	  let nargs = List.map trexpr_dktype args in
-	  mk_term (mk_app (nvar, nargs))
-       | Earrow (args, ret, _) when (Expr.equal ret type_prop) -> 
-	  let nret = trexpr_dktype ret in 
-	  let nargs = List.map (fun x -> mk_term (trexpr_dktype x)) args in 
-	  mk_arrow (nargs @ [nret])
-       | Earrow (args, ret, _) -> 
-	  let nret = mk_term (trexpr_dktype ret) in 
-	  let nargs = List.map (fun x -> mk_term (trexpr_dktype x)) args in 
-	  mk_arrow (nargs @ [nret])
-       | Eall (Evar (v2, _) as v2', p2, _) 
-	      when Expr.equal (get_type v2') type_type -> 
-	  trexpr_dktype p
-       | _ -> assert false
-     in
-     mk_pi (nvar, np)
-  | Etau _ as e 
-    when Expr.equal (get_type e) type_type -> 
-     let v = Printf.sprintf "Tau_%d" (Index.get_number e) in 
-     mk_var (v, mk_type)
-  | Etau _ as e -> 
-     let v = Printf.sprintf "Tau_%d" (Index.get_number e) in 
-     let ty = mk_term (trexpr_dktype (get_type e)) in 
-     mk_var (v, ty)
-  | _ -> assert false
+  Log.debug 11 "dktype %a" Print.pp_expr e;
+  try 
+    Hashtbl.find !context e
+  with Not_found -> 
+    let dke = 
+      match e with 
+      | e when (Expr.equal e type_type) -> 
+	 mk_type
+      | e when (Expr.equal e type_prop) -> 
+	 mk_prop
+      | e when (Expr.equal e type_none) -> 
+	 assert false
+      | Evar (s, _) -> 
+	 mk_var (rawname e, trexpr_dktype (get_type e))
+      | Eapp (Evar(s, _) as s', args, _) -> 
+	 let nvar = mk_var (rawname s', trexpr_dktype (get_type s')) in 
+	 let nargs = List.map trexpr_dktype args in 
+	 mk_app (nvar, nargs)
+      | Earrow (args, ret, _) 
+	   when (Expr.equal ret type_type) -> 
+	 let nret = trexpr_dktype ret in 
+	 let nargs = List.map trexpr_dktype args in 
+	 mk_arrow (nargs @ [nret])
+      | Eall (Evar(v, _) as v', p, _) 
+	   when Expr.equal (get_type v') type_type -> 
+	 let nvar = mk_var (rawname v', mk_type) in 
+	 let np = 
+	   match p with 
+	   | Eapp (Evar(s, _) as s', args, _) -> 
+	      let nvar = mk_var (rawname s', trexpr_dktype (get_type s')) in 
+	      let nargs = List.map trexpr_dktype args in
+	      mk_term (mk_app (nvar, nargs))
+	   | Earrow (args, ret, _) when (Expr.equal ret type_prop) -> 
+	      let nret = trexpr_dktype ret in 
+	      let nargs = List.map (fun x -> mk_term (trexpr_dktype x)) args in 
+	      mk_arrow (nargs @ [nret])
+	   | Earrow (args, ret, _) -> 
+	      let nret = mk_term (trexpr_dktype ret) in 
+	      let nargs = List.map (fun x -> mk_term (trexpr_dktype x)) args in 
+	      mk_arrow (nargs @ [nret])
+	   | Eall (Evar (v2, _) as v2', p2, _) 
+		when Expr.equal (get_type v2') type_type -> 
+	      trexpr_dktype p
+	   | _ -> assert false
+	 in
+	 mk_pi (nvar, np)
+      | Etau _ as e 
+	   when Expr.equal (get_type e) type_type -> 
+	 let v = Index.make_tau_name e in 
+	 mk_var (v, mk_type)
+      | Etau _ as e -> 
+	 let v = Index.make_tau_name e in  
+	 let ty = mk_term (trexpr_dktype (get_type e)) in 
+	 mk_var (v, ty)
+      | _ -> assert false
+    in
+    add_context e dke;
+    dke
 ;;
 
 let trexpr_dkvartype e = 
-  Log.debug 15 "dkvartype %a" Print.pp_expr e;
-  match e with
-  | Evar (s, _) when (Expr.equal (get_type e) type_type) -> 
-     mk_var (s, mk_type) 
-  | Evar (s, _) -> 
-     mk_var (s, mk_term (trexpr_dktype (get_type e)))
-  | _ -> assert false
+  Log.debug 10 "dkvartype %a" Print.pp_expr e;
+  try 
+    Hashtbl.find !context e
+  with Not_found -> 
+    let dke = 
+      match e with
+      | Evar (s, _) when (Expr.equal (get_type e) type_type) -> 
+	 mk_var (rawname e, mk_type) 
+      | Evar (s, _) -> 
+	 mk_var (rawname e, mk_term (trexpr_dktype (get_type e)))
+      | _ -> assert false
+    in
+    add_context e dke;
+    dke
 ;;
+
 
 let rec translate_sigs_aux s accu = 
   match s with 
   | [] -> List.rev accu
   | (v, s) :: tl -> 
+     Log.debug 10 "translate sig %a" Print.pp_expr s;
      let ns = trexpr_dktype s in 
      translate_sigs_aux tl ((v, ns) :: accu)
 ;;
@@ -109,61 +157,73 @@ let tr_list_vars rule =
 
 let rec trexpr_dkprop e = 
   Log.debug 10 "dkprop %a" Print.pp_expr e;
-  match e with 
-  | e when (Expr.equal e type_type) -> 
-     mk_type
-  | e when (Expr.equal e type_prop) -> 
-     mk_prop
-  | e when (Expr.equal e type_none) -> 
-     assert false  
-  | Evar _ -> 
-     trexpr_dkvartype e 
-  | Emeta _ -> 
-     assert false
-  | Eapp (Evar(s, _) as s', args, _) -> 
-     let nvar = trexpr_dkvartype s' in 
-     let nargs = List.map trexpr_dkprop args in 
-     mk_app (nvar, nargs)
-  | Eapp _ -> assert false
-  | Earrow (args, ret, _)  -> 
-     let nret = trexpr_dkprop ret in 
-     let nargs = List.map trexpr_dkprop args in 
-     mk_arrow (nargs @ [nret])
-  | Enot (e1, _) -> mk_not (trexpr_dkprop e1)
-  | Eand (e1, e2, _) -> mk_and (trexpr_dkprop e1, trexpr_dkprop e2)
-  | Eor (e1, e2, _) -> mk_or (trexpr_dkprop e1, trexpr_dkprop e2)
-  | Eimply (e1, e2, _) -> mk_imply (trexpr_dkprop e1, trexpr_dkprop e2)
-  | Eequiv (e1, e2, _) -> mk_equiv (trexpr_dkprop e1, trexpr_dkprop e2)
-  | Etrue -> mk_true
-  | Efalse -> mk_false
-  | Eall (Evar (v, _) as v', p, _) 
-       when Expr.equal (get_type v') type_type -> 
-     mk_foralltype (mk_lam (trexpr_dkvartype v', trexpr_dkprop p))
-  | Eall (Evar (v, _) as v', p, _) -> 
-     let nv = trexpr_dkvartype v' in 
-     let tnv = get_dkvar_type nv in 
-     mk_forall (tnv, (mk_lam (nv, trexpr_dkprop p)))
-  | Eall _ -> assert false
-  | Eex (Evar (v, _) as v', p, _) 
-       when Expr.equal (get_type v') type_type -> 
-     mk_existstype (mk_lam (trexpr_dkvartype v', trexpr_dkprop p))
-  | Eex (Evar (v, _) as v', p, _) -> 
-     let nv = trexpr_dkvartype v' in 
-     let tnv = get_dkvar_type nv in 
-     mk_exists (tnv, (mk_lam (nv, trexpr_dkprop p)))
-  | Eex _ -> assert false
-  | Etau _ as e 
-       when Expr.equal (get_type e) type_type -> 
-     let v = Printf.sprintf "Tau_%d" (Index.get_number e) in 
-     mk_var (v, mk_type)
-  | Etau _ as e -> 
-     let v = Printf.sprintf "Tau_%d" (Index.get_number e) in 
-     let ty = mk_term (trexpr_dktype (get_type e)) in 
-     mk_var (v, ty)
-  | Elam (Evar (v, _) as v', p, _) -> 
-     let nv = trexpr_dkvartype v' in 
-     mk_lam (nv, trexpr_dkprop p)
-  | Elam _ -> assert false
+  try
+    Hashtbl.find !context e
+  with Not_found -> 
+    let dke = 
+      match e with 
+      | e when (Expr.equal e type_type) -> 
+	 mk_type
+      | e when (Expr.equal e type_prop) -> 
+	 mk_prop
+      | e when (Expr.equal e type_none) -> 
+	 assert false  
+      | Evar _ -> 
+	 trexpr_dkvartype e 
+      | Emeta _ -> 
+	 assert false
+      | Eapp (Evar("=", _), [e1; e2], _) -> 
+	 let ne1 = trexpr_dkprop e1 in 
+	 let ne2 = trexpr_dkprop e2 in 
+	 let ty = trexpr_dktype (get_type e1) in 
+	 mk_equal (ty, ne1, ne2)
+      | Eapp (Evar(s, _) as s', args, _) -> 
+	 let nvar = trexpr_dkvartype s' in 
+	 let nargs = List.map trexpr_dkprop args in 
+	 mk_app (nvar, nargs)
+      | Eapp _ -> assert false
+      | Earrow (args, ret, _)  -> 
+	 let nret = trexpr_dkprop ret in 
+	 let nargs = List.map trexpr_dkprop args in 
+	 mk_arrow (nargs @ [nret])
+      | Enot (e1, _) -> mk_not (trexpr_dkprop e1)
+      | Eand (e1, e2, _) -> mk_and (trexpr_dkprop e1, trexpr_dkprop e2)
+      | Eor (e1, e2, _) -> mk_or (trexpr_dkprop e1, trexpr_dkprop e2)
+      | Eimply (e1, e2, _) -> mk_imply (trexpr_dkprop e1, trexpr_dkprop e2)
+      | Eequiv (e1, e2, _) -> mk_equiv (trexpr_dkprop e1, trexpr_dkprop e2)
+      | Etrue -> mk_true
+      | Efalse -> mk_false
+      | Eall (Evar (v, _) as v', p, _) 
+	   when Expr.equal (get_type v') type_type -> 
+	 mk_foralltype (mk_lam (trexpr_dkvartype v', trexpr_dkprop p))
+      | Eall (Evar (v, _) as v', p, _) -> 
+	 let nv = trexpr_dkvartype v' in 
+	 let tnv = get_dkvar_type nv in 
+	 mk_forall (tnv, (mk_lam (nv, trexpr_dkprop p)))
+      | Eall _ -> assert false
+      | Eex (Evar (v, _) as v', p, _) 
+	   when Expr.equal (get_type v') type_type -> 
+	 mk_existstype (mk_lam (trexpr_dkvartype v', trexpr_dkprop p))
+      | Eex (Evar (v, _) as v', p, _) -> 
+	 let nv = trexpr_dkvartype v' in 
+	 let tnv = get_dkvar_type nv in 
+	 mk_exists (tnv, (mk_lam (nv, trexpr_dkprop p)))
+      | Eex _ -> assert false
+      | Etau _ as e 
+	   when Expr.equal (get_type e) type_type -> 
+	 let v = Index.make_tau_name e in 
+	 mk_var (v, mk_type)
+      | Etau _ as e -> 
+	 let v = Index.make_tau_name e in 
+	 let ty = mk_term (trexpr_dktype (get_type e)) in 
+	 mk_var (v, ty)
+      | Elam (Evar (v, _) as v', p, _) -> 
+	 let nv = trexpr_dkvartype v' in 
+	 mk_lam (nv, trexpr_dkprop p)
+      | Elam _ -> assert false
+    in
+    add_context e dke;
+    dke
 ;;
 
 let build_dkrwrt rule = 
@@ -209,6 +269,7 @@ let is_binder_of_type_var e =
 ;;
 
 let extract_prooftree lemmas = 
+  Log.debug 8 " Number of Lemmas : %i" (List.length lemmas);
   match lemmas with 
   | [] -> assert false
   | [lemma] -> 
@@ -220,16 +281,23 @@ let extract_prooftree lemmas =
 ;;
 
 let trexpr_quant_to_dklam p = 
-  match p with 
-  | Eall (v, body, _) -> 
-     let nv = trexpr_dkvartype v in 
-     let nbody = trexpr_dkprop body in 
-     mk_lam (nv, nbody)
-  | Eex (v, body, _) -> 
-     let nv = trexpr_dkvartype v in 
-     let nbody = trexpr_dkprop body in 
-     mk_lam (nv, nbody)
-  | _ -> assert false
+  try 
+    Hashtbl.find !context p
+  with Not_found -> 
+    let dkp = 
+      match p with 
+      | Eall (v, body, _) -> 
+	 let nv = trexpr_dkvartype v in 
+	 let nbody = trexpr_dkprop body in 
+	 mk_lam (nv, nbody)
+      | Eex (v, body, _) -> 
+	 let nv = trexpr_dkvartype v in 
+	 let nbody = trexpr_dkprop body in 
+	 mk_lam (nv, nbody)
+      | _ -> assert false
+    in
+    add_context p dkp;
+    dkp
 ;;
 
 let is_equal_mod e1 e2 =
@@ -241,9 +309,15 @@ let is_equal_mod e1 e2 =
   Expr.equal (Rewrite.normalize_fm e1) e2
 ;;
 
-let mk_var_prfObj p = 
-  let v = "prf_"^(Expr.newname()) in 
-  mk_var (v, mk_proof p)
+let mk_prf e = 
+  try 
+    Hashtbl.find !context_prf e 
+  with Not_found -> 
+    let dke = 
+      mk_var (rawname_prf e, mk_proof (trexpr_dkprop e)) 
+    in
+    add_context_prf e dke;
+    dke
 ;;
 
 let rec trproof_dk p = 
@@ -258,14 +332,14 @@ let rec trproof_dk p =
      match llrule with 
      | Rfalse -> 
 	assert (List.length proofs == 0);
-	mk_DkRfalse
+	mk_DkRfalse (mk_prf efalse)
      | Rnottrue -> 
 	assert (List.length proofs == 0);
-	mk_DkRnottrue
+	mk_DkRnottrue (mk_prf (enot etrue))
      | Raxiom (p) -> 
 	assert (List.length proofs == 0);
-	let np = trexpr_dkprop p in 
-	mk_DkRaxiom (np)
+	let dkp = trexpr_dkprop p in
+	mk_DkRaxiom (np, mk_prf p, mk_prf (enot p))
      | Rcut (p) -> 
 	assert (List.length proofs == 2);
 	let np = trexpr_dkprop p in 
@@ -296,8 +370,8 @@ let rec trproof_dk p =
 	  if (List.length (List.nth proofs 0).conc > 1) then 
 	    trproof_dk (List.nth proofs 0)
 	  else if (List.length (List.nth proofs 0).conc == 1) then
-	    let prf_P = mk_var_prfObj np in
-	    let prf_Q = mk_var_prfObj nq in
+	    let prf_P = mk_prfObj np in
+	    let prf_Q = mk_prfObj nq in
 	    let conc = List.nth (List.nth proofs 0).conc 0 in
 	    if (is_equal_mod p conc) then 
 	      mk_lam (prf_P, 
@@ -327,10 +401,10 @@ let rec trproof_dk p =
 	assert (List.length proofs == 2);
         let np = trexpr_dkprop p in 
 	let nq = trexpr_dkprop q in 
-	let prf_P = mk_var_prfObj np in 
-	let prf_nP = mk_var_prfObj (mk_not np) in 
-	let prf_Q = mk_var_prfObj nq in 
-	let prf_nQ = mk_var_prfObj (mk_not nq) in 
+	let prf_P = mk_prfObj np in 
+	let prf_nP = mk_prfObj (mk_not np) in 
+	let prf_Q = mk_prfObj nq in 
+	let prf_nQ = mk_prfObj (mk_not nq) in 
 	let param0 =  
 	  if (List.length (List.nth proofs 0).conc > 1) then 
 	    trproof_dk (List.nth proofs 0)
@@ -379,8 +453,8 @@ let rec trproof_dk p =
 	  if (List.length (List.nth proofs 0).conc > 1) then 
 	    trproof_dk (List.nth proofs 0)
 	  else if (List.length (List.nth proofs 0).conc == 1) then
-	    let prf_nP = mk_var_prfObj (mk_not np) in
-	    let prf_nQ = mk_var_prfObj (mk_not nq) in 
+	    let prf_nP = mk_prfObj (mk_not np) in
+	    let prf_nQ = mk_prfObj (mk_not nq) in 
 	    let conc = List.nth (List.nth proofs 0).conc 0 in
 	    if (is_equal_mod (enot p) conc) then 
 	      mk_lam (prf_nP, 
@@ -400,8 +474,8 @@ let rec trproof_dk p =
 	  if (List.length (List.nth proofs 0).conc > 1) then 
 	    trproof_dk (List.nth proofs 0)
 	  else if (List.length (List.nth proofs 0).conc == 1) then
-	    let prf_P = mk_var_prfObj np in
-	    let prf_nQ = mk_var_prfObj (mk_not nq) in 
+	    let prf_P = mk_prfObj np in
+	    let prf_nQ = mk_prfObj (mk_not nq) in 
 	    let conc = List.nth (List.nth proofs 0).conc 0 in
 	    if (is_equal_mod p conc) then 
 	      mk_lam (prf_P, 
@@ -417,10 +491,10 @@ let rec trproof_dk p =
 	assert (List.length proofs == 2);
 	let np = trexpr_dkprop p in 
 	let nq = trexpr_dkprop q in 
-	let prf_P = mk_var_prfObj np in 
-	let prf_nP = mk_var_prfObj (mk_not np) in 
-	let prf_Q = mk_var_prfObj nq in 
-	let prf_nQ = mk_var_prfObj (mk_not nq) in 
+	let prf_P = mk_prfObj np in 
+	let prf_nP = mk_prfObj (mk_not np) in 
+	let prf_Q = mk_prfObj nq in 
+	let prf_nQ = mk_prfObj (mk_not nq) in 
 	let param0 = 
 	  if (List.length (List.nth proofs 0).conc > 1) then 
 	    trproof_dk (List.nth proofs 0)
