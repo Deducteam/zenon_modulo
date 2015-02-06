@@ -52,6 +52,7 @@ type dkterm =
   | DkRalltype      of dkterm * dkterm * dkterm * dkterm
   | DkRnotextype    of dkterm * dkterm * dkterm * dkterm
   | DkRnotalltype   of dkterm * dkterm * dkterm
+  | DkRsubst        of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
   | DkRconglr       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
   | DkRcongrl       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
 ;;
@@ -91,21 +92,21 @@ let mk_true                    = Dktrue
 let mk_false                   = Dkfalse
 let mk_equal      (t1, t2, t3) = Dkequal (t1, t2, t3)
 
-let mk_DkRfalse        (pr)                  = DkRfalse (pr)
-let mk_DkRnottrue      (pr)                  = DkRnottrue (pr)
-let mk_DkRaxiom        (p, pr1, pr2)         = DkRaxiom (p, pr1, pr2)
+let mk_DkRfalse        (pr)                      = DkRfalse (pr)
+let mk_DkRnottrue      (pr)                      = DkRnottrue (pr)
+let mk_DkRaxiom        (p, pr1, pr2)             = DkRaxiom (p, pr1, pr2)
 let mk_DkRnoteq        (a, t, pr)                = DkRnoteq (a, t, pr)
-let mk_DkReqsym        (a, t, u, pr1, pr2)             = DkReqsym (a, t, u, pr1, pr2)
-let mk_DkRcut          (p, pr1, pr2)       = DkRcut (p, pr1, pr2)
+let mk_DkReqsym        (a, t, u, pr1, pr2)       = DkReqsym (a, t, u, pr1, pr2)
+let mk_DkRcut          (p, pr1, pr2)             = DkRcut (p, pr1, pr2)
 let mk_DkRnotnot       (p, pr1, pr2)             = DkRnotnot (p, pr1, pr2)
 let mk_DkRand          (p, q, pr1, pr2)          = DkRand (p, q, pr1, pr2)
-let mk_DkRor           (p, q, pr1, pr2, pr3)    = DkRor (p, q, pr1, pr2, pr3)
-let mk_DkRimply        (p, q, pr1, pr2, pr3)    = DkRimply (p, q, pr1, pr2, pr3)
-let mk_DkRequiv        (p, q, pr1, pr2, pr3)    = DkRequiv (p, q, pr1, pr2, pr3)
-let mk_DkRnotand       (p, q, pr1, pr2, pr3)    = DkRnotand (p, q, pr1, pr2, pr3)
+let mk_DkRor           (p, q, pr1, pr2, pr3)     = DkRor (p, q, pr1, pr2, pr3)
+let mk_DkRimply        (p, q, pr1, pr2, pr3)     = DkRimply (p, q, pr1, pr2, pr3)
+let mk_DkRequiv        (p, q, pr1, pr2, pr3)     = DkRequiv (p, q, pr1, pr2, pr3)
+let mk_DkRnotand       (p, q, pr1, pr2, pr3)     = DkRnotand (p, q, pr1, pr2, pr3)
 let mk_DkRnotor        (p, q, pr1, pr2)          = DkRnotor (p, q, pr1, pr2)
 let mk_DkRnotimply     (p, q, pr1, pr2)          = DkRnotimply (p, q, pr1, pr2)
-let mk_DkRnotequiv     (p, q, pr1, pr2, pr3)    = DkRnotequiv (p, q, pr1, pr2, pr3)
+let mk_DkRnotequiv     (p, q, pr1, pr2, pr3)     = DkRnotequiv (p, q, pr1, pr2, pr3)
 let mk_DkRex           (a, p, pr1, pr2)          = DkRex (a, p, pr1, pr2)
 let mk_DkRall          (a, p, t, pr1, pr2)       = DkRall (a, p, t, pr1, pr2)
 let mk_DkRnotex        (a, p, t, pr1, pr2)       = DkRnotex (a, p, t, pr1, pr2)
@@ -114,6 +115,7 @@ let mk_DkRextype       (p, pr1, pr2)             = DkRextype (p, pr1, pr2)
 let mk_DkRalltype      (p, a, pr1, pr2)          = DkRalltype (p, a, pr1, pr2)
 let mk_DkRnotextype    (p, a, pr1, pr2)          = DkRnotextype (p, a, pr1, pr2)
 let mk_DkRnotalltype   (p, pr1, pr2)             = DkRnotalltype (p, pr1, pr2)
+let mk_DkRsubst        (a, p, t1, t2, pr1, pr2, pr3)  = DkRsubst (a, p, t1, t2, pr1, pr2, pr3)
 let mk_DkRconglr       (a, p, t1, t2, pr1, pr2, pr3)  = DkRconglr (a, p, t1, t2, pr1, pr2, pr3)
 let mk_DkRcongrl       (a, p, t1, t2, pr1, pr2, pr3)  = DkRcongrl (a, p, t1, t2, pr1, pr2, pr3)
 
@@ -292,6 +294,15 @@ let rec print_dk o t =
 	     print_dk p 
 	     print_dk pr1
 	     print_dk pr2
+  | DkRsubst  (a, p, t1, t2, pr1, pr2, pr3) -> 
+     fprintf o "zen.Rsubst\n (%a) (%a) (%a) (%a) (%a) (%a) (%a)"
+	     print_dk a 
+	     print_dk p 
+	     print_dk t1 
+	     print_dk t2 
+	     print_dk pr1
+	     print_dk pr2
+	     print_dk pr3
   | DkRconglr (a, p, t1, t2, pr1, pr2, pr3) -> 
      fprintf o "zen.Rconglr\n (%a) (%a) (%a) (%a) (%a) (%a) (%a)" 
 	     print_dk a 

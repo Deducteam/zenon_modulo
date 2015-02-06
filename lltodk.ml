@@ -6,6 +6,7 @@ open Printf;;
 open Expr;;
 open Llproof;;
 open Dkterm;;
+open Namespace;;
 
 let hyp_prefix = "H";;
 
@@ -13,23 +14,25 @@ let context = ref (Hashtbl.create 999);;
 let rawname e = sprintf "%s%x" hyp_prefix (Index.get_number e);;
 let rawname_prf e = sprintf "%s%s%x" "prf_" hyp_prefix (Index.get_number e);;
 
-exception No_proof
+exception No_proof of string
 ;;
 
 let add_context e dke = 
+  Log.debug 7 " |- Add context %a" Print.pp_expr e;
   Hashtbl.add !context e dke
 ;;
 
 let get_context e = 
+  Log.debug 8 " |- Get context %a" Print.pp_expr e;
   try
     Hashtbl.find !context e
   with Not_found -> 
-    Log.debug 9 " |- get context %a" Print.pp_expr e;
-    raise No_proof
+    raise (No_proof (Printf.sprintf "for expr %s" 
+				    (Print.sexpr e))) 
 ;;
 
 let rec trexpr_dktype e =
-  Log.debug 11 "dktype %a" Print.pp_expr e;
+  Log.debug 11 " |- dktype %a" Print.pp_expr e;
   match e with 
   | e when (Expr.equal e type_type) -> 
      mk_type
@@ -249,13 +252,17 @@ let extract_prooftree lemmas =
 let trexpr_quant_to_dklam p = 
   match p with 
   | Eall (v, body, _) -> 
-     let nv = trexpr_dkvartype v in 
-     let nbody = trexpr_dkprop body in 
+     let dkv = trexpr_dkvartype v in 
+     let dkbody = trexpr_dkprop body in 
      mk_lam (nv, nbody)
   | Eex (v, body, _) -> 
-     let nv = trexpr_dkvartype v in 
-     let nbody = trexpr_dkprop body in 
+     let dkv = trexpr_dkvartype v in 
+     let dkbody = trexpr_dkprop body in 
      mk_lam (nv, nbody)
+(*  | Elam (v, body, _) -> 
+     let dkv = trxpr_dkvartype v in 
+     let dkbody = trexpr_dkprop body in 
+     mk_lam (dkv, dkbody) *)
   | _ -> assert false
 ;;
 
@@ -277,12 +284,24 @@ let get_pr_var e =
   get_context norm_e
 ;;
 
+let rec mk_eq_args gen pre post1 post2 = 
+  match post1, post2 with 
+  | [], [], -> []
+  | h1 :: tl1, h2 :: tl2 -> 
+     let args x = List.rev_append pre (x :: tl1) in 
+     let ctx x = gen (args x) in 
+     (ctx, h1, h2) :: mk_eq_args gen (h2 :: pre) tl1 tl2 
+  | _ -> assert false
+;;
+
 let rec trproof_dk p = 
   match p with 
   | {conc = pconc; 
      rule = prule;
      hyps = phyps;} 
     -> 
+     Log.debug 8 " |- Proof step %a" Print.pr_llrule prule;
+     List.iter (fun x -> Log.debug 9 "   > conc : %a" Print.pp_expr x) pconc;
      match prule with 
      | Rfalse -> 
 	let conc = get_pr_var efalse in 
@@ -493,6 +512,10 @@ let rec trproof_dk p =
 	  let lam = mk_lam (dkzz, mk_lam (prpzz, sub)) in 
 	  let conc = get_pr_var (enot allp) in 
 	  mk_DkRnotall (a, dkp, lam, conc)
+     | Rpnotp ((Eapp (Evar (p, _) as p', args1, _) as pp),
+	       (Enot (Eapp (Evar (q, _), args2, _), _) as nqq)) -> 
+	assert (p == q);
+	
      | Rextension (_, "zenon_notallex", _, _, _) -> 
 	assert false
      | RcongruenceLR (p, t1, t2) -> 
@@ -518,6 +541,17 @@ let rec trproof_dk p =
 	let conc2 = get_pr_var (eeq t2 t1) in 
 	mk_DkRcongrl (a, dkp, dkt1, dkt2, lam, conc1, conc2)
      | _ -> assert false
+
+and mk_eq_node (ctx, t1, t2) phyps sub = 
+  if Expr.equal t1 t2 then 
+    pr_proof_dk (List.nth phyps 0) 
+  else 
+    let a = trexpr_dktype (get_type t1) in 
+    let x = tvar (Expr.newname(), get_type t1) in 
+    let dkp = trexpr_quant_to_lam (ctx (x)) in 
+    let dkt1 = trexpr_dkprop t1 in 
+    let dkt2 = trexpr_dkprop t2 in 
+    
 ;;
 
 let make_proof_term goal prooftree = 
@@ -525,14 +559,38 @@ let make_proof_term goal prooftree =
   let sub = trproof_dk prooftree in 
   mk_lam (pr, sub)
 ;;
+  
+let rec mk_prf_var_def_aux accu phrases = 
+  match phrases with 
+  | [] -> accu
+  | Phrase.Hyp (name, _, _) :: tl 
+       when name == goal_name -> 
+     mk_prf_var_def_aux accu tl
+  | Phrase.Hyp (_, fm, _) :: tl -> 
+     let norm_fm = Rewrite.normalize_fm fm in 
+     if Hashtbl.mem !context norm_fm then 
+       mk_prf_var_def_aux accu tl
+     else
+       let v = rawname_prf norm_fm in 
+       let t = mk_proof (trexpr_dkprop norm_fm) in 
+       let dkfm = mk_var (v, t) in 
+       add_context norm_fm dkfm;
+       mk_prf_var_def_aux (mk_decl (v, t) :: accu) tl
+  | _ :: tl -> mk_prf_var_def_aux accu tl
+;;
+
+let mk_prf_var_def phrases = 
+  mk_prf_var_def_aux [] phrases
+;;
 
 let output oc phrases llp =
   let sigs = Expr.get_defs () in
   let dksigs = translate_sigs sigs in 
   let dksigs = List.map (fun (x,y) -> mk_decl (x, y)) dksigs in
-(*  let dep_graph = create 42 in
+  let dep_graph = create 42 in
   List.iter (add_sym_graph dep_graph) dksigs;
-  let dksigs = topo_sort dep_graph in *)
+  let dksigs = topo_sort dep_graph in 
+  let dkctx = mk_prf_var_def phrases in 
 
   let rules = Hashtbl.fold (fun x y z -> y :: z) !tbl_term [] in
   let rules = List.append rules 
@@ -548,6 +606,8 @@ let output oc phrases llp =
   fprintf oc "#NAME tocheck";
   fprintf oc ".\n";
   List.iter (print_line oc) dksigs;
+  fprintf oc "\n";
+  List.iter (print_line oc) dkctx;
   fprintf oc "\n";
   List.iter (print_line oc) dkrules;
   fprintf oc "\n";

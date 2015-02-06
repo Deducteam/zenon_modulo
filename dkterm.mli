@@ -50,6 +50,7 @@ type dkterm =
   | DkRalltype      of dkterm * dkterm * dkterm * dkterm
   | DkRnotextype    of dkterm * dkterm * dkterm * dkterm
   | DkRnotalltype   of dkterm * dkterm * dkterm
+  | DkRsubst        of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
   | DkRconglr       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
   | DkRcongrl       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
 
@@ -105,6 +106,7 @@ val mk_DkRextype        : dkterm * dkterm * dkterm -> dkterm
 val mk_DkRalltype       : dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRnotextype     : dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRnotalltype    : dkterm * dkterm * dkterm -> dkterm
+val mk_DkRsubst         : dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRconglr        : dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRcongrl        : dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
 
