@@ -480,7 +480,7 @@ let test_graph gr =
 ;;
 
 let topo_sort gr = 
-  test_graph gr;
+(*  test_graph gr; *)
   let rec f accu gr =
     match select_no_incoming gr with 
     | [] -> accu
