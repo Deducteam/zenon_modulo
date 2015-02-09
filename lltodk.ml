@@ -254,11 +254,11 @@ let trexpr_quant_to_dklam p =
   | Eall (v, body, _) -> 
      let dkv = trexpr_dkvartype v in 
      let dkbody = trexpr_dkprop body in 
-     mk_lam (nv, nbody)
+     mk_lam (dkv, dkbody)
   | Eex (v, body, _) -> 
      let dkv = trexpr_dkvartype v in 
      let dkbody = trexpr_dkprop body in 
-     mk_lam (nv, nbody)
+     mk_lam (dkv, dkbody)
 (*  | Elam (v, body, _) -> 
      let dkv = trxpr_dkvartype v in 
      let dkbody = trexpr_dkprop body in 
@@ -282,16 +282,6 @@ let mk_pr_var e =
 let get_pr_var e = 
   let norm_e = Rewrite.normalize_fm e in 
   get_context norm_e
-;;
-
-let rec mk_eq_args gen pre post1 post2 = 
-  match post1, post2 with 
-  | [], [], -> []
-  | h1 :: tl1, h2 :: tl2 -> 
-     let args x = List.rev_append pre (x :: tl1) in 
-     let ctx x = gen (args x) in 
-     (ctx, h1, h2) :: mk_eq_args gen (h2 :: pre) tl1 tl2 
-  | _ -> assert false
 ;;
 
 let rec trproof_dk p = 
@@ -512,10 +502,13 @@ let rec trproof_dk p =
 	  let lam = mk_lam (dkzz, mk_lam (prpzz, sub)) in 
 	  let conc = get_pr_var (enot allp) in 
 	  mk_DkRnotall (a, dkp, lam, conc)
-     | Rpnotp ((Eapp (Evar (p, _) as p', args1, _) as pp),
-	       (Enot (Eapp (Evar (q, _), args2, _), _) as nqq)) -> 
+     | Rpnotp ((Eapp (Evar (p, _), args1, _) as pp),
+	       (Enot (Eapp (Evar (q, _), args2, _) as qq, _))) -> 
 	assert (p == q);
-	
+	assert (List.length args1 == List.length args2);
+	let (_, argspp) = Expr.split_list (Expr.nb_tvar pp) args1 in 
+	let (_, argsnqq) = Expr.split_list (Expr.nb_tvar qq) args2 in 
+	mk_pnotp_subst pp argspp argsnqq phyps 
      | Rextension (_, "zenon_notallex", _, _, _) -> 
 	assert false
      | RcongruenceLR (p, t1, t2) -> 
@@ -542,16 +535,60 @@ let rec trproof_dk p =
 	mk_DkRcongrl (a, dkp, dkt1, dkt2, lam, conc1, conc2)
      | _ -> assert false
 
-and mk_eq_node (ctx, t1, t2) phyps sub = 
-  if Expr.equal t1 t2 then 
-    pr_proof_dk (List.nth phyps 0) 
-  else 
-    let a = trexpr_dktype (get_type t1) in 
-    let x = tvar (Expr.newname(), get_type t1) in 
-    let dkp = trexpr_quant_to_lam (ctx (x)) in 
-    let dkt1 = trexpr_dkprop t1 in 
-    let dkt2 = trexpr_dkprop t2 in 
-    
+  and mk_pnotp_subst pp argspp argsnqq phyps = 
+    Log.debug 3 " |- PnotP subst %a" Print.pp_expr pp;
+    match pp, argspp, argsnqq with 
+    | Eapp _, [], [] -> 
+       assert (List.length phyps == 0);
+       let dkp = trexpr_dkprop pp in 
+       let concp = get_pr_var pp in 
+       let concnp = get_pr_var (enot pp) in 
+       mk_DkRaxiom (dkp, concp, concnp)
+    | Eapp _, h1 :: tl1, h2 :: tl2 ->
+       let app_to_lam p e = 
+	 Log.debug 3 "   App to Lam %a %a" 
+		   Print.pp_expr p Print.pp_expr e;
+	 match p with 
+	 | Eapp (sym, args, _) -> 
+	    assert (List.mem e args);
+	    let v = tvar (newname()) (get_type e) in 
+	    let rec f accu l = 
+	      match l with 
+	      | [] -> assert false
+	      | h :: tl -> 
+		 if (Expr.equal h e) then 
+		   List.append (List.rev accu) (v :: tl)
+		 else f (h :: accu) tl
+	    in
+	    let nargs = f [] args in 
+	    let np = eapp (sym, nargs) in
+	    Log.debug 3 "   after swap %a" Print.pp_expr np;
+	    elam (v, np)
+	 | _ -> assert false
+       in
+       assert (Expr.equal (get_type h1) (get_type h2));
+       let a = trexpr_dktype (get_type h1) in
+       let dkh1 = trexpr_dktype h1 in 
+       let dkpp = mk_lam (dkh1, trexpr_dkprop pp) in 
+       let dkt1 = trexpr_dkprop h1 in 
+       let dkt2 = trexpr_dkprop h2 in 
+       let p_lam = app_to_lam pp h1 in 
+       let p_subst = apply p_lam h2 in 
+       let notequalt1t2 = enot (eeq h1 h2) in 
+       let prnotequalt1t2 = mk_pr_var notequalt1t2 in 
+       let prpt2 = mk_pr_var p_subst in 
+       let (sub, phyps_new) = 
+	 match phyps with 
+	 | hhyp :: tlhyps -> (trproof_dk hhyp, tlhyps)
+	 | _ -> assert false
+       in
+       let lam0 = mk_lam (prnotequalt1t2, sub) in 
+       let conc = get_pr_var pp in 
+       mk_DkRsubst (a, dkpp, dkt1, dkt2, lam0, 
+		    mk_lam (prpt2, 
+			    (mk_pnotp_subst p_subst tl1 tl2 phyps_new)),
+		    conc)
+    | _, _, _ -> assert false
 ;;
 
 let make_proof_term goal prooftree = 
