@@ -699,16 +699,6 @@ List.iter Typer.declare_constant
      let ty = newtvar type_type in
      eall (ty, earrow [eps ty; eps ty] bool1));
 
-    ("dk_tuple.prod", earrow [type_type; type_type] type_type);
-    ("pair", type_type);
-
-    ("@",
-     let dummy = tvar "__dummypairvar" type_type in
-     let a = tvar "_pairvarA" type_type in
-     let b = tvar "_pairvarB" type_type in
-     eall (dummy, eall (a, eall (b, earrow [eps a; eps b] (mk_prod a b)))));
-    ("$match", type_none);
-    ("$match-case", type_none)
   ]
 ;;
 
@@ -738,19 +728,6 @@ let built_in_defs () =
   let xy = Expr.newtvar (eps (prod tx ty)) in
   let case = eapp (evar "$match-case", [evar (pair_str); xy]) in
   [
-    Def (DefReal ("pair",
-                  "basics.pair",
-                  eall (tx, eall (ty, earrow [eps tx; eps ty] (eps (prod tx ty)))),
-                  [tx; ty; x; y],
-                  eapp (tvar pair_str (eall (tx, eall (ty, earrow [eps tx; eps ty] (eps (prod tx ty))))), [tx; ty; x; y]),
-                  None));
-
-    Def (DefReal ("fst", "basics.fst", type_none, [tx; ty; xy],
-                  eapp (evar "$match", [xy; elam (x, elam (y, case))]),
-                  None));
-    Def (DefReal ("snd", "basics.snd", type_none, [tx; ty; xy],
-                  eapp (evar "$match", [xy; elam (y, elam (x, case))]),
-                  None));
     Inductive (evar "basics.list__t", ["A"], [
                  (list_file ^ ".nil", []);
                  (list_file ^ ".cons", [Param "A"; Self]);

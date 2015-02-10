@@ -81,13 +81,27 @@ let mk_eapp : string * expr list -> expr =
 
   | "dk_tuple.pair", [t1; t2; e1; e2] ->
      let ty =
-       let dummy = tvar "__dummypairvar" type_type in
-       let a = tvar "_pairvarA" type_type in
-       let b = tvar "_pairvarB" type_type in
-       eall (dummy, eall (a, eall (b, earrow [eps a; eps b] (mk_prod a b))))
+       let a = newtvar type_type in
+       let b = newtvar type_type in
+       eall (a, eall (b, earrow [eps a; eps b] (mk_prod a b)))
      in
-     eapp (tvar "@" ty, [tvar "dk_tuple.pair" type_type;
-                         mk_type t1; mk_type t2; e1; e2])
+     eapp (tvar "dk_tuple.pair" ty, [mk_type t1; mk_type t2; e1; e2])
+
+  | "basics.fst", [t1; t2; e] ->
+     let ty =
+       let a = newtvar type_type in
+       let b = newtvar type_type in
+       eall (b, eall (a, earrow [mk_prod a b] (eps a)))
+     in
+     eapp (tvar "basics.fst" ty, [mk_type t1; mk_type t2; e])
+
+  | "basics.snd", [t1; t2; e] ->
+     let ty =
+       let a = newtvar type_type in
+       let b = newtvar type_type in
+       eall (b, eall (a, earrow [mk_prod a b] (eps b)))
+     in
+     eapp (tvar "basics.snd" ty, [mk_type t1; mk_type t2; e])
 
   | "dk_tuple.match__pair", [t1; t2; rt; x; pat; fail] ->
      let t1 = eps (mk_type t1) in
