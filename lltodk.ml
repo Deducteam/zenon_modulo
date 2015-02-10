@@ -611,7 +611,6 @@ let rec trproof_dk p =
      | _ -> assert false
 
   and mk_pnotp_subst pp argspp argsnqq phyps = 
-    Log.debug 9 " |- PnotP subst %a" Print.pp_expr pp;
     match pp, argspp, argsnqq with 
     | Eapp _, [], [] -> 
        assert (List.length phyps == 0);
@@ -621,8 +620,6 @@ let rec trproof_dk p =
        mk_DkRaxiom (dkp, concp, concnp)
     | Eapp _, h1 :: tl1, h2 :: tl2 ->
        let app_to_lam p e = 
-	 Log.debug 10 "   App to Lam %a %a" 
-		   Print.pp_expr p Print.pp_expr e;
 	 match p with 
 	 | Eapp (sym, args, _) -> 
 	    assert (List.mem e args);
@@ -637,17 +634,21 @@ let rec trproof_dk p =
 	    in
 	    let nargs = f [] args in 
 	    let np = eapp (sym, nargs) in
-	    Log.debug 3 "   after swap %a" Print.pp_expr np;
 	    elam (v, np)
 	 | _ -> assert false
        in
        assert (Expr.equal (get_type h1) (get_type h2));
        let a = trexpr_dktype_aux (get_type h1) in
-       let dkh1 = trexpr_dktype h1 in 
-       let dkpp = mk_lam (dkh1, trexpr_dkprop pp) in 
+       let p_lam = app_to_lam pp h1 in 
+       let (dkvv, dkpp) = 
+	 match p_lam with 
+	 | Elam (v, np, _) -> 
+	    (trexpr_dkvartype v, trexpr_dkprop np)
+	 | _ -> assert false
+       in
+       let dkpp = mk_lam (dkvv, dkpp) in 
        let dkt1 = trexpr_dkprop h1 in 
        let dkt2 = trexpr_dkprop h2 in 
-       let p_lam = app_to_lam pp h1 in 
        let p_subst = apply p_lam h2 in 
        let notequalt1t2 = enot (eeq h1 h2) in 
        let prnotequalt1t2 = mk_pr_var notequalt1t2 in 
