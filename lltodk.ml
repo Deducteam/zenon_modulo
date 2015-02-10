@@ -37,10 +37,6 @@ let mk_zterm =
 
 let predefined_sym = 
   [("Z", ("Z", mk_type));
-   ("0", ("0", mk_arrow ([mk_zterm])));
-   ("1", ("1", mk_arrow ([mk_zterm])));
-   ("255", ("255", mk_arrow ([mk_zterm])));
-   ("2147483647", ("2147483647", mk_arrow ([mk_zterm])));
    ("$less", ("less", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
    ("$lesseq", ("lesseq", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
    ("$greater", ("greater", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
@@ -699,11 +695,66 @@ let mk_prf_var_def phrases =
   mk_prf_var_def_aux [] phrases
 ;;
 
+let rec get_sigs_fm accu fm sigs predef = 
+  match fm with 
+  | Evar (v, _) -> accu
+  | Emeta _ -> assert false
+  | Eapp (Evar ("=", _), args, _) -> 
+     List.fold_left (fun x y -> get_sigs_fm x y sigs predef) accu args
+  | Eapp (Evar (v, _) as v', args, _) -> 
+     if (List.mem_assoc v sigs) 
+	|| (List.mem_assoc v predef) 
+	|| (List.mem_assoc v accu) 
+     then 
+       List.fold_left (fun x y -> get_sigs_fm x y sigs predef) accu args
+     else
+	 let accu = (v, get_type v') :: accu in 
+	 List.fold_left (fun x y -> get_sigs_fm x y sigs predef) accu args
+  | Earrow _ -> assert false
+  | Enot (e, _) -> get_sigs_fm accu e sigs predef
+  | Eand (e1, e2, _) 
+  | Eor (e1, e2, _) 
+  | Eimply (e1, e2, _) 
+  | Eequiv (e1, e2, _) -> 
+     List.fold_left (fun x y -> get_sigs_fm x y sigs predef) accu [e1; e2]
+  | Etrue 
+  | Efalse -> 
+     accu
+  | Eall (_, p, _) 
+  | Eex (_, p, _) 
+  | Elam (_, p, _) -> 
+     get_sigs_fm accu p sigs predef 
+  | Etau _ -> accu
+  | _ -> assert false
+;;
+
+let rec get_sigs_aux accu phrases sigs predef = 
+  match phrases with 
+  | [] -> accu
+  | Phrase.Hyp (_, fm, _) :: tl -> 
+     let accu = get_sigs_fm accu fm sigs predef in 
+     get_sigs_aux accu tl sigs predef
+  | Phrase.Rew (_, fm, _) :: tl -> 
+     let accu = get_sigs_fm accu fm sigs predef in 
+     get_sigs_aux accu tl sigs predef
+  | Phrase.Def (DefReal (_, _, _, _, body, _)) :: tl -> 
+     let accu = get_sigs_fm accu body sigs predef in 
+     get_sigs_aux accu tl sigs predef
+  | _ :: tl -> 
+     get_sigs_aux accu tl sigs predef
+;;
+
+let get_sigs phrases sigs predef = 
+  get_sigs_aux [] phrases sigs predef
+;;
+
 let output oc phrases llp =
   let predefsigs = 
     List.map (fun (x, (y, z)) -> mk_decl (y, z)) predefined_sym
   in
   let sigs = Expr.get_defs () in
+  let sigs_2 = get_sigs phrases sigs predefined_sym in
+  let sigs = List.append sigs sigs_2 in 
   let dksigs = translate_sigs sigs in
   let dksigs = List.map (fun (x,y) -> mk_decl (x, y)) dksigs in
   let dkallsigs = List.append dksigs predefsigs in 
