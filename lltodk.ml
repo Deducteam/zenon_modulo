@@ -365,8 +365,6 @@ let rec trproof_dk p =
      rule = prule;
      hyps = phyps;} 
     -> 
-     Log.debug 8 " |- Proof step %a" Print.pr_llrule prule;
-     List.iter (fun x -> Log.debug 9 "   > conc : %a" Print.pp_expr x) pconc;
      match prule with 
      | Rfalse -> 
 	let conc = get_pr_var efalse in 
