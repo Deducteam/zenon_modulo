@@ -122,9 +122,21 @@ let remove_formula e = ();;
 let preprocess l = l;;
 let add_phrase x = ();;
 let postprocess l = l;;
+
+let to_llarg tr_expr = function
+  | Ext ("pair", "reduce", []) ->
+     ("pair_reduce", [], [], [ [] ])
+  | _ -> assert false
+;;
+
 let to_llproof tr_expr mlp args =
-  match args with
-  | [| sub |] -> sub
+  match mlp.mlconc, args with
+  | [conc], [| (sub, _) |] ->
+     ({
+       Llproof.conc = [tr_expr conc];
+       Llproof.rule = Llproof.Rextension ("", "pair_reduce", [], [], [[]]);
+       Llproof.hyps = [sub];
+     }, [])
   | _ -> assert false
 ;;
 
