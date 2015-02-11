@@ -415,6 +415,7 @@ let rec rmcongruence s x e a b =
     assert false
 
 let xlltolkrule distincts rule hyps gamma =
+  assert (List.for_all (fun (_, conc, _) -> Expr.equal efalse conc) hyps);
   match rule, hyps with
   | Rfalse, [] ->
     scfalse (gamma, efalse)
@@ -637,6 +638,7 @@ let xlltolkrule distincts rule hyps gamma =
     [c1; c2], [[h]]), [proof] ->
     deduce_inequality e1 e2 v1 v2 c1 c2 false false gamma proof distincts
   | Rextension (ext, name, args, cons, hyps), proofs ->
+     assert (List.length proofs = List.length hyps);
      scext(ext, name, args, cons, hyps, proofs)
 
   | Rlemma _, _ -> assert false (* no lemma after use_defs *)
