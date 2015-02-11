@@ -461,8 +461,9 @@ let rec llproof_expr o e =
       pro "Ex %a, " print_vartype (v, get_type v); llproof_expr o p;
   | Elam (v, p, _) ->
       pro "(lambda %a, " print_vartype (v, get_type v); llproof_expr o p; pro ")";
-  | Etau (v, p, _) ->
-      pro "(tau %a, " print_vartype (v, get_type v); llproof_expr o p; pro ")";
+(*  | Etau (v, p, _) ->
+      pro "(tau %a, " print_vartype (v, get_type v); llproof_expr o p; pro ")"; *)
+  | Etau _ as e -> pro "Tau_%d" (Index.get_number e);
   | Eapp (Evar(s,_), [e1; e2], _) when is_infix_op s ->
      pro "("; llproof_expr o e1; pro " %s " (to_infix s); llproof_expr o e2; pro ")";
   | Eapp (s, [], _) -> pro "%s" (get_name s);
@@ -587,6 +588,9 @@ let rec llproof_tree o i t =
   indent o i; llproof_rule o t.rule; pr "\n";
   List.iter (llproof_tree o (i+1)) t.hyps;
   incr nodes;
+;;
+
+let llproof_rule_db b r = llproof_rule (Buff b) r
 ;;
 
 let print_idtype o (ty, act) =
