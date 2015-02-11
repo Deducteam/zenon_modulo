@@ -118,6 +118,8 @@ let print_var out var = fprintf out "%s" var
 
 let rec print_term out term =
   match term with
+  | Dkvar ("true") -> print_var out "dk_bool.true"
+  | Dkvar ("false") -> print_var out "dk_bool.false"
   | Dkvar (var) -> print_var out var
   | Dklam (var, t, term) ->
     fprintf out "%a: %a =>\n %a"
