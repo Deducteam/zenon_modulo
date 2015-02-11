@@ -124,20 +124,23 @@ let add_phrase x = ();;
 let postprocess l = l;;
 
 let to_llproof tr_expr mlp args =
-  match mlp.mlconc, mlp.mlrule, args with
-  | [conc], Ext ("pair", "reduce", [e1; e2]), [| (sub, _) |] ->
-     assert (Expr.equal conc e1);
+  let concs = List.map tr_expr mlp.mlconc in
+  let subs = List.map (fun (sub, _) -> sub) (Array.to_list args) in
+  match mlp.mlrule with
+  | Ext ("pair", "reduce", [e1; e2]) ->
      let e1' = tr_expr e1 in
      let e2' = tr_expr e2 in
      let c' = e1' in
      let h' = e2' in
-     let conc' = tr_expr conc in
      ({
-       Llproof.conc = [conc'];
+       Llproof.conc = concs;
        Llproof.rule = Llproof.Rextension ("", "pair_reduce", [e1'; e2'], [c'], [[h']]);
-       Llproof.hyps = [sub];
+       Llproof.hyps = subs;
      }, [])
-  | _ -> assert false
+  | _ ->
+     Printf.eprintf "Unexpected Mlproof: %a"
+                    (fun out -> Print.mlproof (Print.Chan out)) mlp;
+     assert false
 ;;
 
 let declare_context_coq oc = ();;
