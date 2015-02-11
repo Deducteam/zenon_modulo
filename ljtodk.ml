@@ -232,6 +232,13 @@ struct
          | _ -> assert false;
        in
        itereq ([], ts, us)
+    (* Conversion *)
+    | Lkproof.SCext ("", "pair_reduce", [e1; e2], [conc], [[hyp]], [proof]) ->
+       Log.debug 10 "LJ->DK: Conversion from %a to %a"
+                 Print.pp_expr e1
+                 Print.pp_expr e2;
+       let hyp = trhyp e1 in
+       trproof (proof, goal, (e2, hyp) :: gamma)
     | Lkproof.SCext (ext, name, args, [conc], [[hyp]], [proof]) ->
        let ext = if ext = "" then "focal" else ext in
        assert (goal = efalse);
