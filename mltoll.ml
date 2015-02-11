@@ -849,30 +849,37 @@ let mk_tuple l =
 ;;
 
 let rec to_llproof p =
-  if p.mlrefc < 0 then
+  if (p.mlrefc < 0)
+     && not !Globals.output_dk then
     get_lemma p
-  else begin
-    let (result, extras) =
-      if is_derived p.mlrule
-      then translate_derived p
-      else
-        let (subproofs, subextras) = get_sub (Array.to_list p.mlhyps) in
-        let extras = diff subextras p.mlconc in
-        let nn = {
-          LL.conc = List.map tr_expr (extras @@ p.mlconc);
-          LL.rule = tr_rule p.mlrule;
-          LL.hyps = subproofs;
-        } in
-        (nn, extras)
-    in
-    if p.mlrefc > 1 then begin
-      make_lemma result extras p;
-      get_lemma p
-    end else begin
-      (result, extras)
+  else 
+    begin
+      let (result, extras) =
+	if is_derived p.mlrule
+	then translate_derived p
+	else
+          let (subproofs, subextras) = get_sub (Array.to_list p.mlhyps) in
+          let extras = diff subextras p.mlconc in
+          let nn = {
+            LL.conc = List.map tr_expr (extras @@ p.mlconc);
+            LL.rule = tr_rule p.mlrule;
+            LL.hyps = subproofs;
+          } in
+          (nn, extras)
+      in
+      if (p.mlrefc > 1) 
+	 && not !Globals.output_dk 
+      then 
+	begin
+	  make_lemma result extras p;
+	  get_lemma p
+	end 
+      else 
+	begin
+	  (result, extras)
+	end
     end
-  end
-
+      
 and get_sub l =
   match l with
   | [] -> ([], [])

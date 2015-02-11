@@ -151,7 +151,9 @@ let argspec = [
         "              print the proof in Coq script format (force -rename)";
   "-ocoqterm", Arg.Unit (fun () -> proof_level := Proof_coqterm),
             "          print the proof in Coq term format";
-  "-odk", Arg.Unit (fun () -> namespace_flag := true; proof_level := Proof_dk),
+  "-odk", Arg.Unit (fun () -> namespace_flag := true; 
+			      proof_level := Proof_dk;
+			      Globals.output_dk := true),
         "              print the proof in Dk script format (force -rename)";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
       "<n>             print the proof in high-level format up to depth <n>";
