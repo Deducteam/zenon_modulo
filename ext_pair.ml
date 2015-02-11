@@ -94,7 +94,7 @@ let newnodes_reduce e g =
   let mk_node e2 =
     [Node {
          nconc = [e];
-         nrule = Ext ("pair", "reduce", []);
+         nrule = Ext ("pair", "reduce", [e; e2]);
          nprio = Inst e;
          ngoal = g;
          nbranches = [| [e2] |];
@@ -110,7 +110,7 @@ let newnodes_reduce e g =
     end
   else
     begin
-      Log.debug 1 "Term %a is not reducible"
+      Log.debug 10 "Term %a is not reducible"
                 Print.pp_expr e;
       []
     end
@@ -123,18 +123,18 @@ let preprocess l = l;;
 let add_phrase x = ();;
 let postprocess l = l;;
 
-let to_llarg tr_expr = function
-  | Ext ("pair", "reduce", []) ->
-     ("pair_reduce", [], [], [ [] ])
-  | _ -> assert false
-;;
-
 let to_llproof tr_expr mlp args =
-  match mlp.mlconc, args with
-  | [conc], [| (sub, _) |] ->
+  match mlp.mlconc, mlp.mlrule, args with
+  | [conc], Ext ("pair", "reduce", [e1; e2]), [| (sub, _) |] ->
+     assert (Expr.equal conc e1);
+     let e1' = tr_expr e1 in
+     let e2' = tr_expr e2 in
+     let c' = e1' in
+     let h' = e2' in
+     let conc' = tr_expr conc in
      ({
-       Llproof.conc = [tr_expr conc];
-       Llproof.rule = Llproof.Rextension ("", "pair_reduce", [], [], [[]]);
+       Llproof.conc = [conc'];
+       Llproof.rule = Llproof.Rextension ("", "pair_reduce", [e1'; e2'], [c'], [[h']]);
        Llproof.hyps = [sub];
      }, [])
   | _ -> assert false
