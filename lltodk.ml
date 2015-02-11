@@ -18,12 +18,12 @@ exception No_proof of string
 ;;
 
 let add_context e dke = 
-  Log.debug 7 " |- Add context %a" Print.pp_expr e;
+  Log.debug 4 " |- Add context %a" Print.pp_expr e;
   Hashtbl.add !context e dke
 ;;
 
 let get_context e = 
-  Log.debug 8 " |- Get context %a" Print.pp_expr e;
+  Log.debug 4 " |- Get context %a" Print.pp_expr e;
   try
     Hashtbl.find !context e
   with Not_found -> 
@@ -360,6 +360,8 @@ let get_pr_var e =
 ;;
 
 let rec trproof_dk p = 
+  Log.debug 5 " |- Translate Proof Step";
+  Log.debug 5 "    > %a" Print.llproof_rule_db p.rule;
   match p with 
   | {conc = pconc; 
      rule = prule;
@@ -495,7 +497,7 @@ let rec trproof_dk p =
 	if (is_binder_of_type_var exp) then
 	  let dkp = trexpr_quant_to_dklam exp in
 	  let zz = etau (vx, px) in
-	  let dkzz = trexpr_dktype zz in 
+	  let dkzz = trexpr_dkprop zz in 
 	  let pzz = substitute [(vx, zz)] px in 
 	  let prpzz = mk_pr_var pzz in 
 	  let sub = trproof_dk (List.nth phyps 0) in 
@@ -506,7 +508,7 @@ let rec trproof_dk p =
 	  let dkp = trexpr_quant_to_dklam exp in
 	  let a = trexpr_dktype_aux (get_type_binder exp) in
 	  let zz = etau (vx, px) in
-	  let dkzz = trexpr_dktype zz in 
+	  let dkzz = trexpr_dkprop zz in 
 	  let pzz = substitute [(vx, zz)] px in 
 	  let prpzz = mk_pr_var pzz in 
 	  let sub = trproof_dk (List.nth phyps 0) in 
@@ -516,7 +518,7 @@ let rec trproof_dk p =
      | Rall (Eall (Evar (x, _) as vx, px, _) as allp, t) -> 
 	if (is_binder_of_type_var allp) then
 	  let dkp = trexpr_quant_to_dklam allp in
-	  let dkt = trexpr_dktype t in 
+	  let dkt = trexpr_dkprop t in 
 	  let pt = substitute [(vx, t)] px in 
 	  let prpt = mk_pr_var pt in 
 	  let sub = trproof_dk (List.nth phyps 0) in 
@@ -526,7 +528,7 @@ let rec trproof_dk p =
 	else
 	  let a = trexpr_dktype_aux (get_type_binder allp) in
 	  let dkp = trexpr_quant_to_dklam allp in
-	  let dkt = trexpr_dktype t in 
+	  let dkt = trexpr_dkprop t in 
 	  let pt = substitute [(vx, t)] px in 
 	  let prpt = mk_pr_var pt in 
 	  let sub = trproof_dk (List.nth phyps 0) in
@@ -536,7 +538,7 @@ let rec trproof_dk p =
      | Rnotex (Eex (Evar (x, _) as vx, px, _) as exp, t) -> 
 	if (is_binder_of_type_var exp) then
 	  let dkp = trexpr_quant_to_dklam exp in
-	  let dkt = trexpr_dktype t in 
+	  let dkt = trexpr_dkprop t in 
 	  let pt = enot (substitute [(vx, t)] px) in 
 	  let prpt = mk_pr_var pt in 
 	  let sub = trproof_dk (List.nth phyps 0) in 
@@ -546,7 +548,7 @@ let rec trproof_dk p =
 	else
 	  let a = trexpr_dktype_aux (get_type_binder exp) in
 	  let dkp = trexpr_quant_to_dklam exp in
-	  let dkt = trexpr_dktype t in 
+	  let dkt = trexpr_dkprop t in 
 	  let pt = enot (substitute [(vx, t)] px) in 
 	  let prpt = mk_pr_var pt in 
 	  let sub = trproof_dk (List.nth phyps 0) in
@@ -557,7 +559,7 @@ let rec trproof_dk p =
 	if (is_binder_of_type_var allp) then
 	  let dkp = trexpr_quant_to_dklam allp in
 	  let zz = etau (vx, enot (px)) in
-	  let dkzz = trexpr_dktype zz in 
+	  let dkzz = trexpr_dkprop zz in 
 	  let pzz = substitute [(vx, zz)] px in 
 	  let prpzz = mk_pr_var (enot pzz) in 
 	  let sub = trproof_dk (List.nth phyps 0) in 
@@ -568,7 +570,7 @@ let rec trproof_dk p =
 	  let dkp = trexpr_quant_to_dklam allp in
 	  let a = trexpr_dktype_aux (get_type_binder allp) in
 	  let zz = etau (vx, enot (px)) in
-	  let dkzz = trexpr_dktype zz in 
+	  let dkzz = trexpr_dkprop zz in 
 	  let pzz = substitute [(vx, zz)] px in 
 	  let prpzz = mk_pr_var (enot pzz) in 
 	  let sub = trproof_dk (List.nth phyps 0) in 
@@ -582,6 +584,13 @@ let rec trproof_dk p =
 	let (_, argspp) = Expr.split_list (Expr.nb_tvar pp) args1 in 
 	let (_, argsnqq) = Expr.split_list (Expr.nb_tvar qq) args2 in 
 	mk_pnotp_subst pp argspp argsnqq phyps 
+     | Rnotequal ((Eapp (Evar (f, _), args1, _) as ff), 
+		  (Eapp (Evar (g, _), args2, _) as gg)) -> 
+	assert (f == g); 
+	assert (List.length args1 == List.length args2);
+	let (_, argsff) = Expr.split_list (Expr.nb_tvar ff) args1 in 
+	let (_, argsgg) = Expr.split_list (Expr.nb_tvar gg) args2 in 
+	mk_notequal_subst ff gg argsff argsgg phyps
      | Rextension (_, "zenon_notallex", _, _, _) -> 
 	assert false
      | RcongruenceLR (p, t1, t2) -> 
@@ -660,7 +669,63 @@ let rec trproof_dk p =
        let conc = get_pr_var pp in 
        mk_DkRsubst (a, dkpp, dkt1, dkt2, lam0, 
 		    mk_lam (prpt2, 
-			    (mk_pnotp_subst p_subst tl1 tl2 phyps_new)),
+			    mk_pnotp_subst p_subst tl1 tl2 phyps_new),
+		    conc)
+    | _, _, _ -> assert false
+
+  and mk_notequal_subst ff gg argsff argsgg phyps = 
+    match ff, argsff, argsgg with 
+    | Eapp _, [], [] -> 
+       assert (List.length phyps == 0);
+       assert (Expr.equal ff gg);
+       let a = trexpr_dktype_aux (get_type ff) in 
+       let dkff = trexpr_dkprop ff in 
+       let conc = get_pr_var (enot (eeq ff gg)) in 
+       mk_DkRnoteq (a, dkff, conc)
+    | Eapp _, h1 :: tl1, h2 :: tl2 -> 
+       let app_to_lam p e = 
+	 match p with 
+	 | Eapp (sym, args, _) -> 
+	    assert (List.mem e args);
+	    let v = tvar (newname()) (get_type e) in 
+	    let rec f accu l = 
+	      match l with 
+	      | [] -> assert false
+	      | h :: tl -> 
+		 if (Expr.equal h e) then 
+		   List.append (List.rev accu) (v :: tl)
+		 else f (h :: accu) tl
+	    in
+	    let nargs = f [] args in 
+	    let np = eapp (sym, nargs) in
+	    elam (v, np)
+	 | _ -> assert false
+       in
+       assert (Expr.equal (get_type h1) (get_type h2));
+       let a = trexpr_dktype_aux (get_type h1) in
+       let ff_lam = app_to_lam ff h1 in 
+       let ff_subst = apply ff_lam h2 in 
+       let (dkvv, dkp) = 
+	 match ff_lam with 
+	 | Elam (v, nf, _) -> 
+	    (trexpr_dkvartype v, trexpr_dkprop (enot (eeq nf gg)))
+	 | _ -> assert false
+       in
+       let dkp = mk_lam (dkvv, dkp) in 
+       let dkt1 = trexpr_dkprop h1 in 
+       let dkt2 = trexpr_dkprop h2 in 
+       let prneqt1t2 = mk_pr_var (enot (eeq h1 h2)) in 
+       let prpt2 = mk_pr_var (enot (eeq ff_subst gg)) in 
+       let (sub, phyps_new) = 
+	 match phyps with 
+	 | hhyp :: tlhyps -> (trproof_dk hhyp, tlhyps)
+	 | _ -> assert false
+       in
+       let lam0 = mk_lam (prneqt1t2, sub) in 
+       let conc = get_pr_var (enot (eeq ff gg)) in 
+       mk_DkRsubst (a, dkp, dkt1, dkt2, lam0, 
+		    mk_lam (prpt2, 
+			    mk_notequal_subst ff_subst gg tl1 tl2 phyps_new),
 		    conc)
     | _, _, _ -> assert false
 ;;
