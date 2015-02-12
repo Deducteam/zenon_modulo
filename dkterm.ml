@@ -120,6 +120,7 @@ let rec print_term out term =
   match term with
   | Dkvar ("true") -> print_var out "dk_bool.true"
   | Dkvar ("false") -> print_var out "dk_bool.false"
+  | Dkvar ("FOCAL.ifthenelse") -> print_var out "dk_bool.ite"
   | Dkvar (var) -> print_var out var
   | Dklam (var, t, term) ->
     fprintf out "%a: %a =>\n %a"

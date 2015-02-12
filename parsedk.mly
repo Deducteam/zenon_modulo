@@ -125,6 +125,10 @@ let mk_eapp : string * expr list -> expr =
   | "dk_logic.exists", [_; Elam (x, e, _)] -> eex (x, e)
   | "dk_logic.ebP", [e1] -> eapp (tvar "Is_true" (arr bool1 type_prop), [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
   | "dk_logic.eP", [e] -> e                        (* eP is ignored *)
+  | "dk_bool.ite", [ty1; c; t; e] ->
+     let v = newtvar type_type in
+     let ty = eall (v, earrow [bool1; eps v; eps v] (eps v)) in
+     eapp (tvar "FOCAL.ifthenelse" ty, [mk_type ty1; c; t; e])
   (* There should not be any other logical connectives *)
   | s, args ->
      if (startwith "dk_" s)

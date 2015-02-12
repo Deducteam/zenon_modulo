@@ -394,7 +394,7 @@ let ite_branches pat cond thn els =
 
 let newnodes_ifthenelse e g =
   match e with
-  | Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [cond; thn; els], _) ->
+  | Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [_; cond; thn; els], _) ->
       let branches = ite_branches istrue cond thn els in
       [ Node {
           nconc = [e];
@@ -403,7 +403,7 @@ let newnodes_ifthenelse e g =
           ngoal = g;
           nbranches = branches;
       }; Stop ]
-  | Enot (Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [cond; thn; els], _), _) ->
+  | Enot (Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [_; cond; thn; els], _), _) ->
       let branches = ite_branches isfalse cond thn els in
       [ Node {
           nconc = [e];
@@ -412,7 +412,7 @@ let newnodes_ifthenelse e g =
           ngoal = g;
           nbranches = branches;
       }; Stop ]
-  | Eapp (r, [Eapp (Evar("FOCAL.ifthenelse",_), [cond; thn; els], _); e2], _)
+  | Eapp (r, [Eapp (Evar("FOCAL.ifthenelse",_), [_; cond; thn; els], _); e2], _)
     when Eqrel.any r ->
       let pat x = eapp (r, [x; e2]) in
       let branches = ite_branches pat cond thn els in
@@ -423,7 +423,7 @@ let newnodes_ifthenelse e g =
           ngoal = g;
           nbranches = branches;
       }; Stop ]
-  | Eapp (r, [e1; Eapp (Evar("FOCAL.ifthenelse",_), [cond; thn; els], _)], _)
+  | Eapp (r, [e1; Eapp (Evar("FOCAL.ifthenelse",_), [_; cond; thn; els], _)], _)
     when Eqrel.any r ->
       let pat x = eapp (r, [e1; x]) in
       let branches = ite_branches pat cond thn els in
@@ -434,7 +434,7 @@ let newnodes_ifthenelse e g =
           ngoal = g;
           nbranches = branches;
       }; Stop ]
-  | Enot (Eapp (r, [Eapp (Evar("FOCAL.ifthenelse",_), [cond; thn; els], _); e2], _),_)
+  | Enot (Eapp (r, [Eapp (Evar("FOCAL.ifthenelse",_), [_; cond; thn; els], _); e2], _),_)
     when Eqrel.any r ->
       let pat x = enot (eapp (r, [x; e2])) in
       let branches = ite_branches pat cond thn els in
@@ -445,7 +445,7 @@ let newnodes_ifthenelse e g =
           ngoal = g;
           nbranches = branches;
       }; Stop ]
-  | Enot (Eapp (r, [e1; Eapp (Evar("FOCAL.ifthenelse",_), [cond; thn; els], _)], _),_)
+  | Enot (Eapp (r, [e1; Eapp (Evar("FOCAL.ifthenelse",_), [_; cond; thn; els], _)], _),_)
     when Eqrel.any r ->
       let pat x = enot (eapp (r, [e1; x])) in
       let branches = ite_branches pat cond thn els in
@@ -556,7 +556,7 @@ let to_llargs tr_expr r =
       let he2 = tr_expr (istrue els) in
       let ty1 = get_type thn in
       let ty2 = earrow [bool1; ty1; ty1] ty1 in
-      let c = tr_expr (istrue (eapp (tvar "FOCAL.ifthenelse" ty2, [cond; thn; els])))
+      let c = tr_expr (istrue (eapp (tvar "FOCAL.ifthenelse" ty2, [ty1; cond; thn; els])))
       in
       ("zenon_focal_ite_bool", List.map tr_expr args, [c],
        [ [ht1; ht2]; [he1; he2] ])
@@ -567,12 +567,12 @@ let to_llargs tr_expr r =
       let he2 = tr_expr (isfalse els) in
       let ty1 = get_type thn in
       let ty2 = earrow [bool1; ty1; ty1] ty1 in
-      let c = tr_expr (isfalse (eapp (tvar "FOCAL.ifthenelse" ty2, [cond; thn; els])))
+      let c = tr_expr (isfalse (eapp (tvar "FOCAL.ifthenelse" ty2, [ty1; cond; thn; els])))
       in
       ("zenon_focal_ite_bool_n", List.map tr_expr args, [c],
        [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "ite_rel_l",
-         [Eapp (r, [Eapp (Evar("FOCAL.ifthenelse",_), [c; t; e], _); e2], _) as a])
+         [Eapp (r, [Eapp (Evar("FOCAL.ifthenelse",_), [_; c; t; e], _); e2], _) as a])
     ->
       let ht1 = tr_expr (istrue c) in
       let ht2 = tr_expr (eapp (r, [t; e2])) in
@@ -584,7 +584,7 @@ let to_llargs tr_expr r =
       ("zenon_focal_ite_rel_l", List.map tr_expr [rf; c; t; e; e2],
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "ite_rel_r",
-         [Eapp (r, [e1; Eapp (Evar("FOCAL.ifthenelse",_), [c; t; e], _)], _) as a])
+         [Eapp (r, [e1; Eapp (Evar("FOCAL.ifthenelse",_), [_; c; t; e], _)], _) as a])
     ->
       let ht1 = tr_expr (istrue c) in
       let ht2 = tr_expr (eapp (r, [e1; t])) in
@@ -597,7 +597,7 @@ let to_llargs tr_expr r =
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "ite_rel_nl",
          [Enot (Eapp (r, [Eapp (Evar("FOCAL.ifthenelse",_),
-                                [c; t; e], _); e2], _), _) as a])
+                                [_; c; t; e], _); e2], _), _) as a])
     ->
       let ht1 = tr_expr (istrue c) in
       let ht2 = tr_expr (enot (eapp (r, [t; e2]))) in
@@ -610,7 +610,7 @@ let to_llargs tr_expr r =
        [concl], [ [ht1; ht2]; [he1; he2] ])
   | Ext (_, "ite_rel_nr",
          [Enot (Eapp (r, [e1; Eapp (Evar("FOCAL.ifthenelse",_),
-                                    [c; t; e], _)], _), _) as a])
+                                    [_; c; t; e], _)], _), _) as a])
     ->
       let ht1 = tr_expr (istrue c) in
       let ht2 = tr_expr (enot (eapp (r, [e1; t]))) in
@@ -694,6 +694,10 @@ List.iter Typer.declare_constant
     ("basics._amper__amper_", bool3);
     ("basics._bar__bar_", bool3);
     ("basics._bar__lt__gt__bar_", bool3);
+
+    ("FOCAL.ifthenelse",
+     let ty = newtvar type_type in
+     eall (ty, earrow [bool1; eps ty; eps ty] (eps ty)));
 
     ("basics.syntactic_equal",
      let ty = newtvar type_type in
