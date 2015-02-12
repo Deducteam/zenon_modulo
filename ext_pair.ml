@@ -50,8 +50,15 @@ List.iter Typer.declare_constant
   ]
 ;;
 
+let has_real_def s =
+  Index.has_def s &&
+    match Index.get_def s with
+    | (DefReal _, _, _, _) -> true
+    | _ -> false
+;;
 
 (* Reduce applications of projections to concrete pairs *)
+(* Also unfold real definitions *)
 let rec reduce = function
   | Emeta _
   | Etau _
@@ -70,7 +77,7 @@ let rec reduce = function
   | Elam (v, a, _) -> elam (v, reduce a)
 
   (* Unfold defined constants *)
-  | Eapp (Evar (v, _), l, _) when Index.has_def v ->
+  | Eapp (Evar (v, _), l, _) when has_real_def v ->
      let (_, _, params, body) = Index.get_def v in
      let subst = List.map2 (fun x y -> (x,y)) params (List.map reduce l) in
      let unfolded = substitute_unsafe subst body in
