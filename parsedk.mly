@@ -123,7 +123,7 @@ let mk_eapp : string * expr list -> expr =
   | "dk_logic.forall", [_; _] -> assert false
   | "dk_logic.forall", l -> raise (Bad_arity ("forall", List.length l))
   | "dk_logic.exists", [_; Elam (x, e, _)] -> eex (x, e)
-  | "dk_logic.ebP", [e1] -> eapp (tvar "Is_true" (arr bool1 type_type), [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
+  | "dk_logic.ebP", [e1] -> eapp (tvar "Is_true" (arr bool1 type_prop), [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
   | "dk_logic.eP", [e] -> e                        (* eP is ignored *)
   (* There should not be any other logical connectives *)
   | s, args ->
