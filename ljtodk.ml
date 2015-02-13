@@ -239,6 +239,12 @@ struct
                  Print.pp_expr e2;
        let hyp = trhyp e1 in
        trproof (proof, goal, (e2, hyp) :: gamma)
+    | Lkproof.SCext (ext, name, args, [conc], [], []) ->
+       let ext = if ext = "" then "focal" else ext in
+       assert (goal = efalse);
+       Dk.mk_app
+         (Dk.mk_var (ext ^ "." ^ name))
+         (List.map trexpr args)
     | Lkproof.SCext (ext, name, args, [conc], [[hyp]], [proof]) ->
        let ext = if ext = "" then "focal" else ext in
        assert (goal = efalse);
@@ -252,12 +258,32 @@ struct
                         (Dk.mk_prf (trexpr hyp))
                         (trproof (proof, efalse, (hyp, dkvar) :: gamma)) ; trhyp conc]
          )
-    | Lkproof.SCext (ext, name, args, [conc], [], []) ->
+    | Lkproof.SCext (ext, name, args, [conc], [[hyp11; hyp12]; [hyp21; hyp22]], [proof1; proof2]) ->
        let ext = if ext = "" then "focal" else ext in
        assert (goal = efalse);
+       (* Create a fresh variable for hypothesis *)
+       let var1 = new_hypo () in
+       let var2 = new_hypo () in
+       let var3 = new_hypo () in
+       let var4 = new_hypo () in
+       let dkvar1 = Dk.mk_var var1 in
+       let dkvar2 = Dk.mk_var var2 in
+       let dkvar3 = Dk.mk_var var3 in
+       let dkvar4 = Dk.mk_var var4 in
        Dk.mk_app
          (Dk.mk_var (ext ^ "." ^ name))
-         (List.map trexpr args)
+         (List.map trexpr args @ [
+             Dk.mk_lam dkvar1
+                        (Dk.mk_prf (trexpr hyp11))
+                        (Dk.mk_lam dkvar2
+                           (Dk.mk_prf (trexpr hyp12))
+                           (trproof (proof1, efalse, (hyp11, dkvar1) :: (hyp12, dkvar2) :: gamma))) ; trhyp conc;
+             Dk.mk_lam dkvar3
+                        (Dk.mk_prf (trexpr hyp21))
+                        (Dk.mk_lam dkvar4
+                           (Dk.mk_prf (trexpr hyp22))
+                           (trproof (proof2, efalse, (hyp21, dkvar3) :: (hyp22, dkvar4) :: gamma))) ; trhyp conc]
+         )
     | Lkproof.SCext (ext, name, _, _, _, _) ->
        failwith ("Don't know how to translate extension rule " ^ ext ^ "." ^ name)
     | _ -> assert false
