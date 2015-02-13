@@ -185,10 +185,11 @@ let rec get_params e =
 
 %token MUSTUSE
 %token BEGINPROOF
-%token TYPEALIAS
+%token BEGIN_TYPEALIAS
 %token BEGIN_TY
 %token BEGIN_VAR
 %token BEGIN_HYP
+%token END_TYPEALIAS
 %token END_VAR
 %token END_HYP
 %token <string> BEGINNAME
@@ -228,8 +229,8 @@ proofheaders:
       { $2 }
   | BEGIN_TY ID proofheaders
       { $3 }
-  | TYPEALIAS ID DEF typ proofheaders
-      { ty_aliases := ($2, $4) :: !ty_aliases; $5 }
+  | BEGIN_TYPEALIAS ID DEF typ END_TYPEALIAS proofheaders
+      { ty_aliases := ($2, $4) :: !ty_aliases; $6 }
   | BEGIN_VAR ID COLON typ END_VAR proofheaders
               { (Phrase.Def (DefReal ("Typing declaration",
                                       $2,
