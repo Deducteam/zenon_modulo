@@ -238,7 +238,7 @@ proofheaders:
                                       [],
                                       etrue, None)), true)
                 :: $6 }
-  | BEGIN_HYP ID COLON STRING END_HYP proofheaders
+  | BEGIN_HYP ID COLON term END_HYP proofheaders
       { $6 }
 
 qid:
