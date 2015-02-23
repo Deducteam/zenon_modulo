@@ -23,9 +23,6 @@ existstype : (type -> prop) -> prop.
 equal  : a : type -> term a -> term a -> prop.
 seq : Type.
 
-(;[p : prop] 
-    not (not p) --> p.;)
-
 (; LLproof deduction rules ;)
 
 Rfalse         : proof False -> seq.

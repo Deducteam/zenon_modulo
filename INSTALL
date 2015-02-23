@@ -6,8 +6,9 @@ Licence: New BSD Licence (see the file LICENSE for details)
 
 
 Prerequisites:
-  - OCaml 3.08.x or 3.09.x (with ocamlopt)
+  - OCaml 4.02.1 (with ocamlopt)
   - Coq 8.0.x
+  - Dedukti 2.3
   - ImageMagick (optional)
   - Ghostscript (optional)
 
@@ -17,7 +18,7 @@ Compile and install with:
   make
   make install
 
-
+For checking the proofs with dedukti, use the modulogic.dk
 For checking the proofs with coqc, add this to your $HOME/.coqrc file:
   Add LoadPath "/usr/local/lib/zenon".
 If you specified an alternate libdir when configuring zenon, you will
@@ -25,3 +26,5 @@ need to adjust this command accordingly.
 
 
 Contact: Damien Doligez <damien.doligez@inria.fr>
+	 Pierre Halmagrand <pierre.halmagrand@inria.fr>
+	 Guillaume Bury <guillaume.bury@inria.fr>
