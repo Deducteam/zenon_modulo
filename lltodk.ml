@@ -11,10 +11,15 @@ open Namespace;;
 let hyp_prefix = "H";;
 
 let context = ref (Hashtbl.create 999);;
+let metactx = ref (Hashtbl.create 9);;
 let rawname e = sprintf "%s%x" hyp_prefix (Index.get_number e);;
 let rawname_prf e = sprintf "%s%s%x" "prf_" hyp_prefix (Index.get_number e);;
+let rawname_meta e = sprintf "%s%x" "const_" (Index.get_number e);;
 
 exception No_proof of string
+;;
+
+exception No_meta of string
 ;;
 
 let add_context e dke = 
@@ -29,6 +34,20 @@ let get_context e =
   with Not_found -> 
     raise (No_proof (Printf.sprintf "for expr %s" 
 				    (Print.sexpr e))) 
+;;
+
+let add_metactx e dke = 
+  Log.debug 3 " |- Add metactx %a" Print.pp_expr e;
+  Hashtbl.add !metactx e dke
+;;
+
+let get_metactx e = 
+  Log.debug 3 " |- Get metactx %a" Print.pp_expr e;
+  try 
+    Hashtbl.find !metactx e 
+  with Not_found -> 
+    raise (No_meta (Printf.sprintf "for meta %s"
+				   (Print.sexpr e)))
 ;;
 
 let mk_zterm = 
@@ -208,6 +227,26 @@ let rec trexpr_dkprop e =
      mk_prop
   | e when (Expr.equal e type_none) -> 
      assert false  
+  | Evar (v, _) as var when Mltoll.is_meta v -> 
+     begin
+       try
+	 Hashtbl.find !metactx var
+       with Not_found -> 
+	    begin
+	      let dke = 
+		match (get_type var) with 
+		| t when (Expr.equal t type_type) -> 
+		   mk_var (rawname_meta var, mk_type)
+		| t when (Expr.equal t type_prop) -> 
+		   mk_var (rawname_meta var, mk_prop)
+		| _ -> 
+		   mk_var (rawname_meta var, 
+			   mk_term (trexpr_dktype_aux (get_type var)))
+	      in
+	      add_metactx var dke; 
+	      dke
+	    end
+     end
   | Evar _ -> 
      trexpr_dkvartype e 
   | Emeta _ -> 
@@ -360,7 +399,7 @@ let get_pr_var e =
 ;;
 
 let rec trproof_dk p = 
-  Log.debug 5 " |- Translate Proof Step";
+  Log.debug 5 " ||-- trproof ";
   Log.debug 5 "    > %a" Print.llproof_rule_db p.rule;
   match p with 
   | {conc = pconc; 
@@ -369,17 +408,21 @@ let rec trproof_dk p =
     -> 
      match prule with 
      | Rfalse -> 
+	Log.debug 7 "     false";
 	let conc = get_pr_var efalse in 
 	mk_DkRfalse conc
-     | Rnottrue -> 
+     | Rnottrue ->
+	Log.debug 7 "     not true";
 	let conc = get_pr_var (enot etrue) in
 	mk_DkRnottrue conc
      | Raxiom (p) -> 
+	Log.debug 7 "     axiom %a" Print.pp_expr p;
 	let dkp = trexpr_dkprop p in
 	let concp = get_pr_var p in 
 	let concnp = get_pr_var (enot p) in 
 	mk_DkRaxiom (dkp, concp, concnp)
      | Rcut (p) -> 
+	Log.debug 7 "     cut %a" Print.pp_expr p;
 	let dkp = trexpr_dkprop p in 
 	let pr0 = mk_pr_var p in 
 	let pr1 = mk_pr_var (enot p) in 
@@ -388,12 +431,14 @@ let rec trproof_dk p =
 	let lam0 = mk_lam (pr0, sub0) in 
 	let lam1 = mk_lam (pr1, sub1) in 
 	mk_DkRcut (dkp, lam0, lam1)
-     | Rnoteq (t) ->  
+     | Rnoteq (t) ->
+	Log.debug 7 "     noteq %a" Print.pp_expr t;
 	let a = trexpr_dktype_aux (get_type t) in 
 	let dkt = trexpr_dkprop t in
 	let conc = get_pr_var (enot (eeq t t)) in 
 	mk_DkRnoteq (a, dkt, conc)
      | Reqsym (t, u) -> 
+	Log.debug 7 "     eqsym %a %a" Print.pp_expr t Print.pp_expr u;
 	let a = trexpr_dktype_aux (get_type t) in 
 	let dkt = trexpr_dkprop t in
 	let dku = trexpr_dkprop u in
@@ -589,7 +634,7 @@ let rec trproof_dk p =
 	assert (f == g); 
 	assert (List.length args1 == List.length args2);
 	let (_, argsff) = Expr.split_list (Expr.nb_tvar ff) args1 in 
-	let (_, argsgg) = Expr.split_list (Expr.nb_tvar gg) args2 in 
+	let (_, argsgg) = Expr.split_list (Expr.nb_tvar gg) args2 in
 	mk_notequal_subst ff gg argsff argsgg phyps
      | Rextension (_, "zenon_notallex", _, _, _) -> 
 	assert false
@@ -618,6 +663,7 @@ let rec trproof_dk p =
      | _ -> assert false
 
   and mk_pnotp_subst pp argspp argsnqq phyps = 
+    Log.debug 6 " |- Pred %a" Print.pp_expr pp;
     match pp, argspp, argsnqq with 
     | Eapp _, [], [] -> 
        assert (List.length phyps == 0);
@@ -631,15 +677,20 @@ let rec trproof_dk p =
 	 | Eapp (sym, args, _) -> 
 	    assert (List.mem e args);
 	    let v = tvar (newname()) (get_type e) in 
-	    let rec f accu l = 
+	    let idx = (List.length args) 
+		      - (List.length argspp)
+	    in
+	    assert (Expr.equal (List.nth args idx) e);
+	    let rec f accu l i = 
 	      match l with 
 	      | [] -> assert false
 	      | h :: tl -> 
-		 if (Expr.equal h e) then 
+		 if (i == 0) 
+		    && (Expr.equal h e) then 
 		   List.append (List.rev accu) (v :: tl)
-		 else f (h :: accu) tl
+		 else f (h :: accu) tl (i - 1)
 	    in
-	    let nargs = f [] args in 
+	    let nargs = f [] args idx in 
 	    let np = eapp (sym, nargs) in
 	    elam (v, np)
 	 | _ -> assert false
@@ -674,37 +725,49 @@ let rec trproof_dk p =
     | _, _, _ -> assert false
 
   and mk_notequal_subst ff gg argsff argsgg phyps = 
-    match ff, argsff, argsgg with 
-    | Eapp _, [], [] -> 
+    Log.debug 6 "   |- Fun %a /= %a" Print.pp_expr ff Print.pp_expr gg;
+    List.iter (fun x -> Log.debug 7 "    > argsff %a" Print.pp_expr x) argsff;
+    List.iter (fun x -> Log.debug 7 "    > argsgg %a" Print.pp_expr x) argsgg;
+    match ff, gg, argsff, argsgg with 
+    | Eapp _, Eapp _, [], [] -> 
        assert (List.length phyps == 0);
        assert (Expr.equal ff gg);
        let a = trexpr_dktype_aux (get_type ff) in 
        let dkff = trexpr_dkprop ff in 
-       let conc = get_pr_var (enot (eeq ff gg)) in 
+       let conc = get_pr_var (enot (eeq ff ff)) in 
        mk_DkRnoteq (a, dkff, conc)
-    | Eapp _, h1 :: tl1, h2 :: tl2 -> 
+    | Eapp _, Eapp _, h1 :: tl1, h2 :: tl2 -> 
        let app_to_lam p e = 
 	 match p with 
 	 | Eapp (sym, args, _) -> 
 	    assert (List.mem e args);
 	    let v = tvar (newname()) (get_type e) in 
-	    let rec f accu l = 
+	    let idx = (List.length args) 
+		      - (List.length argsff) 
+	    in
+	    assert (Expr.equal (List.nth args idx) e);
+	    let rec f accu l i = 
 	      match l with 
 	      | [] -> assert false
 	      | h :: tl -> 
-		 if (Expr.equal h e) then 
+		 if (i == 0) 
+		    && (Expr.equal h e) then 
 		   List.append (List.rev accu) (v :: tl)
-		 else f (h :: accu) tl
+		 else f (h :: accu) tl (i - 1)
 	    in
-	    let nargs = f [] args in 
+	    let nargs = f [] args idx in 
 	    let np = eapp (sym, nargs) in
 	    elam (v, np)
 	 | _ -> assert false
        in
        assert (Expr.equal (get_type h1) (get_type h2));
+       Log.debug 7 " ff = %a" Print.pp_expr ff;
+       Log.debug 7 " h2 = %a" Print.pp_expr h2;
        let a = trexpr_dktype_aux (get_type h1) in
-       let ff_lam = app_to_lam ff h1 in 
+       let ff_lam = app_to_lam ff h1 in
+       Log.debug 7 " ff_lam = %a" Print.pp_expr ff_lam;
        let ff_subst = apply ff_lam h2 in 
+       Log.debug 7 " ff_subst = %a" Print.pp_expr ff_subst;
        let (dkvv, dkp) = 
 	 match ff_lam with 
 	 | Elam (v, nf, _) -> 
@@ -727,7 +790,7 @@ let rec trproof_dk p =
 		    mk_lam (prpt2, 
 			    mk_notequal_subst ff_subst gg tl1 tl2 phyps_new),
 		    conc)
-    | _, _, _ -> assert false
+    | _, _, _, _ -> assert false
 ;;
 
 let make_proof_term goal prooftree = 
@@ -836,13 +899,19 @@ let output oc phrases llp =
   let dkname = List.hd name in 
   let prooftree = extract_prooftree llp in 
   let dkproof = make_proof_term (List.hd goal) prooftree in 
-  
-
+  let dkmetactx = Hashtbl.fold (fun x y z -> match y with 
+					     | Dkvar (v, ty) -> 
+						(mk_decl (v, ty)) :: z
+					     | _ -> assert false)
+			       !metactx [] in
+						 
   fprintf oc "#NAME tocheck";
   fprintf oc ".\n";
   List.iter (print_line oc) dksigs;
   fprintf oc "\n";
   List.iter (print_line oc) dkctx;
+  fprintf oc "\n";
+  List.iter (print_line oc) dkmetactx;
   fprintf oc "\n";
   List.iter (print_line oc) dkrules;
   fprintf oc "\n";
