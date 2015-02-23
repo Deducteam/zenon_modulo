@@ -9,6 +9,7 @@ Prerequisites:
   - OCaml 4.02.1 (with ocamlopt)
   - Coq 8.0.x
   - Dedukti 2.3
+  - zarith 1.3
   - ImageMagick (optional)
   - Ghostscript (optional)
 
