@@ -8,10 +8,27 @@ For install information, see INSTALL
 
 ----------------------------------------
 
+Contact: Damien Doligez <damien.doligez@inria.fr>
+	 Pierre Halmagrand <pierre.halmagrand@inria.fr>
+	 Guillaume Bury <guillaume.bury@inria.fr>
+
+----------------------------------------
+
+Compile and install with:
+  configure
+  make
+  make install
+
+----------------------------------------
+
 Remarks:
 
 - Zenon Modulo is an automated theorem prover for classical
   first order logic with polymorphic types
+
+- Zenon Modulo can be download at: 
+  https://www.rocq.inria.fr/deducteam/ZenonModulo/index.html
+  https://gforge.inria.fr/projects/zenon/
 
 - Zenon Modulo is part of the BWare project
   http://bware.lri.fr/
@@ -24,7 +41,8 @@ Remarks:
   http://www.cs.miami.edu/~tptp/
 
 - Zenon Modulo may produce proof certificats for Dedukti
-  https://www.rocq.inria.fr/deducteam/Dedukti/
+  http://dedukti.gforge.inria.fr/
+  https://gforge.inria.fr/projects/dedukti/
 
 - To use Zenon Modulo with TFF1 files of the BWare Proof Obligations 
   (with B set theory express in B_modulo.why): 
@@ -32,18 +50,32 @@ Remarks:
   >> activate the '-rwrt' flag to transform more axioms into rewrite rules
   >> activate the '-x arith' flag to use the arithmetic extension
   >> activate the '-odk' to generate a proof certificate for dedukti
+  >> activate the '-om' to print a proof 
+  >> activate the '-dbg-rwrt' to print the rewrite system and rewriting steps
 
 ----------------------------------------
 
 Examples:
 
-- Run Zenon Modulo to the TPTP file problem.p without heuristic
-  # zenon_modulo -itptp /path/to/file/problem.p
+Some TFF1 input files are given as examples into ./tff1_examples repository
+Four of them are set properties coming from the B-Book, and the last one 
+is a Proof Obligation coming from the BWare benchmark.
 
-- Run Zenon Modulo to the TPTP file problem.p with heuristic
-  # zenon_modulo -itptp -rwrt /path/to/file/problem.p
+To run and test Zenon Modulo: 
 
-- Run Zenon Modulo to the TPTP file problem.p without heuristic and produce 
-  a proof certificat for Dedukti
-  # zenon_modulo -itptp -q -odedukti /path/to/file/problem.p > test.dk
+ - Minimal call
+ # zenon_modulo -itptp -b-rwrt ./tff1_examples/file_name.p
 
+ - Print proof and rewriting steps
+ # zenon_modulo -itptp -b-rwrt -dbg-rwrt -om ./tff1_examples/file_name.p
+
+ - Generate proof certificate for dedukti
+ # zenon_modulo -itptp -b-rwrt -odk ./tff1_examples/file_name.p > certificate.dk
+ 
+ - To verify the proof with dedukti
+   >> to generate the zen.dko library file
+   # dkcheck -e modulogic.dk
+   >> to check the proof
+   # dkcheck certificate.dk
+
+----------------------------------------
