@@ -26,6 +26,5 @@ If you specified an alternate libdir when configuring zenon, you will
 need to adjust this command accordingly.
 
 
-Contact: Damien Doligez <damien.doligez@inria.fr>
-	 Pierre Halmagrand <pierre.halmagrand@inria.fr>
+Contact: Pierre Halmagrand <pierre.halmagrand@inria.fr>
 	 Guillaume Bury <guillaume.bury@inria.fr>
