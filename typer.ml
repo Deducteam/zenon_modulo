@@ -282,8 +282,25 @@ let phrase opts l (p, b) = match p with
   | _ -> (p, b) :: l                  (* TODO *)
 ;;
 
+(* Simpler version of declaration of defined constant which
+   does not try to type the body to find the type to give to the symbol.
+   This is only used in first pass. *)
+let declare_phrase (p, _) = match p with
+  | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _))
+  | Phrase.Def (DefReal (_, s, ty, _, _, _))
+  | Phrase.Def (DefPseudo (_, s, ty, _, _))
+  | Phrase.Def (DefRec (_, s, ty, _, _)) ->
+     if ty == type_none then () else declare_constant (s, ty)
+  | _ -> ()
+;;
+
 (* This is the only exported function of this module,
    it is called in main.ml after parsing. *)
 let phrasebl opts l =
+  (* We proceed in two passes because sometimes defined symbols are
+     used too early. *)
+  (* First pass: declare all constants *)
+  List.iter declare_phrase l;
+  (* Second pass: do the real job of typing everything *)
   List.fold_left (phrase opts) [] (List.rev l)
 ;;
