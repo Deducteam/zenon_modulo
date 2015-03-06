@@ -83,7 +83,7 @@ let ret_bool_to_prop = function
 ;;
 
 let prop_to_bool_args args ty =
-  if ty == type_none then earrow (List.map get_type args) t_bool
+  if ty == type_iota then earrow (List.map get_type args) t_bool
   else ret_prop_to_bool ty
 ;;
 
@@ -701,12 +701,12 @@ let built_in_defs =
     Def (DefReal ("_bar__lt__gt__bar_", "basics._bar__lt__gt__bar_", bool3, [b1; b2],
                   eapp (tvar "coq_builtins.bi__xor_b" bool3, [b1; b2]), None));
 
-    Def (DefReal ("pair", "basics.pair", type_none, [tx; ty; x; y],
+    Def (DefReal ("pair", "basics.pair", type_iota, [tx; ty; x; y],
                   eapp (evar "Datatypes.pair", [tx; ty; x; y]), None));
-    Def (DefReal ("fst", "basics.fst", type_none, [tx; ty; xy],
+    Def (DefReal ("fst", "basics.fst", type_iota, [tx; ty; xy],
                   eapp (evar "$match", [xy; elam (x, elam (y, case))]),
                   None));
-    Def (DefReal ("snd", "basics.snd", type_none, [tx; ty; xy],
+    Def (DefReal ("snd", "basics.snd", type_iota, [tx; ty; xy],
                   eapp (evar "$match", [xy; elam (y, elam (x, case))]),
                   None));
     Inductive ("basics.list__t", ["A"], [

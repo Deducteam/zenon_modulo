@@ -37,7 +37,7 @@ let mk_elam (vars, typ, body) =
 ;;
 
 let mk_pattern constr vars body =
-  mk_elam (vars, type_none, eapp (evar "$match-case", [evar constr; body]))
+  mk_elam (vars, type_iota, eapp (evar "$match-case", [evar constr; body]))
 ;;
 
 let hyp_counter = ref 0;;
@@ -96,10 +96,10 @@ file:
 
 phrase:
   | DEF hyp_name OPEN IDENT ident_list CLOSE expr
-      { let idl = List.map evar $5 in Zdef (DefReal ($2, $4, type_none, idl, $7, None)) }
+      { let idl = List.map evar $5 in Zdef (DefReal ($2, $4, type_iota, idl, $7, None)) }
   | FIXPOINT hyp_name IDENT OPEN IDENT ident_list CLOSE expr
       { let idl = List.map evar $6 in
-        Zdef (DefReal ($2, $5, type_none, idl, $8, Some $3))
+        Zdef (DefReal ($2, $5, type_iota, idl, $8, Some $3))
       }
   | HYP int_opt hyp_name expr
       { Zhyp ($3, $4, $2) }
@@ -144,12 +144,12 @@ expr_list:
 
 lambda:
   | OPEN OPEN IDENT STRING CLOSE expr CLOSE      { (tvar $3 (tvar $4 type_type), $6) }
-  | OPEN OPEN IDENT CLOSE expr CLOSE             { (tvar $3 (type_none), $5) }
+  | OPEN OPEN IDENT CLOSE expr CLOSE             { (tvar $3 (type_iota), $5) }
 ;
 
 mlambda:
   | OPEN OPEN ident_list STRING CLOSE expr CLOSE { ($3, eapp (tvar $4 type_type, []), $6) }
-  | OPEN OPEN ident_list CLOSE expr CLOSE        { ($3, type_none, $5) }
+  | OPEN OPEN ident_list CLOSE expr CLOSE        { ($3, type_iota, $5) }
 ;
 
 ident_list:
@@ -184,7 +184,7 @@ id_expr_list_expr:
   | IDENT expr id_expr_list_expr
       { match $3 with
         | [] -> assert false
-        | body :: vals -> elam (tvar ($1) type_none, body) :: $2 :: vals
+        | body :: vals -> elam (tvar ($1) type_iota, body) :: $2 :: vals
       }
 ;
 

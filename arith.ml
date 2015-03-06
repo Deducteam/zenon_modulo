@@ -382,7 +382,7 @@ and coqify_prop e = match e with
 let coqify e =
     Log.debug 15 "Coqifying term : %a ::: %a" Print.pp_expr e Print.pp_expr (get_type e);
     match get_type e with
-    | t when Expr.equal t type_none -> e
+    | t when Expr.equal t type_iota -> e
     | t when Expr.equal type_prop t -> coqify_prop e
     | Earrow _ -> coqify_prop e
     | _ -> coqify_term e

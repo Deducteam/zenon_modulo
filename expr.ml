@@ -142,6 +142,9 @@ let type_type =
 let v_type_prop = Evar("Prop", mkpriv 0 ["$o"] 1 0 [] [] type_type)
 let type_prop = Eapp(v_type_prop, [], mkpriv 0 [] 1 0 [] [] type_type)
 
+let v_type_iota = Evar("Iota", mkpriv 0 ["$i"] 1 0 [] [] type_type)
+let type_iota = Eapp(v_type_iota, [], mkpriv 0 [] 1 0 [] [] type_type)
+
 let v_type_none = Evar("$none", mkpriv 0 ["$none"] 1 0 [] [] type_type)
 let type_none = Eapp(v_type_none, [], mkpriv 0 [] 1 0 [] [] type_type)
 
@@ -238,10 +241,12 @@ let prop_app l =
         try raise (Type_Mismatch (type_prop, (List.find (fun e -> not (e == type_prop)) l), "Expr.prop_app"))
         with Not_found -> type_prop
     in
-    if List.memq type_none l then
-        type_none
+    if List.memq type_iota l then 
+      type_iota
+    else if List.memq type_none l then
+      type_none
     else
-        aux l
+      aux l
 
 (* Meta-data constructors *)
 (* Since expressions are hashconsed, actual constructors are defined a bit later *)
@@ -309,6 +314,7 @@ let priv_all v e =
 	 (get_submetas e)
          (if get_type e == type_type then type_type
           else if get_type e == type_prop then type_prop
+          else if get_type e == type_iota then type_iota
           else if get_type e == type_none then type_none
           else raise (Type_Mismatch (type_prop, get_type e, "priv_all")))
          (* forall is used for both universal quantification and polymorphism *)
@@ -503,7 +509,7 @@ let print_stats oc =
 *)
 
 (* Expression constructors (except eapp, see substitutions) *)
-let evar s = he_merge (Evar (s, priv_var s type_none));;
+let evar s = he_merge (Evar (s, priv_var s type_iota));;
 let tvar s t = he_merge (Evar (s, priv_var s t));;
 let emeta (e) = he_merge (Emeta (e, priv_meta e));;
 let earrow args ret =
@@ -691,7 +697,9 @@ and inst_app map s args = match s, args with
   | _ -> substitute_safe map s, args
 
 and type_app s args =
-    if s == type_none || List.memq type_none (List.map get_type args) then
+    if s == type_iota || List.memq type_iota (List.map get_type args) then
+        type_iota
+    else if s == type_none || List.memq type_none (List.map get_type args) then
         type_none
     else match inst_app [] s args with
     | Earrow(l, ret, _), args' ->

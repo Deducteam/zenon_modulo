@@ -166,7 +166,7 @@ let type_tff_var ty env = function
                 (List.assq e env.map, env)
             with Not_found ->
                 begin match get_type e with
-                | t when type_none == t ->
+                | t when type_iota == t ->
                         if tff_mem v env then
                             let ty = tff_app v [] env in
                             (tvar v ty, env)
@@ -181,8 +181,7 @@ let type_tff_var ty env = function
 
 let rec type_tff_app env is_pred e = match e with
     (* Type typechecking *)
-    | _ when e == type_type || e == type_prop -> e, env
-    | Eapp(Evar("$i", _), [], _) -> type_tff_i, env
+    | _ when e == type_type || e == type_prop || e == type_iota -> e, env
     | Eapp(Evar("$int", _), [], _) -> Arith.type_int, env
     | Eapp(Evar("$rat", _), [], _) -> Arith.type_rat, env
     | Eapp(Evar("$real", _), [], _) -> Arith.type_real, env
@@ -194,12 +193,12 @@ let rec type_tff_app env is_pred e = match e with
     | Eapp(Evar(s, _) as s', args, _) ->
             let args, env' = map_fold type_tff_term env args in
             let f, env'' = match get_type s' with
-                | t when type_none == t && tff_mem s env ->
+                | t when type_iota == t && tff_mem s env ->
                         let t = tff_app s args env in
                         tvar s t, env'
                 | _ ->
-                        let ret = if is_pred then type_prop else type_tff_i in
-                        let t = earrow (const_list (List.length args) type_tff_i) ret in
+                        let ret = if is_pred then type_prop else type_iota in
+                        let t = earrow (const_list (List.length args) type_iota) ret in
                         type_tff_var t env' s'
             in
             begin try
@@ -265,7 +264,7 @@ and type_tff_quant k mk_quant env = function
     | _ -> raise (Type_error ("Ill-formed expression"))
 
 and type_tff_term env e = match e with
-    | Evar(v, _) -> type_tff_var type_tff_i env e
+    | Evar(v, _) -> type_tff_var type_iota env e
     | Eapp(_) -> type_tff_app env false e
     | Elam(_) -> type_tff_quant type_tff_term elam env e
     | _ -> raise (Type_error ("Ill-formed expression"))

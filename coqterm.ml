@@ -101,7 +101,7 @@ exception Cannot_infer of string;;
 
 (* For now, [synthesize] is very simple-minded. *)
 let synthesize = function
-  | t when t == type_none -> any_name
+  | t when t == type_iota -> any_name
   | t when t == Arith.type_int -> "0%Z"
   | t when t == Arith.type_rat -> "(0 # 1)%Q"
   | t when t == Arith.type_real -> "0%R"
@@ -132,7 +132,7 @@ let cty s =
    If e is not typed, returns the empty string. *)
 let string_type e =
   let ty = get_type e in
-  if Expr.equal ty type_none then ""
+  if Expr.equal ty type_iota then ""
   else Print.sexpr ty
 ;;
 

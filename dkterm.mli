@@ -4,6 +4,7 @@ type var = string
 type dkterm =
   | Dktype                                     (* type type *)
   | Dkprop                                     (* type prop *)
+  | Dkiota                                     (* type iota *)
   | Dkseq                                      (* type seq *)
   | Dkproof       of dkterm                    (* type proof of prop *)
   | Dkterm        of dkterm                    (* type term of type *)
@@ -62,6 +63,7 @@ val get_dkvar_type      : dkterm -> dkterm
 
 val mk_type             : dkterm
 val mk_prop             : dkterm
+val mk_iota             : dkterm
 val mk_seq              : dkterm 
 val mk_proof            : dkterm -> dkterm 
 val mk_term             : dkterm -> dkterm 

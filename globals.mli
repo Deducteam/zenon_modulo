@@ -25,5 +25,6 @@ val num_expr : int ref;;
 val output_dk : bool ref;;
 val build_rwrt_sys : bool ref;;
 val build_rwrt_sys_B : bool ref;;
+val build_rwrt_sys_casc : bool ref;;
 
 val debug_rwrt : bool ref;;

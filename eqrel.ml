@@ -10,7 +10,7 @@ type direction = L | R;;
 
 let symbol = ref None;;
 let leaves = ref [];;
-let typ = ref type_none;;
+let typ = ref type_iota;;
 
 let mem_assoc x env = List.exists (fun (y, _) -> get_name x = get_name y) env;;
 

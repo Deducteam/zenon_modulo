@@ -51,24 +51,24 @@ let get_metactx e =
 ;;
 
 let mk_zterm = 
-  mk_term (mk_var ("Z", mk_type))
+  mk_term (mk_var ("arith_Z", mk_type))
 ;;
 
 let predefined_sym = 
-  [("Z", ("Z", mk_type));
-   ("$less", ("less", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
-   ("$lesseq", ("lesseq", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
-   ("$greater", ("greater", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
-   ("$greatereq", ("greatereq", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
-   ("$uminus", ("uminus", mk_arrow ([mk_zterm; mk_zterm])));
-   ("$sum", ("sum", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
-   ("$difference", ("difference", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
-   ("$product", ("product", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
-   ("$is_int", ("is_int", mk_arrow ([mk_zterm; mk_prop])));
-   ("$is_rat", ("is_rat", mk_arrow ([mk_zterm; mk_prop])));
-   ("$to_int", ("to_int", mk_arrow ([mk_zterm; mk_zterm])));
-   ("$to_rat", ("to_rat", mk_arrow ([mk_zterm; mk_zterm])));
-   ("$to_real", ("to_real", mk_arrow ([mk_zterm; mk_zterm])))
+  [("Z", ("arith_Z", mk_type));
+   ("$less", ("arith_less", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
+   ("$lesseq", ("arith_lesseq", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
+   ("$greater", ("arith_greater", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
+   ("$greatereq", ("arith_greatereq", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
+   ("$uminus", ("arith_uminus", mk_arrow ([mk_zterm; mk_zterm])));
+   ("$sum", ("arith_sum", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
+   ("$difference", ("arith_difference", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
+   ("$product", ("arith_product", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
+   ("$is_int", ("arith_is_int", mk_arrow ([mk_zterm; mk_prop])));
+   ("$is_rat", ("arith_is_rat", mk_arrow ([mk_zterm; mk_prop])));
+   ("$to_int", ("arith_to_int", mk_arrow ([mk_zterm; mk_zterm])));
+   ("$to_rat", ("arith_to_rat", mk_arrow ([mk_zterm; mk_zterm])));
+   ("$to_real", ("arith_to_real", mk_arrow ([mk_zterm; mk_zterm])))
   ]
 ;;
 
@@ -79,8 +79,8 @@ let rec trexpr_dktype_aux e =
      mk_type
   | e when (Expr.equal e type_prop) -> 
      mk_prop
-  | e when (Expr.equal e type_none) -> 
-     assert false
+  | e when (Expr.equal e type_iota) -> 
+     mk_iota
   | Evar (s, _) -> 
      mk_var (s, trexpr_dktype_aux (get_type e))
   | Eapp (Evar(s, _) as s', args, _) -> 
@@ -134,8 +134,8 @@ let rec trexpr_dktype e =
      mk_type
   | e when (Expr.equal e type_prop) -> 
      mk_prop
-  | e when (Expr.equal e type_none) -> 
-     assert false
+  | e when (Expr.equal e type_iota) -> 
+     mk_iota
   | Evar (s, _) -> 
      mk_term (mk_var (s, trexpr_dktype_aux (get_type e)))
   | Eapp (Evar(s, _) as s', args, _) -> 
@@ -177,6 +177,8 @@ let trexpr_dkvartype e =
   match e with
   | Evar (s, _) when (Expr.equal (get_type e) type_type) -> 
      mk_var (s, mk_type) 
+  | Evar (s, _) when (Expr.equal (get_type e) type_iota) -> 
+     mk_var (s, mk_term (mk_iota)) 
   | Evar (s, _) -> 
      mk_var (s, mk_term (trexpr_dktype_aux (get_type e)))
   | _ -> assert false
@@ -188,7 +190,12 @@ let rec translate_sigs_aux s accu =
   | [] -> List.rev accu
   | (v, s) :: tl -> 
      Log.debug 10 "translate sig %s:%a" v Print.pp_expr s;
-     let ns = trexpr_dktype s in 
+     let ns = 
+       match s with 
+       | e when (Expr.equal e type_type) -> mk_type
+       | e when (Expr.equal e type_iota) -> mk_term (mk_iota)
+       | _ -> trexpr_dktype s 
+     in 
      translate_sigs_aux tl ((v, ns) :: accu)
 ;;
 
@@ -225,8 +232,8 @@ let rec trexpr_dkprop e =
      mk_type
   | e when (Expr.equal e type_prop) -> 
      mk_prop
-  | e when (Expr.equal e type_none) -> 
-     assert false  
+  | e when (Expr.equal e type_iota) -> 
+     mk_iota 
   | Evar (v, _) as var when Mltoll.is_meta v -> 
      begin
        try
@@ -239,6 +246,8 @@ let rec trexpr_dkprop e =
 		   mk_var (rawname_meta var, mk_type)
 		| t when (Expr.equal t type_prop) -> 
 		   mk_var (rawname_meta var, mk_prop)
+		| t when (Expr.equal t type_iota) -> 
+		   mk_var (rawname_meta var, mk_iota)
 		| _ -> 
 		   mk_var (rawname_meta var, 
 			   mk_term (trexpr_dktype_aux (get_type var)))
@@ -876,6 +885,7 @@ let get_sigs phrases sigs predef =
 ;;
 
 let output oc phrases llp =
+  Log.debug 2 "=========== Generate Dedukti Term =============";
   let predefsigs = 
     List.map (fun (x, (y, z)) -> mk_decl (y, z)) predefined_sym
   in

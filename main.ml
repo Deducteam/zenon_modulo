@@ -216,6 +216,8 @@ let argspec = [
      "             build automatically the rewrite system";
   "-b-rwrt", Arg.Set build_rwrt_sys_B,
      "             build automatically the rewrite system for B";
+  "-casc-rwrt", Arg.Set build_rwrt_sys_casc,
+     "             build automatically the rewrite system (optimized)";
   "-dbg-rwrt", Arg.Set debug_rwrt,
      "             debug mode for rewriting"
 ];;
@@ -305,7 +307,7 @@ let parse_file f =
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
           closer ();
           let typer_options =
-            { Typer.default_type = Expr.type_none;
+            { Typer.default_type = Expr.type_iota;
               Typer.scope_warnings = true;
               Typer.undeclared_functions_warning = true;
               Typer.register_new_constants = true;
@@ -325,7 +327,7 @@ let parse_file f =
           let goal_found = List.exists is_goal result in
           if not goal_found then Error.warn "no goal given";
           let typer_options =
-            { Typer.default_type = Expr.type_none;
+            { Typer.default_type = Expr.type_iota;
               Typer.scope_warnings = false;
               Typer.undeclared_functions_warning = false;
               Typer.register_new_constants = false;

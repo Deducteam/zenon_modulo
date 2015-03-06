@@ -6,6 +6,7 @@ type var = string
 type dkterm =
   | Dktype                                     (* type type *)
   | Dkprop                                     (* type prop *)
+  | Dkiota                                     (* type iota *)
   | Dkseq                                      (* type seq *)
   | Dkproof       of dkterm                    (* type proof of prop *)
   | Dkterm        of dkterm                    (* type term of type *)
@@ -71,6 +72,7 @@ let get_dkvar_type var =
 
 let mk_type                    = Dktype
 let mk_prop                    = Dkprop
+let mk_iota                    = Dkiota
 let mk_seq                     = Dkseq
 let mk_proof      (t)          = Dkproof t
 let mk_term       (t)          = Dkterm t
@@ -126,6 +128,7 @@ let rec print_dk o t =
   match t with 
   | Dktype -> fprintf o "zen.type"
   | Dkprop -> fprintf o "zen.prop"
+  | Dkiota -> fprintf o "zen.iota"
   | Dkseq  -> fprintf o "zen.seq"
   | Dkproof (t) ->  fprintf o "zen.proof (%a)" print_dk t
   | Dkterm (t) -> fprintf o "zen.term (%a)" print_dk t
@@ -382,7 +385,7 @@ let create i = Hashtbl.create i
 
 let rec get_var_list_aux env accu ty = 
   match ty with 
-  | Dktype | Dkprop | Dkseq -> accu
+  | Dktype | Dkprop | Dkiota | Dkseq -> accu
   | Dkterm (t) -> get_var_list_aux env accu t
   | Dkarrow (l) -> List.fold_left (get_var_list_aux env) accu l
   | Dkpi (Dkvar(v, _), t) -> get_var_list_aux (v :: env) accu t
@@ -425,6 +428,7 @@ let add_sym_graph gr d =
   match d with 
   | Dkdecl (v, ty) ->
      begin
+       Log.debug 13 " |- Add Sym Graph %s" v;
        try
 	 match Hashtbl.find gr v with 
 	 | {decl = Some _; edge = _;} -> assert false

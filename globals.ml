@@ -25,5 +25,6 @@ let num_expr = ref 0;;
 let output_dk = ref false;;
 let build_rwrt_sys = ref false;;
 let build_rwrt_sys_B = ref false;;
+let build_rwrt_sys_casc = ref false;;
 
 let debug_rwrt = ref false;;

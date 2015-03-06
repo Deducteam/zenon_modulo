@@ -31,7 +31,7 @@ let cnf_to_formula l =
     | [] -> assert false
     | a::l2 -> List.fold_left (fun x y -> eor (x,y)) a l2
   in
-  mk_quant eall (List.map (fun x -> (tvar x type_none)) vs) body
+  mk_quant eall (List.map (fun x -> (tvar x type_iota)) vs) body
 ;;
 
 %}
@@ -162,9 +162,9 @@ atom:
   | expr                           { $1 }
 ;
 var_list:
-  | UIDENT COMMA var_list             { (tvar (ns_var $1) type_none) :: $3 }
+  | UIDENT COMMA var_list             { (tvar (ns_var $1) type_iota) :: $3 }
   | UIDENT COLON expr COMMA var_list  { (tvar (ns_var $1) $3) :: $5 }
-  | UIDENT                            { [tvar (ns_var $1) type_none] }
+  | UIDENT                            { [tvar (ns_var $1) type_iota] }
   | UIDENT COLON expr                 { [tvar (ns_var $1) $3] }
 ;
 tff_type_arrow:

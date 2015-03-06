@@ -75,6 +75,7 @@ val ex_list : expr list -> expr -> expr;;
 (* Typing *)
 val type_type : expr;;
 val type_prop : expr;;
+val type_iota : expr;;
 val type_none : expr;;
 val earrow : expr list -> expr -> expr;;
 
