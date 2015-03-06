@@ -575,6 +575,10 @@ let rec select_rwrt_rules_aux accu phrase =
   (*     else if !Globals.build_rwrt_sys 
 	       && is_heuri_rwrt_term body 
        then (add_rwrt_term name body; (Rew (name, body, 0) :: accu)) *)
+       else if !Globals.build_rwrt_sys_casc 
+	       && is_heuri_rwrt_prop body 
+       then (add_rwrt_prop name body; (Rew (name, body, 1) :: accu)) 
+
        else phrase :: accu;
      end
   | _ -> phrase :: accu

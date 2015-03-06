@@ -474,19 +474,19 @@ let rec expr o ex =
       pr "(<=> "; expr o e1; pr " "; expr o e2; pr ")";
   | Etrue -> pr "(True)";
   | Efalse -> pr "(False)";
-  | Eall (v, e, _) when get_type v == type_none ->
+  | Eall (v, e, _) when get_type v == type_iota ->
       pr "(A. ((%a) " print_var v; expr o e; pr "))";
   | Eall (v, e, _) ->
       pr "(A. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
-  | Eex (v, e, _) when get_type v == type_none ->
+  | Eex (v, e, _) when get_type v == type_iota ->
       pr "(E. ((%a) " print_var v; expr o e; pr "))";
   | Eex (v, e, _) ->
       pr "(E. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
-  | Etau (v, e, _) when get_type v == type_none ->
+  | Etau (v, e, _) when get_type v == type_iota ->
       pr "(t. ((%a) " print_var v; expr o e; pr "))";
   | Etau (v, e, _) ->
       pr "(t. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
-  | Elam (v, e, _) when get_type v == type_none ->
+  | Elam (v, e, _) when get_type v == type_iota ->
       pr "((%a) " print_var v; expr o e; pr ")";
   | Elam (v, e, _) ->
       pr "((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";

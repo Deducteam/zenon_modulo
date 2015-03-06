@@ -1,10 +1,9 @@
 % Comments :
 % -----------------------------------------------
 tff(pdef, type,
-    p : !>[A: $tType] : (A > A)).
+    p : !>[A: $tType] : (A > $o)).
 
 tff(test, conjecture,
-    ! [B: $tType, X: B] :
-    p(B, X) = X ).
+    (! [B: $tType, X: B] : p(B, X) ) => p($i, a) ).
 
 % -----------------------------------------------

@@ -75,6 +75,7 @@ val ex_list : expr list -> expr -> expr;;
 (* Typing *)
 val type_type : expr;;
 val type_prop : expr;;
+val type_iota : expr;;
 val type_none : expr;;
 val earrow : expr list -> expr -> expr;;
 
@@ -128,8 +129,8 @@ val substitute : (expr * expr) list -> expr -> expr;;
 (* Same as substitute but also check that the substitution is well-typed. *)
 val substitute_safe : (expr * expr) list -> expr -> expr;;
 val substitute_unsafe : (expr * expr) list -> expr -> expr;;
-(*
 val substitute_meta : (expr * expr) -> expr -> expr;;
+(*
 val substitute_expr : (expr * expr) -> expr -> expr;;
 *)
 val substitute_2nd : (expr * expr) list -> expr -> expr;;
@@ -150,6 +151,7 @@ val get_taus : expr -> int;;   (* tau nesting level *)
 val has_metas : expr -> bool;;
 val count_metas : expr -> int;;
 val get_metas : expr -> expr list;;
+val get_submetas : expr -> expr list;;
 val get_fv : expr -> string list;;
 
 type goalness = int;;

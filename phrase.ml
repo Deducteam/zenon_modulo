@@ -90,24 +90,24 @@ let rec make_def predef orig env e =
   | Eall (v, f, _) -> make_def predef orig (v::env) f
   | Eequiv (Eapp (Evar(s,_), args, _), body, _)
     when not (List.mem s predef) && check_args env args ->
-      DefPseudo (orig, s, type_none, extract_args args, body)
+      DefPseudo (orig, s, type_iota, extract_args args, body)
   | Eequiv (body, Eapp (Evar(s,_), args, _), _) when
     not (List.mem s predef) && check_args env args ->
-      DefPseudo (orig, s, type_none, extract_args args, body)
+      DefPseudo (orig, s, type_iota, extract_args args, body)
   | Eequiv (Evar (s, _), body, _) when not (List.mem s predef) ->
-      DefPseudo (orig, s, type_none, [], body)
+      DefPseudo (orig, s, type_iota, [], body)
   | Eequiv (body, Evar (s, _), _) when not (List.mem s predef) ->
-      DefPseudo (orig, s, type_none, [], body)
+      DefPseudo (orig, s, type_iota, [], body)
   | Eapp (Evar("=",_), [Evar (s, _); body], _) when not (List.mem s predef) ->
-      DefPseudo (orig, s, type_none, [], body)
+      DefPseudo (orig, s, type_iota, [], body)
   | Eapp (Evar("=",_), [body; Evar (s, _)], _) when not (List.mem s predef) ->
-      DefPseudo (orig, s, type_none, [], body)
+      DefPseudo (orig, s, type_iota, [], body)
   | Eapp (Evar("=",_), [Eapp (Evar(s,_), args, _); body], _)
     when not (List.mem s predef) && check_args env args ->
-      DefPseudo (orig, s, type_none, extract_args args, body)
+      DefPseudo (orig, s, type_iota, extract_args args, body)
   | Eapp (Evar("=",_), [body; Eapp (Evar(s,_), args, _)], _)
     when not (List.mem s predef) && check_args env args ->
-      DefPseudo (orig, s, type_none, extract_args args, body)
+      DefPseudo (orig, s, type_iota, extract_args args, body)
   | _ -> assert false
 ;;
 

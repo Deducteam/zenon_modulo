@@ -10,7 +10,7 @@ type direction = L | R;;
 
 let symbol = ref None;;
 let leaves = ref [];;
-let typ = ref type_none;;
+let typ = ref type_iota;;
 
 let mem_assoc x env = List.exists (fun (y, _) -> get_name x = get_name y) env;;
 
@@ -247,8 +247,11 @@ let refl s =
 let sym s =
   try let r = find tbl s in
       match r.sym, r.refl, r.transsym with
-      | Some _, _, _ -> true
-      | _, Some _, Some _ -> true
+      | Some _, _, _ | _, Some _, Some _ ->
+              begin match Expr.get_type s with
+              | Earrow([t1; t2], _, _) when Expr.equal t1 t2 -> true
+              | _ -> false
+              end
       | _, _, _ -> false
   with Not_found -> false
 ;;

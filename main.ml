@@ -17,6 +17,7 @@ type proof_level =
   | Proof_coqterm
   | Proof_isar
   | Proof_dot of bool * int
+  | Proof_dk
 ;;
 let proof_level = ref Proof_none;;
 let default_depth = 100;;
@@ -150,6 +151,13 @@ let argspec = [
         "              print the proof in Coq script format (force -rename)";
   "-ocoqterm", Arg.Unit (fun () -> proof_level := Proof_coqterm),
             "          print the proof in Coq term format";
+  "-odk", Arg.Unit (fun () -> namespace_flag := true; 
+			      proof_level := Proof_dk;
+			      opt_level := 0;
+			      Globals.output_dk := true;
+			      Progress.level := Progress.No;
+			      quiet_flag := true),
+        "              print the proof in Dk script format (force -rename)";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
       "<n>             print the proof in high-level format up to depth <n>";
   "-oisar", Arg.Unit (fun () -> proof_level := Proof_isar),
@@ -208,6 +216,8 @@ let argspec = [
      "             build automatically the rewrite system";
   "-b-rwrt", Arg.Set build_rwrt_sys_B,
      "             build automatically the rewrite system for B";
+  "-casc-rwrt", Arg.Set build_rwrt_sys_casc,
+     "             build automatically the rewrite system (optimized)";
   "-dbg-rwrt", Arg.Set debug_rwrt,
      "             debug mode for rewriting"
 ];;
@@ -290,14 +300,14 @@ let parse_file f =
           let pp = Filename.parent_dir_name in
           let upup = Filename.concat (Filename.concat d pp) pp in
           let incpath = List.rev (upup :: d :: !include_path) in
-          let (forms, name) = Tptp.translate incpath tpphrases in
+	  let (forms, name) = Tptp.translate incpath tpphrases in
           let forms = Typetptp.typecheck forms in
-          (name, List.map (fun x -> (x, false)) forms)
+	  (name, List.map (fun x -> (x, false)) forms)
       | I_focal ->
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
           closer ();
           let typer_options =
-            { Typer.default_type = Expr.type_none;
+            { Typer.default_type = Expr.type_iota;
               Typer.scope_warnings = true;
               Typer.undeclared_functions_warning = true;
               Typer.register_new_constants = true;
@@ -317,7 +327,7 @@ let parse_file f =
           let goal_found = List.exists is_goal result in
           if not goal_found then Error.warn "no goal given";
           let typer_options =
-            { Typer.default_type = Expr.type_none;
+            { Typer.default_type = Expr.type_iota;
               Typer.scope_warnings = false;
               Typer.undeclared_functions_warning = false;
               Typer.register_new_constants = false;
@@ -423,6 +433,9 @@ let main () =
     | Proof_coqterm ->
         let (p, u) = Coqterm.trproof phrases ppphrases (Lazy.force llp) in
         Coqterm.print stdout p;
+        Watch.warn phrases_dep llp u;
+    | Proof_dk ->
+        let u = Lltodk.output stdout phrases (Lazy.force llp) in
         Watch.warn phrases_dep llp u;
     | Proof_isar ->
         let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in

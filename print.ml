@@ -48,9 +48,9 @@ let print_var b v =
 ;;
 
 let rec print_vartype b (v, t) =
-  if t == type_none then
+(*  if t == type_iota then
       print_var b v
-  else begin
+  else*) begin
       bprintf b "%a:\"" print_var v; expr (Buff b) t; bprintf b "\" "
   end
 
@@ -60,7 +60,7 @@ and expr o ex =
   | Evar (v, _) -> pr "%s" v;
   | Emeta (e, _) -> pr "%s%d" meta_prefix (Index.get_number e);
   | Earrow (args, ret, _) ->
-      pr "("; List.iteri (fun i x -> if i > 0 then pr " * "; expr o x) args; pr " -> "; expr o ret; pr ")"
+      pr "("; List.iteri (fun i x -> if i > 0 then pr " -> "; expr o x) args; pr " -> "; expr o ret; pr ")"
   | Eapp (s, es, _) ->
       pr "(%s" (get_name s); List.iter (fun x -> pr " "; expr o x) es; pr ")";
   | Enot (e, _) -> pr "(-. "; expr o e; pr ")";
@@ -74,22 +74,22 @@ and expr o ex =
       pr "(<=> "; expr o e1; pr " "; expr o e2; pr ")";
   | Etrue -> pr "(True)";
   | Efalse -> pr "(False)";
-  | Eall (v, e, _) when get_type v == type_none ->
-      pr "(A. ((%a) " print_var v; expr o e; pr "))";
+(*  | Eall (v, e, _) when get_type v == type_iota ->
+      pr "(A. ((%a) " print_var v; expr o e; pr "))";*)
   | Eall (v, e, _) ->
       pr "(A. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
-  | Eex (v, e, _) when get_type v == type_none ->
-      pr "(E. ((%a) " print_var v; expr o e; pr "))";
+(*  | Eex (v, e, _) when get_type v == type_iota ->
+      pr "(E. ((%a) " print_var v; expr o e; pr "))";*)
   | Eex (v, e, _) ->
       pr "(E. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
-  | Etau (v, e, _) when get_type v == type_none ->
+(*  | Etau (v, e, _) when get_type v == type_iota ->
       (*pr "(t. ((%a) " print_var v; expr o e; pr "))";*)
-     pr "Tau_%d" (Index.get_number e);
+     pr "Tau_%d" (Index.get_number e);*)
   | Etau (v, e, _) ->
       (*pr "(t. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";*)
      pr "Tau_%d" (Index.get_number e);
-  | Elam (v, e, _) when get_type v == type_none ->
-      pr "((%a) " print_var v; expr o e; pr ")";
+(*  | Elam (v, e, _) when get_type v == type_iota ->
+      pr "((%a) " print_var v; expr o e; pr ")";*)
   | Elam (v, e, _) ->
       pr "((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";
 ;;
@@ -123,7 +123,7 @@ let rec expr_soft o ex =
   | Evar (v, _) -> pr "%s" v;
   | Emeta (e, _) -> pr "%s%d" meta_prefix (Index.get_number e);
   | Earrow (args, ret, _) ->
-      pr "("; List.iteri (fun i x -> if i > 0 then pr " * "; expr_soft o x) args; pr " -> "; expr_soft o ret; pr ")"
+      pr "("; List.iteri (fun i x -> if i > 0 then pr " -> "; expr_soft o x) args; pr " -> "; expr_soft o ret; pr ")"
   | Eapp (Evar(s,_), [e1; e2], _) when is_infix_op s ->
      pr "("; expr_soft o e1; pr " %s " (to_infix s); expr_soft o e2; pr ")";
   | Eapp(Evar(s, _), [], _) ->
@@ -149,19 +149,19 @@ let rec expr_soft o ex =
       pr "("; expr_soft o e1; pr " <=> "; expr_soft o e2; pr ")";
   | Etrue -> pr "True";
   | Efalse -> pr "False";
-  | Eall (Evar (v, _) as var, e, _) when get_type var == type_none ->
-      pr "(All %s, " v; expr_soft o e; pr ")";
+(*  | Eall (Evar (v, _) as var, e, _) when get_type var == type_iota ->
+      pr "(All %s, " v; expr_soft o e; pr ")";*)
   | Eall (Evar (v, _) as var, e, _) ->
       pr "(All %s:" v; expr_soft o (get_type var); pr ", "; expr_soft o e; pr ")";
   | Eall _ -> assert false
-  | Eex (Evar (v, _) as var, e, _) when get_type var == type_none ->
-      pr "(Ex %s, " v; expr_soft o e; pr ")";
+(*  | Eex (Evar (v, _) as var, e, _) when get_type var == type_iota ->
+      pr "(Ex %s, " v; expr_soft o e; pr ")";*)
   | Eex (Evar (v, _) as var, e, _) ->
       pr "(Ex %s:" v; expr_soft o (get_type var); pr ", "; expr_soft o e; pr ")";
   | Eex _ -> assert false
   | Etau _ as e -> pr "Tau_%d" (Index.get_number e);
-  | Elam (Evar (v, _) as var, e, _) when get_type var == type_none ->
-      pr "(lambda %s, " v; expr_soft o e; pr ")";
+(*  | Elam (Evar (v, _) as var, e, _) when get_type var == type_iota ->
+      pr "(lambda %s, " v; expr_soft o e; pr ")";*)
   | Elam (Evar (v, _) as var, e, _) ->
       pr "(lambda %s:" v; expr_soft o (get_type var); pr ", "; expr_soft o e; pr ")";
   | Elam _ -> assert false
@@ -461,8 +461,9 @@ let rec llproof_expr o e =
       pro "Ex %a, " print_vartype (v, get_type v); llproof_expr o p;
   | Elam (v, p, _) ->
       pro "(lambda %a, " print_vartype (v, get_type v); llproof_expr o p; pro ")";
-  | Etau (v, p, _) ->
-      pro "(tau %a, " print_vartype (v, get_type v); llproof_expr o p; pro ")";
+(*  | Etau (v, p, _) ->
+      pro "(tau %a, " print_vartype (v, get_type v); llproof_expr o p; pro ")"; *)
+  | Etau _ as e -> pro "Tau_%d" (Index.get_number e);
   | Eapp (Evar(s,_), [e1; e2], _) when is_infix_op s ->
      pro "("; llproof_expr o e1; pro " %s " (to_infix s); llproof_expr o e2; pro ")";
   | Eapp (s, [], _) -> pro "%s" (get_name s);
@@ -589,12 +590,15 @@ let rec llproof_tree o i t =
   incr nodes;
 ;;
 
+let llproof_rule_db b r = llproof_rule (Buff b) r
+;;
+
 let print_idtype o (ty, act) =
-  if ty == type_none
+(*  if ty == type_iota
   then begin
     llproof_expr o act;
     oprintf o " ";
-  end else begin
+  end else*) begin
     oprintf o "(";
     llproof_expr o act;
     oprintf o "):\"";
@@ -671,19 +675,19 @@ let rec expr_esc o ex =
       pr "("; expr_esc o e1; pr " &lt;=&gt; "; expr_esc o e2; pr ")";
   | Etrue -> pr "True";
   | Efalse -> pr "False";
-  | Eall (Evar (v, _) as var, e, _) when get_type var == type_none ->
-      pr "(All %s, " v; expr_esc o e; pr ")";
+(*  | Eall (Evar (v, _) as var, e, _) when get_type var == type_iota ->
+      pr "(All %s, " v; expr_esc o e; pr ")";*)
   | Eall (Evar (v, _) as var, e, _) ->
       pr "(All %s:" v; expr_esc o (get_type var); pr ", "; expr_esc o e; pr ")";
   | Eall _ -> assert false
-  | Eex (Evar (v, _) as var, e, _) when get_type var == type_none ->
-      pr "(Ex %s, " v; expr_esc o e; pr ")";
+(*  | Eex (Evar (v, _) as var, e, _) when get_type var == type_iota ->
+      pr "(Ex %s, " v; expr_esc o e; pr ")";*)
   | Eex (Evar (v, _) as var, e, _) ->
       pr "(Ex %s:" v; expr_esc o (get_type var); pr ", "; expr_esc o e; pr ")";
   | Eex _ -> assert false
   | Etau _ as e -> pr "Tau_%d" (Index.get_number e);
-  | Elam (Evar (v, _) as var, e, _) when get_type var == type_none ->
-      pr "(lambda %s, " v; expr_esc o e; pr ")";
+(*  | Elam (Evar (v, _) as var, e, _) when get_type var == type_iota ->
+      pr "(lambda %s, " v; expr_esc o e; pr ")";*)
   | Elam (Evar (v, _) as var, e, _) ->
       pr "(lambda %s:" v; expr_esc o (get_type var); pr ", "; expr_esc o e; pr ")";
   | Elam _ -> assert false

@@ -101,7 +101,10 @@ exception Cannot_infer of string;;
 
 (* For now, [synthesize] is very simple-minded. *)
 let synthesize = function
-  | t when t == type_none -> any_name
+  | t when t == type_iota -> any_name
+  | t when t == Arith.type_int -> "0%Z"
+  | t when t == Arith.type_rat -> "(0 # 1)%Q"
+  | t when t == Arith.type_real -> "0%R"
   | Eapp(Evar ("nat", _), [], _) -> "O"
   | Eapp(Evar ("bool", _), [], _) -> "true"
   (*
@@ -129,7 +132,7 @@ let cty s =
    If e is not typed, returns the empty string. *)
 let string_type e =
   let ty = get_type e in
-  if Expr.equal ty type_none then ""
+  if Expr.equal ty type_iota then ""
   else Print.sexpr ty
 ;;
 
@@ -779,6 +782,8 @@ let get_signatures ps ext_decl =
   let rec get_sig r env e =
     match e with
     | Evar ("_", _) -> ()
+    | Eapp (Evar(s, _), [], _) when Arith.is_num_string s -> ()
+    | Evar (s, _) when is_nat s || Arith.is_num e -> ()
     | Evar (s, _) -> if not (List.mem s env) then add_sig s 0 r;
     | Earrow _ -> assert false
     | Emeta _ | Etrue | Efalse -> ()
@@ -891,7 +896,7 @@ let declare_hyp oc h =
   match h with
   | Phrase.Hyp (name, _, _) when name = goal_name -> ()
   | Phrase.Hyp (name, stmt, _) ->
-      pr_oc oc (sprintf "Parameter %s : " name) (trexpr [] stmt);
+      pr_oc oc (sprintf "Parameter %s : " name) (trexpr [] (Arith.coqify stmt));
       fprintf oc ".\n";
   | Phrase.Def (DefReal (name, sym, _, [], body, None)) ->
       let prefix = sprintf "Definition %s := " sym in

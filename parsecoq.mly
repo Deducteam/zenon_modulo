@@ -79,7 +79,7 @@ let mk_let id expr body =
 let mk_let_fix (id, def) body = mk_let id def body;;
 
 let mk_pattern (constr, args) body =
-  let bindings = List.map (fun v -> (v, type_none)) args in
+  let bindings = List.map (fun v -> (v, type_iota)) args in
   mk_lam bindings (eapp (evar "$match-case", [evar (constr); body]))
 ;;
 
@@ -367,7 +367,7 @@ binding_list:
   | /* empty */
       { [] }
   | IDENT binding_list
-      { ($1, type_none) :: $2 }
+      { ($1, type_iota) :: $2 }
   | LPAREN_ simplebinding RPAREN_ binding_list
       { $2 @ $4 }
 ;
@@ -388,7 +388,7 @@ hyp_def:
       { Hyp ($2, $4, 1) }
   | DEFINITION id_or_expr COLON_EQ_ expr PERIOD_
       { let (params, expr) = get_params $4 in
-        Def (DefReal ($2, $2, type_none, params, expr, None)) }
+        Def (DefReal ($2, $2, type_iota, params, expr, None)) }
   | DEFINITION IDENT compact_args COLON_ typ COLON_EQ_ expr PERIOD_
       {
        let compact_params = $3 in

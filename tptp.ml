@@ -67,10 +67,11 @@ let rec make_annot_expr e =
   match e with
   | Evar _ -> e
   | Emeta _  -> e
-  | Eapp (Evar(s,_), l, _) ->
-      let s = tptp_to_coq s in
-      let l = List.map make_annot_expr l in
-      eapp (evar s, l)
+  | e when (Expr.equal e type_type) -> e
+  | Eapp (Evar(s,_) as v, l, _) ->
+     let s = tptp_to_coq s in
+     let l = List.map make_annot_expr l in
+     eapp (tvar s (get_type v), l)
   | Eapp(_) -> assert false
   | Earrow _ -> e
   | Enot (e,_) -> enot (make_annot_expr e)
@@ -96,7 +97,11 @@ let make_definition name form body p =
 let process_annotations forms =
   let process_one form =
     match form with
-      | Hyp (name, body, kind) ->
+(*    | Hyp (name, _, _) when name = "bool"
+			    || name = "uninterpreted_type" 
+			    || name = "enum_POSITION" -> form
+ *)   | Hyp (name, body, kind) ->
+	 Log.debug 15 "Process Annotation '%a'" Print.pp_expr body;
           if List.mem name !eq_defs then
             make_definition name form (make_annot_expr body) kind
           else
