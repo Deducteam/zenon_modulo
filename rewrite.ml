@@ -458,16 +458,16 @@ let rec is_equal_term body =
   | _ -> false
 ;;
 
-let rec is_conj_term body = 
+(*let rec is_conj_term body = 
   match body with 
   | Eand (e1, e2, _) -> is_conj_term e1 && is_conj_term e2
   | _ -> is_equal_term body
-;;
+;;*)
 
 let rec is_heuri_rwrt_term body = 
   match body with 
   | Eall (_, pred, _) -> is_heuri_rwrt_term pred
-  | _ -> is_conj_term body
+  | _ -> is_equal_term body
 ;;
 
 let rec is_equiv_prop body = 
@@ -488,16 +488,16 @@ let rec is_equiv_prop body =
     end
 ;;
 
-let rec is_conj_prop body = 
+(*let rec is_conj_prop body = 
   match body with 
   | Eand (e1, e2, _) -> is_conj_prop e1 && is_conj_prop e2
   | _ -> is_equiv_prop body
-;;
+;;*)
 
 let rec is_heuri_rwrt_prop body = 
   match body with 
   | Eall (_, pred, _) -> is_heuri_rwrt_prop pred
-  | _ -> is_conj_prop body
+  | _ -> is_equiv_prop body
 ;;
 
 let split_to_prop_rule body = 
