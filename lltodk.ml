@@ -51,24 +51,24 @@ let get_metactx e =
 ;;
 
 let mk_zterm = 
-  mk_term (mk_var ("arith_Z", mk_type))
+  mk_term (mk_var ("Z", mk_type))
 ;;
 
 let predefined_sym = 
-  [("Z", ("arith_Z", mk_type));
-   ("$less", ("arith_less", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
-   ("$lesseq", ("arith_lesseq", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
-   ("$greater", ("arith_greater", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
-   ("$greatereq", ("arith_greatereq", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
-   ("$uminus", ("arith_uminus", mk_arrow ([mk_zterm; mk_zterm])));
-   ("$sum", ("arith_sum", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
-   ("$difference", ("arith_difference", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
-   ("$product", ("arith_product", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
-   ("$is_int", ("arith_is_int", mk_arrow ([mk_zterm; mk_prop])));
-   ("$is_rat", ("arith_is_rat", mk_arrow ([mk_zterm; mk_prop])));
-   ("$to_int", ("arith_to_int", mk_arrow ([mk_zterm; mk_zterm])));
-   ("$to_rat", ("arith_to_rat", mk_arrow ([mk_zterm; mk_zterm])));
-   ("$to_real", ("arith_to_real", mk_arrow ([mk_zterm; mk_zterm])))
+  [("Z", ("Z", mk_type));
+   ("$less", ("less", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
+   ("$lesseq", ("lesseq", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
+   ("$greater", ("greater", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
+   ("$greatereq", ("greatereq", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
+   ("$uminus", ("uminus", mk_arrow ([mk_zterm; mk_zterm])));
+   ("$sum", ("sum", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
+   ("$difference", ("difference", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
+   ("$product", ("product", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
+   ("$is_int", ("is_int", mk_arrow ([mk_zterm; mk_prop])));
+   ("$is_rat", ("is_rat", mk_arrow ([mk_zterm; mk_prop])));
+   ("$to_int", ("to_int", mk_arrow ([mk_zterm; mk_zterm])));
+   ("$to_rat", ("to_rat", mk_arrow ([mk_zterm; mk_zterm])));
+   ("$to_real", ("to_real", mk_arrow ([mk_zterm; mk_zterm])))
   ]
 ;;
 
@@ -234,7 +234,7 @@ let rec trexpr_dkprop e =
      mk_prop
   | e when (Expr.equal e type_iota) -> 
      mk_iota 
-  | Evar (v, _) as var when Mltoll.is_meta v -> 
+(*  | Evar (v, _) as var when Mltoll.is_meta v -> 
      begin
        try
 	 Hashtbl.find !metactx var
@@ -255,7 +255,7 @@ let rec trexpr_dkprop e =
 	      add_metactx var dke; 
 	      dke
 	    end
-     end
+     end *)
   | Evar _ -> 
      trexpr_dkvartype e 
   | Emeta _ -> 
@@ -884,9 +884,114 @@ let get_sigs phrases sigs predef =
   get_sigs_aux [] phrases sigs predef
 ;;
 
+let rec get_sigs_all_type accu ty = 
+  match ty with 
+  | e when (Expr.equal e type_type) 
+	   || (Expr.equal e type_prop) 
+	   || (Expr.equal e type_iota) -> accu
+  | Evar _ -> accu
+  | Emeta _ -> assert false
+  | Eapp (Evar (v, _) as v', args, _) -> 
+     if (List.mem_assoc v accu) 
+     then
+       List.fold_left (fun x y -> get_sigs_all_type x y) accu args
+     else 
+       let accu = (v, get_type v') :: accu in 
+       List.fold_left (fun x y -> get_sigs_all_type x y) accu args
+  | Earrow (args, ret, _) -> 
+     let accu = List.fold_left (fun x y -> get_sigs_all_type x y) 
+			       accu args in 
+     get_sigs_all_type accu ret
+  | Enot _ 
+  | Eand _ 
+  | Eor _ 
+  | Eimply _ 
+  | Eequiv _ 
+  | Etrue 
+  | Efalse -> assert false
+  | Eall (_, p, _) 
+  | Eex (_, p, _) 
+  | Elam (_, p, _) -> get_sigs_all_type accu p
+  | Etau _ -> assert false
+  | _ -> assert false
+;;
+
+let rec get_sigs_all_fm accu fm = 
+  Log.debug 6 " |- fm = %a" Print.pp_expr fm;
+  match fm with 
+  | Evar (v, _) as v' when Mltoll.is_meta v -> 
+     if (List.mem_assoc v accu) 
+     then 
+       let accu = get_sigs_all_type accu (get_type v') in 
+       accu
+     else
+       let accu = get_sigs_all_type accu (get_type v') in 
+       let accu = (v, get_type v') :: accu in 
+       accu
+  | Evar _ as v -> 
+     let accu = get_sigs_all_type accu (get_type v) in 
+     accu
+  | Emeta _ -> assert false
+  | Eapp (Evar ("=", _), args, _) -> 
+     List.fold_left (fun x y -> get_sigs_all_fm x y) accu args
+  | Eapp (Evar (v, _) as v', args, _) 
+       when (List.mem_assoc v predefined_sym) -> 
+     let v = fst (List.assoc v predefined_sym) in 
+     let v' = tvar v (get_type v') in 
+     if (List.mem_assoc v accu) 
+     then 
+       let accu = get_sigs_all_type accu (get_type v') in 
+       List.fold_left (fun x y -> get_sigs_all_fm x y) accu args
+     else
+       let accu = get_sigs_all_type accu (get_type v') in 
+       let accu = (v, get_type v') :: accu in 
+       List.fold_left (fun x y -> get_sigs_all_fm x y) accu args
+  | Eapp (Evar (v, _) as v', args, _) -> 
+     if (List.mem_assoc v accu) 
+     then 
+       let accu = get_sigs_all_type accu (get_type v') in 
+       List.fold_left (fun x y -> get_sigs_all_fm x y) accu args
+     else
+       let accu = get_sigs_all_type accu (get_type v') in 
+       let accu = (v, get_type v') :: accu in 
+       List.fold_left (fun x y -> get_sigs_all_fm x y) accu args
+  | Earrow _ -> assert false
+  | Enot (e, _) -> get_sigs_all_fm accu e
+  | Eand (e1, e2, _) 
+  | Eor (e1, e2, _) 
+  | Eimply (e1, e2, _) 
+  | Eequiv (e1, e2, _) -> 
+     List.fold_left (fun x y -> get_sigs_all_fm x y) accu [e1; e2]
+  | Etrue 
+  | Efalse -> accu
+  | Eall (_, p, _) 
+  | Eex (_, p, _) 
+  | Elam (_, p, _) -> 
+     get_sigs_all_fm accu p 
+  | Etau _ -> 
+     accu
+  | _ -> assert false
+;;
+
+let rec get_sigs_all_aux accu llp = 
+  Log.debug 6 " |- Get Sigs - proof step";
+  match llp with 
+  | {conc = pconc; 
+     rule = prule; 
+     hyps = phyps;}
+    -> 
+     let accu = List.fold_left (fun x y -> get_sigs_all_fm x y) 
+			       accu pconc in 
+     List.fold_left (fun x y -> get_sigs_all_aux x y) accu phyps
+;;
+
+let get_sigs_all sigs llp = 
+  get_sigs_all_aux sigs llp 
+;;
+
 let output oc phrases llp =
   Log.debug 2 "=========== Generate Dedukti Term =============";
-  let predefsigs = 
+(*  let predefsigs = 
     List.map (fun (x, (y, z)) -> mk_decl (y, z)) predefined_sym
   in
   let sigs = Expr.get_defs () in
@@ -894,35 +999,46 @@ let output oc phrases llp =
   let sigs = List.append sigs sigs_2 in 
   let dksigs = translate_sigs sigs in
   let dksigs = List.map (fun (x,y) -> mk_decl (x, y)) dksigs in
-  let dkallsigs = List.append dksigs predefsigs in 
-  let dep_graph = create 42 in
-  List.iter (add_sym_graph dep_graph) dkallsigs;
-  let dksigs = topo_sort dep_graph in 
-  let dkctx = mk_prf_var_def phrases in 
+  let dkallsigs = List.append dksigs predefsigs in *)
 
+ (* let sigs = Expr.get_defs () in*)
   let rules = Hashtbl.fold (fun x y z -> y :: z) !tbl_term [] in
   let rules = List.append rules 
 			  (Hashtbl.fold (fun x y z -> y :: z) !tbl_prop []) in
+  let sigs = List.fold_left (fun a (x, y)  -> 
+				   let a = get_sigs_all_fm a x in 
+				   get_sigs_all_fm a y)
+				  [] rules in 
+  let sigs = get_sigs_all sigs (extract_prooftree llp) in 
+  let dksigs = translate_sigs sigs in 
+  let dksigs = List.map (fun (x, y) -> mk_decl (x, y)) dksigs in 
+  let dep_graph = create 1337 in
+  List.iter (add_sym_graph dep_graph) dksigs;
+  let dksigs = topo_sort dep_graph in 
+(*  let dkctx = mk_prf_var_def phrases in *)
+(*  let rules = Hashtbl.fold (fun x y z -> y :: z) !tbl_term [] in
+  let rules = List.append rules 
+			  (Hashtbl.fold (fun x y z -> y :: z) !tbl_prop []) in *)
   let dkrules = List.map build_dkrwrt rules in
   let (name, goal) = List.split (select_goal phrases) in 
   let dkgoal = trexpr_dkgoal goal in 
   let dkname = List.hd name in 
   let prooftree = extract_prooftree llp in 
   let dkproof = make_proof_term (List.hd goal) prooftree in 
-  let dkmetactx = Hashtbl.fold (fun x y z -> match y with 
+(*  let dkmetactx = Hashtbl.fold (fun x y z -> match y with 
 					     | Dkvar (v, ty) -> 
 						(mk_decl (v, ty)) :: z
 					     | _ -> assert false)
-			       !metactx [] in
+			       !metactx [] in *)
 						 
   fprintf oc "#NAME tocheck";
   fprintf oc ".\n";
   List.iter (print_line oc) dksigs;
   fprintf oc "\n";
-  List.iter (print_line oc) dkctx;
-  fprintf oc "\n";
-  List.iter (print_line oc) dkmetactx;
-  fprintf oc "\n";
+(*  List.iter (print_line oc) dkctx;
+  fprintf oc "\n"; *)
+(*  List.iter (print_line oc) dkmetactx;
+  fprintf oc "\n"; *)
   List.iter (print_line oc) dkrules;
   fprintf oc "\n";
   print_goal_type oc dkname dkgoal;
