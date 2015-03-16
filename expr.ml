@@ -241,10 +241,10 @@ let prop_app l =
         try raise (Type_Mismatch (type_prop, (List.find (fun e -> not (e == type_prop)) l), "Expr.prop_app"))
         with Not_found -> type_prop
     in
-    if List.memq type_iota l then 
-      type_iota
-    else if List.memq type_none l then
+    if List.memq type_none l then
       type_none
+    else if List.memq type_iota l then
+      type_iota
     else
       aux l
 
@@ -509,7 +509,7 @@ let print_stats oc =
 *)
 
 (* Expression constructors (except eapp, see substitutions) *)
-let evar s = he_merge (Evar (s, priv_var s type_iota));;
+let evar s = he_merge (Evar (s, priv_var s type_none));;
 let tvar s t = he_merge (Evar (s, priv_var s t));;
 let emeta (e) = he_merge (Emeta (e, priv_meta e));;
 let earrow args ret =
@@ -697,10 +697,10 @@ and inst_app map s args = match s, args with
   | _ -> substitute_safe map s, args
 
 and type_app s args =
-    if s == type_iota || List.memq type_iota (List.map get_type args) then
-        type_iota
-    else if s == type_none || List.memq type_none (List.map get_type args) then
+    if s == type_none || List.memq type_none (List.map get_type args) then
         type_none
+    else if s == type_iota || List.memq type_iota (List.map get_type args) then
+        type_iota
     else match inst_app [] s args with
     | Earrow(l, ret, _), args' ->
             let l' = List.map get_type args' in
