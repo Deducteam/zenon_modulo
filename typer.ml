@@ -11,7 +11,6 @@
 
 open Expr;;
 
-
 (* Exception raised when we meet a variable which is not present in the environment,
    i.e. which was not introduced by a binder. *)
 exception Scoping_error of string;;
@@ -109,7 +108,7 @@ let rec infer_expr opts env = function
        with Not_found ->
             if opts.scope_warnings then
               Error.warn ("Scoping error: unknown free variable " ^ s);
-            if get_type v == type_iota then
+            if get_type v == type_none then
               tvar s opts.default_type
             else
               v
@@ -122,7 +121,7 @@ let rec infer_expr opts env = function
      (* First lookup in the constant table *)
      (* Remark: If it fails, it looks at it on the symbol. *)
      let tyf = get_type (type_const opts f) in
-     if tyf == type_iota
+     if tyf == type_none
      then
        (* We have no way to find a return type,
           but we have to recursively call ourself
@@ -140,7 +139,7 @@ and xcheck_expr opts env ty e =
   if get_type e == ty
   then e
   else
-    if ty == type_iota
+    if ty == type_none
     then infer_expr opts env e
     else
       match e with
@@ -154,11 +153,11 @@ and xcheck_expr opts env ty e =
          let e1' = infer_expr opts env e1 in
          let t1 = get_type e1' in
          (* If this fails, try e2 *)
-         if t1 == type_iota then
+         if t1 == type_none then
            let e2' = infer_expr opts env e2 in
            let t2 = get_type e2' in
            (* if it also fails, finally look at the type annotation of the equality constant *)
-           if t2 == type_iota then
+           if t2 == type_none then
              match get_type eq with
              | Earrow ([t1; t2], prop, _) when t1 == t2 && prop = type_prop ->
                 eeq (check_expr opts env t1 e1) (check_expr opts env t2 e2)
@@ -172,7 +171,7 @@ and xcheck_expr opts env ty e =
          (* First lookup in the constant table *)
          (* Remark: If it fails, it looks at it on the symbol. *)
          let tyf = get_type (type_const opts f) in
-         if tyf == type_iota
+         if tyf == type_none
          then
            let typed_args = List.map (infer_expr opts env) args in
            let args_types = List.map get_type typed_args in
@@ -240,7 +239,7 @@ let declare_def_constant opts = function
   | DefReal (_, s, ty, env, body, _)
   | DefPseudo ((_, _), s, ty, env, body)
   | DefRec (_, s, ty, env, body) ->
-     if ty == type_iota
+     if ty == type_none
      then
        let typed_body = infer_expr opts env body in
        declare_constant (s, earrow (List.map get_type env) (get_type typed_body));
@@ -283,8 +282,25 @@ let phrase opts l (p, b) = match p with
   | _ -> (p, b) :: l                  (* TODO *)
 ;;
 
+(* Simpler version of declaration of defined constant which
+   does not try to type the body to find the type to give to the symbol.
+   This is only used in first pass. *)
+let declare_phrase (p, _) = match p with
+  | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _))
+  | Phrase.Def (DefReal (_, s, ty, _, _, _))
+  | Phrase.Def (DefPseudo (_, s, ty, _, _))
+  | Phrase.Def (DefRec (_, s, ty, _, _)) ->
+     if ty == type_none then () else declare_constant (s, ty)
+  | _ -> ()
+;;
+
 (* This is the only exported function of this module,
    it is called in main.ml after parsing. *)
 let phrasebl opts l =
+  (* We proceed in two passes because sometimes defined symbols are
+     used too early. *)
+  (* First pass: declare all constants *)
+  List.iter declare_phrase l;
+  (* Second pass: do the real job of typing everything *)
   List.fold_left (phrase opts) [] (List.rev l)
 ;;
