@@ -302,14 +302,14 @@ let declare_phrase (p, _) = match p with
 (* This is the only exported function of this module,
    it is called in main.ml after parsing. *)
 let phrasebl opts l =
-  Log.debug 15 "Initial constants:";
-  print_constant_decls stdout;
+  (* Log.debug 15 "Initial constants:";
+  print_constant_decls stdout; *)
   (* We proceed in two passes because sometimes defined symbols are
      used too early. *)
   (* First pass: declare all constants *)
   List.iter declare_phrase l;
-  Log.debug 15 "All constants:";
-  print_constant_decls stdout;
+  (* Log.debug 15 "All constants:";
+  print_constant_decls stdout; *)
   (* Second pass: do the real job of typing everything *)
   List.fold_left (phrase opts) [] (List.rev l)
 ;;
