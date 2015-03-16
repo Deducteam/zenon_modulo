@@ -66,28 +66,29 @@ let arr ty1 ty2 =
   | Earrow (l, ret, _) -> earrow (ty1 :: l) ret
   | _ -> earrow [ty1] ty2
 ;;
-let t_bool = eapp (tvar "basics.bool__t" type_type, []);;
-let bool1 = eps t_bool;;
-let bool2 = arr bool1 bool1;;
-let bool3 = arr bool1 bool2;;
+let t_bool () = eapp (tvar "basics.bool__t" type_type, []);;
+let bool1 () = eps (t_bool ());;
+let bool2 () = arr (bool1 ()) (bool1 ());;
+let bool3 () = arr (bool1 ()) (bool2 ());;
 let t_prop = type_prop;;
 
 let ret_prop_to_bool = function
-  | Earrow (l, ret, _) when ret == type_prop -> earrow l t_bool
-  | _ ->
+  | Earrow (l, ret, _) when ret == type_prop -> earrow l (bool1 ())
+  | ty ->
+     Log.debug 15 "Ret_prop_to_bool (%a)" Print.pp_expr ty;
      raise (Invalid_argument "ret_prop_to_bool")
 ;;
 let ret_bool_to_prop = function
-  | Earrow (l, ret, _) when ret == t_bool -> earrow l type_prop
+  | Earrow (l, ret, _) when ret == bool1 () -> earrow l type_prop
   | _ -> raise (Invalid_argument "ret_bool_to_prop")
 ;;
 
 let prop_to_bool_args args ty =
-  if ty == type_iota then earrow (List.map get_type args) t_bool
+  if ty == type_none then earrow (List.map get_type args) (bool1 ())
   else ret_prop_to_bool ty
 ;;
 
-let istrue e = eapp (tvar "Is_true" (arr t_bool t_prop), [e]);;
+let istrue e = eapp (tvar "Is_true" (arr (bool1 ()) t_prop), [e]);;
 let isfalse e = enot (istrue e);;
 
 let is_true_equal x =
@@ -459,19 +460,19 @@ let to_llargs tr_expr r =
   match r with
   | Ext (_, "and", [e1; e2]) ->
       let h = tr_expr (eand (istrue e1, istrue e2)) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__and_b" bool3, [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__and_b" (bool3 ()), [e1; e2]))) in
       ("zenon_focal_and", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "or", [e1; e2]) ->
       let h = tr_expr (eor (istrue e1, istrue e2)) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__or_b" bool3, [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__or_b" (bool3 ()), [e1; e2]))) in
       ("zenon_focal_or", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "xor", [e1; e2]) ->
       let h = tr_expr (enot (eequiv (istrue e1, istrue e2))) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__xor_b" bool3, [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__xor_b" (bool3 ()), [e1; e2]))) in
       ("zenon_focal_xor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "not", [e1]) ->
       let h = tr_expr (enot (istrue e1)) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__not_b" bool2, [e1]))) in
+      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__not_b" (bool2 ()), [e1]))) in
       ("zenon_focal_not", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "equal", [Evar (name, _)as a; e1; e2; e3]) ->
       let h = tr_expr (eeq e2 e3) in
@@ -481,19 +482,19 @@ let to_llargs tr_expr r =
        List.map tr_expr [eqdec; e1; e2; e3], [c], [ [h] ])
   | Ext (_, "notand", [e1; e2]) ->
       let h = tr_expr (enot (eand (istrue e1, istrue e2))) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__and_b" bool3, [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__and_b" (bool3 ()), [e1; e2])))) in
       ("zenon_focal_notand", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notor", [e1; e2]) ->
       let h = tr_expr (enot (eor (istrue e1, istrue e2))) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__or_b" bool3, [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__or_b" (bool3 ()), [e1; e2])))) in
       ("zenon_focal_notor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notxor", [e1; e2]) ->
       let h = tr_expr (eequiv (istrue e1, istrue e2)) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__xor_b" bool3, [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__xor_b" (bool3 ()), [e1; e2])))) in
       ("zenon_focal_notxor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notnot", [e1]) ->
       let h = tr_expr (istrue e1) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__not_b" bool2, [e1])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__not_b" (bool2 ()), [e1])))) in
       ("zenon_focal_notnot", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notequal", [Evar (name, _) as a; e1; e2; e3]) ->
       let h = tr_expr (enot (eeq e2 e3)) in
@@ -682,9 +683,9 @@ let predecl () =
   ]
 ;;
 
-let built_in_defs =
-  let b1 = Expr.newtvar t_bool in
-  let b2 = Expr.newtvar t_bool in
+let built_in_defs () =
+  let b1 = Expr.newtvar (bool1 ()) in
+  let b2 = Expr.newtvar (bool1 ()) in
   let x = Expr.newvar () in
   let y = Expr.newvar () in
   let xy = Expr.newvar () in
@@ -692,21 +693,21 @@ let built_in_defs =
   let ty = Expr.newvar () in
   let case = eapp (evar "$match-case", [evar ("Datatypes.pair"); x]) in
   [
-    Def (DefReal ("_amper__amper_", "basics._amper__amper_", bool3, [b1; b2],
-                  eapp (tvar "coq_builtins.bi__and_b" bool3, [b1; b2]), None));
-    Def (DefReal ("_bar__bar_", "basics._bar__bar_", bool3, [b1; b2],
-                  eapp (tvar "coq_builtins.bi__or_b" bool3, [b1; b2]), None));
-    Def (DefReal ("_tilda__tilda_", "basics._tilda__tilda_", bool2, [b1],
-                  eapp (tvar "coq_builtins.bi__not_b" bool2, [b1]), None));
-    Def (DefReal ("_bar__lt__gt__bar_", "basics._bar__lt__gt__bar_", bool3, [b1; b2],
-                  eapp (tvar "coq_builtins.bi__xor_b" bool3, [b1; b2]), None));
+    Def (DefReal ("_amper__amper_", "basics._amper__amper_", bool3 (), [b1; b2],
+                  eapp (tvar "coq_builtins.bi__and_b" (bool3 ()), [b1; b2]), None));
+    Def (DefReal ("_bar__bar_", "basics._bar__bar_", bool3 (), [b1; b2],
+                  eapp (tvar "coq_builtins.bi__or_b" (bool3 ()), [b1; b2]), None));
+    Def (DefReal ("_tilda__tilda_", "basics._tilda__tilda_", bool2 (), [b1],
+                  eapp (tvar "coq_builtins.bi__not_b" (bool2 ()), [b1]), None));
+    Def (DefReal ("_bar__lt__gt__bar_", "basics._bar__lt__gt__bar_", bool3 (), [b1; b2],
+                  eapp (tvar "coq_builtins.bi__xor_b" (bool3 ()), [b1; b2]), None));
 
-    Def (DefReal ("pair", "basics.pair", type_iota, [tx; ty; x; y],
+    Def (DefReal ("pair", "basics.pair", type_none, [tx; ty; x; y],
                   eapp (evar "Datatypes.pair", [tx; ty; x; y]), None));
-    Def (DefReal ("fst", "basics.fst", type_iota, [tx; ty; xy],
+    Def (DefReal ("fst", "basics.fst", type_none, [tx; ty; xy],
                   eapp (evar "$match", [xy; elam (x, elam (y, case))]),
                   None));
-    Def (DefReal ("snd", "basics.snd", type_iota, [tx; ty; xy],
+    Def (DefReal ("snd", "basics.snd", type_none, [tx; ty; xy],
                   eapp (evar "$match", [xy; elam (y, elam (x, case))]),
                   None));
     Inductive ("basics.list__t", ["A"], [
@@ -721,14 +722,14 @@ let built_in_defs =
                [ ("true", []); ("false", []) ], "basics.bool__t_ind");
 
     (* deprecated, kept for compatibility only *)
-    Def (DefReal ("and_b", "basics.and_b", bool3, [b1; b2],
-                  eapp (tvar "basics._amper__amper_" bool3, [b1; b2]), None));
-    Def (DefReal ("or_b", "basics.or_b", bool3, [b1; b2],
-                  eapp (tvar "basics._bar__bar_" bool3, [b1; b2]), None));
-    Def (DefReal ("not_b", "basics.not_b", bool2, [b1],
-                  eapp (tvar "basics._tilda__tilda_" bool2, [b1]), None));
-    Def (DefReal ("xor_b", "basics.xor_b", bool3, [b1; b2],
-                  eapp (tvar "basics._bar__lt__gt__bar_" bool3, [b1; b2]), None));
+    Def (DefReal ("and_b", "basics.and_b", bool3 (), [b1; b2],
+                  eapp (tvar "basics._amper__amper_" (bool3 ()), [b1; b2]), None));
+    Def (DefReal ("or_b", "basics.or_b", bool3 (), [b1; b2],
+                  eapp (tvar "basics._bar__bar_" (bool3 ()), [b1; b2]), None));
+    Def (DefReal ("not_b", "basics.not_b", bool2 (), [b1],
+                  eapp (tvar "basics._tilda__tilda_" (bool2 ()), [b1]), None));
+    Def (DefReal ("xor_b", "basics.xor_b", bool3 (), [b1; b2],
+                  eapp (tvar "basics._bar__lt__gt__bar_" (bool3 ()), [b1; b2]), None));
   ]
 ;;
 
@@ -745,7 +746,7 @@ let preprocess l =
     | Inductive _ -> x
     | Rew _ -> x
   in
-  built_in_defs @ List.map f l
+  built_in_defs () @ List.map f l
 ;;
 
 let add_phrase p = ();;

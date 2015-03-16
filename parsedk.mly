@@ -16,7 +16,8 @@ let arr ty1 ty2 = match ty2 with
 ;;
 let eps ty = eapp (tvar "cc.eT" (arr type_type type_type), [ty]);;
 let bool_t = tvar "basics.bool__t" type_type;;
-let bool1 = eapp (bool_t, []);;
+let bool_const = eapp (bool_t, []);;
+let bool1 = eps bool_const;;
 
 let mk_const_t s = eapp (tvar s type_type, []);;
 
