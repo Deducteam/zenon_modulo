@@ -26,6 +26,7 @@ type t = {
   declare_context_coq : out_channel -> unit;
   p_rule_coq : out_channel -> Llproof.rule -> unit;
   predef : unit -> string list;
+  predecl : unit -> (string * Expr.expr) list;
 };;
 
 val register : t -> unit;;
@@ -52,3 +53,4 @@ val to_llproof : translator;;
 val declare_context_coq : out_channel -> unit;;
 val p_rule_coq : string -> out_channel -> Llproof.rule -> unit;;
 val predef : unit -> string list;;
+val predecl : unit -> unit;;

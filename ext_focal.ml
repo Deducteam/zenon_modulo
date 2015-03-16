@@ -664,21 +664,21 @@ let rec pp_expr e =
 
 (* Registering of constants for type-checking *)
 
-List.iter Typer.declare_constant
+let predecl () =
   [
-    ("Is_true", arr bool1 t_prop);
-    ("true", bool1);
-    ("false", bool1);
+    ("Is_true", arr (bool1 ()) t_prop);
+    ("true", bool1 ());
+    ("false", bool1 ());
 
-    ("basics._tilda__tilda_", bool2);
-    ("basics._amper__amper_", bool3);
-    ("basics._bar__bar_", bool3);
-    ("basics._bar__lt__gt__bar_", bool3);
+    ("basics._tilda__tilda_", bool2 ());
+    ("basics._amper__amper_", bool3 ());
+    ("basics._bar__bar_", bool3 ());
+    ("basics._bar__lt__gt__bar_", bool3 ());
 
-    ("coq_builtins.bi__not_b", bool2);
-    ("coq_builtins.bi__and_b", bool3);
-    ("coq_builtins.bi__or_b", bool3);
-    ("coq_builtins.bi__xor_b", bool3)
+    ("coq_builtins.bi__not_b", bool2 ());
+    ("coq_builtins.bi__and_b", bool3 ());
+    ("coq_builtins.bi__or_b", bool3 ());
+    ("coq_builtins.bi__xor_b", bool3 ())
   ]
 ;;
 
@@ -879,4 +879,5 @@ Extension.register {
   Extension.declare_context_coq = declare_context_coq;
   Extension.p_rule_coq = p_rule_coq;
   Extension.predef = predef;
+  Extension.predecl = predecl;
 };;

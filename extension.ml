@@ -24,6 +24,7 @@ type t = {
   declare_context_coq : out_channel -> unit;
   p_rule_coq : out_channel -> Llproof.rule -> unit;
   predef : unit -> string list;
+  predecl : unit -> (string * Expr.expr) list;
 };;
 
 let theories = ref ([] : t list);;
@@ -115,4 +116,13 @@ let p_rule_coq ext oc r =
 
 let predef () =
   List.flatten (["="] :: List.map (fun ext -> ext.predef ()) !active)
+;;
+
+let predecl () =
+  List.iter
+   (fun ext ->
+    List.iter
+     Typer.declare_constant
+     (ext.predecl ()))
+  !active
 ;;

@@ -377,6 +377,7 @@ let main () =
              | [f] -> f
              | _ -> Arg.usage argspec usage_msg; exit 2
   in
+  Extension.predecl ();
   let (th_name, phrases_dep) = parse_file file in
   begin match !proof_level with
   | Proof_coq | Proof_coqterm -> Watch.warn_unused_var phrases_dep;
