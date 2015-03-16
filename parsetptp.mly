@@ -121,9 +121,6 @@ expr:
   | PROP                               { type_prop }
   | TTYPE                              { type_type }
   | STRING                             { eapp (evar "$string", [evar $1]) }
-  | INT                                { Arith.mk_int $1 }
-  | RAT                                { Arith.mk_rat $1 }
-  | REAL                               { Arith.mk_real $1 }
   | expr EQSYM expr                    { eeq $1 $3 }
   | expr NEQSYM expr                   { enot (eeq $1 $3) }
 ;

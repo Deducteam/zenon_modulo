@@ -5,9 +5,10 @@
 *.glob
 .config_var
 .depend
-zenon.bin
-zenon.byt
+zenon_modulo.bin
+zenon_modulo.byt
 zenon
+zenon_modulo
 *.output
 parsecoq.ml
 parsecoq.mli
@@ -15,10 +16,13 @@ parsetptp.ml
 parsetptp.mli
 parsezen.ml
 parsezen.mli
+parsedk.ml
+parsedk.mli
 lexcoq.ml
 lextptp.ml
 lexsmtlib.ml
 lexzen.ml
+lexdk.ml
 checksum.ml
 config.ml
 .svn
