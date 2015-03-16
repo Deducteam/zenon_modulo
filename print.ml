@@ -820,6 +820,8 @@ let dots o ?full_output:(b=true) ?max_depth:(d=(-1)) l =
 let pp_expr b e = expr_soft (Buff b) e
 let pp_expr_t b e = Printf.bprintf b "%a : %a" pp_expr e pp_expr (get_type e)
 
+let pp_phrase b p = phrase (Buff b) p
+
 let pp_mlrule b r =
   let s, l = get_rule_name r in
    Printf.bprintf b "%s : %a" s (Log.pp_list ~sep:", " pp_expr) l

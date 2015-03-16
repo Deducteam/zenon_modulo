@@ -173,19 +173,21 @@ and xcheck_expr opts env ty e =
          let tyf = get_type (type_const opts f) in
          if tyf == type_none
          then
+          (Log.debug 15 "Check undeclared symbol %s" f_sym;
            let typed_args = List.map (infer_expr opts env) args in
            let args_types = List.map get_type typed_args in
            let infered_const_type = earrow args_types ty in
            if opts.register_new_constants then
              declare_constant (f_sym, infered_const_type);
-           eapp (tvar f_sym infered_const_type, typed_args)
-         else
+           eapp (tvar f_sym infered_const_type, typed_args))
+          else
+          (Log.debug 15 "Check declared symbol %s : %a" f_sym Print.pp_expr tyf;
            let (type_args, term_args, tys, ret_ty) = instantiate args tyf in
            if ret_ty == ty
            then
              eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr opts env) tys term_args)
            else
-             raise (Type_Mismatch (ret_ty, ty, "Typer.xcheck_expr"))
+             raise (Type_Mismatch (ret_ty, ty, "Typer.xcheck_expr")))
       | Enot (e, _) ->
          assert (ty == type_prop);
          enot (check_expr opts env type_prop e)
@@ -225,6 +227,7 @@ and xcheck_expr opts env ty e =
          )
       | _ -> assert false
 and check_expr opts env ty e =
+  Log.debug 15 "Check %a : %a" Print.pp_expr e Print.pp_expr ty;
   let result = xcheck_expr opts env ty e in
   let rty = get_type result in
   if opts.fully_type && not (ty == rty) then
@@ -271,7 +274,9 @@ let definition opts d =
 (* This function is folded on the list of phrases,
    it removes declarations and return the typed phrases
    in reverse order *)
-let phrase opts l (p, b) = match p with
+let phrase opts l (p, b) =
+  Log.debug 15 "Check Phrase %a" Print.pp_phrase p;
+  match p with
   | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _)) ->
      declare_constant (s, ty);
      l
@@ -297,10 +302,14 @@ let declare_phrase (p, _) = match p with
 (* This is the only exported function of this module,
    it is called in main.ml after parsing. *)
 let phrasebl opts l =
+  Log.debug 15 "Initial constants:";
+  print_constant_decls stdout;
   (* We proceed in two passes because sometimes defined symbols are
      used too early. *)
   (* First pass: declare all constants *)
   List.iter declare_phrase l;
+  Log.debug 15 "All constants:";
+  print_constant_decls stdout;
   (* Second pass: do the real job of typing everything *)
   List.fold_left (phrase opts) [] (List.rev l)
 ;;

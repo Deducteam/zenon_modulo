@@ -57,9 +57,10 @@ let higher_order_warning s =
 ;;
 (* Functions for building types (/!\ too specific to Dedukti) *)
 let eT = tvar "cc.eT" (earrow [type_type] type_type);;
-let eps ty = assert (get_type ty == type_type); ty
-   (* was "eapp (eT, [ty])",
-      TODO test input_format to choose between Dedukti and Coq typing. *)
+let eps ty =
+  assert (get_type ty == type_type);
+  if !(Globals.output_dk) then (Log.debug 15 "Output=DK") else (Log.debug 15 "Output!=DK");
+  if !(Globals.output_dk) then (eapp (eT, [ty])) else ty
 ;;
 let arr ty1 ty2 =
   match ty2 with
