@@ -34,6 +34,7 @@ type input_format =
   | I_zenon
   | I_focal
   | I_tptp
+  | I_dk
 ;;
 let input_format = ref I_zenon;;
 
@@ -118,6 +119,8 @@ let argspec = [
       "                clear the include path";
   "-icoq", Arg.Unit (fun () -> input_format := I_focal),
         "              read input file in Coq format";
+  "-idk", Arg.Unit (fun () -> input_format := I_dk),
+            "          read input file in Dedukti format";
   "-ifocal", Arg.Unit (fun () -> input_format := I_focal),
           "            read input file in Focal format";
   "-itptp", Arg.Unit (fun () -> input_format := I_tptp),
@@ -307,11 +310,22 @@ let parse_file f =
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
           closer ();
           let typer_options =
-            { Typer.default_type = Expr.type_iota;
+            { Typer.default_type = Expr.type_none;
               Typer.scope_warnings = true;
               Typer.undeclared_functions_warning = true;
               Typer.register_new_constants = true;
               Typer.fully_type = false }
+          in
+          (name, Typer.phrasebl typer_options result)
+      | I_dk ->
+          let (name, result) = Parsedk.file Lexdk.token lexbuf in
+          closer ();
+          let typer_options =
+            { Typer.default_type = Expr.type_none;
+              Typer.scope_warnings = true;
+              Typer.undeclared_functions_warning = true;
+              Typer.register_new_constants = false;
+              Typer.fully_type = true }
           in
           (name, Typer.phrasebl typer_options result)
       | I_zenon ->
