@@ -700,14 +700,14 @@ let predecl () =
      let tyb = newtvar type_type in
      let a = newtvar tya in
      let b = newtvar tyb in
-     eeq (first tya tyb (pair tya tyb a b)) a
+     eeq (first tyb tya (pair tya tyb a b)) a
     );
   Rewrite.add_rwrt_term "snd"
     (let tya = newtvar type_type in
      let tyb = newtvar type_type in
      let a = newtvar tya in
      let b = newtvar tyb in
-     eeq (second tya tyb (pair tya tyb a b)) b
+     eeq (second tyb tya (pair tya tyb a b)) b
     );
   [
     ("cc.eT", arr type_type type_type);
