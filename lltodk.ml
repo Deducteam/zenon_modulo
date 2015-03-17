@@ -669,6 +669,15 @@ let rec trproof_dk p =
 	let conc1 = get_pr_var (apply p t1) in
 	let conc2 = get_pr_var (eeq t2 t1) in
 	mk_DkRcongrl (a, dkp, dkt1, dkt2, lam, conc1, conc2)
+     | Rextension (ext, name, args, _, _) ->
+        let ext = if ext = "" then "focal" else ext in
+        mk_app (mk_var (ext ^ "." ^ name, mk_iota),
+                  List.append (List.map trexpr_dkprop args)
+                    (List.map trproof_dk phyps))
+     | Rdefinition _ ->
+        (match phyps with
+        | [ next ] -> trproof_dk next
+        | _ -> assert false)
      | _ -> assert false
 
   and mk_pnotp_subst pp argspp argsnqq phyps =
