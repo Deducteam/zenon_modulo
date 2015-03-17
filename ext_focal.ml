@@ -666,8 +666,52 @@ let rec pp_expr e =
 
 (* Registering of constants for type-checking *)
 
+let prod a b =
+  eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type),
+        [a; b])
+
+let pair_ty =
+  let a = newtvar type_type in
+  let b = newtvar type_type in
+  eall (a, eall (b, earrow [eps a; eps b] (eps (prod a b))))
+
+let first_ty =
+  let a = newtvar type_type in
+  let b = newtvar type_type in
+  eall (b, eall (a, earrow [eps (prod a b)] (eps a)))
+
+let second_ty =
+  let a = newtvar type_type in
+  let b = newtvar type_type in
+  eall (b, eall (a, earrow [eps (prod a b)] (eps b)))
+
+let pair_var = tvar "dk_tuple.pair" pair_ty
+let fst_var = tvar "basics.fst" first_ty
+let snd_var = tvar "basics.snd" second_ty
+
+let pair a b x y = eapp (pair_var, [a; b; x; y])
+let first a b c = eapp (fst_var, [a; b; c])
+let second a b c = eapp (snd_var, [a; b; c])
+
 let predecl () =
+  (* Add rewrite-rules on pairs *)
+  Rewrite.add_rwrt_term "fst"
+    (let tya = newtvar type_type in
+     let tyb = newtvar type_type in
+     let a = newtvar tya in
+     let b = newtvar tyb in
+     eeq (first tya tyb (pair tya tyb a b)) a
+    );
+  Rewrite.add_rwrt_term "snd"
+    (let tya = newtvar type_type in
+     let tyb = newtvar type_type in
+     let a = newtvar tya in
+     let b = newtvar tyb in
+     eeq (second tya tyb (pair tya tyb a b)) b
+    );
   [
+    ("cc.eT", arr type_type type_type);
+
     ("Is_true", arr (bool1 ()) t_prop);
     ("true", bool1 ());
     ("false", bool1 ());
@@ -677,10 +721,13 @@ let predecl () =
     ("basics._bar__bar_", bool3 ());
     ("basics._bar__lt__gt__bar_", bool3 ());
 
-    ("coq_builtins.bi__not_b", bool2 ());
-    ("coq_builtins.bi__and_b", bool3 ());
-    ("coq_builtins.bi__or_b", bool3 ());
-    ("coq_builtins.bi__xor_b", bool3 ())
+    ("FOCAL.ifthenelse",
+     let ty = newtvar type_type in
+     eall (ty, earrow [bool1 (); eps ty; eps ty] (eps ty)));
+
+    ("basics.syntactic_equal",
+     let ty = newtvar type_type in
+     eall (ty, earrow [eps ty; eps ty] (bool1 ())));
   ]
 ;;
 
