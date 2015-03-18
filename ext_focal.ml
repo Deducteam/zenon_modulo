@@ -685,7 +685,7 @@ let second_ty =
   let b = newtvar type_type in
   eall (b, eall (a, earrow [eps (prod a b)] (eps b)))
 
-let pair_var = tvar "dk_tuple.pair" pair_ty
+let pair_var = tvar "basics.pair" pair_ty
 let fst_var = tvar "basics.fst" first_ty
 let snd_var = tvar "basics.snd" second_ty
 
@@ -734,12 +734,6 @@ let predecl () =
 let built_in_defs () =
   let b1 = Expr.newtvar (bool1 ()) in
   let b2 = Expr.newtvar (bool1 ()) in
-  let x = Expr.newvar () in
-  let y = Expr.newvar () in
-  let xy = Expr.newvar () in
-  let tx = Expr.newvar () in
-  let ty = Expr.newvar () in
-  let case = eapp (evar "$match-case", [evar ("Datatypes.pair"); x]) in
   [
     Def (DefReal ("_amper__amper_", "basics._amper__amper_", bool3 (), [b1; b2],
                   eapp (tvar "coq_builtins.bi__and_b" (bool3 ()), [b1; b2]), None));
@@ -749,15 +743,6 @@ let built_in_defs () =
                   eapp (tvar "coq_builtins.bi__not_b" (bool2 ()), [b1]), None));
     Def (DefReal ("_bar__lt__gt__bar_", "basics._bar__lt__gt__bar_", bool3 (), [b1; b2],
                   eapp (tvar "coq_builtins.bi__xor_b" (bool3 ()), [b1; b2]), None));
-
-    Def (DefReal ("pair", "basics.pair", type_none, [tx; ty; x; y],
-                  eapp (evar "Datatypes.pair", [tx; ty; x; y]), None));
-    Def (DefReal ("fst", "basics.fst", type_none, [tx; ty; xy],
-                  eapp (evar "$match", [xy; elam (x, elam (y, case))]),
-                  None));
-    Def (DefReal ("snd", "basics.snd", type_none, [tx; ty; xy],
-                  eapp (evar "$match", [xy; elam (y, elam (x, case))]),
-                  None));
     Inductive ("basics.list__t", ["A"], [
                  ("List.nil", []);
                  ("List.cons", [Param "A"; Self]);
