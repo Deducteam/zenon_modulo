@@ -4,10 +4,10 @@ Version.add "$Id$";;
 (* Extension for Coq's "bool" type, as used in focal. *)
 (* Symbols:
      Is_true
-     coq_builtins.bi__and_b
-     coq_builtins.bi__or_b
-     coq_builtins.bi__xor_b
-     coq_builtins.bi__not_b
+     basics._amper__amper_
+     basics._bar__bar_
+     basics._bar__lt__gt__bar_
+     basics._tilda__tilda_
      false
      true
      FOCAL.ifthenelse
@@ -128,7 +128,7 @@ let newnodes_istrue e g =
     | Not_found -> assert false
   in
   match e with
-  | Eapp (Evar("Is_true**coq_builtins.bi__and_b",_), [e1; e2], _) ->
+  | Eapp (Evar("Is_true**basics._amper__amper_",_), [e1; e2], _) ->
       let branches = [| [eand (istrue e1, istrue e2)] |] in
       [ Node {
         nconc = [e];
@@ -137,7 +137,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = branches;
       }; Stop ]
-  | Eapp (Evar("Is_true**coq_builtins.bi__or_b",_), [e1; e2], _) ->
+  | Eapp (Evar("Is_true**basics._bar__bar_",_), [e1; e2], _) ->
       let branches = [| [eor (istrue e1, istrue e2)] |] in
       [ Node {
         nconc = [e];
@@ -146,7 +146,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = branches;
       }; Stop ]
-  | Eapp (Evar("Is_true**coq_builtins.bi__xor_b",_), [e1; e2], _) ->
+  | Eapp (Evar("Is_true**basics._bar__lt__gt__bar_",_), [e1; e2], _) ->
       let branches = [| [enot (eequiv (istrue e1, istrue e2))] |] in
       [ Node {
         nconc = [e];
@@ -155,7 +155,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = branches;
       }; Stop ]
-  | Eapp (Evar("Is_true**coq_builtins.bi__not_b",_), [e1], _) ->
+  | Eapp (Evar("Is_true**basics._tilda__tilda_",_), [e1], _) ->
       let branches = [| [isfalse e1] |] in
       [ Node {
         nconc = [e];
@@ -175,7 +175,7 @@ let newnodes_istrue e g =
          ngoal = g;
          nbranches = branches;
        }; Stop ]
-  | Enot (Eapp (Evar("Is_true**coq_builtins.bi__and_b",_), [e1; e2], _), _) ->
+  | Enot (Eapp (Evar("Is_true**basics._amper__amper_",_), [e1; e2], _), _) ->
       let branches = [| [enot (eand (istrue e1, istrue e2))] |] in
       [ Node {
         nconc = [e];
@@ -184,7 +184,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = branches;
       }; Stop ]
-  | Enot (Eapp (Evar("Is_true**coq_builtins.bi__or_b",_), [e1; e2], _), _) ->
+  | Enot (Eapp (Evar("Is_true**basics._bar__bar_",_), [e1; e2], _), _) ->
       let branches = [| [enot (eor (istrue e1, istrue e2))] |] in
       [ Node {
         nconc = [e];
@@ -193,7 +193,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = branches;
       }; Stop ]
-  | Enot (Eapp (Evar("Is_true**coq_builtins.bi__xor_b",_), [e1; e2], _), _) ->
+  | Enot (Eapp (Evar("Is_true**basics._bar__lt__gt__bar_",_), [e1; e2], _), _) ->
       let branches = [| [eequiv (istrue e1, istrue e2)] |] in
       [ Node {
         nconc = [e];
@@ -202,7 +202,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = branches;
       }; Stop ]
-  | Enot (Eapp (Evar("Is_true**coq_builtins.bi__not_b",_), [e1], _), _) ->
+  | Enot (Eapp (Evar("Is_true**basics._tilda__tilda_",_), [e1], _), _) ->
       let branches = [| [istrue e1] |] in
       [ Node {
         nconc = [e];
@@ -461,19 +461,19 @@ let to_llargs tr_expr r =
   match r with
   | Ext (_, "and", [e1; e2]) ->
       let h = tr_expr (eand (istrue e1, istrue e2)) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__and_b" (bool3 ()), [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._amper__amper_" (bool3 ()), [e1; e2]))) in
       ("zenon_focal_and", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "or", [e1; e2]) ->
       let h = tr_expr (eor (istrue e1, istrue e2)) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__or_b" (bool3 ()), [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._bar__bar_" (bool3 ()), [e1; e2]))) in
       ("zenon_focal_or", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "xor", [e1; e2]) ->
       let h = tr_expr (enot (eequiv (istrue e1, istrue e2))) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__xor_b" (bool3 ()), [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._bar__lt__gt__bar_" (bool3 ()), [e1; e2]))) in
       ("zenon_focal_xor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "not", [e1]) ->
       let h = tr_expr (enot (istrue e1)) in
-      let c = tr_expr (istrue (eapp (tvar "coq_builtins.bi__not_b" (bool2 ()), [e1]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._tilda__tilda_" (bool2 ()), [e1]))) in
       ("zenon_focal_not", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "equal", [Evar (name, _)as a; e1; e2; e3]) ->
       let h = tr_expr (eeq e2 e3) in
@@ -483,19 +483,19 @@ let to_llargs tr_expr r =
        List.map tr_expr [eqdec; e1; e2; e3], [c], [ [h] ])
   | Ext (_, "notand", [e1; e2]) ->
       let h = tr_expr (enot (eand (istrue e1, istrue e2))) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__and_b" (bool3 ()), [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._amper__amper_" (bool3 ()), [e1; e2])))) in
       ("zenon_focal_notand", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notor", [e1; e2]) ->
       let h = tr_expr (enot (eor (istrue e1, istrue e2))) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__or_b" (bool3 ()), [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._bar__bar_" (bool3 ()), [e1; e2])))) in
       ("zenon_focal_notor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notxor", [e1; e2]) ->
       let h = tr_expr (eequiv (istrue e1, istrue e2)) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__xor_b" (bool3 ()), [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._bar__lt__gt__bar_" (bool3 ()), [e1; e2])))) in
       ("zenon_focal_notxor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notnot", [e1]) ->
       let h = tr_expr (istrue e1) in
-      let c = tr_expr (enot (istrue (eapp (tvar "coq_builtins.bi__not_b" (bool2 ()), [e1])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._tilda__tilda_" (bool2 ()), [e1])))) in
       ("zenon_focal_notnot", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notequal", [Evar (name, _) as a; e1; e2; e3]) ->
       let h = tr_expr (enot (eeq e2 e3)) in
@@ -735,21 +735,13 @@ let built_in_defs () =
   let b1 = Expr.newtvar (bool1 ()) in
   let b2 = Expr.newtvar (bool1 ()) in
   [
-    Def (DefReal ("_amper__amper_", "basics._amper__amper_", bool3 (), [b1; b2],
-                  eapp (tvar "coq_builtins.bi__and_b" (bool3 ()), [b1; b2]), None));
-    Def (DefReal ("_bar__bar_", "basics._bar__bar_", bool3 (), [b1; b2],
-                  eapp (tvar "coq_builtins.bi__or_b" (bool3 ()), [b1; b2]), None));
-    Def (DefReal ("_tilda__tilda_", "basics._tilda__tilda_", bool2 (), [b1],
-                  eapp (tvar "coq_builtins.bi__not_b" (bool2 ()), [b1]), None));
-    Def (DefReal ("_bar__lt__gt__bar_", "basics._bar__lt__gt__bar_", bool3 (), [b1; b2],
-                  eapp (tvar "coq_builtins.bi__xor_b" (bool3 ()), [b1; b2]), None));
     Inductive ("basics.list__t", ["A"], [
                  ("List.nil", []);
                  ("List.cons", [Param "A"; Self]);
                ],
                "@List.list_ind");
     Inductive ("Datatypes.prod", ["A"; "B"],
-               [ ("Datatypes.pair", [Param "A"; Param "B"]) ],
+               [ ("basics.pair", [Param "A"; Param "B"]) ],
                "@Datatypes.prod_ind");
     Inductive ("basics.bool__t", [],
                [ ("true", []); ("false", []) ], "basics.bool__t_ind");
@@ -890,12 +882,12 @@ let p_rule_coq oc r = assert false;;
 
 let predef () =
   names_of_equality @
-    ["bool"; "Is_true"; "coq_builtins.bi__not_b"; "coq_builtins.bi__and_b";
-     "coq_builtins.bi__or_b";
-     "coq_builtins.bi__xor_b";
+    ["bool"; "Is_true"; "basics._tilda__tilda_"; "basics._amper__amper_";
+     "basics._bar__bar_";
+     "basics._bar__lt__gt__bar_";
      "basics.pair"; "basics.fst"; "basics.snd";
      "true"; "false"; "FOCAL.ifthenelse" ;
-     "List.cons"; "List.nil"; "Datatypes.pair";
+     "List.cons"; "List.nil";
     ]
 ;;
 
