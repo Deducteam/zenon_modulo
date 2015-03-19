@@ -312,7 +312,7 @@ let parse_file f =
           let typer_options =
             { Typer.default_type = Expr.type_none;
               Typer.scope_warnings = true;
-              Typer.undeclared_functions_warning = true;
+              Typer.undeclared_functions_warning = false;
               Typer.register_new_constants = true;
               Typer.fully_type = false }
           in
