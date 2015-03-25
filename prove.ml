@@ -730,7 +730,7 @@ let newnodes_match_congruence st fm g _ =
     (st, false)
   | Enot (Eapp (Evar("=",_), [(Eapp (f1, a1, _) as e1);
                               (Eapp (f2, a2, _) as e2)], _), _)
-    when f1 = f2
+    when Expr.equal f1 f2
       && (List.for_all2 (fun x y -> Expr.equal (get_type x) (get_type y)) 
             a1 a2) ->
     let (_, a1) = Expr.split_list (Expr.nb_tvar e1) a1 in
@@ -744,7 +744,7 @@ let newnodes_match_congruence st fm g _ =
     }, false
   | Enot (Eapp (Evar ("=", _), [(Eapp (f1, a1, _) as e1); 
                                 (Eapp (f2, a2, _) as e2)], _), _)
-    when f1 = f2 -> 
+    when Expr.equal f1 f2 -> 
     begin
       try
         let compare_size (m1, _) (m2, _) = 
