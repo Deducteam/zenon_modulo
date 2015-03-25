@@ -710,22 +710,22 @@ let predecl () =
   [
     ("cc.eT", arr type_type type_type);
 
-    ("Is_true", arr (bool1 ()) t_prop);
-    ("true", bool1 ());
-    ("false", bool1 ());
+    ("Is_true", arr (bool1 (* *)) t_prop);
+    ("true", bool1 (* *));
+    ("false", bool1 (* *));
 
-    ("basics._tilda__tilda_", bool2 ());
-    ("basics._amper__amper_", bool3 ());
-    ("basics._bar__bar_", bool3 ());
-    ("basics._bar__lt__gt__bar_", bool3 ());
+    ("basics._tilda__tilda_", bool2 (* *));
+    ("basics._amper__amper_", bool3 (* *));
+    ("basics._bar__bar_", bool3 (* *));
+    ("basics._bar__lt__gt__bar_", bool3 (* *));
 
     ("FOCAL.ifthenelse",
      let ty = newtvar type_type in
-     eall (ty, earrow [bool1 (); eps ty; eps ty] (eps ty)));
+     eall (ty, earrow [bool1 (* *); eps ty; eps ty] (eps ty)));
 
     ("basics.syntactic_equal",
      let ty = newtvar type_type in
-     eall (ty, earrow [eps ty; eps ty] (bool1 ())));
+     eall (ty, earrow [eps ty; eps ty] (bool1 (* *))));
   ]
 ;;
 

@@ -730,35 +730,32 @@ let newnodes_match_congruence st fm g _ =
     (st, false)
   | Enot (Eapp (Evar("=",_), [(Eapp (f1, a1, _) as e1);
                               (Eapp (f2, a2, _) as e2)], _), _)
-    when Expr.equal f1 f2
-      && (List.for_all2 (fun x y -> Expr.equal (get_type x) (get_type y)) 
-            a1 a2) ->
-    let (_, a1) = Expr.split_list (Expr.nb_tvar e1) a1 in
-    let (_, a2) = Expr.split_list (Expr.nb_tvar e2) a2 in
-    add_node st {
-      nconc = [fm];
-      nrule = NotEqual (e1, e2);
-      nprio = Arity;
-      ngoal = g;
-      nbranches = make_inequals a1 a2;
-    }, false
-  | Enot (Eapp (Evar ("=", _), [(Eapp (f1, a1, _) as e1); 
-                                (Eapp (f2, a2, _) as e2)], _), _)
-    when Expr.equal f1 f2 -> 
-    begin
-      try
-        let compare_size (m1, _) (m2, _) = 
-          - Pervasives.compare (Expr.size m1) (Expr.size m2)
-        in
-        let (tyvar1, _) = Expr.split_list (Expr.nb_tvar e1) a1 in 
-        let (tyvar2, _) = Expr.split_list (Expr.nb_tvar e2) a2 in 
-        let subst = Expr.preunify_list tyvar1 tyvar2 in
-        assert (subst <> []);
-        let subst = List.sort compare_size subst in 
-        let (m, term) = List.hd subst in
-        make_inst st m term g
-      with Unsplitable | Mismatch -> st, false
-    end
+    when Expr.equal f1 f2 ->
+     let (tyvar1, argsvar1) = Expr.split_list (Expr.nb_tvar e1) a1 in
+     let (tyvar2, argsvar2) = Expr.split_list (Expr.nb_tvar e2) a2 in
+     if (List.for_all2 (fun x y -> Expr.equal (get_type x) (get_type y))
+		       tyvar1 tyvar2)
+     then
+       add_node st {
+		  nconc = [fm];
+		  nrule = NotEqual (e1, e2);
+		  nprio = Arity;
+		  ngoal = g;
+		  nbranches = make_inequals argsvar1 argsvar2;
+		}, false
+     else
+       begin
+	 try
+           let compare_size (m1, _) (m2, _) = 
+             - Pervasives.compare (Expr.size m1) (Expr.size m2)
+           in
+           let subst = Expr.preunify_list tyvar1 tyvar2 in
+           assert (subst <> []);
+           let subst = List.sort compare_size subst in 
+           let (m, term) = List.hd subst in
+           make_inst st m term g
+	 with Unsplitable | Mismatch -> st, false
+       end
         (*
   FIXME determiner si c'est utile...
     | Enot (Eapp ("=", [Etau (v1, t1, f1, _); Etau (v2, t2, f2, _)], _), _) ->
