@@ -733,7 +733,7 @@ let newnodes_match_congruence st fm g _ =
     when Expr.equal f1 f2 ->
      let (tyvar1, argsvar1) = Expr.split_list (Expr.nb_tvar e1) a1 in
      let (tyvar2, argsvar2) = Expr.split_list (Expr.nb_tvar e2) a2 in
-     if (List.for_all2 (fun x y -> Expr.equal (get_type x) (get_type y))
+     if (List.for_all2 (fun x y -> Expr.equal x y)
 		       tyvar1 tyvar2)
      then
        add_node st {
