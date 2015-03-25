@@ -196,53 +196,50 @@ let make_notequiv st sym (p, g) (np, ng) =
   | Eapp (Evar("Is_true",_), _, _), _ when Extension.is_active "focal" -> st
   | Eapp (Evar(s1,_) as s1', args1, _), 
     Enot (Eapp (Evar(s2,_) as s2', args2, _) as nnp, _) ->
-    if not (get_type s1' == get_type s2') then st
-    else if Extension.is_active "induct"
-         && List.exists2 constructor_mismatch args1 args2 then st
-    else if (List.for_all2 
-               (fun x y -> Expr.equal (get_type x) (get_type y)) 
-               args1 args2)
-    then
-      begin
-        let (_, args1) = Expr.split_list (Expr.nb_tvar p) args1 in 
-        let (_, args2) = Expr.split_list (Expr.nb_tvar nnp) args2 in 
-        let myrule = 
-          if sym 
-          then P_NotP_sym (s1', p, np) 
-          else P_NotP (p, np) in
-        let myargs1 = 
-          if sym 
-          then List.rev args1 
-          else args1 in
-        let prio =
-          if good_match args1 args2 
-          then
-            if s1 =%= "=" then Arity_eq else Arity
-          else Inst p
-        in
-        add_node st {
-          nconc = [p; np];
-          nrule = myrule;
-          nprio = prio;
-          ngoal = min g ng;
-          nbranches = make_inequals myargs1 args2;
-        }
-      end
-    else
-      begin
-        try
-          let compare_size (m1, _) (m2, _) =
-            - Pervasives.compare (Expr.size m1) (Expr.size m2)
-          in
-          let (tyvar1, _) = Expr.split_list (Expr.nb_tvar p) args1 in
-          let (tyvar2, _) = Expr.split_list (Expr.nb_tvar nnp) args2 in
-          let subst = Expr.preunify_list tyvar1 tyvar2 in
-          let subst = List.sort compare_size subst in
-          assert (subst <> []);
-          let (m, term) = List.hd subst in
-          fst (make_inst st m term (min g ng))
-        with Unsplitable | Mismatch -> st
-      end
+     let (tyvar1, argsvar1) = Expr.split_list (Expr.nb_tvar p) args1 in 
+     let (tyvar2, argsvar2) = Expr.split_list (Expr.nb_tvar nnp) args2 in 
+     if not (get_type s1' == get_type s2') then st
+     else if Extension.is_active "induct"
+             && List.exists2 constructor_mismatch args1 args2 then st
+     else if (List.for_all2 (fun x y -> Expr.equal x y) 
+			    tyvar1 tyvar2)
+     then
+       begin
+         let myrule = 
+           if sym 
+           then P_NotP_sym (s1', p, np) 
+           else P_NotP (p, np) in
+         let myargs1 = 
+           if sym 
+           then List.rev argsvar1
+           else argsvar1 in
+         let prio =
+           if good_match argsvar1 argsvar2 
+           then
+             if s1 =%= "=" then Arity_eq else Arity
+           else Inst p
+         in
+         add_node st {
+		    nconc = [p; np];
+		    nrule = myrule;
+		    nprio = prio;
+		    ngoal = min g ng;
+		    nbranches = make_inequals myargs1 argsvar2;
+		  }
+       end
+     else
+       begin
+         try
+           let compare_size (m1, _) (m2, _) =
+             - Pervasives.compare (Expr.size m1) (Expr.size m2)
+           in
+           let subst = Expr.preunify_list tyvar1 tyvar2 in
+           let subst = List.sort compare_size subst in
+           assert (subst <> []);
+           let (m, term) = List.hd subst in
+           fst (make_inst st m term (min g ng))
+         with Unsplitable | Mismatch -> st
+       end
   | _ -> assert false
 ;;
 
