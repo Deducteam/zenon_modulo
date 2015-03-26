@@ -829,7 +829,7 @@ let rec mk_prf_var_def_aux accu phrases =
      if Hashtbl.mem !context norm_fm then
        mk_prf_var_def_aux accu tl
      else
-       let v = rawname_prf norm_fm in
+       (*let v = rawname_prf norm_fm in*)
        let t = mk_proof (trexpr_dkprop norm_fm) in
        let dkfm = mk_var (name, t) in
        add_context norm_fm dkfm;
@@ -985,11 +985,6 @@ let output oc phrases llp =
   let dkname = List.hd name in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-(*  let dkmetactx = Hashtbl.fold (fun x y z -> match y with
-					     | Dkvar (v, ty) ->
-						(mk_decl (v, ty)) :: z
-					     | _ -> assert false)
-			       !metactx [] in *)
 
   fprintf oc "#NAME tocheck";
   fprintf oc ".\n";
@@ -997,14 +992,25 @@ let output oc phrases llp =
   fprintf oc "\n";
   List.iter (print_line oc) dkctx;
   fprintf oc "\n"; 
-(*  List.iter (print_line oc) dkmetactx;
-  fprintf oc "\n"; *)
   List.iter (print_line oc) dkrules;
   fprintf oc "\n";
   print_goal_type oc dkname dkgoal;
   fprintf oc "\n";
   print_proof oc dkname dkproof;
+  []
+;;
 
+let output_term oc phrases ppphrases llp = 
+  
+  let dkctx = mk_prf_var_def phrases in 
+  let dkctx2 = mk_prf_var_def ppphrases in
+  let (name, goal) = List.split (select_goal phrases) in
+  let dkgoal = trexpr_dkgoal goal in
+  let dkname = List.hd name in 
+  let prooftree = extract_prooftree llp in 
+  let dkproof = make_proof_term (List.hd goal) prooftree in 
+  
+  print_proof oc dkname dkproof;
 
   []
 ;;

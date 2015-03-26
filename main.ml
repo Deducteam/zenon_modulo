@@ -18,7 +18,9 @@ type proof_level =
   | Proof_isar
   | Proof_dot of bool * int
   | Proof_dk
+  | Proof_dkterm
 ;;
+
 let proof_level = ref Proof_none;;
 let default_depth = 100;;
 
@@ -28,6 +30,7 @@ type open_level =
     | Open_first of int
     | Open_last of int
 ;;
+
 let keep_open = ref Open_none;;
 
 type input_format =
@@ -35,6 +38,7 @@ type input_format =
   | I_focal
   | I_tptp
 ;;
+
 let input_format = ref I_zenon;;
 
 let include_path = ref [Config.libdir];;
@@ -158,6 +162,12 @@ let argspec = [
 			      Progress.level := Progress.No;
 			      quiet_flag := true),
         "              print the proof in Dk script format (force -rename)";
+  "-odkterm", Arg.Unit (fun () -> proof_level := Proof_dkterm;
+				  opt_level := 0;
+				  Globals.output_dk := true;
+				  Progress.level := Progress.No;
+				  quiet_flag := true),
+            "          print the proof in DK term format";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
       "<n>             print the proof in high-level format up to depth <n>";
   "-oisar", Arg.Unit (fun () -> proof_level := Proof_isar),
@@ -437,6 +447,9 @@ let main () =
     | Proof_dk ->
         let u = Lltodk.output stdout phrases (Lazy.force llp) in
         Watch.warn phrases_dep llp u;
+    | Proof_dkterm -> 
+       let u = Lltodk.output_term stdout phrases ppphrases (Lazy.force llp) in 
+       Watch.warn phrases_dep llp u;
     | Proof_isar ->
         let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in
         Watch.warn phrases_dep llp u;
