@@ -1020,6 +1020,10 @@ let predef () =
     ]
 ;;
 
+let predecl () = 
+  []
+;;
+
 Extension.register {
   Extension.name = "arith";
   Extension.newnodes = newnodes;
@@ -1034,5 +1038,6 @@ Extension.register {
   Extension.declare_context_coq = declare_context_coq;
   Extension.p_rule_coq = p_rule_coq;
   Extension.predef = predef;
+  Extension.predecl = predecl;
 };;
 
