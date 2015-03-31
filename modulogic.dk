@@ -243,7 +243,27 @@ true_intro : proof True.
 		    => H3 : proof (z u)
 		       => H1 (x2 : term a 
 			      => (imp (z x2) (z t))) 
-			     (x3 : proof (z t) 
-			      => x3)
+			     (H4 : proof (z t) 
+			      => H4)
 			     H3).
 
+[p : prop] Rcut p
+      --> H1 : (proof p -> proof False) 
+	  => H2 : (proof (not p) -> proof False) 
+	     => H2 H1.
+
+[p : prop] Rnotnot p 
+      --> H1 : (proof p -> proof False) 
+	  => H2 : proof (not (not p)) 
+	     => H2 H1.
+
+[p : prop, q : prop] Rand p q 
+      --> H1 : (proof p -> proof q -> proof False) 
+	  => H2 : proof (and p q) 
+	     => H2 False H1.
+
+[p : prop, q : prop] Ror p q 
+      --> H1 : (proof p -> proof False) 
+	  => H2 : (proof q -> proof False) 
+	     => H3 : proof (or p q) 
+		=> H3 False H1 H2.
