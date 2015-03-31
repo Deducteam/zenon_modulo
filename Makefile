@@ -20,12 +20,12 @@ SOURCES = log.ml version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
           progress.ml namespace.ml expr.ml \
           phrase.ml llproof.ml mlproof.ml index.ml print.ml \
 	  watch.ml eqrel.ml \
+          typer.ml \
 	  step.ml node.ml extension.ml rewrite.ml mltoll.ml \
           CCVector.ml printBox.ml simplex.ml arith.ml \
           parsezen.mly lexzen.mll \
 	  parsetptp.mly lextptp.mll typetptp.ml \
-          parsecoq.mly lexcoq.mll tptp.ml \
-          typer.ml \
+	  parsecoq.mly lexcoq.mll parsedk.mly lexdk.mll tptp.ml \
           coqterm.ml lltocoq.ml \
 	  dkterm.ml lltodk.ml \
           enum.ml isar_case.ml lltoisar.ml \
@@ -147,6 +147,15 @@ parsecoq.ml: parsecoq.mly
 	$(CAMLYACC) -v parsecoq.mly
 
 parsecoq.mli: parsecoq.ml
+	:
+
+lexdk.ml: lexdk.mll
+	$(CAMLLEX) lexdk.mll
+
+parsedk.ml: parsedk.mly
+	$(CAMLYACC) -v parsedk.mly
+
+parsedk.mli: parsedk.ml
 	:
 
 config.ml: .config_var
