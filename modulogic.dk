@@ -53,9 +53,7 @@ equal      : a : type -> term a -> term a -> prop.
       --> proof p -> proof q.
 
 [p : prop, q : prop] proof (eqv p q) 
-      --> z : prop -> 
-	  ((proof p -> proof q) -> (proof q -> proof p) -> proof z) -> 
-	  proof z.
+      --> proof (and (imp p q) (imp q p)).
 
 [a : type, p : term a -> prop] proof (forall a p) 
       --> x : term a -> proof (p x).
@@ -212,9 +210,40 @@ Rcongrl        : a : type -> p : (term a -> prop) -> t1 : term a -> t2 : term a 
 
 (; Proofs of Deduction Rules ;)
 
+true_intro : proof True. 
+
+[] true_intro 
+      --> p : prop 
+	  => x : proof p
+	     => x.
+
 [] Rfalse 
       --> x : proof False 
 	  => x.
 
 [] Rnottrue 
-      --> proof (not True) -> proof False.
+      --> H : proof (not True) 
+	  => H true_intro.
+
+[p : prop] Raxiom p 
+      --> H : proof p 
+	  => CH : proof (not p) 
+	     => CH H.
+
+[a : type, t : term a] Rnoteq a t 
+      --> H1 : proof (not (equal a t t)) 
+	  => H1 (z : (term a -> prop) 
+		 => (H2 : proof (z t) 
+		     => H2)).
+
+[a : type, t : term a, u : term a] Reqsym a t u 
+      --> H1 : proof (equal a t u) 
+	  => H2 : proof (not (equal a u t)) 
+	     => H2 (z : (term a -> prop) 
+		    => H3 : proof (z u)
+		       => H1 (x2 : term a 
+			      => (imp (z x2) (z t))) 
+			     (x3 : proof (z t) 
+			      => x3)
+			     H3).
+
