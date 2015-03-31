@@ -103,7 +103,7 @@ nnpp       : p : prop ->
 		  (H3 : proof (not p) 
 		   => H1 H3 p).
 
-(; LLproof deduction rules ;)
+(; LLproof Deduction Rules ;)
 
 Rfalse         : proof False -> seq.
 
@@ -209,3 +209,12 @@ Rcongrl        : a : type -> p : (term a -> prop) -> t1 : term a -> t2 : term a 
 	         (proof (p t2) -> seq) -> 
 	         proof (p t1) -> proof (equal a t2 t1) -> seq.
 
+
+(; Proofs of Deduction Rules ;)
+
+[] Rfalse 
+      --> x : proof False 
+	  => x.
+
+[] Rnottrue 
+      --> proof (not True) -> proof False.
