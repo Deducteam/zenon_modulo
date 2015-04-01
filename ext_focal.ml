@@ -739,13 +739,13 @@ let built_in_defs () =
                [ ("true", []); ("false", []) ], "basics.bool__t_ind");
 
     (* deprecated, kept for compatibility only *)
-    Def (DefReal ("and_b", "basics.and_b", bool3 (), [b1; b2],
+    Def (DefReal ("and_b", "basics.and_b", bool3, [b1; b2],
                   eapp (tvar "basics._amper__amper_" bool3, [b1; b2]), None));
-    Def (DefReal ("or_b", "basics.or_b", bool3 (), [b1; b2],
+    Def (DefReal ("or_b", "basics.or_b", bool3, [b1; b2],
                   eapp (tvar "basics._bar__bar_" bool3, [b1; b2]), None));
-    Def (DefReal ("not_b", "basics.not_b", bool2 (), [b1],
+    Def (DefReal ("not_b", "basics.not_b", bool2, [b1],
                   eapp (tvar "basics._tilda__tilda_" bool2, [b1]), None));
-    Def (DefReal ("xor_b", "basics.xor_b", bool3 (), [b1; b2],
+    Def (DefReal ("xor_b", "basics.xor_b", bool3, [b1; b2],
                   eapp (tvar "basics._bar__lt__gt__bar_" bool3, [b1; b2]), None));
   ]
 ;;

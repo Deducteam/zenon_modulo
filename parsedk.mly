@@ -35,7 +35,7 @@ let rec mk_type e = match e with
      type_prop
   | Eapp (s, args, _) ->
      eapp (s, List.map mk_type args)
-     (; We missparsed an arrow as Eimply ;)
+     (* We missparsed an arrow as Eimply *)
   | Eimply (e1, e2, _) ->
      arr (mk_type e1) (mk_type e2)
   | e -> e
