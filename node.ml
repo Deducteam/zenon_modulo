@@ -120,7 +120,7 @@ let insert_by_goalness l n =
 ;;
  *)
 
-let can_instantiate m e = 
+let can_instantiate m e =
   not (List.exists (Expr.equal m) (get_submetas e))
 ;;
 

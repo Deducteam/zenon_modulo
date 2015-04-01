@@ -205,7 +205,3 @@ let rec translate_command_list env acc = function
 let translate = function
     | Some Commands (_, (_, l)) -> List.rev (translate_command_list default_env [] l)
     | None -> []
-
-
-
-

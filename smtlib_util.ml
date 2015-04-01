@@ -8,5 +8,5 @@ let file = ref "stdin";;
 let line = ref 1;;
 type pos = int;;
 let string_of_pos p = "line "^(string_of_int p);;
-let cur_pd() = (!line, initial_data());;   (* "pd": pos + extradata *) 
+let cur_pd() = (!line, initial_data());;   (* "pd": pos + extradata *)
 type pd = pos * extradata;;

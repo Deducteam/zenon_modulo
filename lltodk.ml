@@ -991,7 +991,7 @@ let output oc phrases llp =
   List.iter (print_line oc) dksigs;
   fprintf oc "\n";
   List.iter (print_line oc) dkctx;
-  fprintf oc "\n"; 
+  fprintf oc "\n";
   List.iter (print_line oc) dkrules;
   fprintf oc "\n";
   print_goal_type oc dkname dkgoal;
@@ -1000,12 +1000,12 @@ let output oc phrases llp =
   []
 ;;
 
-let output_term oc phrases ppphrases llp = 
-  
+let output_term oc phrases ppphrases llp =
+
   let (_, goal) = List.split (select_goal phrases) in
-  let prooftree = extract_prooftree llp in 
-  let dkproof = make_proof_term (List.hd goal) prooftree in 
-  
+  let prooftree = extract_prooftree llp in
+  let dkproof = make_proof_term (List.hd goal) prooftree in
+
   print_dk oc dkproof;
 
   []

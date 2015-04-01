@@ -64,25 +64,25 @@ val get_dkvar_type      : dkterm -> dkterm
 val mk_type             : dkterm
 val mk_prop             : dkterm
 val mk_iota             : dkterm
-val mk_seq              : dkterm 
-val mk_proof            : dkterm -> dkterm 
-val mk_term             : dkterm -> dkterm 
-val mk_arrow            : dkterm list -> dkterm 
+val mk_seq              : dkterm
+val mk_proof            : dkterm -> dkterm
+val mk_term             : dkterm -> dkterm
+val mk_arrow            : dkterm list -> dkterm
 val mk_pi               : dkterm * dkterm -> dkterm
 val mk_var              : var * dkterm -> dkterm
-val mk_lam              : dkterm * dkterm -> dkterm 
+val mk_lam              : dkterm * dkterm -> dkterm
 val mk_app              : dkterm * dkterm list -> dkterm
-val mk_not              : dkterm -> dkterm 
+val mk_not              : dkterm -> dkterm
 val mk_and              : dkterm * dkterm -> dkterm
 val mk_or               : dkterm * dkterm -> dkterm
 val mk_imply            : dkterm * dkterm -> dkterm
 val mk_equiv            : dkterm * dkterm -> dkterm
 val mk_forall           : dkterm * dkterm -> dkterm
 val mk_exists           : dkterm * dkterm -> dkterm
-val mk_foralltype       : dkterm -> dkterm 
-val mk_existstype       : dkterm -> dkterm 
-val mk_true             : dkterm 
-val mk_false            : dkterm 
+val mk_foralltype       : dkterm -> dkterm
+val mk_existstype       : dkterm -> dkterm
+val mk_true             : dkterm
+val mk_false            : dkterm
 val mk_equal            : dkterm * dkterm * dkterm -> dkterm
 
 val mk_DkRfalse         : dkterm -> dkterm
@@ -121,12 +121,12 @@ val print_dk            : out_channel -> dkterm -> unit
 val print_proof         : out_channel -> string -> dkterm -> unit
 
 
-type declaration = 
+type declaration =
   | Some of line       (* line is a Dkdecl here *)
   | None
 ;;
 
-type vertex = { 
+type vertex = {
   mutable decl : declaration;
   mutable edge : var list;
 }

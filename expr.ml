@@ -261,11 +261,11 @@ let rec priv_arrow args ret =
   let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
   let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
   let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
-  let submetas = List.fold_left (fun a e -> union (get_submetas e) a) [] args in 
+  let submetas = List.fold_left (fun a e -> union (get_submetas e) a) [] args in
   mkpriv skel fv sz taus metas submetas type_type
 ;;
 let priv_meta e =
-  mkpriv (combine k_meta (get_skel e)) [] 1 0 [e] 
+  mkpriv (combine k_meta (get_skel e)) [] 1 0 [e]
 	 (get_metas e) (get_meta_type e)
 ;;
 let priv_not e =
@@ -310,7 +310,7 @@ let priv_equiv e1 e2 =
 ;;
 let priv_all v e =
   mkpriv (combine k_all (combine (get_hash (get_type v)) (get_skel e)))
-         (remove v (get_fv e)) (1 + get_size e) (get_taus e) (get_metas e) 
+         (remove v (get_fv e)) (1 + get_size e) (get_taus e) (get_metas e)
 	 (get_submetas e)
          (if get_type e == type_type then type_type
           else if get_type e == type_prop then type_prop
@@ -610,7 +610,7 @@ let preunifiable e1 e2 =
   with Mismatch -> false
 ;;
 
-let preunify_list l1 l2 = 
+let preunify_list l1 l2 =
   try List.fold_left2 xpreunify [] l1 l2
   with Invalid_argument _ -> raise Mismatch
 ;;
@@ -678,7 +678,7 @@ let rec priv_app s args =
   let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
   let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
   let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
-  let submetas = List.fold_left (fun a e -> union (get_submetas e) a) [] args in 
+  let submetas = List.fold_left (fun a e -> union (get_submetas e) a) [] args in
   Log.debug 15 "Typing %a ::: %a" print s print (get_type s);
   List.iter (fun x -> Log.debug 15 " |- %a ::: %a" print x print (get_unsafe_type x)) args;
   let typ = type_app (get_type s) args in
@@ -742,9 +742,9 @@ and substitute_unsafe map e =
   | _ when disj (get_fv e) map -> e
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
-  | Earrow(args, ret, _) -> 
+  | Earrow(args, ret, _) ->
      earrow (List.map (substitute_unsafe map) args) (substitute_unsafe map ret)
-  (* Equality symbol need to be re-generated with correct type, 
+  (* Equality symbol need to be re-generated with correct type,
      in case we have substituted a type argument *)
   | Eapp (Evar ("=", _) as s, ([a; b] as args), _) ->
     begin try
@@ -752,17 +752,17 @@ and substitute_unsafe map e =
     with Type_Mismatch _ ->
         eeq (substitute_unsafe map a) (substitute_unsafe map b)
     end
-  | Eapp (s, args, _) -> 
+  | Eapp (s, args, _) ->
      eapp (s, List.map (substitute_unsafe map) args)
-  | Enot (f, _) -> 
+  | Enot (f, _) ->
      enot (substitute_unsafe map f)
-  | Eand (f, g, _) -> 
+  | Eand (f, g, _) ->
      eand (substitute_unsafe map f, substitute_unsafe map g)
-  | Eor (f, g, _) -> 
+  | Eor (f, g, _) ->
      eor (substitute_unsafe map f, substitute_unsafe map g)
-  | Eimply (f, g, _) -> 
+  | Eimply (f, g, _) ->
      eimply (substitute_unsafe map f, substitute_unsafe map g)
-  | Eequiv (f, g, _) -> 
+  | Eequiv (f, g, _) ->
      eequiv (substitute_unsafe map f, substitute_unsafe map g)
   | Etrue | Efalse -> e
   | Eall (v, f, _) -> aux eall map v f
@@ -835,15 +835,15 @@ let rec substitute_2nd_unsafe map e =
       | _ -> raise Higher_order
      with Not_found -> eapp (s, acts)
      end
-  | Enot (f, _) -> 
+  | Enot (f, _) ->
      enot (substitute_2nd_unsafe map f)
-  | Eand (f, g, _) -> 
+  | Eand (f, g, _) ->
      eand (substitute_2nd_unsafe map f, substitute_2nd_unsafe map g)
-  | Eor (f, g, _) -> 
+  | Eor (f, g, _) ->
      eor (substitute_2nd_unsafe map f, substitute_2nd_unsafe map g)
-  | Eimply (f, g, _) -> 
+  | Eimply (f, g, _) ->
      eimply (substitute_2nd_unsafe map f, substitute_2nd_unsafe map g)
-  | Eequiv (f, g, _) -> 
+  | Eequiv (f, g, _) ->
      eequiv (substitute_2nd_unsafe map f, substitute_2nd_unsafe map g)
   | Etrue | Efalse -> e
   | Eall (v, f, _) ->
@@ -914,11 +914,11 @@ let rec remove_scope e =
   -> e
 ;;
 
-let nb_tvar e = 
-  match e with 
-  | Eapp (s, _, _) -> 
-     let rec aux count ee = 
-       match ee with 
+let nb_tvar e =
+  match e with
+  | Eapp (s, _, _) ->
+     let rec aux count ee =
+       match ee with
        | Eall (_, ee', _) -> aux (count + 1) ee'
        | _ -> count
      in
@@ -928,41 +928,41 @@ let nb_tvar e =
 
 exception Unsplitable;;
 
-let rec split_list_aux n l accu = 
-  match n, l with 
+let rec split_list_aux n l accu =
+  match n, l with
   | 0, _  -> (List.rev accu), l
   | _, [] -> raise Unsplitable
   | _, h :: tl -> split_list_aux (n - 1) tl (h :: accu)
 ;;
 
-let split_list n l = 
+let split_list n l =
   split_list_aux n l []
 ;;
 
-let rec get_tvar_aux accu e = 
-  match e with 
-  | Evar _ 
-  | Emeta _ -> if get_type e == type_type && not (List.memq e accu) 
+let rec get_tvar_aux accu e =
+  match e with
+  | Evar _
+  | Emeta _ -> if get_type e == type_type && not (List.memq e accu)
            then e :: accu
            else accu
-  | Eapp (_, args, _) -> 
+  | Eapp (_, args, _) ->
      List.fold_left get_tvar_aux accu args
   | Enot (e1, _) -> get_tvar_aux accu e1
   | Etau _ -> accu
 
   | Earrow _
   | Eand _
-  | Eor _ 
-  | Eimply _ 
-  | Eequiv _ 
-  | Etrue 
-  | Efalse  
-  | Eall _ 
-  | Eex _ 
+  | Eor _
+  | Eimply _
+  | Eequiv _
+  | Etrue
+  | Efalse
+  | Eall _
+  | Eex _
   | Elam _ -> assert false
 ;;
 
-let get_tvar e = 
+let get_tvar e =
   List.rev (get_tvar_aux [] e)
 ;;
 
@@ -971,4 +971,3 @@ type goalness = int;;
 
 let tbl_term = ref (Hashtbl.create 42);;
 let tbl_prop = ref (Hashtbl.create 42);;
-

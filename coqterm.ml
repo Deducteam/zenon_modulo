@@ -609,7 +609,7 @@ let tr_ty t =
 
 let is_infix = function
     | "$less" | "$lesseq" | "$greater" | "$greatereq" | "="
-    | "$sum" | "$product" | "$difference" | "$uminus" 
+    | "$sum" | "$product" | "$difference" | "$uminus"
     | "$coq_div" -> true
     | _ -> false
 

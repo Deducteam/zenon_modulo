@@ -98,7 +98,7 @@ let process_annotations forms =
   let process_one form =
     match form with
 (*    | Hyp (name, _, _) when name = "bool"
-			    || name = "uninterpreted_type" 
+			    || name = "uninterpreted_type"
 			    || name = "enum_POSITION" -> form
  *)   | Hyp (name, body, kind) ->
 	 Log.debug 15 "Process Annotation '%a'" Print.pp_expr body;
@@ -109,7 +109,7 @@ let process_annotations forms =
       | Def _
       | Sig _
       | Inductive _
-      | Rew _ 
+      | Rew _
         -> assert false
   in
   List.rev (List.rev_map process_one (List.filter keep forms))

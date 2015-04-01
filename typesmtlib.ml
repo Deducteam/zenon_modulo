@@ -312,4 +312,3 @@ let typecheck l =
     List.iter (fun (s, t) -> Log.debug 5 "  %s : %s" s (Type.to_string t)) !defined;
     Type.add_defs !defined;
     List.filter relevant p
-
