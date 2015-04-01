@@ -4,8 +4,8 @@
 
 prop  : Type.
 proof : prop -> Type.
-type  : Type.
-term  : type -> Type.
+type  : Type := cc.uT.
+term  : type -> Type := cc.eT.
 iota  : type.
 
 (; Symbols ;)
