@@ -1,0 +1,84 @@
+#NAME dk_bool.
+
+(; Bool ;)
+(; Declaration ;)
+bool : cc.uT.
+Bool : Type := cc.eT bool.
+
+(; Constructors ;)
+true : Bool.
+false : Bool.
+
+(; Pattern-matching ;)
+match :
+  P : (Bool -> cc.uT) ->
+  cc.eT (P true) ->
+  cc.eT (P false) ->
+  b : Bool ->
+  cc.eT (P b).
+[P : Bool -> cc.uT,
+ Ht : cc.eT (P true),
+ Hf : cc.eT (P false) ]
+    match P Ht Hf true --> Ht
+[P : Bool -> cc.uT,
+ Ht : cc.eT (P true),
+ Hf : cc.eT (P false) ]
+    match P Ht Hf false --> Hf.
+
+(; Operations ;)
+(; polymorphic if .. then .. else .. ;)
+ite :
+  A : cc.uT ->
+  Bool ->
+  cc.eT A ->
+  cc.eT A ->
+  cc.eT A.
+[ A : cc.uT,
+  x : cc.eT A,
+  y : cc.eT A,
+  b : Bool ]
+    ite A b x y
+      -->
+    match (b : Bool => A) x y b.
+
+match__true :
+  Bool ->
+  A : cc.uT ->
+  cc.eT A ->
+  cc.eT A ->
+  cc.eT A.
+[ A : cc.uT, b : Bool, t : cc.eT A, e : cc.eT A]
+    match__true b A t e --> ite A b t e.
+
+match__false :
+  Bool ->
+  A : cc.uT ->
+  cc.eT A ->
+  cc.eT A ->
+  cc.eT A.
+[ A : cc.uT, b : Bool, t : cc.eT A, e : cc.eT A]
+    match__false b A t e --> ite A b e t.
+
+(; boolean if .. then .. else .. ;)
+iteb : Bool -> Bool -> Bool -> Bool
+     := ite bool.
+
+(; negation ;)
+not : Bool -> Bool.
+[ b : Bool ] not b --> iteb b false true.
+
+(; binary operators ;)
+and : Bool -> Bool -> Bool.
+[ x : Bool, y : Bool ] and x y --> iteb x y false.
+
+or : Bool -> Bool -> Bool.
+[ x : Bool, y : Bool ] or x y --> iteb x true y.
+
+xor : Bool -> Bool -> Bool.
+[ x : Bool, y : Bool ] xor x y --> iteb x (not y) y.
+
+imp : Bool -> Bool -> Bool.
+[ x : Bool, y : Bool ] imp x y --> iteb x y true.
+
+eqv : Bool -> Bool -> Bool.
+[ x : Bool, y : Bool ] eqv x y --> iteb x y (not y).

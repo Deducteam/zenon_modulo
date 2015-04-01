@@ -2,78 +2,32 @@
 
 (; Logic for Zenon Modulo ;)
 
-prop  : Type.
-proof : prop -> Type.
+prop  : Type := dk_logic.Prop.
+proof : prop -> Type := dk_logic.eP.
 type  : Type := cc.uT.
 term  : type -> Type := cc.eT.
 iota  : type.
 
 (; Symbols ;)
 
-True  : prop.
-False : prop.
+True  : prop := dk_logic.True.
+False : prop := dk_logic.False.
 
-not : prop -> prop.
-and : prop -> prop -> prop.
-or  : prop -> prop -> prop.
-imp : prop -> prop -> prop.
-eqv : prop -> prop -> prop.
+not : prop -> prop := dk_logic.not.
+and : prop -> prop -> prop := dk_logic.and.
+or  : prop -> prop -> prop := dk_logic.or.
+imp : prop -> prop -> prop := dk_logic.imp.
+eqv : prop -> prop -> prop := dk_logic.eqv.
 
-forall : a : type -> (term a -> prop) -> prop.
-exists : a : type -> (term a -> prop) -> prop.
+forall : a : type -> (term a -> prop) -> prop := dk_logic.forall.
+exists : a : type -> (term a -> prop) -> prop := dk_logic.exists.
 
-foralltype : (type -> prop) -> prop.
-existstype : (type -> prop) -> prop.
+foralltype : (type -> prop) -> prop := dk_logic.forall_type.
+existstype : (type -> prop) -> prop := dk_logic.exists_type.
 
-equal      : a : type -> term a -> term a -> prop.
+equal      : a : type -> term a -> term a -> prop := dk_logic.equal.
 
 (; Definition of Proofs of Symbols ;)
-
-[] proof True  
-      --> p : prop -> proof p -> proof p.
-
-[] proof False 
-      --> p : prop -> proof p.
-
-[p : prop] proof (not p) 
-      --> proof p -> proof False.
-
-[p : prop, q : prop] proof (and p q) 
-      --> z : prop -> 
-	  (proof p -> proof q -> proof z) -> 
-	  proof z.
-
-[p : prop, q : prop] proof (or p q) 
-      --> z : prop -> 
-	  (proof p -> proof z) -> 
-	  (proof q -> proof z) -> 
-	  proof z.
-
-[p : prop, q : prop] proof (imp p q)
-      --> proof p -> proof q.
-
-[p : prop, q : prop] proof (eqv p q) 
-      --> proof (and (imp p q) (imp q p)).
-
-[a : type, p : term a -> prop] proof (forall a p) 
-      --> x : term a -> proof (p x).
-
-[a : type, p : term a -> prop] proof (exists a p) 
-      --> z : prop -> 
-	  (x : term a -> proof (p x) -> proof z) -> 
-	  proof z.
-
-[p : type -> prop] proof (foralltype p) 
-      --> a : type -> proof (p a).
-
-[p : type -> prop] proof (existstype p) 
-      --> z : prop -> 
-	  (a : type -> proof (p a) -> proof z) -> 
-	  proof z.
-
-[a : type, x : term a, y : term a] proof (equal a x y) 
-      --> z : (term a -> prop) -> 
-	  proof (z x) -> proof (z y).
 
 (; The Sequent Type ;)
 
