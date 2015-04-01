@@ -1002,15 +1002,11 @@ let output oc phrases llp =
 
 let output_term oc phrases ppphrases llp = 
   
-  let _ = mk_prf_var_def phrases in 
-  let _ = mk_prf_var_def ppphrases in
-  let (name, goal) = List.split (select_goal phrases) in
-  let _ = trexpr_dkgoal goal in
-  let dkname = List.hd name in 
+  let (_, goal) = List.split (select_goal phrases) in
   let prooftree = extract_prooftree llp in 
   let dkproof = make_proof_term (List.hd goal) prooftree in 
   
-  print_proof oc dkname dkproof;
+  print_dk oc dkproof;
 
   []
 ;;
