@@ -12,7 +12,7 @@ if := dk_bool.ite.
 ifb := dk_bool.iteb.
 match := dk_bool.match.
 
-Prop := logic.Prop.
+Prop := dk_logic.Prop.
 eP := dk_logic.eP.
 eeP : Prop -> cc.uT := dk_logic.eeP.
 Is_true : Bool -> Prop := dk_logic.ebP.
@@ -503,9 +503,10 @@ zenon_focal_notistrue_false :
           (H : eP (Not (eqb false false)) =>
            G : eP (Not False) => H (refl false)).
 
-zenon_focal_eqdec (T : cc.uT) (x : cc.eT T) (y : cc.eT T)
-                  : eP (Or (equal T x y) (Not (equal T x y)))
-:= classic.excluded_middle (equal T x y).
+zenon_focal_eqdec : T : cc.uT ->
+		    x : cc.eT T ->
+		    y : cc.eT T ->
+		    eP (Or (equal T x y) (Not (equal T x y))).
 
 zenon_focal_false_s := zenon_focal_false.
 zenon_focal_nottrue_s := zenon_focal_nottrue.
