@@ -49,7 +49,7 @@ equal      : a : type -> term a -> term a -> prop.
 	  (proof q -> proof z) -> 
 	  proof z.
 
-[p : prop, q : prop] proof (imp p q) 
+[p : prop, q : prop] proof (imp p q)
       --> proof p -> proof q.
 
 [p : prop, q : prop] proof (eqv p q) 
@@ -241,8 +241,8 @@ true_intro : proof True.
 	  => H2 : proof (not (equal a u t)) 
 	     => H2 (z : (term a -> prop) 
 		    => H3 : proof (z u)
-		       => H1 (x2 : term a 
-			      => (imp (z x2) (z t))) 
+		       => H1 (x : term a 
+			      => (imp (z x) (z t))) 
 			     (H4 : proof (z t) 
 			      => H4)
 			     H3).
@@ -267,3 +267,91 @@ true_intro : proof True.
 	  => H2 : (proof q -> proof False) 
 	     => H3 : proof (or p q) 
 		=> H3 False H1 H2.
+
+lemme_imp : p : prop -> q : prop -> 
+	    proof (imp p q) -> 
+	    proof (imp (not q) (not p)).
+
+[p : prop, q : prop] lemme_imp p q 
+      --> H1 : proof (imp p q) 
+	  => H2 : proof (not q) 
+	     => H3 : proof p 
+		=> H2 (H1 H3).
+
+[p : prop, q : prop] Rimply p q 
+      --> H1 : (proof (not p) -> proof False) 
+	  => H2 : (proof q -> proof False) 
+	     => H3 : proof (imp p q) 
+		=> H1 (lemme_imp p q H3 H2).
+
+lemme_1 (p : prop) 
+	(q : prop) 
+	(H5 : proof q -> proof p) 
+	(H2 : proof p -> proof (not q)) 
+	(HQ : proof q) 
+	: proof (not q)
+:= 
+  H2 (H5 HQ).
+
+lemme_2 (p : prop) 
+	(q : prop) 
+	(H5 : proof q -> proof p) 
+	(H2 : proof p -> proof (not q)) 
+	: proof (not q)
+:= 
+  HQ : proof q 
+  => lemme_1 p q H5 H2 HQ HQ.
+
+lemme_3 (p : prop) 
+	(q : prop) 
+	(H5 : proof q -> proof p) 
+	(H2 : proof p -> proof (not q)) 
+	(H4 : proof p -> proof q)
+	: proof (not p)
+:= 
+  lemme_imp p q H4 (lemme_2 p q H5 H2).
+
+lemme_4 (p : prop) 
+	(q : prop) 
+	(H5 : proof q -> proof p) 
+	(H2 : proof p -> proof (not q)) 
+	(H4 : proof p -> proof q) 
+	(H1 : proof (not p) -> proof (not (not q)))
+	: proof (not (not q))
+:= 
+  H1 (lemme_3 p q H5 H2 H4).
+
+[p : prop, q : prop] Requiv p q 
+      --> H1 : (proof (not p) -> proof (not q) -> proof False) 
+	  => H2 : (proof p -> proof q -> proof False) 
+	     => H3 : proof (eqv p q) 
+		=> H3 False (H4 : (proof p -> proof q)
+			     => H5 : (proof q -> proof p) 
+				=> lemme_4 p q H5 H2 H4 H1 (lemme_2 p q H5 H2)).
+
+(;[p : prop, q : prop] Rnotand p q 
+      --> H1 : (proof (not p) -> proof False) 
+	  => H2 : (proof (not q) -> proof False) 
+	     => H3 : proof (not (and p q)) 
+		=> H3 ;)
+(;
+[a : type, p : (term a -> prop)] Rex a p 
+      --> H1 : (t : term a -> proof (p t) -> proof False) 
+	  => H2 : proof (exists a p) 
+	     => H2 False H1.;)
+(;
+[a : type, p : (term a -> prop), t : term a] Rall a p t 
+      --> H1 : (proof (p t) -> proof False) 
+	  => H2 : proof (forall a p) 
+	     => H1 (H2 t).;)
+
+(;[a : type, p : (term a -> prop), t : term a] Rnotex a p t 
+      --> H1 : (proof (not (p t)) -> proof False) 
+	  => H2 : proof (not (exists a p)) 
+	     => H2 .;)
+(;
+[a : type, p : (term a -> prop), t1 : term a, t2 : term a] Rsubst a p t1 t2 
+      --> H1 : (proof (not (equal a t1 t2)) -> proof False) 
+	  => H2 : (proof (p t2) -> proof False) 
+	     => H3 : proof (p t1) 
+		=> ;)
