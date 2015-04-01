@@ -17,7 +17,7 @@ Proof.
 intros. split; intros.
 rewrite (Z.add_comm a c) in H. rewrite (Z.add_comm b c) in H. apply (Z.add_reg_l c _ _). exact H.
 rewrite H. apply eq_refl.
-Qed. 
+Qed.
 
 Lemma Qfrac_plus : forall a b: Z, (a + b)%Z # 1 == (a # 1) + (b # 1).
 Proof. intros. unfold Qeq, Qnum, Qden. simpl. ring. Qed.
@@ -51,7 +51,7 @@ Ltac arith_norm :=
     try repeat rewrite Qfrac_mult;
     try repeat rewrite qopp;
     try repeat rewrite qneg));
-  match goal with    
+  match goal with
   | |- ?a == ?b => rewrite <- (Qplus_inj_r _ _ (- b))
   | |- ?a <= ?b => rewrite <- (Qplus_le_l _ _ (- b))
   | |- ?a <  ?b => rewrite <- (Qplus_lt_l _ _ (- b))

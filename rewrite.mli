@@ -6,13 +6,13 @@ open Print;;
 
 val unif_aux : ( expr * expr ) list -> expr -> expr -> (expr * expr ) list;;
 (* [unif_aux l t1 t2]
-   return [l] the list of pair whch symbolise the substitution 
+   return [l] the list of pair whch symbolise the substitution
    sigma : t1 -> t2
 *)
 
 val unif : expr -> expr -> (expr * expr ) list;;
 (* [unif t1 t2]
-   return [l] the list of pair whch symbolise the substitution 
+   return [l] the list of pair whch symbolise the substitution
    sigma : t1 -> t2
 *)
 

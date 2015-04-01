@@ -1020,7 +1020,7 @@ let predef () =
     ]
 ;;
 
-let predecl () = 
+let predecl () =
   []
 ;;
 
@@ -1040,4 +1040,3 @@ Extension.register {
   Extension.predef = predef;
   Extension.predecl = predecl;
 };;
-

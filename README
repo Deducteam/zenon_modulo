@@ -25,7 +25,7 @@ Remarks:
 - Zenon Modulo is an automated theorem prover for classical
   first order logic with polymorphic types
 
-- Zenon Modulo can be download at: 
+- Zenon Modulo can be download at:
   https://www.rocq.inria.fr/deducteam/ZenonModulo/index.html
   https://gforge.inria.fr/projects/zenon/
 
@@ -36,20 +36,20 @@ Remarks:
   http://hal.inria.fr/hal-00909784
   http://hal.inria.fr/hal-00909688
 
-- Zenon Modulo accepts input files with the TPTP syntax (FOF and TFF1) 
+- Zenon Modulo accepts input files with the TPTP syntax (FOF and TFF1)
   http://www.cs.miami.edu/~tptp/
 
 - Zenon Modulo may produce proof certificats for Dedukti
   http://dedukti.gforge.inria.fr/
   https://gforge.inria.fr/projects/dedukti/
 
-- To use Zenon Modulo with TFF1 files of the BWare Proof Obligations 
-  (with B set theory express in B_modulo.why): 
+- To use Zenon Modulo with TFF1 files of the BWare Proof Obligations
+  (with B set theory express in B_modulo.why):
   >> activate the '-b-rwrt' flag to build the rewrite system
   >> activate the '-rwrt' flag to transform more axioms into rewrite rules
   >> activate the '-x arith' flag to use the arithmetic extension
   >> activate the '-odk' to generate a proof certificate for dedukti
-  >> activate the '-om' to print a proof 
+  >> activate the '-om' to print a proof
   >> activate the '-dbg-rwrt' to print the rewrite system and rewriting steps
 
 ----------------------------------------
@@ -57,10 +57,10 @@ Remarks:
 Examples:
 
 Some TFF1 input files are given as examples into ./tff1_examples repository
-Four of them are set properties coming from the B-Book, and the last one 
+Four of them are set properties coming from the B-Book, and the last one
 is a Proof Obligation coming from the BWare benchmark.
 
-To run and test Zenon Modulo: 
+To run and test Zenon Modulo:
 
  - Minimal call
  # zenon_modulo -itptp -b-rwrt ./tff1_examples/file_name.p
@@ -70,7 +70,7 @@ To run and test Zenon Modulo:
 
  - Generate proof certificate for dedukti
  # zenon_modulo -itptp -b-rwrt -odk ./tff1_examples/file_name.p > certificate.dk
- 
+
  - To verify the proof with dedukti
    >> to generate the zen.dko library file
    # dkcheck -e modulogic.dk

@@ -241,7 +241,7 @@ let prop_app l =
         try raise (Type_Mismatch (type_prop, (List.find (fun e -> not (e == type_prop)) l), "Expr.prop_app"))
         with Not_found -> type_prop
     in
-    if List.memq type_iota l then 
+    if List.memq type_iota l then
       type_iota
     else if List.memq type_none l then
       type_none
