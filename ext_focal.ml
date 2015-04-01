@@ -57,39 +57,33 @@ let higher_order_warning s =
 ;;
 (* Functions for building types (/!\ too specific to Dedukti) *)
 let eT = tvar "cc.eT" (earrow [type_type] type_type);;
-let eps ty =
-  assert (get_type ty == type_type);
-  if !(Globals.output_dk) then (Log.debug 15 "Output=DK") else (Log.debug 15 "Output!=DK");
-  if !(Globals.output_dk) then (eapp (eT, [ty])) else ty
-;;
 let arr ty1 ty2 =
   match ty2 with
   | Earrow (l, ret, _) -> earrow (ty1 :: l) ret
   | _ -> earrow [ty1] ty2
 ;;
-let t_bool () = eapp (tvar "basics.bool__t" type_type, []);;
-let bool1 () = eps (t_bool ());;
-let bool2 () = arr (bool1 ()) (bool1 ());;
-let bool3 () = arr (bool1 ()) (bool2 ());;
+let bool1 = eapp (tvar "basics.bool__t" type_type, []);;
+let bool2 = arr bool1 bool1;;
+let bool3 = arr bool1 bool2;;
 let t_prop = type_prop;;
 
 let ret_prop_to_bool = function
-  | Earrow (l, ret, _) when ret == type_prop -> earrow l (bool1 ())
+  | Earrow (l, ret, _) when ret == type_prop -> earrow l bool1
   | ty ->
      Log.debug 15 "Ret_prop_to_bool (%a)" Print.pp_expr ty;
      raise (Invalid_argument "ret_prop_to_bool")
 ;;
 let ret_bool_to_prop = function
-  | Earrow (l, ret, _) when ret == bool1 () -> earrow l type_prop
+  | Earrow (l, ret, _) when ret == bool1 -> earrow l type_prop
   | _ -> raise (Invalid_argument "ret_bool_to_prop")
 ;;
 
 let prop_to_bool_args args ty =
-  if ty == type_none then earrow (List.map get_type args) (bool1 ())
+  if ty == type_none then earrow (List.map get_type args) bool1
   else ret_prop_to_bool ty
 ;;
 
-let istrue e = eapp (tvar "Is_true" (arr (bool1 ()) t_prop), [e]);;
+let istrue e = eapp (tvar "Is_true" (arr bool1 t_prop), [e]);;
 let isfalse e = enot (istrue e);;
 
 let is_true_equal x =
@@ -461,19 +455,19 @@ let to_llargs tr_expr r =
   match r with
   | Ext (_, "and", [e1; e2]) ->
       let h = tr_expr (eand (istrue e1, istrue e2)) in
-      let c = tr_expr (istrue (eapp (tvar "basics._amper__amper_" (bool3 ()), [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._amper__amper_" bool3, [e1; e2]))) in
       ("zenon_focal_and", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "or", [e1; e2]) ->
       let h = tr_expr (eor (istrue e1, istrue e2)) in
-      let c = tr_expr (istrue (eapp (tvar "basics._bar__bar_" (bool3 ()), [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._bar__bar_" bool3, [e1; e2]))) in
       ("zenon_focal_or", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "xor", [e1; e2]) ->
       let h = tr_expr (enot (eequiv (istrue e1, istrue e2))) in
-      let c = tr_expr (istrue (eapp (tvar "basics._bar__lt__gt__bar_" (bool3 ()), [e1; e2]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._bar__lt__gt__bar_" bool3, [e1; e2]))) in
       ("zenon_focal_xor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "not", [e1]) ->
       let h = tr_expr (enot (istrue e1)) in
-      let c = tr_expr (istrue (eapp (tvar "basics._tilda__tilda_" (bool2 ()), [e1]))) in
+      let c = tr_expr (istrue (eapp (tvar "basics._tilda__tilda_" bool2, [e1]))) in
       ("zenon_focal_not", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "equal", [Evar (name, _)as a; e1; e2; e3]) ->
       let h = tr_expr (eeq e2 e3) in
@@ -483,19 +477,19 @@ let to_llargs tr_expr r =
        List.map tr_expr [eqdec; e1; e2; e3], [c], [ [h] ])
   | Ext (_, "notand", [e1; e2]) ->
       let h = tr_expr (enot (eand (istrue e1, istrue e2))) in
-      let c = tr_expr (enot (istrue (eapp (tvar "basics._amper__amper_" (bool3 ()), [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._amper__amper_" bool3, [e1; e2])))) in
       ("zenon_focal_notand", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notor", [e1; e2]) ->
       let h = tr_expr (enot (eor (istrue e1, istrue e2))) in
-      let c = tr_expr (enot (istrue (eapp (tvar "basics._bar__bar_" (bool3 ()), [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._bar__bar_" bool3, [e1; e2])))) in
       ("zenon_focal_notor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notxor", [e1; e2]) ->
       let h = tr_expr (eequiv (istrue e1, istrue e2)) in
-      let c = tr_expr (enot (istrue (eapp (tvar "basics._bar__lt__gt__bar_" (bool3 ()), [e1; e2])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._bar__lt__gt__bar_" bool3, [e1; e2])))) in
       ("zenon_focal_notxor", [tr_expr e1; tr_expr e2], [c], [ [h] ])
   | Ext (_, "notnot", [e1]) ->
       let h = tr_expr (istrue e1) in
-      let c = tr_expr (enot (istrue (eapp (tvar "basics._tilda__tilda_" (bool2 ()), [e1])))) in
+      let c = tr_expr (enot (istrue (eapp (tvar "basics._tilda__tilda_" bool2, [e1])))) in
       ("zenon_focal_notnot", [tr_expr e1], [c], [ [h] ])
   | Ext (_, "notequal", [Evar (name, _) as a; e1; e2; e3]) ->
       let h = tr_expr (enot (eeq e2 e3)) in
@@ -673,17 +667,17 @@ let prod a b =
 let pair_ty =
   let a = newtvar type_type in
   let b = newtvar type_type in
-  eall (a, eall (b, earrow [eps a; eps b] (eps (prod a b))))
+  eall (a, eall (b, earrow [a; b] (prod a b)))
 
 let first_ty =
   let a = newtvar type_type in
   let b = newtvar type_type in
-  eall (b, eall (a, earrow [eps (prod a b)] (eps a)))
+  eall (b, eall (a, earrow [prod a b] a))
 
 let second_ty =
   let a = newtvar type_type in
   let b = newtvar type_type in
-  eall (b, eall (a, earrow [eps (prod a b)] (eps b)))
+  eall (b, eall (a, earrow [prod a b] b))
 
 let pair_var = tvar "basics.pair" pair_ty
 let fst_var = tvar "basics.fst" first_ty
@@ -710,30 +704,28 @@ let predecl () =
      eeq (second tyb tya (pair tya tyb a b)) b
     );
   [
-    ("cc.eT", arr type_type type_type);
+    ("Is_true", arr bool1 t_prop);
+    ("true", bool1);
+    ("false", bool1);
 
-    ("Is_true", arr (bool1 ()) t_prop);
-    ("true", bool1 ());
-    ("false", bool1 ());
-
-    ("basics._tilda__tilda_", bool2 ());
-    ("basics._amper__amper_", bool3 ());
-    ("basics._bar__bar_", bool3 ());
-    ("basics._bar__lt__gt__bar_", bool3 ());
+    ("basics._tilda__tilda_", bool2);
+    ("basics._amper__amper_", bool3);
+    ("basics._bar__bar_", bool3);
+    ("basics._bar__lt__gt__bar_", bool3);
 
     ("FOCAL.ifthenelse",
      let ty = newtvar type_type in
-     eall (ty, earrow [bool1 (); eps ty; eps ty] (eps ty)));
+     eall (ty, earrow [bool1; ty; ty] ty));
 
     ("basics.syntactic_equal",
      let ty = newtvar type_type in
-     eall (ty, earrow [eps ty; eps ty] (bool1 ())));
+     eall (ty, earrow [ty; ty] bool1));
   ]
 ;;
 
 let built_in_defs () =
-  let b1 = Expr.newtvar (bool1 ()) in
-  let b2 = Expr.newtvar (bool1 ()) in
+  let b1 = Expr.newtvar bool1 in
+  let b2 = Expr.newtvar bool1 in
   [
     Inductive ("basics.list__t", ["A"], [
                  ("List.nil", []);
@@ -748,13 +740,13 @@ let built_in_defs () =
 
     (* deprecated, kept for compatibility only *)
     Def (DefReal ("and_b", "basics.and_b", bool3 (), [b1; b2],
-                  eapp (tvar "basics._amper__amper_" (bool3 ()), [b1; b2]), None));
+                  eapp (tvar "basics._amper__amper_" bool3, [b1; b2]), None));
     Def (DefReal ("or_b", "basics.or_b", bool3 (), [b1; b2],
-                  eapp (tvar "basics._bar__bar_" (bool3 ()), [b1; b2]), None));
+                  eapp (tvar "basics._bar__bar_" bool3, [b1; b2]), None));
     Def (DefReal ("not_b", "basics.not_b", bool2 (), [b1],
-                  eapp (tvar "basics._tilda__tilda_" (bool2 ()), [b1]), None));
+                  eapp (tvar "basics._tilda__tilda_" bool2, [b1]), None));
     Def (DefReal ("xor_b", "basics.xor_b", bool3 (), [b1; b2],
-                  eapp (tvar "basics._bar__lt__gt__bar_" (bool3 ()), [b1; b2]), None));
+                  eapp (tvar "basics._bar__lt__gt__bar_" bool3, [b1; b2]), None));
   ]
 ;;
 

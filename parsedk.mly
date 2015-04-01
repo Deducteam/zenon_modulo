@@ -14,10 +14,8 @@ let arr ty1 ty2 = match ty2 with
      earrow (ty1 :: l) ret
   | _ -> earrow [ty1] ty2
 ;;
-let eps ty = eapp (tvar "cc.eT" (arr type_type type_type), [ty]);;
 let bool_t = tvar "basics.bool__t" type_type;;
-let bool_const = eapp (bool_t, []);;
-let bool1 = eps bool_const;;
+let bool1 = eapp (bool_t, []);;
 
 let mk_const_t s = eapp (tvar s type_type, []);;
 
@@ -26,18 +24,18 @@ let ty_aliases = ref [];;
 
 let rec mk_type e = match e with
   (* Alias unfolding *)
-  | Eapp (Evar ("cc.eT", _), [Evar (x, _)], _) when List.mem_assoc x !ty_aliases ->
-     mk_type (eps (List.assoc x !ty_aliases))
+  | Evar (x, _) when List.mem_assoc x !ty_aliases ->
+     mk_type (List.assoc x !ty_aliases)
 
   | Evar ("dk_logic.Prop", _) -> type_prop
   | Evar (s, _) -> mk_const_t s (* See coq parser *)
-  (* (eT (Arrow t1 t2)) is convertible with (eT t1 -> eT t2) *)
-  | Eapp (Evar ("cc.eT", _), [Eapp (Evar ("cc.Arrow", _), [t1; t2], _)], _) ->
-     arr (mk_type (eps t1)) (mk_type (eps t2))
-  | Eapp (Evar ("cc.eT", _), [Evar ("dk_builtins.prop", _)], _) ->
+  | Eapp (Evar ("cc.Arrow", _), [t1; t2], _) ->
+     arr (mk_type t1) (mk_type t2)
+  | Evar ("dk_builtins.prop", _) ->
      type_prop
   | Eapp (s, args, _) ->
      eapp (s, List.map mk_type args)
+     (; We missparsed an arrow as Eimply ;)
   | Eimply (e1, e2, _) ->
      arr (mk_type e1) (mk_type e2)
   | e -> e
@@ -64,7 +62,7 @@ let rec mk_pat (constr : string) (arity : int) (body : expr) ret_ty : expr =
 ;;
 
 let mk_prod a b =
-  eps (eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type), [a; b]))
+  eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type), [a; b])
 ;;
 
 (* create an expression application,
@@ -73,18 +71,18 @@ let mk_prod a b =
 let mk_eapp : string * expr list -> expr =
   function
   | "cc.Arrow", [t1 ; t2] ->
-     eapp (tvar "cc.Arrow" (earrow [type_type; type_type] type_type), [t1; t2])
-  | "cc.eT", [t] ->
-     eapp (tvar "cc.eT" (arr type_type type_type), [t])
+     arr (mk_type t1) (mk_type t2)
+  | "cc.eT", [t] -> mk_type t
 
   | "dk_tuple.prod", [t1; t2] ->
-     eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type), [mk_type t1; mk_type t2])
+     eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type),
+           [mk_type t1; mk_type t2])
 
   | "dk_tuple.pair", [t1; t2; e1; e2] ->
      let ty =
        let a = newtvar type_type in
        let b = newtvar type_type in
-       eall (a, eall (b, earrow [eps a; eps b] (mk_prod a b)))
+       eall (a, eall (b, earrow [a; b] (mk_prod a b)))
      in
      eapp (tvar "dk_tuple.pair" ty, [mk_type t1; mk_type t2; e1; e2])
 
@@ -92,7 +90,7 @@ let mk_eapp : string * expr list -> expr =
      let ty =
        let a = newtvar type_type in
        let b = newtvar type_type in
-       eall (b, eall (a, earrow [mk_prod a b] (eps a)))
+       eall (b, eall (a, earrow [mk_prod a b] a))
      in
      eapp (tvar "basics.fst" ty, [mk_type t1; mk_type t2; e])
 
@@ -100,20 +98,13 @@ let mk_eapp : string * expr list -> expr =
      let ty =
        let a = newtvar type_type in
        let b = newtvar type_type in
-       eall (b, eall (a, earrow [mk_prod a b] (eps b)))
+       eall (b, eall (a, earrow [mk_prod a b] b))
      in
      eapp (tvar "basics.snd" ty, [mk_type t1; mk_type t2; e])
 
-  | "dk_tuple.match__pair", [t1; t2; rt; x; pat; fail] ->
-     let t1 = eps (mk_type t1) in
-     let t2 = eps (mk_type t2) in
-     let rt = eps (mk_type rt) in
-     let ty = earrow [mk_prod t1 t2; earrow [t1; t2] rt] rt in
-     eapp (tvar "$match" ty, [x; mk_pat "dk_tuple.pair" 2 pat rt])
-
   | "dk_fail.fail", [t] -> eapp (tvar "dk_fail.fail"
                                      (let x = tvar "_failvar" type_type in
-                                      eall (x, eps x)), [mk_type t])
+                                      eall (x, x)), [mk_type t])
 
   | "dk_logic.and", [e1; e2] -> eand (e1, e2)
   | "dk_logic.or", [e1; e2] -> eor (e1, e2)
@@ -128,7 +119,7 @@ let mk_eapp : string * expr list -> expr =
   | "dk_logic.eP", [e] -> e                        (* eP is ignored *)
   | "dk_bool.ite", [ty1; c; t; e] ->
      let v = newtvar type_type in
-     let ty = eall (v, earrow [bool1; eps v; eps v] (eps v)) in
+     let ty = eall (v, earrow [bool1; v; v] v) in
      eapp (tvar "FOCAL.ifthenelse" ty, [mk_type ty1; c; t; e])
   (* There should not be any other logical connectives *)
   | s, args ->
