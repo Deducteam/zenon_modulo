@@ -243,28 +243,6 @@ let rec trexpr_dkprop e =
      mk_prop
   | e when (Expr.equal e type_iota) ->
      mk_iota
-(*  | Evar (v, _) as var when Mltoll.is_meta v ->
-     begin
-       try
-	 Hashtbl.find !metactx var
-       with Not_found ->
-	    begin
-	      let dke =
-		match (get_type var) with
-		| t when (Expr.equal t type_type) ->
-		   mk_var (rawname_meta var, mk_type)
-		| t when (Expr.equal t type_prop) ->
-		   mk_var (rawname_meta var, mk_prop)
-		| t when (Expr.equal t type_iota) ->
-		   mk_var (rawname_meta var, mk_iota)
-		| _ ->
-		   mk_var (rawname_meta var,
-			   mk_term (trexpr_dktype_aux (get_type var)))
-	      in
-	      add_metactx var dke;
-	      dke
-	    end
-     end *)
   | Evar _ ->
      trexpr_dkvartype e
   | Emeta _ ->
