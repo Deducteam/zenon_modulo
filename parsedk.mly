@@ -76,7 +76,7 @@ let mk_eapp : string * expr list -> expr =
 
   | "dk_tuple.prod", [t1; t2] ->
      eapp (tvar "basics.prod" (earrow [type_type; type_type] type_type),
-           [mk_type t2; mk_type t1])
+           [mk_type t1; mk_type t2])
 
   | "dk_tuple.pair", [t1; t2; e1; e2] ->
      let ty =

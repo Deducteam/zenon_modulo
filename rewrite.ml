@@ -349,7 +349,7 @@ let is_literal fm =
 
 
 let rec normalize_fm fm =
-(*  let fm = restore_equal fm in*)
+  Log.debug 4 " |- Normalize %a" Print.pp_expr fm;
   if is_literal fm then
     begin
       let fm_t = norm_term fm in

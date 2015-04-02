@@ -21,6 +21,8 @@ _tilda__tilda_ : cc.eT bool__t -> cc.eT bool__t := dk_bool.not.
 _bar__lt__gt__bar_ : cc.eT bool__t -> cc.eT bool__t -> cc.eT bool__t
                    := dk_bool.xor.
 
+prod := dk_tuple.prod.
+
 pair (b : cc.uT)
      (a : cc.uT)
      (x : cc.eT a)
