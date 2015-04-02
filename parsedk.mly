@@ -62,7 +62,7 @@ let rec mk_pat (constr : string) (arity : int) (body : expr) ret_ty : expr =
 ;;
 
 let mk_prod a b =
-  eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type), [a; b])
+  eapp (tvar "basics.prod" (earrow [type_type; type_type] type_type), [a; b])
 ;;
 
 (* create an expression application,
@@ -75,16 +75,16 @@ let mk_eapp : string * expr list -> expr =
   | "cc.eT", [t] -> mk_type t
 
   | "dk_tuple.prod", [t1; t2] ->
-     eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type),
-           [mk_type t1; mk_type t2])
+     eapp (tvar "basics.prod" (earrow [type_type; type_type] type_type),
+           [mk_type t2; mk_type t1])
 
   | "dk_tuple.pair", [t1; t2; e1; e2] ->
      let ty =
        let a = newtvar type_type in
        let b = newtvar type_type in
-       eall (a, eall (b, earrow [a; b] (mk_prod a b)))
+       eall (b, eall (a, earrow [a; b] (mk_prod a b)))
      in
-     eapp (tvar "dk_tuple.pair" ty, [mk_type t1; mk_type t2; e1; e2])
+     eapp (tvar "basics.pair" ty, [mk_type t2; mk_type t1; e1; e2])
 
   | "basics.fst", [t1; t2; e] ->
      let ty =
