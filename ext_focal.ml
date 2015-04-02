@@ -667,9 +667,9 @@ let rec pp_expr e =
 
 (* Registering of constants for type-checking *)
 
+let prod_ty = earrow [type_type; type_type] type_type
 let prod a b =
-  eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type),
-        [a; b])
+  eapp (tvar "basics.prod" prod_ty, [a; b])
 
 let pair_ty =
   let a = newtvar type_type in
@@ -727,6 +727,12 @@ let predecl () =
     ("basics.syntactic_equal",
      let ty = newtvar type_type in
      eall (ty, earrow [ty; ty] bool1));
+
+    ("basics.prod", prod_ty);
+    ("basics.fst", first_ty);
+    ("basics.snd", second_ty);
+    ("basics.pair", pair_ty);
+
   ]
 ;;
 
