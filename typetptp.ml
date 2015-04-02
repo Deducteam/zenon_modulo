@@ -305,4 +305,3 @@ let typecheck l =
     List.iter (fun (s, t) -> Log.debug 5 "  %s : %a" s Print.pp_expr t) !defined;
     Expr.add_defs !defined;
     List.filter relevant p
-

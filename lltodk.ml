@@ -23,14 +23,23 @@ exception No_meta of string
 ;;
 
 let add_context e dke =
-  Log.debug 4 " |- Add context %a" Print.pp_expr e;
+  Log.debug 4 " |- Add context %s ::  %a" 
+	    (match dke with 
+	     | Dkvar (name, _) -> name
+	     | _ -> assert false)
+	    Print.pp_expr e;
   Hashtbl.add !context e dke
 ;;
 
 let get_context e =
-  Log.debug 5 " |- Get context %a" Print.pp_expr e;
   try
-    Hashtbl.find !context e
+    let dke = Hashtbl.find !context e in 
+    Log.debug 5 " |- Get context %s :: %a"
+	      (match dke with 
+	       | Dkvar (name, _) -> name 
+	       | _ -> assert false)
+	      Print.pp_expr e;
+    dke
   with Not_found ->
     raise (No_proof (Printf.sprintf "for expr %s"
 				    (Print.sexpr e)))
@@ -415,6 +424,8 @@ let rec trproof_dk p =
      rule = prule;
      hyps = phyps;}
     ->
+     List.iter (fun x -> Log.debug 6 "   >> conc : %a" Print.pp_expr x)
+	       pconc;
      match prule with
      | Rfalse ->
 	Log.debug 7 "     false";
@@ -670,11 +681,37 @@ let rec trproof_dk p =
 	let conc2 = get_pr_var (eeq t2 t1) in
 	mk_DkRcongrl (a, dkp, dkt1, dkt2, lam, conc1, conc2)
      | Rextension (ext, name, args, concs, hyps) ->
+	Log.debug 7 "  |- Extension Proof Step >> %s" name;
+	List.iter (fun x -> Log.debug 7 "    args : %a" Print.pp_expr x)
+		  args;
+	List.iter (fun x -> Log.debug 7 "    conc : %a" Print.pp_expr x)
+		  concs;
+	List.iter (fun x -> Log.debug 7 "    hyps : %a" Print.pp_expr x)
+		  (List.flatten hyps);
         let ext = if ext = "" then "focal" else ext in
-        List.iter (fun e -> ignore (mk_pr_var e)) (List.flatten hyps);
+        (*List.iter (fun e -> ignore (mk_pr_var e)) (List.flatten hyps);*)
+	let tr_args = List.map trexpr_dkprop args in 
+	assert ((List.length hyps) = (List.length phyps));
+	let build_lam hyps phyp = 
+	  let prp = List.map mk_pr_var hyps in 
+	  let sub = trproof_dk phyp in 
+	  let lam = 
+	    if (List.length prp > 1) 
+	    then
+	      List.fold_left (fun lam pr -> mk_lam (pr, lam)) 
+			     (mk_lam (List.hd prp, sub)) (List.tl prp)
+	    else 
+	      begin
+		assert (List.length prp = 1);
+		mk_lam (List.hd prp, sub)
+	      end
+	  in
+	  lam 
+	in	
+	let lambdas = List.map2 build_lam hyps phyps in 
+	let tr_concs = List.map get_pr_var concs in 
         mk_app (mk_var (ext ^ "." ^ name, mk_iota),
-                  List.append (List.map trexpr_dkprop args)
-                    (List.map trproof_dk phyps))
+                List.append tr_args (List.append lambdas tr_concs))
      | Rdefinition _ ->
         (match phyps with
         | [ next ] -> trproof_dk next
@@ -991,7 +1028,7 @@ let output oc phrases llp =
   List.iter (print_line oc) dksigs;
   fprintf oc "\n";
   List.iter (print_line oc) dkctx;
-  fprintf oc "\n"; 
+  fprintf oc "\n";
   List.iter (print_line oc) dkrules;
   fprintf oc "\n";
   print_goal_type oc dkname dkgoal;
@@ -1000,17 +1037,20 @@ let output oc phrases llp =
   []
 ;;
 
-let output_term oc phrases ppphrases llp = 
+let output_term oc phrases ppphrases llp =
+  Log.debug 2 "=========== Generate Dedukti Term =============";
+  (* register hypothesis in the context *)
+  let _ = mk_prf_var_def phrases in
+  let (_, goal) = List.split (select_goal phrases) in
+  assert (List.length goal = 1);
+  let ngoal = match (List.hd goal) with 
+    | Enot (ng, _) -> ng
+    | _ -> assert false
+  in
+  let dkgoal = trexpr_dkprop ngoal in
+  let prooftree = extract_prooftree llp in
+  let dkproof = make_proof_term (List.hd goal) prooftree in
   
-  let _ = mk_prf_var_def phrases in 
-  let _ = mk_prf_var_def ppphrases in
-  let (name, goal) = List.split (select_goal phrases) in
-  let _ = trexpr_dkgoal goal in
-  let dkname = List.hd name in 
-  let prooftree = extract_prooftree llp in 
-  let dkproof = make_proof_term (List.hd goal) prooftree in 
-  
-  print_proof oc dkname dkproof;
-
+  fprintf oc "zen.nnpp (%a)\n\n(%a)" print_dk dkgoal print_dk dkproof;
   []
 ;;

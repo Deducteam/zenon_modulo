@@ -852,7 +852,7 @@ let rec to_llproof p =
   if (p.mlrefc < 0)
      && not !Globals.output_dk then
     get_lemma p
-  else 
+  else
     begin
       let (result, extras) =
 	if is_derived p.mlrule
@@ -867,19 +867,19 @@ let rec to_llproof p =
           } in
           (nn, extras)
       in
-      if (p.mlrefc > 1) 
-	 && not !Globals.output_dk 
-      then 
+      if (p.mlrefc > 1)
+	 && not !Globals.output_dk
+      then
 	begin
 	  make_lemma result extras p;
 	  get_lemma p
-	end 
-      else 
+	end
+      else
 	begin
 	  (result, extras)
 	end
     end
-      
+
 and get_sub l =
   match l with
   | [] -> ([], [])

@@ -63,8 +63,8 @@ type line =
   | Dkrwrt of dkterm list * dkterm * dkterm    (* rewrite rules *)
 ;;
 
-let get_dkvar_type var = 
-  match var with 
+let get_dkvar_type var =
+  match var with
   | Dkvar (v, Dktype) -> Dktype
   | Dkvar (v, Dkterm (t)) -> t
   | _ -> assert false
@@ -124,8 +124,8 @@ let mk_DkRcongrl       (a, p, t1, t2, pr1, pr2, pr3)  = DkRcongrl (a, p, t1, t2,
 let mk_decl       (v, t)       = Dkdecl (v, t)
 let mk_rwrt       (l, t1, t2)  = Dkrwrt (l, t1, t2)
 
-let rec print_dk o t = 
-  match t with 
+let rec print_dk o t =
+  match t with
   | Dktype -> fprintf o "zen.type"
   | Dkprop -> fprintf o "zen.prop"
   | Dkiota -> fprintf o "zen.iota"
@@ -133,233 +133,233 @@ let rec print_dk o t =
   | Dkproof (t) ->  fprintf o "zen.proof (%a)" print_dk t
   | Dkterm (t) -> fprintf o "zen.term (%a)" print_dk t
   | Dkarrow (l) -> print_dk_list_arrow o l
-  | Dkpi (Dkvar (v, t1), t2) -> 
+  | Dkpi (Dkvar (v, t1), t2) ->
      fprintf o "%s : %a\n -> %a" v print_dk t1 print_dk t2
   | Dkpi _ -> assert false
   | Dkvar (v, _) -> fprintf o "%s" v
   | Dklam (Dkvar (v, t1), t2) ->
      fprintf o "%s : (%a)\n => %a" v print_dk t1 print_dk t2
   | Dklam _ -> assert false
-  | Dkapp (t, l) -> 
+  | Dkapp (t, l) ->
      fprintf o "%a %a" print_dk t print_dk_list_app l
-  | Dknot (t) -> 
+  | Dknot (t) ->
      fprintf o "zen.not\n (%a)" print_dk t
-  | Dkand (t1, t2) -> 
+  | Dkand (t1, t2) ->
      fprintf o "zen.and\n (%a) (%a)" print_dk t1 print_dk t2
-  | Dkor (t1, t2) -> 
+  | Dkor (t1, t2) ->
      fprintf o "zen.or\n (%a) (%a)" print_dk t1 print_dk t2
-  | Dkimply (t1, t2) -> 
+  | Dkimply (t1, t2) ->
      fprintf o "zen.imp\n (%a) (%a)" print_dk t1 print_dk t2
-  | Dkequiv (t1, t2) -> 
+  | Dkequiv (t1, t2) ->
      fprintf o "zen.eqv\n (%a) (%a)" print_dk t1 print_dk t2
-  | Dkforall (t1, t2) -> 
+  | Dkforall (t1, t2) ->
      fprintf o "zen.forall (%a)\n (%a)" print_dk t1 print_dk t2
-  | Dkexists (t1, t2) -> 
+  | Dkexists (t1, t2) ->
      fprintf o "zen.exists (%a)\n (%a)" print_dk t1 print_dk t2
-  | Dkforalltype (t) -> 
+  | Dkforalltype (t) ->
      fprintf o "zen.foralltype\n (%a)" print_dk t
-  | Dkexiststype (t) -> 
+  | Dkexiststype (t) ->
      fprintf o "zen.existstype\n (%a)" print_dk t
   | Dktrue -> fprintf o "zen.True"
   | Dkfalse -> fprintf o "zen.False"
-  | Dkequal (t1, t2, t3) -> 
-     fprintf o "zen.equal (%a)\n (%a)\n (%a)" 
-	     print_dk t1 
-	     print_dk t2 
-	     print_dk t3 
+  | Dkequal (t1, t2, t3) ->
+     fprintf o "zen.equal (%a)\n (%a)\n (%a)"
+	     print_dk t1
+	     print_dk t2
+	     print_dk t3
   | DkRfalse (pr) -> fprintf o "zen.Rfalse\n (%a)" print_dk pr
   | DkRnottrue (pr) -> fprintf o "zen.Rnottrue\n (%a)" print_dk pr
-  | DkRaxiom (p, pr1, pr2) -> 
-     fprintf o "zen.Raxiom\n (%a)\n (%a)\n (%a)\n" 
+  | DkRaxiom (p, pr1, pr2) ->
+     fprintf o "zen.Raxiom\n (%a)\n (%a)\n (%a)\n"
 	     print_dk p
 	     print_dk pr1
 	     print_dk pr2
-  | DkRnoteq (a, t, pr) -> 
-     fprintf o "zen.Rnoteq\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk a 
+  | DkRnoteq (a, t, pr) ->
+     fprintf o "zen.Rnoteq\n (%a)\n (%a)\n (%a)\n"
+	     print_dk a
 	     print_dk t
 	     print_dk pr
-  | DkReqsym (a, t, u, pr1, pr2) -> 
-     fprintf o "zen.Reqsym\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk a 
-	     print_dk t 
+  | DkReqsym (a, t, u, pr1, pr2) ->
+     fprintf o "zen.Reqsym\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk a
+	     print_dk t
 	     print_dk u
 	     print_dk pr1
 	     print_dk pr2
-  | DkRcut (p, pr1, pr2) -> 
-     fprintf o "zen.Rcut\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
-	     print_dk pr1 
-	     print_dk pr2
-  | DkRnotnot (p, pr1, pr2) -> 
-     fprintf o "zen.Rnotnot\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
+  | DkRcut (p, pr1, pr2) ->
+     fprintf o "zen.Rcut\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
 	     print_dk pr1
 	     print_dk pr2
-  | DkRand (p, q, pr1, pr2) -> 
-     fprintf o "zen.Rand\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
-	     print_dk q 
+  | DkRnotnot (p, pr1, pr2) ->
+     fprintf o "zen.Rnotnot\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
 	     print_dk pr1
 	     print_dk pr2
-  | DkRor (p, q, pr1, pr2, pr3) -> 
-     fprintf o "zen.Ror\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
-	     print_dk q 
-	     print_dk pr1 
+  | DkRand (p, q, pr1, pr2) ->
+     fprintf o "zen.Rand\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
+	     print_dk q
+	     print_dk pr1
+	     print_dk pr2
+  | DkRor (p, q, pr1, pr2, pr3) ->
+     fprintf o "zen.Ror\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
+	     print_dk q
+	     print_dk pr1
 	     print_dk pr2
 	     print_dk pr3
-  | DkRimply (p, q, pr1, pr2, pr3) -> 
-     fprintf o "zen.Rimply\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
-	     print_dk q 
-	     print_dk pr1 
+  | DkRimply (p, q, pr1, pr2, pr3) ->
+     fprintf o "zen.Rimply\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
+	     print_dk q
+	     print_dk pr1
 	     print_dk pr2
 	     print_dk pr3
-  | DkRequiv (p, q, pr1, pr2, pr3) -> 
-     fprintf o "zen.Requiv\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
-	     print_dk q 
-	     print_dk pr1 
+  | DkRequiv (p, q, pr1, pr2, pr3) ->
+     fprintf o "zen.Requiv\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
+	     print_dk q
+	     print_dk pr1
 	     print_dk pr2
 	     print_dk pr3
-  | DkRnotand (p, q, pr1, pr2, pr3) -> 
-     fprintf o "zen.Rnotand\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
-	     print_dk q 
-	     print_dk pr1 
+  | DkRnotand (p, q, pr1, pr2, pr3) ->
+     fprintf o "zen.Rnotand\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
+	     print_dk q
+	     print_dk pr1
 	     print_dk pr2
 	     print_dk pr3
-  | DkRnotor (p, q, pr1, pr2) -> 
-     fprintf o "zen.Rnotor\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
-	     print_dk q 
+  | DkRnotor (p, q, pr1, pr2) ->
+     fprintf o "zen.Rnotor\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
+	     print_dk q
 	     print_dk pr1
 	     print_dk pr2
-  | DkRnotimply (p, q, pr1, pr2) -> 
-     fprintf o "zen.Rnotimply\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
-	     print_dk q 
+  | DkRnotimply (p, q, pr1, pr2) ->
+     fprintf o "zen.Rnotimply\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
+	     print_dk q
 	     print_dk pr1
 	     print_dk pr2
-  | DkRnotequiv (p, q, pr1, pr2, pr3) -> 
-     fprintf o "zen.Rnotequiv\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
-	     print_dk q 
-	     print_dk pr1 
+  | DkRnotequiv (p, q, pr1, pr2, pr3) ->
+     fprintf o "zen.Rnotequiv\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
+	     print_dk q
+	     print_dk pr1
 	     print_dk pr2
 	     print_dk pr3
-  | DkRex (a, p, pr1, pr2) -> 
-     fprintf o "zen.Rex\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk a 
-	     print_dk p 
+  | DkRex (a, p, pr1, pr2) ->
+     fprintf o "zen.Rex\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk a
+	     print_dk p
 	     print_dk pr1
 	     print_dk pr2
-  | DkRall (a, p, t, pr1, pr2) -> 
-     fprintf o "zen.Rall\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk a 
-	     print_dk p 
-	     print_dk t 
+  | DkRall (a, p, t, pr1, pr2) ->
+     fprintf o "zen.Rall\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk a
+	     print_dk p
+	     print_dk t
 	     print_dk pr1
 	     print_dk pr2
-  | DkRnotex (a, p, t, pr1, pr2) -> 
-     fprintf o "zen.Rnotex\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk a 
-	     print_dk p 
-	     print_dk t 
+  | DkRnotex (a, p, t, pr1, pr2) ->
+     fprintf o "zen.Rnotex\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk a
+	     print_dk p
+	     print_dk t
 	     print_dk pr1
 	     print_dk pr2
-  | DkRnotall (a, p, pr1, pr2) -> 
-     fprintf o "zen.Rnotall\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk a 
-	     print_dk p 
+  | DkRnotall (a, p, pr1, pr2) ->
+     fprintf o "zen.Rnotall\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk a
+	     print_dk p
 	     print_dk pr1
 	     print_dk pr2
-  | DkRextype (p, pr1, pr2) -> 
-     fprintf o "zen.Rextype\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
+  | DkRextype (p, pr1, pr2) ->
+     fprintf o "zen.Rextype\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
 	     print_dk pr1
 	     print_dk pr2
-  | DkRalltype (p, a, pr1, pr2) -> 
-     fprintf o "zen.Ralltype\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
-	     print_dk a 
+  | DkRalltype (p, a, pr1, pr2) ->
+     fprintf o "zen.Ralltype\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
+	     print_dk a
 	     print_dk pr1
 	     print_dk pr2
-  | DkRnotextype (p, a, pr1, pr2) -> 
-     fprintf o "zen.Rnotextype\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
-	     print_dk a 
+  | DkRnotextype (p, a, pr1, pr2) ->
+     fprintf o "zen.Rnotextype\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
+	     print_dk a
 	     print_dk pr1
 	     print_dk pr2
-  | DkRnotalltype (p, pr1, pr2) -> 
-     fprintf o "zen.Rnotalltype\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk p 
+  | DkRnotalltype (p, pr1, pr2) ->
+     fprintf o "zen.Rnotalltype\n (%a)\n (%a)\n (%a)\n"
+	     print_dk p
 	     print_dk pr1
 	     print_dk pr2
-  | DkRsubst  (a, p, t1, t2, pr1, pr2, pr3) -> 
+  | DkRsubst  (a, p, t1, t2, pr1, pr2, pr3) ->
      fprintf o "zen.Rsubst\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk a 
-	     print_dk p 
-	     print_dk t1 
-	     print_dk t2 
+	     print_dk a
+	     print_dk p
+	     print_dk t1
+	     print_dk t2
 	     print_dk pr1
 	     print_dk pr2
 	     print_dk pr3
-  | DkRconglr (a, p, t1, t2, pr1, pr2, pr3) -> 
-     fprintf o "zen.Rconglr\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk a 
-	     print_dk p 
-	     print_dk t1 
-	     print_dk t2 
+  | DkRconglr (a, p, t1, t2, pr1, pr2, pr3) ->
+     fprintf o "zen.Rconglr\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk a
+	     print_dk p
+	     print_dk t1
+	     print_dk t2
 	     print_dk pr1
 	     print_dk pr2
 	     print_dk pr3
-  | DkRcongrl (a, p, t1, t2, pr1, pr2, pr3) -> 
-     fprintf o "zen.Rcongrl\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n" 
-	     print_dk a 
-	     print_dk p 
-	     print_dk t1 
-	     print_dk t2 
+  | DkRcongrl (a, p, t1, t2, pr1, pr2, pr3) ->
+     fprintf o "zen.Rcongrl\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk a
+	     print_dk p
+	     print_dk t1
+	     print_dk t2
 	     print_dk pr1
 	     print_dk pr2
 	     print_dk pr3
 
-and print_dk_list_arrow o t = 
-  match t with 
+and print_dk_list_arrow o t =
+  match t with
   | [] -> ()
-  | [h] -> fprintf o "%a" print_dk h 
+  | [h] -> fprintf o "%a" print_dk h
   | h :: tl -> fprintf o "%a -> %a" print_dk h print_dk_list_arrow tl
 
-and print_dk_list_app o t = 
-  match t with 
+and print_dk_list_app o t =
+  match t with
   | [] -> ()
   | [h] -> fprintf o "(%a)" print_dk h
   | h :: tl -> fprintf o "(%a)\n %a" print_dk h print_dk_list_app tl
 ;;
 
-let rec pr_list_var o l = 
-  match l with 
-  | [] -> () 
+let rec pr_list_var o l =
+  match l with
+  | [] -> ()
   | [Dkvar (v, t)] -> fprintf o "%s : %a" v print_dk t
-  | (Dkvar (v, t)) :: tl -> 
+  | (Dkvar (v, t)) :: tl ->
      fprintf o "%s : %a, %a" v print_dk t pr_list_var tl
   | _ -> assert false
 ;;
 
-let print_line o line = 
-  match line with 
-  | Dkdecl (v, t) -> 
+let print_line o line =
+  match line with
+  | Dkdecl (v, t) ->
      fprintf o "%s : %a.\n\n" v print_dk t
-  | Dkrwrt (l, t1, t2) -> 
+  | Dkrwrt (l, t1, t2) ->
      fprintf o "[%a]\n %a \n --> %a.\n\n" pr_list_var l print_dk t1 print_dk t2
 ;;
 
-let print_goal_type o name goal = 
+let print_goal_type o name goal =
   fprintf o "%s :\n %a\n -> %a.\n" name print_dk goal print_dk mk_seq
 ;;
 
-let print_proof o name proof = 
+let print_proof o name proof =
   fprintf o "[] %s -->\n %a.\n" name print_dk proof
 ;;
 
@@ -367,12 +367,12 @@ let print_proof o name proof =
 
 
 
-type declaration = 
+type declaration =
   | Some of line       (* line is a Dkdecl here *)
   | None
 ;;
 
-type vertex = { 
+type vertex = {
   mutable decl : declaration;
   mutable edge : var list;
 }
@@ -383,59 +383,59 @@ type graph = (var, vertex) Hashtbl.t
 let create i = Hashtbl.create i
 ;;
 
-let rec get_var_list_aux env accu ty = 
-  match ty with 
+let rec get_var_list_aux env accu ty =
+  match ty with
   | Dktype | Dkprop | Dkiota | Dkseq -> accu
   | Dkterm (t) -> get_var_list_aux env accu t
   | Dkarrow (l) -> List.fold_left (get_var_list_aux env) accu l
   | Dkpi (Dkvar(v, _), t) -> get_var_list_aux (v :: env) accu t
-  | Dkvar (v, _) -> 
+  | Dkvar (v, _) ->
      if List.mem v env then accu
      else v :: accu
-  | Dkapp (Dkvar (v, _), l) -> 
-     if List.mem v env 
+  | Dkapp (Dkvar (v, _), l) ->
+     if List.mem v env
      then List.fold_left (get_var_list_aux env) accu l
      else List.fold_left (get_var_list_aux env) (v :: accu) l
   | _ -> assert false
 ;;
 
-let get_var_list ty = 
+let get_var_list ty =
   get_var_list_aux [] [] ty
 ;;
 
-let mk_vertex d = 
-  match d with 
-  | Dkdecl (v, ty) -> 
-     let var_list = get_var_list ty in 
-     {decl = Some d; 
+let mk_vertex d =
+  match d with
+  | Dkdecl (v, ty) ->
+     let var_list = get_var_list ty in
+     {decl = Some d;
       edge = var_list;}
   | _ -> assert false
 ;;
 
-let mk_vertex_none = 
+let mk_vertex_none =
   {decl = None; edge = [];}
 ;;
 
-let add_none_dep gr v = 
-  try 
-    match (Hashtbl.find gr v) with 
-    | _ -> () 
-  with Not_found -> 
+let add_none_dep gr v =
+  try
+    match (Hashtbl.find gr v) with
+    | _ -> ()
+  with Not_found ->
     Hashtbl.add gr v mk_vertex_none
 ;;
-  
-let add_sym_graph gr d = 
-  match d with 
+
+let add_sym_graph gr d =
+  match d with
   | Dkdecl (v, ty) ->
      begin
        Log.debug 13 " |- Add Sym Graph %s" v;
        try
-	 match Hashtbl.find gr v with 
+	 match Hashtbl.find gr v with
 	 | {decl = Some _; edge = _;} -> assert false
-	 | {decl = None; edge = _;} -> 
+	 | {decl = None; edge = _;} ->
 	    Hashtbl.replace gr v (mk_vertex d)
-       with Not_found -> 
-	 let ver = mk_vertex d in 
+       with Not_found ->
+	 let ver = mk_vertex d in
 	 Hashtbl.add gr v ver;
 	 List.iter (add_none_dep gr) ver.edge;
      end
@@ -445,57 +445,57 @@ let add_sym_graph gr d =
 let rm_sym_graph gr v =
   Hashtbl.replace gr v mk_vertex_none
 ;;
-  
-let get_vertex_name v = 
-  match v with 
+
+let get_vertex_name v =
+  match v with
   | {decl = Some Dkdecl(v, _); edge = _;} -> v
   | _ -> assert false
 ;;
 
-let select_no_incoming gr = 
-  let f x y z = 
-    let is_some a = 
-      match a with 
+let select_no_incoming gr =
+  let f x y z =
+    let is_some a =
+      match a with
       | {decl = Some _; edge = _;} -> true
       | _ -> false
     in
-    let find_sym t = 
+    let find_sym t =
       try
 	match Hashtbl.find gr t with
 	| {decl = Some _; edge = _;} -> true
 	| _ -> false
       with Not_found -> false
-    in 
-    if (is_some y) && 
+    in
+    if (is_some y) &&
 	 not (List.exists find_sym y.edge)
     then (y :: z)
     else z
   in
   Hashtbl.fold f gr []
-;; 
+;;
 
-let test_graph gr = 
-  let f x y = 
-    match y with 
+let test_graph gr =
+  let f x y =
+    match y with
     | {decl = Some _; edge = _;} -> ()
     | {decl = None; edge = _;} -> assert false
   in
   Hashtbl.iter f gr
 ;;
 
-let topo_sort gr = 
+let topo_sort gr =
 (*  test_graph gr; *)
   let rec f accu gr =
-    match select_no_incoming gr with 
+    match select_no_incoming gr with
     | [] -> accu
-    | h :: tl -> 
+    | h :: tl ->
        let name = get_vertex_name h in
        rm_sym_graph gr name;
-       let dec = match h.decl with 
-	 | Some d -> d | None -> assert false 
+       let dec = match h.decl with
+	 | Some d -> d | None -> assert false
        in
        f (dec :: accu) gr
   in
-  let res = f [] gr in 
+  let res = f [] gr in
   List.rev res
 ;;

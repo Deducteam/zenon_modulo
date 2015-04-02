@@ -158,7 +158,7 @@ let argspec = [
         "              print the proof in Coq script format (force -rename)";
   "-ocoqterm", Arg.Unit (fun () -> proof_level := Proof_coqterm),
             "          print the proof in Coq term format";
-  "-odk", Arg.Unit (fun () -> namespace_flag := true; 
+  "-odk", Arg.Unit (fun () -> namespace_flag := true;
 			      proof_level := Proof_dk;
 			      opt_level := 0;
 			      Globals.output_dk := true;
@@ -400,8 +400,8 @@ let main () =
     let ppphrases = Extension.preprocess phrases in
     List.iter Extension.add_phrase ppphrases;
     if !Globals.debug_rwrt
-    then 
-      begin 
+    then
+      begin
 	Print.print_tbl_term (Print.Chan stdout) !tbl_term;
 	Print.print_tbl_prop (Print.Chan stdout) !tbl_prop;
       end;
@@ -462,8 +462,8 @@ let main () =
     | Proof_dk ->
         let u = Lltodk.output stdout phrases (Lazy.force llp) in
         Watch.warn phrases_dep llp u;
-    | Proof_dkterm -> 
-       let u = Lltodk.output_term stdout phrases ppphrases (Lazy.force llp) in 
+    | Proof_dkterm ->
+       let u = Lltodk.output_term stdout phrases ppphrases (Lazy.force llp) in
        Watch.warn phrases_dep llp u;
     | Proof_isar ->
         let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in
