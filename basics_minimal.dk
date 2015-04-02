@@ -21,24 +21,24 @@ _tilda__tilda_ : cc.eT bool__t -> cc.eT bool__t := dk_bool.not.
 _bar__lt__gt__bar_ : cc.eT bool__t -> cc.eT bool__t -> cc.eT bool__t
                    := dk_bool.xor.
 
-pair (a : cc.uT)
-     (b : cc.uT)
-     (x : cc.eT b)
-     (y : cc.eT a)
-     : cc.eT (dk_tuple.prod b a) :=
-  (dk_tuple.pair b a x y).
+pair (b : cc.uT)
+     (a : cc.uT)
+     (x : cc.eT a)
+     (y : cc.eT b)
+     : cc.eT (dk_tuple.prod a b) :=
+  (dk_tuple.pair a b x y).
 
-fst (a : cc.uT)
-    (b : cc.uT)
-    (x : cc.eT (dk_tuple.prod b a)) :
-    cc.eT b :=
-  dk_tuple.fst b a x.
-
-snd (a : cc.uT)
-    (b : cc.uT)
-    (x : cc.eT (dk_tuple.prod b a)) :
+fst (b : cc.uT)
+    (a : cc.uT)
+    (x : cc.eT (dk_tuple.prod a b)) :
     cc.eT a :=
-  dk_tuple.snd b a x.
+  dk_tuple.fst a b x.
+
+snd (b : cc.uT)
+    (a : cc.uT)
+    (x : cc.eT (dk_tuple.prod a b)) :
+    cc.eT b :=
+  dk_tuple.snd a b x.
 
 _equal_ : a : cc.uT -> cc.eT a -> cc.eT a -> cc.eT bool__t.
 
