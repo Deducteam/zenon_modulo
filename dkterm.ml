@@ -137,6 +137,8 @@ let rec print_dk o t =
      fprintf o "%s : %a\n -> %a" v print_dk t1 print_dk t2
   | Dkpi _ -> assert false
   | Dkvar ("false", _) -> fprintf o "basics.false"
+  | Dkvar ("true", _) -> fprintf o "basics.true"
+  | Dkvar ("Istrue", _) -> fprintf o "dk_logic.ebP"
   | Dkvar (v, _) -> fprintf o "%s" v
   | Dklam (Dkvar (v, t1), t2) ->
      fprintf o "%s : (%a)\n => %a" v print_dk t1 print_dk t2
