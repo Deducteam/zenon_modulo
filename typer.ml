@@ -11,7 +11,6 @@
 
 open Expr;;
 
-
 (* Exception raised when we meet a variable which is not present in the environment,
    i.e. which was not introduced by a binder. *)
 exception Scoping_error of string;;
@@ -109,7 +108,7 @@ let rec infer_expr opts env = function
        with Not_found ->
             if opts.scope_warnings then
               Error.warn ("Scoping error: unknown free variable " ^ s);
-            if get_type v == type_iota then
+            if get_type v == type_none then
               tvar s opts.default_type
             else
               v
@@ -122,7 +121,7 @@ let rec infer_expr opts env = function
      (* First lookup in the constant table *)
      (* Remark: If it fails, it looks at it on the symbol. *)
      let tyf = get_type (type_const opts f) in
-     if tyf == type_iota
+     if tyf == type_none
      then
        (* We have no way to find a return type,
           but we have to recursively call ourself
@@ -140,7 +139,7 @@ and xcheck_expr opts env ty e =
   if get_type e == ty
   then e
   else
-    if ty == type_iota
+    if ty == type_none
     then infer_expr opts env e
     else
       match e with
@@ -154,11 +153,11 @@ and xcheck_expr opts env ty e =
          let e1' = infer_expr opts env e1 in
          let t1 = get_type e1' in
          (* If this fails, try e2 *)
-         if t1 == type_iota then
+         if t1 == type_none then
            let e2' = infer_expr opts env e2 in
            let t2 = get_type e2' in
            (* if it also fails, finally look at the type annotation of the equality constant *)
-           if t2 == type_iota then
+           if t2 == type_none then
              match get_type eq with
              | Earrow ([t1; t2], prop, _) when t1 == t2 && prop = type_prop ->
                 eeq (check_expr opts env t1 e1) (check_expr opts env t2 e2)
@@ -172,21 +171,23 @@ and xcheck_expr opts env ty e =
          (* First lookup in the constant table *)
          (* Remark: If it fails, it looks at it on the symbol. *)
          let tyf = get_type (type_const opts f) in
-         if tyf == type_iota
+         if tyf == type_none
          then
+          (Log.debug 15 "Check undeclared symbol %s" f_sym;
            let typed_args = List.map (infer_expr opts env) args in
            let args_types = List.map get_type typed_args in
            let infered_const_type = earrow args_types ty in
            if opts.register_new_constants then
              declare_constant (f_sym, infered_const_type);
-           eapp (tvar f_sym infered_const_type, typed_args)
-         else
+           eapp (tvar f_sym infered_const_type, typed_args))
+          else
+          (Log.debug 15 "Check declared symbol %s : %a" f_sym Print.pp_expr tyf;
            let (type_args, term_args, tys, ret_ty) = instantiate args tyf in
            if ret_ty == ty
            then
              eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr opts env) tys term_args)
            else
-             raise (Type_Mismatch (ret_ty, ty, "Typer.xcheck_expr"))
+             raise (Type_Mismatch (ret_ty, ty, "Typer.xcheck_expr")))
       | Enot (e, _) ->
          assert (ty == type_prop);
          enot (check_expr opts env type_prop e)
@@ -226,6 +227,7 @@ and xcheck_expr opts env ty e =
          )
       | _ -> assert false
 and check_expr opts env ty e =
+  Log.debug 15 "Check %a : %a" Print.pp_expr e Print.pp_expr ty;
   let result = xcheck_expr opts env ty e in
   let rty = get_type result in
   if opts.fully_type && not (ty == rty) then
@@ -240,7 +242,7 @@ let declare_def_constant opts = function
   | DefReal (_, s, ty, env, body, _)
   | DefPseudo ((_, _), s, ty, env, body)
   | DefRec (_, s, ty, env, body) ->
-     if ty == type_iota
+     if ty == type_none
      then
        let typed_body = infer_expr opts env body in
        declare_constant (s, earrow (List.map get_type env) (get_type typed_body));
@@ -272,7 +274,9 @@ let definition opts d =
 (* This function is folded on the list of phrases,
    it removes declarations and return the typed phrases
    in reverse order *)
-let phrase opts l (p, b) = match p with
+let phrase opts l (p, b) =
+  Log.debug 15 "Check Phrase %a" Print.pp_phrase p;
+  match p with
   | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _)) ->
      declare_constant (s, ty);
      l
