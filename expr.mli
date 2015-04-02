@@ -47,8 +47,14 @@ val compare : t -> t -> int;;
 val hash : t -> int;;
 
 (* Term construction *)
-val evar : string -> expr;;
 val tvar : string -> expr -> expr;;
+
+(* Shortcuts for types none, iota, tType and prop *)
+val tvar_none : string -> expr;;
+val tvar_iota : string -> expr;;
+val tvar_type : string -> expr;;
+val tvar_prop : string -> expr;;
+
 val emeta : expr -> expr;;
 val eapp : expr * expr list -> expr;;
 
@@ -142,7 +148,6 @@ val add_argument : expr -> expr -> expr;;
 val remove_scope : expr -> expr;;
 
 (* gensym *)
-val newvar : unit -> expr;;
 val newtvar : expr -> expr;;
 val newname : unit -> string;;
 

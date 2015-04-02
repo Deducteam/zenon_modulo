@@ -59,7 +59,7 @@ let sanitize s =
 let translate_const = function
     | SpecConstsDec(_, s) -> Arith.mk_rat s
     | SpecConstNum(_, s) -> Arith.mk_int s
-    | SpecConstString(_, s) -> eapp (estring, [evar s])
+    | SpecConstString(_, s) -> eapp (estring, [tvar_none s])
     | SpecConstsHex(_, s) -> Arith.mk_int ("0" ^ (String.sub s 1 (String.length s - 1)))
     | SpecConstsBinary(_, s) -> Arith.mk_int ("0" ^ (String.sub s 1 (String.length s - 1)))
 
@@ -82,7 +82,7 @@ let rec translate_sort env = function
                 Type.mk_constr f' l'
 
 let translate_sortedvar env = function
-    | SortedVarSymSort(_, s, t) -> evar (translate_symbol s), (translate_sort env t)
+    | SortedVarSymSort(_, s, t) -> tvar_none (translate_symbol s), (translate_sort env t)
 
 let translate_sortedvar2 env = function
     | SortedVarSymSort(_, s, t) -> tvar (translate_symbol s) (translate_sort env t)
@@ -129,7 +129,7 @@ let rec translate_term env = function
             | "true" -> etrue
             | "false" -> efalse
             | s when Smap.mem s env.defined_vars -> Smap.find s env.defined_vars
-            | s -> evar s
+            | s -> tvar_none s
             end
     | TermQualIdTerm(_, f, (_, l)) ->
             begin match (translate_qualid f), (List.map (translate_term env) l) with
@@ -142,17 +142,17 @@ let rec translate_term env = function
             | "=>" as s, l -> right_assoc s (fun a b -> eimply (a,b)) l
             | "=" as s, l -> chain s (fun a b -> eapp (eeq, [a; b])) l
             (* INT/REAL theory translation - 'mod','div','abs','divisible' missing *)
-            | "+" as s, l -> left_assoc s (fun a b -> eapp (evar "$sum", [a; b])) l
-            | "-", [x] -> eapp (evar "$uminus", [x])
-            | "-" as s, l -> left_assoc s (fun a b -> eapp (evar "$difference", [a; b])) l
-            | "*" as s, l -> left_assoc s (fun a b -> eapp (evar "$product", [a; b])) l
-            | "<" as s, l -> chain s (fun a b -> eapp (evar "$less", [a; b])) l
-            | "<=" as s, l -> chain s (fun a b -> eapp (evar "$lesseq", [a; b])) l
-            | ">" as s, l -> chain s (fun a b -> eapp (evar "$greater", [a; b])) l
-            | ">=" as s, l -> chain s (fun a b -> eapp (evar "$greatereq", [a; b])) l
+            | "+" as s, l -> left_assoc s (fun a b -> eapp (tvar_none "$sum", [a; b])) l
+            | "-", [x] -> eapp (tvar_none "$uminus", [x])
+            | "-" as s, l -> left_assoc s (fun a b -> eapp (tvar_none "$difference", [a; b])) l
+            | "*" as s, l -> left_assoc s (fun a b -> eapp (tvar_none "$product", [a; b])) l
+            | "<" as s, l -> chain s (fun a b -> eapp (tvar_none "$less", [a; b])) l
+            | "<=" as s, l -> chain s (fun a b -> eapp (tvar_none "$lesseq", [a; b])) l
+            | ">" as s, l -> chain s (fun a b -> eapp (tvar_none "$greater", [a; b])) l
+            | ">=" as s, l -> chain s (fun a b -> eapp (tvar_none "$greatereq", [a; b])) l
             (* Generic translation *)
             | s, args ->
-                    let f' = evar s in
+                    let f' = tvar_none s in
                     begin try
                         check_and_replace Expr.substitute (Emap.find f' env.defined_funs) args
                     with Not_found ->
@@ -169,7 +169,7 @@ let translate_command env = function
     | CommandDeclareSort(_, s, n) ->
             let n = int_of_string n in
             let t = Type.mk_arrow  (nlist Type.type_type n) Type.type_type in
-            env, [Hyp (new_hyp_name (), eapp (evar "#", [tvar (translate_symbol s) t]), 2)]
+            env, [Hyp (new_hyp_name (), eapp (tvar_none "#", [tvar (translate_symbol s) t]), 2)]
     | CommandDefineSort(_, s, (_, l), t) ->
             let s' = translate_symbol s in
             let l' = List.map translate_symbol l in
@@ -179,14 +179,14 @@ let translate_command env = function
             let ret' = translate_sort env ret in
             let arg' = List.map (translate_sort env) args in
             let t = Type.mk_arrow arg' ret' in
-            env, [Hyp (new_hyp_name (), eapp (evar "#", [tvar (translate_symbol s) t]), 2)]
+            env, [Hyp (new_hyp_name (), eapp (tvar_none "#", [tvar (translate_symbol s) t]), 2)]
     | CommandDefineFun(_, s, (_, args), ret, t) ->
             (* abbreviations with arguments l, ret type and expression t *)
             let ret' = translate_sort env ret in
             let args' = List.map (translate_sortedvar2 env) args in
             let args'' = List.map (fun x -> opt @@ get_type x) args' in
             let t' = translate_term env t in
-            env, [Hyp (new_hyp_name (), eapp (evar "#",
+            env, [Hyp (new_hyp_name (), eapp (tvar_none "#",
                 [tvar (translate_symbol s) (Type.mk_arrow args'' ret'); t'] @ args'), 3)]
     | CommandAssert(_, t) ->
             env, [Hyp (new_hyp_name (), translate_term env t, 1)]

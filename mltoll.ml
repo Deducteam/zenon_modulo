@@ -548,7 +548,7 @@ let rec get_univ f =
 ;;
 
 let get_diff_args folded unfolded =
-  let x = Expr.newvar () in
+  let x = Expr.newtvar type_none in
   match find_diff x folded unfolded with
   | _, Eapp (_, args, _), _ -> args
   | _, Evar (_, _), _ -> []
@@ -569,7 +569,7 @@ let inst_all e f =
 ;;
 
 let rec make_vars n =
-  if n = 0 then [] else Expr.newvar () :: make_vars (n-1)
+  if n = 0 then [] else Expr.newtvar type_none :: make_vars (n-1)
 ;;
 
 let rec decompose_forall e v p naxyz arity f args =
@@ -839,12 +839,26 @@ let rec refute_scope e tau va =
   | _ -> None
 ;;
 
+
+let prod a b =
+  eapp (tvar "dk_tuple.prod" (earrow [type_type; type_type] type_type),
+        [a; b])
+
+let pair_ty =
+  let a = newtvar type_type in
+  let b = newtvar type_type in
+  eall (a, eall (b, earrow [a; b] (prod a b)))
+
+let pair_var = tvar "basics.pair" pair_ty
+
+let pair a b x y = eapp (pair_var, [a; b; x; y])
+
 let mk_tuple l =
   match l with
   | [] -> assert false
   | [x] -> x
   | h :: t ->
-     let f x y = eapp (evar "Datatypes.pair", [x; y]) in
+     let f x y = pair (get_type x) (get_type y) x y in
      List.fold_left f h t
 ;;
 
@@ -1106,7 +1120,7 @@ and translate_pseudo_def_base p def_hyp s args folded unfolded =
          when s1 = s -> make_congrl
        | _ -> assert false
      in
-     let x = Expr.newvar () in
+     let x = Expr.newtvar type_none in
      let (ctx, a, b) = find_diff x folded unfolded in
      make_cong (elam (x, ctx)) a b n0
   | _ -> assert false
@@ -1116,7 +1130,7 @@ and translate_rec_def p eqn s args folded unfolded =
     | [| n0 |] -> n0
     | _ -> assert false
   in
-  let x = Expr.newvar () in
+  let x = Expr.newtvar type_none in
   let (ctx, a, b) = find_diff x folded unfolded in
   let p = elam (x, ctx) in
   let eq = add_argument eqn (mk_tuple args) in

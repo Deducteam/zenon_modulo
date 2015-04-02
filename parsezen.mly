@@ -37,7 +37,7 @@ let mk_elam (vars, typ, body) =
 ;;
 
 let mk_pattern constr vars body =
-  mk_elam (vars, type_iota, eapp (evar "$match-case", [evar constr; body]))
+  mk_elam (vars, type_iota, eapp (tvar_none "$match-case", [tvar_none constr; body]))
 ;;
 
 let hyp_counter = ref 0;;
@@ -46,7 +46,7 @@ let gen_hyp_name () =
   sprintf "%s%d" anon_prefix !hyp_counter
 ;;
 
-let mk_string s = evar ("\"" ^ s ^ "\"");;
+let mk_string s = tvar_iota ("\"" ^ s ^ "\"");;
 
 %}
 
@@ -96,9 +96,9 @@ file:
 
 phrase:
   | DEF hyp_name OPEN IDENT ident_list CLOSE expr
-      { let idl = List.map evar $5 in Zdef (DefReal ($2, $4, type_iota, idl, $7, None)) }
+      { let idl = List.map tvar_iota $5 in Zdef (DefReal ($2, $4, type_iota, idl, $7, None)) }
   | FIXPOINT hyp_name IDENT OPEN IDENT ident_list CLOSE expr
-      { let idl = List.map evar $6 in
+      { let idl = List.map tvar_iota $6 in
         Zdef (DefReal ($2, $5, type_iota, idl, $8, Some $3))
       }
   | HYP int_opt hyp_name expr
@@ -114,9 +114,9 @@ phrase:
 ;
 
 expr:
-  | IDENT                                { evar $1 }
-  | STRING                               { eapp (evar "$string", [mk_string $1]) }
-  | OPEN IDENT expr_list CLOSE           { eapp (evar $2, $3) }
+  | IDENT                                { tvar_iota $1 }
+  | STRING                               { eapp (tvar_none "$string", [mk_string $1]) }
+  | OPEN IDENT expr_list CLOSE           { eapp (tvar_none $2, $3) }
   | OPEN NOT expr CLOSE                  { enot ($3) }
   | OPEN AND expr expr_list CLOSE        { mkand $3 $4 }
   | OPEN OR expr expr_list CLOSE         { mkor $3 $4 }
@@ -132,9 +132,9 @@ expr:
   | mlambda                              { mk_elam $1 }
   | OPEN TAU lambda CLOSE                { etau $3 }
   | OPEN EQUAL expr expr CLOSE           { eeq $3 $4 }
-  | OPEN MATCH expr case_list CLOSE      { eapp (evar "$match", $3 :: $4) }
-  | OPEN LET id_expr_list_expr CLOSE     { eapp (evar "$let", $3) }
-  | OPEN FIX mlambda expr_list CLOSE     { eapp (evar "$fix", mk_elam $3 :: $4) }
+  | OPEN MATCH expr case_list CLOSE      { eapp (tvar_none "$match", $3 :: $4) }
+  | OPEN LET id_expr_list_expr CLOSE     { eapp (tvar_none "$let", $3) }
+  | OPEN FIX mlambda expr_list CLOSE     { eapp (tvar_none "$fix", mk_elam $3 :: $4) }
 ;
 
 expr_list:

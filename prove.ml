@@ -371,12 +371,12 @@ let newnodes_eq_str st fm g _ =
     let l = Index.find_eq_str () in
     let r = Index.find_str_eq () in
     let fl st (e2, s) =
-      let s2 = eapp (evar "$string", [evar s]) in
+      let s2 = eapp (tvar_none "$string", [tvar_none s]) in
       let eq = eeq e2 s2 in
       mk_node st "stringdiffll" e1 s1 e2 s2 eq
     in
     let fr st (e2, s) =
-      let s2 = eapp (evar "$string", [evar s]) in
+      let s2 = eapp (tvar_none "$string", [tvar_none s]) in
       let eq = eeq s2 e2 in
       mk_node st "stringdifflr" e1 s1 e2 s2 eq
     in
@@ -385,12 +385,12 @@ let newnodes_eq_str st fm g _ =
     let l = Index.find_eq_str () in
     let r = Index.find_str_eq () in
     let fl st (e2, s) =
-      let s2 = eapp (evar "$string", [evar s]) in
+      let s2 = eapp (tvar_none "$string", [tvar_none s]) in
       let eq = eeq e2 s2 in
       mk_node st "stringdiffrl" e1 s1 e2 s2 eq
     in
     let fr st (e2, s) =
-      let s2 = eapp (evar "$string", [evar s]) in
+      let s2 = eapp (tvar_none "$string", [tvar_none s]) in
       let eq = eeq s2 e2 in
       mk_node st "stringdiffrr" e1 s1 e2 s2 eq
     in
@@ -1584,7 +1584,7 @@ and next_branch prm stk n st brstate =
             (fun x b -> if b =%= Open then x + 1 else x) 0 brstate
         in
         if c > 1 then
-          Extension.add_formula (evar "#branch");
+          Extension.add_formula (tvar_none "#branch");
         Log.debug 3 "~ (%i/%i--%i) %a" (Array.length brstate - i)
           (Array.length brstate) c Print.pp_mlrule n.nrule;
         refute prm (fr :: stk) st

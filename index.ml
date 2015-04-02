@@ -436,7 +436,7 @@ let get_meta e = HE.find metas e;;
 let cur_num = ref (-1);;
 let numforms = (HE.create tblsize : int HE.t);;
 let formnums = ref ([| |] : expr array);;
-let dummy = evar " *** Index.dummy *** ";;
+let dummy = tvar_none " *** Index.dummy *** ";;
 
 let ext_set tbl i x =
   while i >= Array.length !tbl do

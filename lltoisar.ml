@@ -289,8 +289,8 @@ let p_sequent hyps i dict oc hs =
   List.fold_left (fun dict h -> p_assume hyps i dict oc h) dict hs
 ;;
 
-let tla_succ n = eapp (evar "TLA.fapply", [evar "TLA.Succ"; n]);;
-let tla_zero = evar "0";;
+let tla_succ n = eapp (tvar_none "TLA.fapply", [tvar_none "TLA.Succ"; n]);;
+let tla_zero = tvar_none "0";;
 let tla_one = tla_succ tla_zero;;
 
 let rec p_tree hyps i dict oc proof =
@@ -443,7 +443,7 @@ let rec p_tree hyps i dict oc proof =
           r, field, (Misc.list_indexq field l) / 2 + 1, (List.length l) / 2
        | _ -> assert false
      in
-     let indom = eapp (evar "TLA.in", [fld; eapp (evar "TLA.DOMAIN", [r])]) in
+     let indom = eapp (tvar_none "TLA.in", [fld; eapp (tvar_none "TLA.DOMAIN", [r])]) in
      let eqn = eeq olde newe in
      let eqx = eand (indom, eqn) in
      iprintf i oc "have %s: \"%a\"" (hname hyps eqx) (p_expr dict) eqx;
@@ -479,19 +479,19 @@ let rec p_tree hyps i dict oc proof =
      in
      p_simple_hyp h0;
      p_simple_hyp h1;
-     let isseq = eapp (evar "TLA.isASeq", [e2]) in
+     let isseq = eapp (tvar_none "TLA.isASeq", [e2]) in
      iprintf i oc "have %s: \"%a\" by auto\n"
              (hname hyps isseq) (p_expr dict2) isseq;
      let print_hyp (dict2, n) h =
        if List.memq h t.conc then begin
          let inlen =
-           eapp (evar "TLA.in", [n; eapp (evar "arith.natrange",
-                                     [tla_one; eapp (evar "TLA.Len", [e2])])])
+           eapp (tvar_none "TLA.in", [n; eapp (tvar_none "arith.natrange",
+                                     [tla_one; eapp (tvar_none "TLA.Len", [e2])])])
          in
          iprintf i oc "have %s: \"%a\" by auto\n"
                  (hname hyps inlen) (p_expr dict2) inlen;
-         let hh = eapp (evar "TLA.in", [eapp (evar "TLA.fapply", [e1; n]);
-                                   eapp (evar "TLA.fapply", [e2; n])])
+         let hh = eapp (tvar_none "TLA.in", [eapp (tvar_none "TLA.fapply", [e1; n]);
+                                   eapp (tvar_none "TLA.fapply", [e2; n])])
          in
          iprintf i oc "have %s: \"%a\"" (hname hyps hh) (p_expr dict2) hh;
          let dict3 = p_is dict2 oc hh in
@@ -576,19 +576,19 @@ let rec p_tree hyps i dict oc proof =
        match e2 with Eapp (Evar("TLA.recordset",_), args, _) -> args | _ -> assert false
      in
      let l_args = mk_pairs args in
-     let doms = eapp (evar "TLA.tuple", List.map fst l_args) in
-     let rngs = eapp (evar "TLA.tuple", List.map snd l_args) in
+     let doms = eapp (tvar_none "TLA.tuple", List.map fst l_args) in
+     let rngs = eapp (tvar_none "TLA.tuple", List.map snd l_args) in
      let dict3 = p_let dict2 i oc doms in
      let dict4 = p_let dict3 i oc rngs in
      let print_hyp (dict4, n) h =
        if List.memq h t.conc then begin
-         let indom = eapp (evar "TLA.in", [n; eapp (evar "TLA.DOMAIN", [doms])]) in
+         let indom = eapp (tvar_none "TLA.in", [n; eapp (tvar_none "TLA.DOMAIN", [doms])]) in
          iprintf i oc "have %s: \"%a\" by auto\n"
                  (hname hyps indom) (p_expr dict4) indom;
          let hh =
-           eapp (evar "TLA.in",
-                 [eapp (evar "TLA.fapply", [e1; eapp (evar "TLA.fapply", [doms; n])]);
-                  eapp (evar "TLA.fapply", [rngs; n])])
+           eapp (tvar_none "TLA.in",
+                 [eapp (tvar_none "TLA.fapply", [e1; eapp (tvar_none "TLA.fapply", [doms; n])]);
+                  eapp (tvar_none "TLA.fapply", [rngs; n])])
          in
          iprintf i oc "have %s: \"%a\"" (hname hyps hh) (p_expr dict4) hh;
          let dict5 = p_is dict4 oc hh in
@@ -878,7 +878,7 @@ and p_subst hyps i dict oc mk l1 l2 rl2 prev =
        p_subst hyps i dict oc mk t1 t2 (h2 :: rl2) prev
      else begin
        let newrl2 = h2 :: rl2 in
-       let x = newvar () in
+       let x = newtvar (get_type h2) in
        let p = elam (x, mk (List.rev_append rl2 (x :: t1))) in
        let e = apply p h2 in
        let n_e = hname hyps e in

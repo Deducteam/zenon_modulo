@@ -133,7 +133,7 @@ let rec opt t =
   | _ -> { t with conc = nconc; hyps = nhyps }
 ;;
 
-let occurs name e = not (Expr.equal e (substitute [(evar name, etrue)] e));;
+let occurs name e = not (Expr.equal e (substitute [(tvar_prop name, etrue)] e));;
 
 let optimise p =
   Hashtbl.clear lemmas;

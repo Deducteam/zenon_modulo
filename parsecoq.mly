@@ -40,8 +40,8 @@ let mk_apply (e, l) =
 let rec mk_arobas_apply (id, l) =
   match l with
   | Evar ("_", _) :: t -> mk_arobas_apply (id, t)
-  | [] -> evar (id)
-  | _ -> eapp (evar id, l)
+  | [] -> tvar_none (id)
+  | _ -> eapp (tvar_none id, l)
 ;;
 
 let mk_all bindings body =
@@ -61,7 +61,7 @@ let mk_lam bindings body =
 
 let mk_fix ident ty bindings body =
   let f (var, ty) e = elam (tvar var ty, e) in
-  (ident, eapp (evar "$fix", [ List.fold_right f ((ident, ty) :: bindings) body ]))
+  (ident, eapp (tvar_none "$fix", [ List.fold_right f ((ident, ty) :: bindings) body ]))
 ;;
 
 let rec get_params e =
@@ -73,14 +73,14 @@ let rec get_params e =
 ;;
 
 let mk_let id expr body =
-  substitute_2nd [(evar id, expr)] body
+  substitute_2nd [(tvar id (get_type expr), expr)] body
 ;;
 
 let mk_let_fix (id, def) body = mk_let id def body;;
 
 let mk_pattern (constr, args) body =
   let bindings = List.map (fun v -> (v, type_iota)) args in
-  mk_lam bindings (eapp (evar "$match-case", [evar (constr); body]))
+  mk_lam bindings (eapp (tvar_none "$match-case", [tvar_none (constr); body]))
 ;;
 
 let mk_inductive name ty bindings constrs =
@@ -94,11 +94,11 @@ let mk_inductive name ty bindings constrs =
 ;;
 
 let mk_pairs e l =
-  let f x y = eapp (evar "@", [evar "Datatypes.pair"; evar "_"; evar "_"; x; y]) in
+  let f x y = eapp (tvar_none "@", [tvar_none "Datatypes.pair"; tvar_type "_"; tvar_type "_"; x; y]) in
   List.fold_left f e l
 ;;
 
-let mk_string s = evar ("\"" ^ s ^ "\"") ;;
+let mk_string s = tvar_iota ("\"" ^ s ^ "\"") ;;
 %}
 
 %token <string> IDENT
@@ -255,10 +255,10 @@ expr:
       { mk_let $2 $6 $8 }
 
   | MATCH expr WITH pat_expr_list END
-      { eapp (evar "$match", $2 :: $4) }
+      { eapp (tvar_none "$match", $2 :: $4) }
 
   | IF expr THEN expr ELSE expr
-      { eapp (evar "FOCAL.ifthenelse", [$2; $4; $6]) }
+      { eapp (tvar_none "FOCAL.ifthenelse", [$2; $4; $6]) }
 
   | expr DASH_GT_ expr
       { eimply ($1, $3) }
@@ -284,10 +284,10 @@ expr:
       { mk_apply ($1, $2) }
 
   | AROBAS_ IDENT expr1_list %prec apply
-      { mk_eapp (evar "@", evar ($2) :: $3) }
+      { mk_eapp (tvar_none "@", tvar_none ($2) :: $3) }
 
   | AROBAS_ IDENT %prec apply
-      { mk_eapp (evar "@", [evar ($2)]) }
+      { mk_eapp (tvar_none "@", [tvar_none ($2)]) }
 
   | expr1
       { $1 }
@@ -300,9 +300,9 @@ fix:
 
 expr1:
   | IDENT
-      { evar ($1) }
+      { tvar_none ($1) }
   | NUM
-      { eapp (evar $1, []) }
+      { eapp (tvar_none $1, []) }
   /* Added F. Pessaux, Makes Zenon parsing strings and considering them like
      simple atoms. */
   | STRING
@@ -310,9 +310,9 @@ expr1:
   | LPAREN_ expr comma_expr_list RPAREN_
       { mk_pairs $2 $3 }
   | LPAREN_ expr STAR_ expr RPAREN_
-      { eapp (evar "*", [$2; $4]) }
+      { eapp (tvar_none "*", [$2; $4]) }
   | LPAREN_ expr PERCENT_ IDENT RPAREN_
-      { eapp (evar "%", [$2; evar ($4)]) }
+      { eapp (tvar_none "%", [$2; tvar_none ($4)]) }
   | LPAREN_ expr RPAREN_
       { $2 }
   | TRUE

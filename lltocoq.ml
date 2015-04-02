@@ -100,7 +100,7 @@ and p_expr oc e =
   | Eapp (Evar("=",_), [e1; e2], _) ->
       poc "(%a = %a)" p_expr e1 p_expr e2;
   | Eapp (Evar("=",_), l, _) ->
-      p_expr oc (eapp (evar "@eq _", l));
+      p_expr oc (eapp (tvar_none "@eq _", l));
   | Eapp (Evar("$match",_), e1 :: l, _) ->
       poc "match %a with%a end" p_expr e1 p_cases l;
   | Eapp (Evar("$fix",_), Elam (Evar (f, _), body, _) :: l, _) ->
@@ -334,10 +334,9 @@ let p_rule oc r =
         | Eapp (Evar(ss,_), args, _) when ss = s -> args
         | _ -> assert false
       in
-      let vv = evar v in
       let rec find_recarg l1 l2 =
         match l1, l2 with
-        | h1::t1, h2::t2 -> if h1 = vv then h2 else find_recarg t1 t2
+        | h1::t1, h2::t2 -> if get_name h1 = v then h2 else find_recarg t1 t2
         | _ -> assert false
       in
       let recarg = find_recarg a args in
