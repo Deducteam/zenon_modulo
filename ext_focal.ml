@@ -674,7 +674,7 @@ let prod a b =
 let pair_ty =
   let a = newtvar type_type in
   let b = newtvar type_type in
-  eall (a, eall (b, earrow [a; b] (prod a b)))
+  eall (b, eall (a, earrow [a; b] (prod a b)))
 
 let first_ty =
   let a = newtvar type_type in
@@ -701,14 +701,14 @@ let predecl () =
      let tyb = newtvar type_type in
      let a = newtvar tya in
      let b = newtvar tyb in
-     eeq (first tyb tya (pair tya tyb a b)) a
+     eeq (first tyb tya (pair tyb tya a b)) a
     );
   Rewrite.add_rwrt_term "snd"
     (let tya = newtvar type_type in
      let tyb = newtvar type_type in
      let a = newtvar tya in
      let b = newtvar tyb in
-     eeq (second tyb tya (pair tya tyb a b)) b
+     eeq (second tyb tya (pair tyb tya a b)) b
     );
   [
     ("Is_true", arr bool1 t_prop);
