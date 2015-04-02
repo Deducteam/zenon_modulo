@@ -560,7 +560,7 @@ let add_rwrt_prop name body =
 let get_rwrt_from_def = function
   | DefReal (name, id, ty, args, body, _) ->
      (name, eeq (eapp (tvar id ty, args)) body)
-  | DefPseudo (_, id, ty, args, body) ->  
+  | DefPseudo (_, id, ty, args, body) ->
      ("pseudoDef_"^id, eeq (eapp (tvar id ty, args)) body)
   | DefRec _ -> failwith "Recursive definitions not supported"
 ;;
@@ -589,7 +589,7 @@ let rec select_rwrt_rules_aux accu phrase =
 
        else phrase :: accu;
      end
-  | Def d -> 
+  | Def d ->
      let (name, body) = get_rwrt_from_def d in
      add_rwrt_term name body;
      phrase :: accu
