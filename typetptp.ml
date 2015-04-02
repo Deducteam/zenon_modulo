@@ -257,7 +257,7 @@ and type_tff_quant k mk_quant env = function
                 else
                     v'
             in
-            let map'' = (evar s, nv) :: map' in
+            let map'' = (tvar s t, nv) :: map' in
             Log.debug 2 "Introducting '%a' of type '%a' as '%a'" Print.pp_expr v Print.pp_expr t Print.pp_expr nv;
             let body, env'' = k { env' with map = map'' } body in
             mk_quant (v', body), { env'' with map = env.map }

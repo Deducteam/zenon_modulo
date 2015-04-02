@@ -127,8 +127,8 @@ let mk_eapp : string * expr list -> expr =
      then raise (Unknown_builtin s)
      else
        (if args = []
-        then evar s
-        else eapp (evar s, args))
+        then tvar_none s
+        else eapp (tvar_none s, args))
 ;;
 
 exception Application_head_is_not_a_var of expr;;
@@ -261,7 +261,7 @@ simple:
 | TYPE { type_type }
 | TRUE { tvar "true" bool1 }
 | FALSE { tvar "false" bool1 }
-| qid { evar $1 }
+| qid { tvar_none $1 }
 | LPAREN term RPAREN { $2 }
 typ:
 | applicative { mk_type $1 }

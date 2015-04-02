@@ -116,11 +116,11 @@ phrase:
   | ANNOT                          { Phrase.Annotation $1 }
 ;
 expr:
-  | UIDENT                             { evar (ns_var $1) }
-  | LIDENT arguments                   { eapp (evar @@ ns_fun $1, $2) }
+  | UIDENT                             { tvar_none (ns_var $1) }
+  | LIDENT arguments                   { eapp (tvar_none @@ ns_fun $1, $2) }
   | PROP                               { type_prop }
   | TTYPE                              { type_type }
-  | STRING                             { eapp (evar "$string", [evar $1]) }
+  | STRING                             { eapp (tvar_none "$string", [tvar_none $1]) }
   | INT                                { Arith.mk_int $1 }
   | RAT                                { Arith.mk_rat $1 }
   | REAL                               { Arith.mk_real $1 }
@@ -148,7 +148,7 @@ formula:
 ;
 type_def:
     | OPEN type_def CLOSE        { $2 }
-    | LIDENT COLON tff_type_sig  { eapp (evar "#", [evar $1; $3]) }
+    | LIDENT COLON tff_type_sig  { eapp (tvar_none "#", [tvar_none $1; $3]) }
 ;
 atom:
   | ALL LBRACKET var_list RBRACKET COLON atom

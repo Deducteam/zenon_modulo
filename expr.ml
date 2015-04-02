@@ -509,8 +509,12 @@ let print_stats oc =
 *)
 
 (* Expression constructors (except eapp, see substitutions) *)
-let evar s = he_merge (Evar (s, priv_var s type_iota));;
 let tvar s t = he_merge (Evar (s, priv_var s t));;
+let tvar_none s = tvar s type_none;;
+let tvar_iota s = tvar s type_iota;;
+let tvar_type s = tvar s type_type;;
+let tvar_prop s = tvar s type_prop;;
+
 let emeta (e) = he_merge (Emeta (e, priv_meta e));;
 let earrow args ret =
   match ret with
@@ -547,7 +551,7 @@ let priv_lam v e =
 let elam (v, e) = he_merge (Elam (v, e, priv_lam v e))
 ;;
 
-let estring = evar "$string";;
+let estring = tvar_type "$string";;
 
 let rec all_list vs body =
   match vs with
@@ -637,7 +641,6 @@ let newname () =
   Bytes.to_string !cursym
 ;;
 
-let newvar () = evar (newname ());;
 let newtvar ty = tvar (newname ()) ty;;
 
 let rec rm_binding v map =
@@ -827,7 +830,7 @@ let rec substitute_2nd_unsafe map e =
   | Eapp (s, args, _) ->
      let acts = List.map (substitute_2nd_unsafe map) args in
      begin try
-      let lam = List.assq (evar (get_name s)) map in
+      let lam = List.assq s map in
       match lam, acts with
       | Elam (v, body, _), [a] -> substitute [(v,a)] body
       | Evar (v, _), _ -> eapp (lam, acts)
@@ -849,28 +852,28 @@ let rec substitute_2nd_unsafe map e =
   | Eall (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
-        let nv = newvar () in
+        let nv = newtvar (get_type v) in
         eall (nv, substitute_2nd_unsafe ((v, nv) :: map1) f)
       else
         eall (v, substitute_2nd_unsafe map1 f)
   | Eex (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
-        let nv = newvar () in
+        let nv = newtvar (get_type v) in
         eex (nv, substitute_2nd_unsafe ((v, nv) :: map1) f)
       else
         eex (v, substitute_2nd_unsafe map1 f)
   | Etau (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
-        let nv = newvar () in
+        let nv = newtvar (get_type v) in
         etau (nv, substitute_2nd_unsafe ((v, nv) :: map1) f)
       else
         etau (v, substitute_2nd_unsafe map1 f)
   | Elam (v, f, _) ->
       let map1 = rm_binding v map in
       if conflict v map1 then
-        let nv = newvar () in
+        let nv = newtvar (get_type v) in
         elam (nv, substitute_2nd_unsafe ((v, nv) :: map1) f)
       else
         elam (v, substitute_2nd_unsafe map1 f)

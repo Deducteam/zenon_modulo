@@ -370,9 +370,9 @@ let rec trtree env node =
      let make_hyp h (c, cargs) =
        let vars = List.map (fun x -> Expr.newname ()) cargs in
        let shape =
-         let vvars = List.map evar vars in
-         let params = List.map (fun _ -> evar "_") args in
-         let base = enot (eeq e1 (eapp (evar "@", evar c :: params @ vvars)))
+         let vvars = List.map tvar_none vars in
+         let params = List.map (fun _ -> tvar_type "_") args in
+         let base = enot (eeq e1 (eapp (tvar_none "@", tvar_none c :: params @ vvars)))
          in
          enot (all_list vvars base)
        in
@@ -388,7 +388,7 @@ let rec trtree env node =
      in
      let recargs = List.map2 make_hyp hyps cstrs in
      let pred =
-       let v = Expr.newvar () in
+       let v = Expr.newtvar (get_type e1) in
        trexpr (elam (v, enot (eeq e1 v)))
      in
      let refl = Capp (Cvar "refl_equal", [tropt e1]) in
@@ -412,7 +412,7 @@ let rec trtree env node =
                 [c], [ [h] ]) ->
      let (args, cstrs, schema) = get_induct ty in
      let typargs = List.map (fun _ -> Cwild) args in
-     let x = Expr.newvar () in
+     let x = Expr.newtvar type_none in
      let p = elam (x, eimply (eimply (apply ctx (apply unfx x), efalse),
                                       eimply (apply ctx (apply foldx x), efalse)))
      in
@@ -427,7 +427,7 @@ let rec trtree env node =
       Capp (Cvar name, metargs @ hypargs @ conargs)
   | Rlemma (name, _) ->
       let args = Hashtbl.find lemma_env name in
-      Capp (Cvar name, List.map (fun x -> trexpr (evar x)) args)
+      Capp (Cvar name, List.map (fun x -> trexpr (tvar_none x)) args)
 
 and tr_subtree_1 env l =
   match l with
@@ -442,7 +442,7 @@ and tr_subtree_2 env l =
 and mk_eq_node env (ctx, a, b) h sub =
   if Expr.equal a b then sub else begin
     let x = Expr.newname () in
-    let c = Clam (x, Cwild, trexpr env (ctx (evar x))) in
+    let c = Clam (x, Cwild, trexpr env (ctx (tvar_none x))) in
     let aneb = enot (eeq a b) in
     let thyp = mklam env aneb (trtree env h) in
     Capp (Cvar "zenon_subst",

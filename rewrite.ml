@@ -214,7 +214,7 @@ let restore_equal fm =
        | Etau _, Evar _
        | Emeta _, Etau _
        | Etau _, Emeta _
-	 -> eapp (evar("="), [a1; a2])
+	 -> eeq a1 a2
        | _, _ -> fm
      end
   | Enot (Eapp (Evar("B_equal_set", _), [a1; a2], _), _)
@@ -230,7 +230,7 @@ let restore_equal fm =
        | Etau _, Evar _
        | Emeta _, Etau _
        | Etau _, Emeta _
-	 -> enot (eapp (evar("="), [a1; a2]))
+	 -> enot (eeq a1 a2)
        | _, _ -> fm
      end
   | _ -> fm
