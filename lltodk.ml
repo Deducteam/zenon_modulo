@@ -23,8 +23,8 @@ exception No_meta of string
 ;;
 
 let add_context e dke =
-  Log.debug 4 " |- Add context %s ::  %a" 
-	    (match dke with 
+  Log.debug 4 " |- Add context %s ::  %a"
+	    (match dke with
 	     | Dkvar (name, _) -> name
 	     | _ -> assert false)
 	    Print.pp_expr e;
@@ -33,10 +33,10 @@ let add_context e dke =
 
 let get_context e =
   try
-    let dke = Hashtbl.find !context e in 
+    let dke = Hashtbl.find !context e in
     Log.debug 5 " |- Get context %s :: %a"
-	      (match dke with 
-	       | Dkvar (name, _) -> name 
+	      (match dke with
+	       | Dkvar (name, _) -> name
 	       | _ -> assert false)
 	      Print.pp_expr e;
     dke
@@ -668,26 +668,26 @@ let rec trproof_dk p =
 		  (List.flatten hyps);
         let ext = if ext = "" then "focal" else ext in
         (*List.iter (fun e -> ignore (mk_pr_var e)) (List.flatten hyps);*)
-	let tr_args = List.map trexpr_dkprop args in 
+	let tr_args = List.map trexpr_dkprop args in
 	assert ((List.length hyps) = (List.length phyps));
-	let build_lam hyps phyp = 
-	  let prp = List.map mk_pr_var hyps in 
-	  let sub = trproof_dk phyp in 
-	  let lam = 
-	    if (List.length prp > 1) 
+	let build_lam hyps phyp =
+	  let prp = List.map mk_pr_var hyps in
+	  let sub = trproof_dk phyp in
+	  let lam =
+	    if (List.length prp > 1)
 	    then
-	      List.fold_left (fun lam pr -> mk_lam (pr, lam)) 
+	      List.fold_left (fun lam pr -> mk_lam (pr, lam))
 			     (mk_lam (List.hd prp, sub)) (List.tl prp)
-	    else 
+	    else
 	      begin
 		assert (List.length prp = 1);
 		mk_lam (List.hd prp, sub)
 	      end
 	  in
-	  lam 
-	in	
-	let lambdas = List.map2 build_lam hyps phyps in 
-	let tr_concs = List.map get_pr_var concs in 
+	  lam
+	in
+	let lambdas = List.map2 build_lam hyps phyps in
+	let tr_concs = List.map get_pr_var concs in
         mk_app (mk_var (ext ^ "." ^ name, mk_iota),
                 List.append tr_args (List.append lambdas tr_concs))
      | Rdefinition _ ->
@@ -1021,14 +1021,14 @@ let output_term oc phrases ppphrases llp =
   let _ = mk_prf_var_def phrases in
   let (_, goal) = List.split (select_goal phrases) in
   assert (List.length goal = 1);
-  let ngoal = match (List.hd goal) with 
+  let ngoal = match (List.hd goal) with
     | Enot (ng, _) -> ng
     | _ -> assert false
   in
   let dkgoal = trexpr_dkprop ngoal in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-  
+
   fprintf oc "zen.nnpp (%a)\n\n(%a)" print_dk dkgoal print_dk dkproof;
   []
 ;;
