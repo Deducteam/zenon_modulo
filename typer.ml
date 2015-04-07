@@ -302,6 +302,27 @@ let declare_phrase (p, _) = match p with
   | _ -> ()
 ;;
 
+(* Check that there is no free variable in phrases *)
+let rec check_fv phrases = 
+  List.iter
+    (function
+      | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _)) ->
+	 assert false
+      | Phrase.Hyp (_, e, _) ->
+	 assert (Expr.get_fv e = [])
+      | Phrase.Def d ->
+	 let (params, e) = 
+	   match d with 
+	   | DefReal (_, _, _, params, body, _)
+	   | DefPseudo (_, _, _, params, body)
+	   | DefRec (_, _, _, params, body) ->
+	      (List.map Expr.get_name params, body)
+	 in
+	 assert (List.for_all (fun x -> List.mem x params) (Expr.get_fv e))
+      | _ -> ())
+    phrases
+;;
+
 (* This is the only exported function of this module,
    it is called in main.ml after parsing. *)
 let phrasebl opts l =
@@ -314,5 +335,7 @@ let phrasebl opts l =
   (* Log.debug 15 "All constants:";
   print_constant_decls stdout; *)
   (* Second pass: do the real job of typing everything *)
-  List.fold_left (phrase opts) [] (List.rev l)
+  let phrases = List.fold_left (phrase opts) [] (List.rev l) in 
+  check_fv (List.map fst phrases);
+  phrases
 ;;
