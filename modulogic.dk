@@ -321,6 +321,70 @@ lemme_7 (p : prop)
 	  => H2 : proof (not (or p q)) 
 	     => H1 (lemme_6 p q H2) (lemme_7 p q H2).
 
+lemme_8 (p : prop) 
+	(q : prop) 
+	(H2 : proof (not (imp p q)))
+	: proof (not q)
+:=
+  H3 : proof q 
+  => H2 (H4 : proof p  
+	 => H3).
+
+lemme_9 (p : prop) 
+	(q : prop) 
+	(H1 : proof p -> proof (not (not q)))
+	(H2 : proof (not (imp p q)))
+	: proof (not p)
+:=
+  H3 : proof p 
+  => (H1 H3) (lemme_8 p q H2).
+
+lemme_10 (p : prop) 
+	 (q : prop) 
+	 (H3 : proof (not p)) 
+	 : proof (imp p q)
+:= 
+  H4 : proof p 
+  => H3 H4 q.
+
+[p : prop, q : prop] Rnotimply p q 
+      --> H1 : (proof p -> proof (not q) -> proof False) 
+	  => H2 : proof (not (imp p q)) 
+	     => H2 (lemme_10 p q (lemme_9 p q H1 H2)).
+
+lemme_11 (p : prop) 
+	 (q : prop) 
+	 (H2 : proof p -> proof (not (not q))) 
+	 : (proof p -> proof q)
+:= 
+  HP : proof p 
+  => nnpp q (H2 HP).
+
+lemme_nn (p : prop) 
+	 (H1 : proof p) 
+	 : proof (not (not p)) 
+:= 
+  H2 : (proof p -> proof False) 
+  => H2 H1.
+
+lemme_12 (p : prop) 
+	 (q : prop) 
+	 (H1 : proof (not p) -> proof (not q)) 
+	 : (proof q -> proof p) 
+:=
+  HQ : proof q 
+  => nnpp p (lemme_imp (not p) (not q) H1 (lemme_nn q HQ)).
+
+[p : prop, q : prop] Rnotequiv p q 
+      --> H1 : (proof (not p) -> proof q -> proof False) 
+	  => H2 : (proof p -> proof (not q) -> proof False) 
+	     => H3 : proof (not (eqv p q)) 
+		=> H3 (z : prop 
+		       => H4 : ((proof p -> proof q) -> 
+				(proof q -> proof p) -> 
+				proof z) 
+			  => H4 (lemme_11 p q H2) (lemme_12 p q H1)).
+
 [a : type, p : (term a -> prop)] Rex a p
       --> H1 : (t : term a -> proof (p t) -> proof False)
 	  => H2 : proof (exists a p)
