@@ -352,8 +352,12 @@ let rec pr_list_var o l =
 
 let print_line o line =
   match line with
+  | Dkdecl (v, _) when String.contains v '.' -> 
+     ()
   | Dkdecl (v, t) ->
      fprintf o "%s : %a.\n\n" v print_dk t
+  | Dkrwrt (_, Dkapp (Dkvar(s, _), _), _) when String.contains s '.' -> 
+     ()
   | Dkrwrt (l, t1, t2) ->
      fprintf o "[%a]\n %a \n --> %a.\n\n" pr_list_var l print_dk t1 print_dk t2
 ;;
