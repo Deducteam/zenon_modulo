@@ -394,3 +394,46 @@ lemme_12 (p : prop)
       --> H1 : (proof (p t) -> proof False)
 	  => H2 : proof (forall a p)
 	     => H1 (H2 t).
+
+[a : type, p : (term a -> prop), t : term a] Rnotex a p t 
+      --> H1 : (proof (not (p t)) -> proof False) 
+	  => H2 : proof (not (exists a p)) 
+	     => H2 (z : prop 
+		    => H3 : (x : term a -> proof (p x) -> proof z) 
+		       => H3 t (nnpp (p t) H1)).
+
+[a : type, p : (term a -> prop)] Rnotall a p 
+      --> H1 : (t : term a -> proof (not (p t)) -> proof False) 
+	  => H2 : proof (not (forall a p)) 
+	     => H2 (t : term a 
+		    => nnpp (p t) (H1 t)).
+
+[p : (type -> prop)] Rextype p 
+      --> H1 : (a : type -> proof (p a) -> proof False) 
+	  => H2 : proof (existstype p) 
+	     => H2 False H1.
+
+[p : (type -> prop), a : type] Ralltype p a 
+      --> H1 : (proof (p a) -> proof False) 
+	  => H2 : proof (foralltype p) 
+	     => H1 (H2 a).
+
+[p : (type -> prop), a : type] Rnotextype p a 
+      --> H1 : (proof (not (p a)) -> proof False) 
+	  => H2 : proof (not (existstype p)) 
+	     => H2 (z : prop 
+		    => H3 : (b : type -> proof (p b) -> proof z) 
+		       => H3 a (nnpp (p a) H1)).
+
+[p : (type -> prop)] Rnotalltype p 
+      --> H1 : (a : type -> proof (not (p a)) -> proof False) 
+	  => H2 : proof (not (foralltype p)) 
+	     => H2 (a : type 
+		    => nnpp (p a) (H1 a)).
+
+[a : type, p : (term a -> prop), t1 : term a, t2 : term a] 
+    Rsubst a p t1 t2 
+      --> H1 : (proof (not (equal a t1 t2)) -> proof False) 
+	  => H2 : (proof (p t2) -> proof False) 
+	     => H3 : proof (p t1) 
+		=> H2 ((nnpp (equal a t1 t2) H1) p H3).
