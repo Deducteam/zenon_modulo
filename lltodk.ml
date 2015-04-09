@@ -82,7 +82,7 @@ let predefined_sym =
 ;;
 
 let rec trexpr_dktype_aux e =
-  Log.debug 13 " |- dktype %a" Print.pp_expr e;
+  Log.debug 14 " |- dktype %a" Print.pp_expr e;
   match e with
   | e when (Expr.equal e type_type) ->
      mk_type
@@ -137,7 +137,7 @@ let rec trexpr_dktype_aux e =
 ;;
 
 let rec trexpr_dktype e =
-  Log.debug 13 " |- dktype %a" Print.pp_expr e;
+  Log.debug 14 " |- dktype %a" Print.pp_expr e;
   match e with
   | e when (Expr.equal e type_type) ->
      mk_type
@@ -198,7 +198,7 @@ let rec translate_sigs_aux s accu =
   match s with
   | [] -> List.rev accu
   | (v, s) :: tl ->
-     Log.debug 10 "translate sig %s:%a" v Print.pp_expr s;
+     Log.debug 19 "translate sig %s : %a" v Print.pp_expr s;
      let ns =
        match s with
        | e when (Expr.equal e type_type) -> mk_type
@@ -209,6 +209,7 @@ let rec translate_sigs_aux s accu =
 ;;
 
 let translate_sigs s =
+  Log.debug 13 " |- Length of Sigs = %i" (List.length s);
   translate_sigs_aux s []
 ;;
 
@@ -235,33 +236,37 @@ let tr_list_vars rule =
 ;;
 
 let rec renaming e = 
-  Log.debug 7 " |- rename %a" Print.pp_expr e;
+  Log.debug 4 " |- rename %a" Print.pp_expr e;
   match e with 
   | Eall (v, body, _) -> 
      let v' = Expr.newtvar (get_type v) in
      let body' = Expr.substitute [(v, v')] body in     
      let body'' = renaming body' in 
-     Log.debug 7 " |- var : %a --> %a" 
+     Log.debug 4 " |- var : %a --> %a" 
 	       Print.pp_expr_t v Print.pp_expr_t v';
-     Log.debug 7 " |- new body : %a" Print.pp_expr_t body'';
+     Log.debug 4 " |- new body : %a" Print.pp_expr_t body'';
      let e' = eall (v', body'') in
-     Log.debug 7 " |- result %a" Print.pp_expr e';
+     Log.debug 4 " |- result %a" Print.pp_expr e';
      e'
   | Eex (v, body, _) ->
      let v' = Expr.newtvar (get_type v) in
      let body' = Expr.substitute [(v, v')] body in     
      let body'' = renaming body' in 
-     Log.debug 7 " |- v'    %a" Print.pp_expr v';
-     Log.debug 7 " |- body'' %a" Print.pp_expr body'';
+     Log.debug 4 " |- var : %a --> %a" 
+	       Print.pp_expr_t v Print.pp_expr_t v';
+     Log.debug 4 " |- new body : %a" Print.pp_expr_t body'';
      let e' = eex (v', body'') in
-     Log.debug 7 " |- ..... %a" Print.pp_expr e';
+     Log.debug 4 " |- result %a" Print.pp_expr e';
      e'
   | Elam (v, body, _) -> 
      let v' = Expr.newtvar (get_type v) in
      let body' = Expr.substitute [(v, v')] body in     
      let body'' = renaming body' in 
+     Log.debug 4 " |- var : %a --> %a" 
+	       Print.pp_expr_t v Print.pp_expr_t v';
+     Log.debug 4 " |- new body : %a" Print.pp_expr_t body'';
      let e' = elam (v', body'') in
-     Log.debug 7 " |- ..... %a" Print.pp_expr e';
+     Log.debug 4 " |- result %a" Print.pp_expr e';
      e'
   | _ -> e
 ;;
@@ -279,6 +284,11 @@ let rec trexpr_dkprop e =
      trexpr_dkvartype e
   | Emeta _ ->
      assert false
+  | Eapp (Evar(s, _) as s', [], _) -> 
+     let s = "cst_"^s in 
+     let s' = tvar s (get_type s') in 
+     let nvar = trexpr_dkvartype s' in 
+     mk_app (nvar, [])
   | Eapp (Evar("=", _), [e1; e2], _) ->
      let ne1 = trexpr_dkprop e1 in
      let ne2 = trexpr_dkprop e2 in
@@ -622,9 +632,9 @@ let rec trproof_dk p =
 	  let conc = get_pr_var exp in
 	  mk_DkRex (a, dkp, lam, conc)
      | Rall (Eall (Evar (x, _), px, _) as allp, t) ->
-	Log.debug 7 " |- Rall of : %a" Print.pp_expr allp;
+	Log.debug 4 " >> Rall in  : %a" Print.pp_expr allp;
 	let allp = renaming allp in
-	Log.debug 7 " |- Rall fi : %a" Print.pp_expr allp;
+	Log.debug 4 " >> Rall out : %a" Print.pp_expr allp;
 	let (x, vx, px) = match allp with 
 	  | Eall (Evar (x', _) as vx', px', _) -> (x', vx', px')
 	  | _ -> assert false
@@ -949,8 +959,11 @@ let rec get_sigs_fm_type accu ty =
      then
        List.fold_left (fun x y -> get_sigs_fm_type x y) accu args
      else
-       let accu = (v, get_type v') :: accu in
-       List.fold_left (fun x y -> get_sigs_fm_type x y) accu args
+       begin
+	 Log.debug 13 " |- Type Sigs %s :: %a" v Print.pp_expr (get_type v');
+	 let accu = (v, get_type v') :: accu in
+	 List.fold_left (fun x y -> get_sigs_fm_type x y) accu args
+       end
   | Earrow (args, ret, _) ->
      let accu = List.fold_left (fun x y -> get_sigs_fm_type x y)
 			       accu args in
@@ -978,12 +991,25 @@ let rec get_sigs_fm accu fm =
        accu
      else
        let accu = get_sigs_fm_type accu (get_type v') in
+       Log.debug 13 " |- Evar Sigs %s :: %a" v Print.pp_expr (get_type v');
        let accu = (v, get_type v') :: accu in
        accu
   | Evar _ as v ->
      let accu = get_sigs_fm_type accu (get_type v) in
      accu
   | Emeta _ -> assert false
+  | Eapp (Evar (v, _) as v', [], _) -> 
+     if (List.mem_assoc ("cst_"^v) accu)
+     then
+       let accu = get_sigs_fm_type accu (get_type v') in
+       accu
+     else
+       begin
+	 Log.debug 13 " |- Cst Sigs %s :: %a" ("cst_"^v) Print.pp_expr (get_type v');
+	 let accu = ("cst_"^v, get_type v') :: accu in
+	 let accu = get_sigs_fm_type accu (get_type v') in
+	 accu
+       end
   | Eapp (Evar ("=", _), args, _) ->
      List.fold_left (fun x y -> get_sigs_fm x y) accu args
   | Eapp (Evar (v, _) as v', args, _)
@@ -1004,9 +1030,12 @@ let rec get_sigs_fm accu fm =
        let accu = get_sigs_fm_type accu (get_type v') in
        List.fold_left (fun x y -> get_sigs_fm x y) accu args
      else
-       let accu = get_sigs_fm_type accu (get_type v') in
-       let accu = (v, get_type v') :: accu in
-       List.fold_left (fun x y -> get_sigs_fm x y) accu args
+       begin
+	 Log.debug 13 " |- Eapp Sigs %s :: %a" v Print.pp_expr (get_type v');
+	 let accu = (v, get_type v') :: accu in
+	 let accu = get_sigs_fm_type accu (get_type v') in
+	 List.fold_left (fun x y -> get_sigs_fm x y) accu args
+       end
   | Earrow _ -> assert false
   | Enot (e, _) -> get_sigs_fm accu e
   | Eand (e1, e2, _)
@@ -1047,7 +1076,6 @@ let get_sigs_phrases sigs phrases =
 ;;
 
 let rec get_sigs_proof_aux accu llp =
-  Log.debug 6 " |- Get Sigs - proof step";
   match llp with
   | {conc = pconc;
      rule = prule;
@@ -1064,8 +1092,12 @@ let get_sigs_proof sigs llp =
 
 let output oc phrases llp =
   Log.debug 2 "=========== Generate Dedukti Term =============";
-  let sigs = get_sigs_phrases [] phrases in
+  let sigs = Expr.get_defs () in 
+  Log.debug 13 " |- length Sigs = %i" (List.length sigs);
+  let sigs = get_sigs_phrases sigs phrases in
+  Log.debug 13 " |- length Sigs = %i" (List.length sigs);
   let sigs = get_sigs_proof sigs (extract_prooftree llp) in
+  Log.debug 13 " |- length Sigs = %i" (List.length sigs);
   let dksigs = translate_sigs sigs in
   let dksigs = List.map (fun (x, y) -> mk_decl (x, y)) dksigs in
   let dep_graph = create 1337 in
