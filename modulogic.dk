@@ -287,19 +287,21 @@ lemme_4 (p : prop)
       --> H1 : (proof (not p) -> proof False)
 	  => H2 : (proof (not q) -> proof False)
 	     => H3 : proof (not (and p q))
-		=> H3 (z : prop 
-		       => H4 : (proof p -> proof q -> proof z) 
-			  => H4 (nnpp p H1) (nnpp q H2)).
+		=> H1 (H5 : proof p =>
+                       H2 (H6 : proof q =>
+                           H3 (z : prop =>
+                               (H4 : (proof p -> proof q -> proof z) =>
+                                H4 H5 H6)))).
 
-lemme_5 : p : prop -> 
-	  q : prop -> 
+lemme_5 : p : prop ->
+	  q : prop ->
 	  proof p -> proof (or p q).
 
-[p : prop, q : prop] lemme_5 p q 
-      --> H1 : proof p 
-	  => z : prop 
-	     => H2 : (proof p -> proof z) 
-		=> H3 : (proof q -> proof z) 
+[p : prop, q : prop] lemme_5 p q
+      --> H1 : proof p
+	  => z : prop
+	     => H2 : (proof p -> proof z)
+		=> H3 : (proof q -> proof z)
 		   => H2 H1.
 
 lemme_6 (p : prop)
