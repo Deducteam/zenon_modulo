@@ -4,31 +4,31 @@ open Expr
 type var = string
 
 type dkterm =
-  | Dktype                                     (* type type *)
-  | Dkprop                                     (* type prop *)
-  | Dkiota                                     (* type iota *)
-  | Dkseq                                      (* type seq *)
-  | Dkproof       of dkterm                    (* type proof of prop *)
-  | Dkterm        of dkterm                    (* type term of type *)
-  | Dkarrow       of dkterm list               (* type arrow of type alphas list *)
-  | Dkpi          of dkterm * dkterm           (* vartype -> arrow *)
+  | Dktypetype                                  (* type type *)
+  | Dktypeprop                                  (* type prop *)
+  | Dktypeiota                                  (* type iota *)
+  | Dkseq                                       (* type seq *)
+  | Dkproof       of dkterm                     (* type proof of prop *)
+  | Dkterm        of dkterm                     (* type term of app *)
+  | Dkarrow       of dkterm list                (* type arrow of type list *)
+  | Dkpi          of dkterm * dkterm            (* type pi of var*arrow *)
 
-  | Dkvar         of var  * dkterm             (* vartype alpha *)
-  | Dklam         of dkterm * dkterm           (* vartype alpha => prop of var *)
-  | Dkapp         of dkterm * dkterm list      (* app term apply to term list *)
+  | Dkvar         of var  * dkterm              (* term var of string*type *)
+  | Dklam         of dkterm * dkterm            (* term lam of var*prop *)
+  | Dkapp         of var * dkterm * dkterm list (* term app of string*type*args *)
 
   | Dknot         of dkterm                    (* not of prop *)
   | Dkand         of dkterm * dkterm           (* and of 2 prop *)
   | Dkor          of dkterm * dkterm           (* or of 2 prop *)
   | Dkimply       of dkterm * dkterm           (* imply of 2 prop *)
   | Dkequiv       of dkterm * dkterm           (* equiv of 2 prop *)
-  | Dkforall      of dkterm * dkterm           (* forall type lambda *)
-  | Dkexists      of dkterm * dkterm           (* exists type lambda *)
-  | Dkforalltype  of dkterm                    (* foralltype prop lambda *)
-  | Dkexiststype  of dkterm                    (* existstype prop lambda *)
+  | Dkforall      of dkterm * dkterm           (* forall of type*lambda *)
+  | Dkexists      of dkterm * dkterm           (* exists of type*lambda *)
+  | Dkforalltype  of dkterm                    (* foralltype of lambda *)
+  | Dkexiststype  of dkterm                    (* existstype of lambda *)
   | Dktrue                                     (* true *)
   | Dkfalse                                    (* false *)
-  | Dkequal       of dkterm * dkterm * dkterm  (* equal type term term *)
+  | Dkequal       of dkterm * dkterm * dkterm  (* equal type*term*term *)
 
   | DkRfalse        of dkterm
   | DkRnottrue      of dkterm
@@ -65,14 +65,39 @@ type line =
 
 let get_dkvar_type var =
   match var with
-  | Dkvar (v, Dktype) -> Dktype
+  | Dkvar (v, Dktypetype) -> Dktypetype
   | Dkvar (v, Dkterm (t)) -> t
   | _ -> assert false
 ;;
 
-let mk_type                    = Dktype
-let mk_prop                    = Dkprop
-let mk_iota                    = Dkiota
+let tbl_var_newname = ref (Hashtbl.create 42);;
+
+let newname () =
+  let s = Expr.newname () in
+  "v"^(String.sub s 5 (String.length s - 5))
+;;
+
+let get_var_newname var =
+  try
+    match var with
+    | Dkvar (v, t) ->
+       let nv = Hashtbl.find !tbl_var_newname var in
+       nv
+    | _ -> assert false
+  with Not_found ->
+    begin
+      match var with
+      | Dkvar (v, t) ->
+	 let nv = newname () in
+	 Hashtbl.add !tbl_var_newname var nv;
+	 nv
+      | _ -> assert false
+    end
+;;
+
+let mk_typetype                = Dktypetype
+let mk_typeprop                = Dktypeprop
+let mk_typeiota                = Dktypeiota
 let mk_seq                     = Dkseq
 let mk_proof      (t)          = Dkproof t
 let mk_term       (t)          = Dkterm t
@@ -80,7 +105,7 @@ let mk_arrow      (l)          = Dkarrow l
 let mk_pi         (t1, t2)     = Dkpi (t1, t2)
 let mk_var        (v, t)       = Dkvar (v, t)
 let mk_lam        (t1, t2)     = Dklam (t1, t2)
-let mk_app        (t, l)       = Dkapp (t, l)
+let mk_app        (v, t, l)    = Dkapp (v, t, l)
 let mk_not        (t)          = Dknot t
 let mk_and        (t1, t2)     = Dkand (t1, t2)
 let mk_or         (t1, t2)     = Dkor (t1, t2)
@@ -126,25 +151,25 @@ let mk_rwrt       (l, t1, t2)  = Dkrwrt (l, t1, t2)
 
 let rec print_dk o t =
   match t with
-  | Dktype -> fprintf o "zen.type"
-  | Dkprop -> fprintf o "zen.prop"
-  | Dkiota -> fprintf o "zen.iota"
+  | Dktypetype -> fprintf o "zen.type"
+  | Dktypeprop -> fprintf o "zen.prop"
+  | Dktypeiota -> fprintf o "zen.iota"
   | Dkseq  -> fprintf o "zen.seq"
   | Dkproof (t) ->  fprintf o "zen.proof (%a)" print_dk t
   | Dkterm (t) -> fprintf o "zen.term (%a)" print_dk t
   | Dkarrow (l) -> print_dk_list_arrow o l
-  | Dkpi (Dkvar (v, t1), t2) ->
-     fprintf o "%s : %a\n -> %a" v print_dk t1 print_dk t2
+  | Dkpi (Dkvar (v, t1) as var, t2) ->
+     fprintf o "%s : %a\n -> %a" (get_var_newname var) print_dk t1 print_dk t2
   | Dkpi _ -> assert false
   | Dkvar ("false", _) -> fprintf o "basics.false"
   | Dkvar ("true", _) -> fprintf o "basics.true"
   | Dkvar ("Is_true", _) -> fprintf o "dk_logic.ebP"
-  | Dkvar (v, _) -> fprintf o "%s" v
-  | Dklam (Dkvar (v, t1), t2) ->
-     fprintf o "%s : (%a)\n => %a" v print_dk t1 print_dk t2
+  | Dkvar (v, _) as var -> fprintf o "%s" (get_var_newname var)
+  | Dklam (Dkvar (v, t1) as var, t2) ->
+     fprintf o "%s : (%a)\n => %a" (get_var_newname var) print_dk t1 print_dk t2
   | Dklam _ -> assert false
-  | Dkapp (t, l) ->
-     fprintf o "%a %a" print_dk t print_dk_list_app l
+  | Dkapp (v, _, l) ->
+     fprintf o "%s %a" v print_dk_list_app l
   | Dknot (t) ->
      fprintf o "zen.not\n (%a)" print_dk t
   | Dkand (t1, t2) ->
@@ -344,16 +369,20 @@ and print_dk_list_app o t =
 let rec pr_list_var o l =
   match l with
   | [] -> ()
-  | [Dkvar (v, t)] -> fprintf o "%s : %a" v print_dk t
-  | (Dkvar (v, t)) :: tl ->
-     fprintf o "%s : %a, %a" v print_dk t pr_list_var tl
+  | [Dkvar (v, t) as var] -> fprintf o "%s : %a" (get_var_newname var) print_dk t
+  | (Dkvar (v, t) as var) :: tl ->
+     fprintf o "%s : %a, %a" (get_var_newname var) print_dk t pr_list_var tl
   | _ -> assert false
 ;;
 
 let print_line o line =
   match line with
+  | Dkdecl (v, _) when String.contains v '.' ->
+     ()
   | Dkdecl (v, t) ->
      fprintf o "%s : %a.\n\n" v print_dk t
+  | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' ->
+     ()
   | Dkrwrt (l, t1, t2) ->
      fprintf o "[%a]\n %a \n --> %a.\n\n" pr_list_var l print_dk t1 print_dk t2
 ;;
@@ -388,14 +417,17 @@ let create i = Hashtbl.create i
 
 let rec get_var_list_aux env accu ty =
   match ty with
-  | Dktype | Dkprop | Dkiota | Dkseq -> accu
+  | Dktypetype
+  | Dktypeprop
+  | Dktypeiota
+  | Dkseq -> accu
   | Dkterm (t) -> get_var_list_aux env accu t
   | Dkarrow (l) -> List.fold_left (get_var_list_aux env) accu l
   | Dkpi (Dkvar(v, _), t) -> get_var_list_aux (v :: env) accu t
   | Dkvar (v, _) ->
      if List.mem v env then accu
      else v :: accu
-  | Dkapp (Dkvar (v, _), l) ->
+  | Dkapp (v, _, l) ->
      if List.mem v env
      then List.fold_left (get_var_list_aux env) accu l
      else List.fold_left (get_var_list_aux env) (v :: accu) l

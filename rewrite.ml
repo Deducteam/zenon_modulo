@@ -193,50 +193,6 @@ let ordering_two fm (l1, r1) (l2, r2) =
   else -1
 ;;
 
-let restore_equal fm =
-  match fm with
-(*  | Eapp ("B_equal_set", [a1; a2], _)
-       when (Expr.equal a1 a2)
-    -> eapp ("=", [a1; a2])
-  | Enot (Eapp ("B_equal_set", [a1; a2], _), _)
-       when (Expr.equal a1 a2)
-    -> enot (eapp ("=", [a1; a2]))*)
-  | Eapp (Evar("B_equal_set", _), [a1; a2], _)
-    ->
-     begin
-       match a1, a2 with
-       | Evar _, Evar _
-       | Evar _, Emeta _
-       | Emeta _, Evar _
-       | Emeta _, Emeta _
-       | Etau _, Etau _
-       | Evar _, Etau _
-       | Etau _, Evar _
-       | Emeta _, Etau _
-       | Etau _, Emeta _
-	 -> eeq a1 a2
-       | _, _ -> fm
-     end
-  | Enot (Eapp (Evar("B_equal_set", _), [a1; a2], _), _)
-    ->
-     begin
-       match a1, a2 with
-       | Evar _, Evar _
-       | Evar _, Emeta _
-       | Emeta _, Evar _
-       | Emeta _, Emeta _
-       | Etau _, Etau _
-       | Evar _, Etau _
-       | Etau _, Evar _
-       | Emeta _, Etau _
-       | Etau _, Emeta _
-	 -> enot (eeq a1 a2)
-       | _, _ -> fm
-     end
-  | _ -> fm
-;;
-
-
 let rec rewrite_prop (l, r) p =
   try
     let subst = unif l p in

@@ -106,12 +106,8 @@ let rec infer_expr opts env = function
      (
        try (tvar s (assoc s env))
        with Not_found ->
-            if opts.scope_warnings then
-              Error.warn ("Scoping error: unknown free variable " ^ s);
-            if get_type v == type_none then
-              tvar s opts.default_type
-            else
-              v
+         (* Variable is free, this might be an ill-parsed constant *)
+         infer_expr opts env (eapp (v, []))
      )
   | Emeta (t, _) -> emeta (infer_expr opts env t)
   | Enot _ | Eand _ | Eor _ | Eimply _ | Eequiv _
@@ -143,7 +139,14 @@ and xcheck_expr opts env ty e =
     then infer_expr opts env e
     else
       match e with
-      | Evar (s, _) -> tvar s ty
+      | Evar (s, _) ->
+         (* Call inference because it checks for scoping *)
+         let e' = infer_expr opts env e in
+         let ret_ty = get_type e' in
+         if ret_ty == ty then
+           e'
+         else
+           raise (Type_Mismatch (ret_ty, ty, "Typer.xcheck_expr"))
       | Emeta (Eall (Evar (s, _), b, _), _) ->
          emeta (check_expr opts env type_prop (eall (tvar s ty, b)))
       | Eapp (Evar ("=", _) as eq, [e1; e2], _) ->
@@ -299,6 +302,27 @@ let declare_phrase (p, _) = match p with
   | _ -> ()
 ;;
 
+(* Check that there is no free variable in phrases *)
+let rec check_fv phrases =
+  List.iter
+    (function
+      | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _)) ->
+	 assert false
+      | Phrase.Hyp (_, e, _) ->
+	 assert (Expr.get_fv e = [])
+      | Phrase.Def d ->
+	 let (params, e) =
+	   match d with
+	   | DefReal (_, _, _, params, body, _)
+	   | DefPseudo (_, _, _, params, body)
+	   | DefRec (_, _, _, params, body) ->
+	      (List.map Expr.get_name params, body)
+	 in
+	 assert (List.for_all (fun x -> List.mem x params) (Expr.get_fv e))
+      | _ -> ())
+    phrases
+;;
+
 (* This is the only exported function of this module,
    it is called in main.ml after parsing. *)
 let phrasebl opts l =
@@ -311,5 +335,7 @@ let phrasebl opts l =
   (* Log.debug 15 "All constants:";
   print_constant_decls stdout; *)
   (* Second pass: do the real job of typing everything *)
-  List.fold_left (phrase opts) [] (List.rev l)
+  let phrases = List.fold_left (phrase opts) [] (List.rev l) in
+  check_fv (List.map fst phrases);
+  phrases
 ;;
