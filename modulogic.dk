@@ -304,6 +304,17 @@ lemme_5 : p : prop ->
 		=> H3 : (proof q -> proof z)
 		   => H2 H1.
 
+lemme_5bis : p : prop ->
+	     q : prop ->
+	     proof q -> proof (or p q).
+
+[p : prop, q : prop] lemme_5bis p q
+      --> H1 : proof q
+	  => z : prop
+	     => H2 : (proof p -> proof z)
+		=> H3 : (proof q -> proof z)
+		   => H3 H1.
+
 lemme_6 (p : prop)
 	(q : prop)
 	(H2 : proof (not (or p q)))
@@ -316,7 +327,7 @@ lemme_7 (p : prop)
 	(H2 : proof (not (or p q)))
 	: proof (not q)
 :=
-  lemme_imp p (or p q) (lemme_5 p q) H2.
+  lemme_imp q (or p q) (lemme_5bis p q) H2.
 
 [p : prop, q : prop] Rnotor p q
       --> H1 : (proof (not p) -> proof (not q) -> proof False)
