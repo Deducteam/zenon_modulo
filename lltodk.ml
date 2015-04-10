@@ -235,42 +235,6 @@ let tr_list_vars rule =
      List.rev nvars
 ;;
 
-let rec renaming e = 
-  Log.debug 4 " |- rename %a" Print.pp_expr e;
-  match e with 
-  | Eall (v, body, _) -> 
-     let v' = Expr.newtvar (get_type v) in
-     let body' = Expr.substitute [(v, v')] body in     
-     let body'' = renaming body' in 
-     Log.debug 4 " |- var : %a --> %a" 
-	       Print.pp_expr_t v Print.pp_expr_t v';
-     Log.debug 4 " |- new body : %a" Print.pp_expr_t body'';
-     let e' = eall (v', body'') in
-     Log.debug 4 " |- result %a" Print.pp_expr e';
-     e'
-  | Eex (v, body, _) ->
-     let v' = Expr.newtvar (get_type v) in
-     let body' = Expr.substitute [(v, v')] body in     
-     let body'' = renaming body' in 
-     Log.debug 4 " |- var : %a --> %a" 
-	       Print.pp_expr_t v Print.pp_expr_t v';
-     Log.debug 4 " |- new body : %a" Print.pp_expr_t body'';
-     let e' = eex (v', body'') in
-     Log.debug 4 " |- result %a" Print.pp_expr e';
-     e'
-  | Elam (v, body, _) -> 
-     let v' = Expr.newtvar (get_type v) in
-     let body' = Expr.substitute [(v, v')] body in     
-     let body'' = renaming body' in 
-     Log.debug 4 " |- var : %a --> %a" 
-	       Print.pp_expr_t v Print.pp_expr_t v';
-     Log.debug 4 " |- new body : %a" Print.pp_expr_t body'';
-     let e' = elam (v', body'') in
-     Log.debug 4 " |- result %a" Print.pp_expr e';
-     e'
-  | _ -> e
-;;
-
 let rec trexpr_dkprop e =
   Log.debug 10 "dkprop %a" Print.pp_expr e;
   match e with
@@ -285,7 +249,6 @@ let rec trexpr_dkprop e =
   | Emeta _ ->
      assert false
   | Eapp (Evar(s, _) as s', [], _) -> 
-     let s = "cst_"^s in 
      let s' = tvar s (get_type s') in 
      let nvar = trexpr_dkvartype s' in 
      mk_app (nvar, [])
@@ -461,14 +424,12 @@ let rec trproof_dk p =
 	mk_DkRnottrue conc
      | Raxiom (p) ->
 	Log.debug 7 "     axiom %a" Print.pp_expr p;
-	let p = renaming p in
 	let dkp = trexpr_dkprop p in
 	let concp = get_pr_var p in
 	let concnp = get_pr_var (enot p) in
 	mk_DkRaxiom (dkp, concp, concnp)
      | Rcut (p) ->
 	Log.debug 7 "     cut %a" Print.pp_expr p;
-	let p = renaming p in
 	let dkp = trexpr_dkprop p in
 	let pr0 = mk_pr_var p in
 	let pr1 = mk_pr_var (enot p) in
@@ -479,15 +440,12 @@ let rec trproof_dk p =
 	mk_DkRcut (dkp, lam0, lam1)
      | Rnoteq (t) ->
 	Log.debug 7 "     noteq %a" Print.pp_expr t;
-	let t = renaming t in
 	let a = trexpr_dktype_aux (get_type t) in
 	let dkt = trexpr_dkprop t in
 	let conc = get_pr_var (enot (eeq t t)) in
 	mk_DkRnoteq (a, dkt, conc)
      | Reqsym (t, u) ->
 	Log.debug 7 "     eqsym %a %a" Print.pp_expr t Print.pp_expr u;
-	let t = renaming t in
-	let u = renaming u in
 	let a = trexpr_dktype_aux (get_type t) in
 	let dkt = trexpr_dkprop t in
 	let dku = trexpr_dkprop u in
@@ -495,7 +453,6 @@ let rec trproof_dk p =
 	let conc1 = get_pr_var (enot (eeq u t)) in
 	mk_DkReqsym  (a, dkt, dku, conc0, conc1)
      | Rnotnot (p) ->
-	let p = renaming p in
 	let dkp = trexpr_dkprop p in
 	let pr = mk_pr_var p in
 	let sub = trproof_dk (List.nth phyps 0) in
@@ -503,8 +460,6 @@ let rec trproof_dk p =
 	let conc = get_pr_var (enot (enot p)) in
 	mk_DkRnotnot (dkp, lam, conc)
      | Rconnect (And, p, q) ->
-	let p = renaming p in
-	let q = renaming q in
 	let dkp = trexpr_dkprop p in
 	let dkq = trexpr_dkprop q in
 	let prp = mk_pr_var p in
@@ -514,9 +469,7 @@ let rec trproof_dk p =
 	let conc = get_pr_var (eand (p, q)) in
 	mk_DkRand (dkp, dkq, lam, conc)
      | Rconnect (Or, p, q) ->
-        let p = renaming p in
-	let q = renaming q in
-	let dkp = trexpr_dkprop p in
+        let dkp = trexpr_dkprop p in
 	let dkq = trexpr_dkprop q in
 	let prp = mk_pr_var p in
 	let prq = mk_pr_var q in
@@ -527,9 +480,7 @@ let rec trproof_dk p =
 	let conc = get_pr_var (eor (p, q)) in
 	mk_DkRor (dkp, dkq, lamp, lamq, conc)
      | Rconnect (Imply, p, q) ->
-        let p = renaming p in
-	let q = renaming q in
-	let dkp = trexpr_dkprop p in
+        let dkp = trexpr_dkprop p in
 	let dkq = trexpr_dkprop q in
 	let prnp = mk_pr_var (enot p) in
 	let prq = mk_pr_var q in
@@ -540,9 +491,7 @@ let rec trproof_dk p =
 	let conc = get_pr_var (eimply (p, q)) in
 	mk_DkRimply (dkp, dkq, lamp, lamq, conc)
      | Rconnect (Equiv, p, q) ->
-        let p = renaming p in
-	let q = renaming q in
-	let dkp = trexpr_dkprop p in
+        let dkp = trexpr_dkprop p in
 	let dkq = trexpr_dkprop q in
 	let prp = mk_pr_var p in
 	let prnp = mk_pr_var (enot p) in
@@ -555,8 +504,6 @@ let rec trproof_dk p =
 	let conc = get_pr_var (eequiv (p, q)) in
 	mk_DkRequiv (dkp, dkq, lam0, lam1, conc)
      | Rnotconnect (And, p, q) ->
-	let p = renaming p in
-	let q = renaming q in
 	let dkp = trexpr_dkprop p in
 	let dkq = trexpr_dkprop q in
 	let prnp = mk_pr_var (enot p) in
@@ -568,9 +515,7 @@ let rec trproof_dk p =
 	let conc = get_pr_var (enot (eand (p, q))) in
 	mk_DkRnotand (dkp, dkq, lam0, lam1, conc)
      | Rnotconnect (Or, p, q) ->
-        let p = renaming p in
-	let q = renaming q in
-	let dkp = trexpr_dkprop p in
+        let dkp = trexpr_dkprop p in
 	let dkq = trexpr_dkprop q in
 	let prnp = mk_pr_var (enot p) in
 	let prnq = mk_pr_var (enot q) in
@@ -579,8 +524,6 @@ let rec trproof_dk p =
 	let conc = get_pr_var (enot (eor (p, q))) in
 	mk_DkRnotor (dkp, dkq, lam, conc)
      | Rnotconnect (Imply, p, q) ->
-	let p = renaming p in
-	let q = renaming q in
 	let dkp = trexpr_dkprop p in
 	let dkq = trexpr_dkprop q in
 	let prp = mk_pr_var p in
@@ -590,8 +533,6 @@ let rec trproof_dk p =
 	let conc = get_pr_var (enot (eimply (p, q))) in
 	mk_DkRnotimply (dkp, dkq, lam, conc)
      | Rnotconnect (Equiv, p, q) ->
-	let p = renaming p in
-	let q = renaming q in
 	let dkp = trexpr_dkprop p in
 	let dkq = trexpr_dkprop q in
 	let prp = mk_pr_var p in
@@ -604,12 +545,7 @@ let rec trproof_dk p =
 	let lam1 = mk_lam (prp, mk_lam (prnq, sub1)) in
 	let conc = get_pr_var (enot (eequiv (p, q))) in
 	mk_DkRnotequiv (dkp, dkq, lam0, lam1, conc)
-     | Rex (Eex (Evar (x, _), px, _) as exp, z) ->
-	let exp = renaming exp in
-	let (x, vx, px) = match exp with 
-	  | Eex (Evar (x', _) as vx', px', _) -> (x', vx', px')
-	  | _ -> assert false
-	in
+     | Rex (Eex (Evar (x, _) as vx, px, _) as exp, z) ->
 	if (is_binder_of_type_var exp) then
 	  let dkp = trexpr_quant_to_dklam exp in
 	  let zz = etau (vx, px) in
@@ -631,14 +567,7 @@ let rec trproof_dk p =
 	  let lam = mk_lam (dkzz, mk_lam (prpzz, sub)) in
 	  let conc = get_pr_var exp in
 	  mk_DkRex (a, dkp, lam, conc)
-     | Rall (Eall (Evar (x, _), px, _) as allp, t) ->
-	Log.debug 4 " >> Rall in  : %a" Print.pp_expr allp;
-	let allp = renaming allp in
-	Log.debug 4 " >> Rall out : %a" Print.pp_expr allp;
-	let (x, vx, px) = match allp with 
-	  | Eall (Evar (x', _) as vx', px', _) -> (x', vx', px')
-	  | _ -> assert false
-	in 
+     | Rall (Eall (Evar (x, _) as vx, px, _) as allp, t) ->
 	if (is_binder_of_type_var allp) then
 	  let dkp = trexpr_quant_to_dklam allp in
 	  let dkt = trexpr_dkprop t in
@@ -658,12 +587,7 @@ let rec trproof_dk p =
 	  let lam = mk_lam (prpt, sub) in
 	  let conc = get_pr_var allp in
 	  mk_DkRall (a, dkp, dkt, lam, conc)
-     | Rnotex (Eex (Evar (x, _), px, _) as exp, t) ->
-	let exp = renaming exp in
-	let (x, vx, px) = match exp with 
-	  | Eex (Evar (x', _) as vx', px', _) -> (x', vx', px')
-	  | _ -> assert false
-	in 
+     | Rnotex (Eex (Evar (x, _) as vx, px, _) as exp, t) ->
 	if (is_binder_of_type_var exp) then
 	  let dkp = trexpr_quant_to_dklam exp in
 	  let dkt = trexpr_dkprop t in
@@ -683,12 +607,7 @@ let rec trproof_dk p =
 	  let lam = mk_lam (prpt, sub) in
 	  let conc = get_pr_var (enot exp) in
 	  mk_DkRnotex (a, dkp, dkt, lam, conc)
-     | Rnotall (Eall (Evar (x, _), px, _) as allp, t) ->
-	let allp = renaming allp in
-	let (x, vx, px) = match allp with 
-	  | Eall (Evar (x', _) as vx', px', _) -> (x', vx', px')
-	  | _ -> assert false
-	in 
+     | Rnotall (Eall (Evar (x, _) as vx, px, _) as allp, t) ->
 	if (is_binder_of_type_var allp) then
 	  let dkp = trexpr_quant_to_dklam allp in
 	  let zz = etau (vx, enot (px)) in
@@ -761,7 +680,6 @@ let rec trproof_dk p =
 	let tr_args = List.map trexpr_dkprop args in 
 	assert ((List.length hyps) = (List.length phyps));
 	let build_lam hyps phyp = 
-	  let hyps = List.map renaming hyps in
 	  let prp = List.map mk_pr_var hyps in 
 	  let sub = trproof_dk phyp in 
 	  let lam = 
@@ -999,17 +917,14 @@ let rec get_sigs_fm accu fm =
      accu
   | Emeta _ -> assert false
   | Eapp (Evar (v, _) as v', [], _) -> 
-     if (List.mem_assoc ("cst_"^v) accu)
+     if (List.mem_assoc (v) accu)
      then
        let accu = get_sigs_fm_type accu (get_type v') in
        accu
      else
-       begin
-	 Log.debug 13 " |- Cst Sigs %s :: %a" ("cst_"^v) Print.pp_expr (get_type v');
-	 let accu = ("cst_"^v, get_type v') :: accu in
-	 let accu = get_sigs_fm_type accu (get_type v') in
-	 accu
-       end
+       let accu = (v, get_type v') :: accu in
+       let accu = get_sigs_fm_type accu (get_type v') in
+       accu
   | Eapp (Evar ("=", _), args, _) ->
      List.fold_left (fun x y -> get_sigs_fm x y) accu args
   | Eapp (Evar (v, _) as v', args, _)
@@ -1058,7 +973,6 @@ let rec get_sigs_phrases_aux accu phrases =
   match phrases with
   | [] -> accu
   | Phrase.Hyp (_, fm, _) :: tl ->
-     let fm = renaming fm in 
      let accu = get_sigs_fm accu fm in
      get_sigs_phrases_aux accu tl
   | Phrase.Rew (_, fm, _) :: tl ->
