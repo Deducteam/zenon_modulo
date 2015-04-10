@@ -10,7 +10,7 @@ open Namespace;;
 
 let hyp_prefix = "H";;
 
-let context = ref (Hashtbl.create 999);;
+let context = ref (Hashtbl.create 997);;
 let metactx = ref (Hashtbl.create 9);;
 let rawname e = sprintf "%s%x" hyp_prefix (Index.get_number e);;
 let rawname_prf e = sprintf "%s%s%x" "prf_" hyp_prefix (Index.get_number e);;
@@ -26,6 +26,7 @@ let add_context e dke =
   Log.debug 4 " |- Add context %s ::  %a" 
 	    (match dke with 
 	     | Dkvar (name, _) -> name
+	     | Dkapp (name, _, []) -> name
 	     | _ -> assert false)
 	    Print.pp_expr e;
   Hashtbl.add !context e dke
@@ -36,7 +37,8 @@ let get_context e =
     let dke = Hashtbl.find !context e in 
     Log.debug 5 " |- Get context %s :: %a"
 	      (match dke with 
-	       | Dkvar (name, _) -> name 
+	       | Dkvar (name, _) -> name
+	       | Dkapp (name, _, []) -> name 
 	       | _ -> assert false)
 	      Print.pp_expr e;
     dke
@@ -60,21 +62,21 @@ let get_metactx e =
 ;;
 
 let mk_zterm =
-  mk_term (mk_var ("Z", mk_type))
+  mk_term (mk_app ("Z", mk_typetype, []))
 ;;
 
 let predefined_sym =
-  [("Z", ("Z", mk_type));
-   ("$less", ("less", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
-   ("$lesseq", ("lesseq", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
-   ("$greater", ("greater", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
-   ("$greatereq", ("greatereq", mk_arrow ([mk_zterm; mk_zterm; mk_prop])));
+  [("Z", ("Z", mk_typetype));
+   ("$less", ("less", mk_arrow ([mk_zterm; mk_zterm; mk_typeprop])));
+   ("$lesseq", ("lesseq", mk_arrow ([mk_zterm; mk_zterm; mk_typeprop])));
+   ("$greater", ("greater", mk_arrow ([mk_zterm; mk_zterm; mk_typeprop])));
+   ("$greatereq", ("greatereq", mk_arrow ([mk_zterm; mk_zterm; mk_typeprop])));
    ("$uminus", ("uminus", mk_arrow ([mk_zterm; mk_zterm])));
    ("$sum", ("sum", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
    ("$difference", ("difference", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
    ("$product", ("product", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
-   ("$is_int", ("is_int", mk_arrow ([mk_zterm; mk_prop])));
-   ("$is_rat", ("is_rat", mk_arrow ([mk_zterm; mk_prop])));
+   ("$is_int", ("is_int", mk_arrow ([mk_zterm; mk_typeprop])));
+   ("$is_rat", ("is_rat", mk_arrow ([mk_zterm; mk_typeprop])));
    ("$to_int", ("to_int", mk_arrow ([mk_zterm; mk_zterm])));
    ("$to_rat", ("to_rat", mk_arrow ([mk_zterm; mk_zterm])));
    ("$to_real", ("to_real", mk_arrow ([mk_zterm; mk_zterm])))
@@ -82,35 +84,35 @@ let predefined_sym =
 ;;
 
 let rec trexpr_dktype_aux e =
-  Log.debug 14 " |- dktype %a" Print.pp_expr e;
+  Log.debug 14 " |- dktype aux %a" Print.pp_expr e;
   match e with
   | e when (Expr.equal e type_type) ->
-     mk_type
+     mk_typetype
   | e when (Expr.equal e type_prop) ->
-     mk_prop
+     mk_typeprop
   | e when (Expr.equal e type_iota) ->
-     mk_iota
+     mk_typeiota
   | Evar (s, _) ->
-     mk_var (s, trexpr_dktype_aux (get_type e))
+     mk_var (s, trexpr_dktype_aux (get_type e)) 
   | Eapp (Evar(s, _) as s', args, _) ->
-     let nvar = mk_var (s, trexpr_dktype_aux (get_type s')) in
+     let type_app = trexpr_dktype_aux (get_type s') in 
      let nargs = List.map trexpr_dktype_aux args in
-     mk_app (nvar, nargs)
+     mk_app (s, type_app, nargs)
   | Earrow (args, ret, _) ->
      let nret = trexpr_dktype_aux ret in
      let nargs = List.map trexpr_dktype_aux args in
      mk_arrow (nargs @ [nret])
   | Eall (Evar(v, _) as v', p, _)
        when Expr.equal (get_type v') type_type ->
-     let nvar = mk_var (v, mk_type) in
+     let nvar = mk_var (v, mk_typetype) in
      let np =
        match p with
        | Eapp (Evar(s, _) as s', args, _) ->
-	  let nvar = mk_var (s, trexpr_dktype_aux (get_type s')) in
+	  let type_app = trexpr_dktype_aux (get_type s') in 
 	  let nargs = List.map trexpr_dktype_aux args in
-	  mk_term (mk_app (nvar, nargs))
+	  mk_term (mk_app (s, type_app, nargs))
        | Earrow (args, ret, _) when (Expr.equal ret type_prop) ->
-	  let nret = mk_prop in
+	  let nret = mk_typeprop in
 	  let nargs =
 	    List.map (fun x -> mk_term (trexpr_dktype_aux x)) args in
 	  mk_arrow (nargs @ [nret])
@@ -128,11 +130,11 @@ let rec trexpr_dktype_aux e =
   | Etau _ as e
        when Expr.equal (get_type e) type_type ->
      let v = Index.make_tau_name e in
-     mk_var (v, mk_type)
+     mk_app (v, mk_typetype, [])
   | Etau _ as e ->
      let v = Index.make_tau_name e in
      let ty = trexpr_dktype_aux (get_type e) in
-     mk_var (v, ty)
+     mk_app (v, ty, [])
   | _ -> assert false
 ;;
 
@@ -140,25 +142,25 @@ let rec trexpr_dktype e =
   Log.debug 14 " |- dktype %a" Print.pp_expr e;
   match e with
   | e when (Expr.equal e type_type) ->
-     mk_type
+     mk_typetype
   | e when (Expr.equal e type_prop) ->
-     mk_prop
+     mk_typeprop
   | e when (Expr.equal e type_iota) ->
-     mk_iota
+     mk_typeiota
   | Evar (s, _) ->
-     mk_term (mk_var (s, trexpr_dktype_aux (get_type e)))
+     mk_term (mk_var (s, trexpr_dktype_aux (get_type e))) 
   | Eapp (Evar(s, _) as s', args, _) ->
-     let nvar = mk_var (s, trexpr_dktype_aux (get_type s')) in
+     let type_app = trexpr_dktype_aux (get_type s') in 
      let nargs = List.map trexpr_dktype_aux args in
-     mk_term (mk_app (nvar, nargs))
+     mk_term (mk_app (s, type_app, nargs))
   | Earrow (args, ret, _)
        when (Expr.equal ret type_type) ->
-     let nret = mk_type in
+     let nret = mk_typetype in
      let nargs = List.map trexpr_dktype_aux args in
      mk_arrow (nargs @ [nret])
   | Earrow (args, ret, _)
        when (Expr.equal ret type_prop) ->
-     let nret = mk_prop in
+     let nret = mk_typeprop in
      let nargs = List.map (fun x -> mk_term (trexpr_dktype_aux x)) args in
      mk_arrow (nargs @ [nret])
   | Earrow (args, ret, _) ->
@@ -167,27 +169,27 @@ let rec trexpr_dktype e =
      mk_arrow (nargs @ [nret])
   | Eall (Evar(v, _) as v', p, _)
        when Expr.equal (get_type v') type_type ->
-     let nvar = mk_var (v, mk_type) in
+     let nvar = mk_var (v, mk_typetype) in
      let np = trexpr_dktype p in
      mk_pi (nvar, np)
   | Etau _ as e
        when Expr.equal (get_type e) type_type ->
      let v = Index.make_tau_name e in
-     mk_var (v, mk_type)
+     mk_app (v, mk_typetype, [])
   | Etau _ as e ->
      let v = Index.make_tau_name e in
      let ty = mk_term (trexpr_dktype_aux (get_type e)) in
-     mk_var (v, ty)
+     mk_app (v, ty, [])
   | _ -> assert false
 ;;
 
 let trexpr_dkvartype e =
-  Log.debug 10 "dkvartype %a" Print.pp_expr e;
+  Log.debug 14 "dkvartype %a" Print.pp_expr_t e;
   match e with
   | Evar (s, _) when (Expr.equal (get_type e) type_type) ->
-     mk_var (s, mk_type)
+     mk_var (s, mk_typetype)
   | Evar (s, _) when (Expr.equal (get_type e) type_iota) ->
-     mk_var (s, mk_term (mk_iota))
+     mk_var (s, mk_term (mk_typeiota))
   | Evar (s, _) ->
      mk_var (s, mk_term (trexpr_dktype_aux (get_type e)))
   | _ -> assert false
@@ -201,8 +203,8 @@ let rec translate_sigs_aux s accu =
      Log.debug 19 "translate sig %s : %a" v Print.pp_expr s;
      let ns =
        match s with
-       | e when (Expr.equal e type_type) -> mk_type
-       | e when (Expr.equal e type_iota) -> mk_term (mk_iota)
+       | e when (Expr.equal e type_type) -> mk_typetype
+       | e when (Expr.equal e type_iota) -> mk_term (mk_typeiota)
        | _ -> trexpr_dktype s
      in
      translate_sigs_aux tl ((v, ns) :: accu)
@@ -230,6 +232,7 @@ let get_freevars e =
 let tr_list_vars rule =
   match rule with
   | (l, r) ->
+     Log.debug 4 " |- Tr list var %a" Print.pp_expr l;
      let vars = get_freevars l in
      let nvars = List.map trexpr_dkvartype vars in
      List.rev nvars
@@ -239,19 +242,19 @@ let rec trexpr_dkprop e =
   Log.debug 10 "dkprop %a" Print.pp_expr e;
   match e with
   | e when (Expr.equal e type_type) ->
-     mk_type
+     mk_typetype
   | e when (Expr.equal e type_prop) ->
-     mk_prop
+     mk_typeprop
   | e when (Expr.equal e type_iota) ->
-     mk_iota
+     mk_typeiota
   | Evar _ ->
      trexpr_dkvartype e
   | Emeta _ ->
      assert false
   | Eapp (Evar(s, _) as s', [], _) -> 
-     let s' = tvar s (get_type s') in 
-     let nvar = trexpr_dkvartype s' in 
-     mk_app (nvar, [])
+     let nvar = trexpr_dkvartype s' in
+     let type_app = get_dkvar_type (nvar) in 
+     mk_app (s, type_app, [])
   | Eapp (Evar("=", _), [e1; e2], _) ->
      let ne1 = trexpr_dkprop e1 in
      let ne2 = trexpr_dkprop e2 in
@@ -262,12 +265,14 @@ let rec trexpr_dkprop e =
      let nvar =
        trexpr_dkvartype (tvar (fst (List.assoc s predefined_sym)) (get_type s'))
      in
+     let type_app = get_dkvar_type (nvar) in 
      let nargs = List.map trexpr_dkprop args in
-     mk_app (nvar, nargs)
+     mk_app (s, type_app, nargs)
   | Eapp (Evar(s, _) as s', args, _) ->
      let nvar = trexpr_dkvartype s' in
+     let type_app = get_dkvar_type (nvar) in 
      let nargs = List.map trexpr_dkprop args in
-     mk_app (nvar, nargs)
+     mk_app (s, type_app, nargs)
   | Eapp _ -> assert false
   | Earrow (args, ret, _)  ->
      let nret = trexpr_dkprop ret in
@@ -299,11 +304,11 @@ let rec trexpr_dkprop e =
   | Etau _ as e
        when Expr.equal (get_type e) type_type ->
      let v = Index.make_tau_name e in
-     mk_var (v, mk_type)
+     mk_app (v, mk_typetype, [])
   | Etau _ as e ->
      let v = Index.make_tau_name e in
      let ty = mk_term (trexpr_dktype_aux (get_type e)) in
-     mk_var (v, ty)
+     mk_app (v, ty, [])
   | Elam (Evar (v, _) as v', p, _) ->
      let nv = trexpr_dkvartype v' in
      mk_lam (nv, trexpr_dkprop p)
@@ -697,7 +702,8 @@ let rec trproof_dk p =
 	in	
 	let lambdas = List.map2 build_lam hyps phyps in 
 	let tr_concs = List.map get_pr_var concs in 
-        mk_app (mk_var (ext ^ "." ^ name, mk_iota),
+        mk_app (ext ^ "." ^ name, 
+		mk_typeiota,
                 List.append tr_args (List.append lambdas tr_concs))
      | Rdefinition _ ->
         (match phyps with
@@ -855,7 +861,7 @@ let rec mk_prf_var_def_aux accu phrases =
      else
        (*let v = rawname_prf norm_fm in*)
        let t = mk_proof (trexpr_dkprop norm_fm) in
-       let dkfm = mk_var (name, t) in
+       let dkfm = mk_app (name, t, []) in
        add_context norm_fm dkfm;
        mk_prf_var_def_aux (mk_decl (name, t) :: accu) tl
   | _ :: tl -> mk_prf_var_def_aux accu tl
