@@ -62,27 +62,147 @@ let get_metactx e =
 ;;
 
 let mk_zterm =
-  mk_term (mk_app ("Z", mk_typetype, []))
+  mk_app ("Z", mk_typetype, [])
 ;;
 
 let predefined_sym =
   [("Z", ("Z", mk_typetype));
-   ("$less", ("less", mk_arrow ([mk_zterm; mk_zterm; mk_typeprop])));
-   ("$lesseq", ("lesseq", mk_arrow ([mk_zterm; mk_zterm; mk_typeprop])));
-   ("$greater", ("greater", mk_arrow ([mk_zterm; mk_zterm; mk_typeprop])));
-   ("$greatereq", ("greatereq", mk_arrow ([mk_zterm; mk_zterm; mk_typeprop])));
-   ("$uminus", ("uminus", mk_arrow ([mk_zterm; mk_zterm])));
-   ("$sum", ("sum", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
-   ("$difference", ("difference", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
-   ("$product", ("product", mk_arrow ([mk_zterm; mk_zterm; mk_zterm])));
-   ("$is_int", ("is_int", mk_arrow ([mk_zterm; mk_typeprop])));
-   ("$is_rat", ("is_rat", mk_arrow ([mk_zterm; mk_typeprop])));
-   ("$to_int", ("to_int", mk_arrow ([mk_zterm; mk_zterm])));
-   ("$to_rat", ("to_rat", mk_arrow ([mk_zterm; mk_zterm])));
-   ("$to_real", ("to_real", mk_arrow ([mk_zterm; mk_zterm])))
+   ("$less", ("less", mk_arrow ([mk_zterm; mk_zterm], mk_typeprop)));
+   ("$lesseq", ("lesseq", mk_arrow ([mk_zterm; mk_zterm], mk_typeprop)));
+   ("$greater", ("greater", mk_arrow ([mk_zterm; mk_zterm], mk_typeprop)));
+   ("$greatereq", ("greatereq", mk_arrow ([mk_zterm; mk_zterm], mk_typeprop)));
+   ("$uminus", ("uminus", mk_arrow ([mk_zterm], mk_zterm)));
+   ("$sum", ("sum", mk_arrow ([mk_zterm; mk_zterm], mk_zterm)));
+   ("$difference", ("difference", mk_arrow ([mk_zterm; mk_zterm], mk_zterm)));
+   ("$product", ("product", mk_arrow ([mk_zterm; mk_zterm], mk_zterm)));
+   ("$is_int", ("is_int", mk_arrow ([mk_zterm], mk_typeprop)));
+   ("$is_rat", ("is_rat", mk_arrow ([mk_zterm], mk_typeprop)));
+   ("$to_int", ("to_int", mk_arrow ([mk_zterm], mk_zterm)));
+   ("$to_rat", ("to_rat", mk_arrow ([mk_zterm], mk_zterm)));
+   ("$to_real", ("to_real", mk_arrow ([mk_zterm], mk_zterm)))
   ]
 ;;
 
+
+let rec translate_type e = 
+  match e with 
+  | e when (Expr.equal e type_type) ->
+     mk_typetype
+  | e when (Expr.equal e type_prop) ->
+     mk_typeprop
+  | e when (Expr.equal e type_iota) ->
+     mk_typeiota
+  | Evar (v, _) as v' ->
+     let ty = translate_type (get_type v') in 
+     mk_var (v, ty)
+  | Emeta _ -> assert false
+  | Eapp (Evar (v, _) as v', [], _) -> 
+     let ty = translate_type (get_type v') in 
+     mk_app (v, ty, [])
+  | Eapp (Evar (v, _) as v', args, _) -> 
+     let ty = translate_type (get_type v') in 
+     let args' = List.map translate_type args in 
+     mk_app (v, ty, args')  
+  | Earrow (args, ret, _) -> 
+     let args' = List.map translate_type args in 
+     let ret' = translate_type ret in 
+     mk_arrow (args', ret')
+  | Eall (Evar (v, _) as v', p, _) -> 
+     let ty = translate_type (get_type v') in 
+     let nv = mk_var (v, ty) in 
+     let p' = translate_type p in 
+     mk_pi (nv, p')
+  | Etau _ as e -> 
+     let v = Index.make_tau_name e in 
+     let ty = translate_type (get_type e) in 
+     mk_var (v, ty) 
+  | _ -> assert false
+
+and translate_expr e = 
+  match e with 
+  | Evar (v, _) as v' ->
+     let ty = translate_type (get_type v') in 
+     mk_var (v, ty)
+  | Emeta _ -> assert false
+  | Eapp (Evar (v, _) as v', [], _) -> 
+     let ty = translate_type (get_type v') in 
+     mk_app (v, ty, [])
+  | Eapp (Evar ("=", _), [e1; e2], _) -> 
+     let ty = translate_type (get_type e1) in 
+     let e1' = translate_expr e1 in 
+     let e2' = translate_expr e2 in 
+     mk_equal (ty, e1', e2')
+  | Eapp (Evar (v, _) as v', args, _) 
+       when (List.mem_assoc v predefined_sym) -> 
+     let v = fst (List.assoc v predefined_sym) in 
+     let ty = translate_type (get_type v') in 
+     let args' = List.map translate_expr args in 
+     mk_app (v, ty, args')
+  | Eapp (Evar (v, _) as v', args, _) -> 
+     let ty = translate_type (get_type v') in 
+     let args' = List.map translate_expr args in 
+     mk_app (v, ty, args')
+  | Enot (e, _) -> 
+     let e' = translate_expr e in 
+     mk_not (e')
+  | Eand (e1, e2, _) -> 
+     let e1' = translate_expr e1 in 
+     let e2' = translate_expr e2 in 
+     mk_and (e1', e2')
+  | Eor (e1, e2, _) -> 
+     let e1' = translate_expr e1 in 
+     let e2' = translate_expr e2 in 
+     mk_or (e1', e2')
+  | Eimply (e1, e2, _) -> 
+     let e1' = translate_expr e1 in 
+     let e2' = translate_expr e2 in 
+     mk_imply (e1', e2')
+  | Eequiv (e1, e2, _) -> 
+     let e1' = translate_expr e1 in 
+     let e2' = translate_expr e2 in 
+     mk_equiv (e1', e2')
+  | Etrue -> 
+     mk_true
+  | Efalse -> 
+     mk_false 
+  | Eall (Evar (v, _) as v', p, _) 
+       when Expr.equal (get_type v') type_type -> 
+     let ty = mk_typetype in 
+     let nv = mk_var (v, ty) in 
+     let p' = translate_expr p in 
+     mk_foralltype (mk_lam (nv, p'))
+  | Eall (Evar (v, _) as v', p, _) -> 
+     let ty = translate_type (get_type v') in 
+     let nv = mk_var (v, ty) in 
+     let p' = translate_expr p in 
+     mk_forall (ty, mk_lam (nv, p'))
+  | Eall _ -> assert false
+  | Eex (Evar (v, _) as v', p, _) 
+       when Expr.equal (get_type v') type_type -> 
+     let ty = mk_typetype in 
+     let nv = mk_var (v, ty) in 
+     let p' = translate_expr p in 
+     mk_existstype (mk_lam (nv, p'))
+  | Eex (Evar (v, _) as v', p, _) -> 
+     let ty = translate_type (get_type v') in 
+     let nv = mk_var (v, ty) in 
+     let p' = translate_expr p in 
+     mk_exists (ty, mk_lam (nv, p'))
+  | Eex _ -> assert false
+  | Etau _ as e -> 
+     let v = Index.make_tau_name e in 
+     let ty = translate_type (get_type e) in 
+     mk_var (v, ty) 
+  | Elam (Evar (v, _) as v', p, _) -> 
+     let ty = translate_type (get_type v') in
+     let nv = mk_var (v, ty) in 
+     let p' = translate_expr p in 
+     mk_lam (nv, p')
+  | Elam _ -> assert false
+  | _ -> assert false
+;;
+
+(*
 let rec trexpr_dktype_aux e =
   Log.debug 14 " |- dktype aux %a" Print.pp_expr e;
   match e with
@@ -130,11 +250,13 @@ let rec trexpr_dktype_aux e =
   | Etau _ as e
        when Expr.equal (get_type e) type_type ->
      let v = Index.make_tau_name e in
-     mk_app (v, mk_typetype, [])
+     Log.debug 4 " |- dktype aux %a > %s" Print.pp_expr_t e v;
+     mk_var (v, mk_typetype)
   | Etau _ as e ->
      let v = Index.make_tau_name e in
+     Log.debug 4 " |- dktype aux %a > %s" Print.pp_expr_t e v;
      let ty = trexpr_dktype_aux (get_type e) in
-     mk_app (v, ty, [])
+     mk_var (v, ty)
   | _ -> assert false
 ;;
 
@@ -175,11 +297,13 @@ let rec trexpr_dktype e =
   | Etau _ as e
        when Expr.equal (get_type e) type_type ->
      let v = Index.make_tau_name e in
-     mk_app (v, mk_typetype, [])
+     Log.debug 4 " |- dktype %a > %s" Print.pp_expr_t e v;
+     mk_var (v, mk_typetype)
   | Etau _ as e ->
      let v = Index.make_tau_name e in
+     Log.debug 4 " |- dktype %a > %s" Print.pp_expr_t e v;
      let ty = mk_term (trexpr_dktype_aux (get_type e)) in
-     mk_app (v, ty, [])
+     mk_var (v, ty)
   | _ -> assert false
 ;;
 
@@ -194,20 +318,15 @@ let trexpr_dkvartype e =
      mk_var (s, mk_term (trexpr_dktype_aux (get_type e)))
   | _ -> assert false
 ;;
-
+ *)
 
 let rec translate_sigs_aux s accu =
   match s with
   | [] -> List.rev accu
   | (v, s) :: tl ->
      Log.debug 19 "translate sig %s : %a" v Print.pp_expr s;
-     let ns =
-       match s with
-       | e when (Expr.equal e type_type) -> mk_typetype
-       | e when (Expr.equal e type_iota) -> mk_term (mk_typeiota)
-       | _ -> trexpr_dktype s
-     in
-     translate_sigs_aux tl ((v, ns) :: accu)
+     let s' = translate_type s in
+     translate_sigs_aux tl ((v, s') :: accu)
 ;;
 
 let translate_sigs s =
@@ -234,10 +353,11 @@ let tr_list_vars rule =
   | (l, r) ->
      Log.debug 4 " |- Tr list var %a" Print.pp_expr l;
      let vars = get_freevars l in
-     let nvars = List.map trexpr_dkvartype vars in
+     let nvars = List.map translate_expr vars in
      List.rev nvars
 ;;
 
+(*
 let rec trexpr_dkprop e =
   Log.debug 10 "dkprop %a" Print.pp_expr e;
   match e with
@@ -304,23 +424,26 @@ let rec trexpr_dkprop e =
   | Etau _ as e
        when Expr.equal (get_type e) type_type ->
      let v = Index.make_tau_name e in
-     mk_app (v, mk_typetype, [])
+     Log.debug 4 " |- dkprop %a > %s" Print.pp_expr_t e v;
+     mk_var (v, mk_typetype)
   | Etau _ as e ->
      let v = Index.make_tau_name e in
+     Log.debug 4 " |- dkprop %a > %s" Print.pp_expr_t e v;
      let ty = mk_term (trexpr_dktype_aux (get_type e)) in
-     mk_app (v, ty, [])
+     mk_var (v, ty)
   | Elam (Evar (v, _) as v', p, _) ->
      let nv = trexpr_dkvartype v' in
      mk_lam (nv, trexpr_dkprop p)
   | Elam _ -> assert false
 ;;
+ *)
 
 let build_dkrwrt rule =
   match rule with
   | (l, r) ->
      let vars = tr_list_vars rule in
-     let t1 = trexpr_dkprop l in
-     let t2 = trexpr_dkprop r in
+     let t1 = translate_expr l in
+     let t2 = translate_expr r in
      mk_rwrt (vars, t1, t2)
 ;;
 
@@ -338,7 +461,7 @@ let select_goal phrases =
 let trexpr_dkgoal e =
   assert (List.length e == 1);
   let goal = List.hd e in
-  mk_proof (trexpr_dkprop goal)
+  mk_proof (translate_expr goal)
 ;;
 
 let get_type_binder e =
@@ -352,7 +475,7 @@ let get_type_binder e =
      get_type v
   | _ -> 
      begin 
-       Log.debug 9 " |- Get Type Binder : %a" Print.pp_expr e;
+       Log.debug 19 " |- Get Type Binder : %a" Print.pp_expr e;
        assert false
      end
 ;;
@@ -373,34 +496,38 @@ let extract_prooftree lemmas =
   | _ -> assert false
 ;;
 
-let trexpr_quant_to_dklam p =
+let translate_quant_to_dklam p =
   match p with
-  | Eall (v, body, _) ->
-     let dkv = trexpr_dkvartype v in
-     let dkbody = trexpr_dkprop body in
-     mk_lam (dkv, dkbody)
-  | Eex (v, body, _) ->
-     let dkv = trexpr_dkvartype v in
-     let dkbody = trexpr_dkprop body in
-     mk_lam (dkv, dkbody)
-(*  | Elam (v, body, _) ->
-     let dkv = trxpr_dkvartype v in
-     let dkbody = trexpr_dkprop body in
-     mk_lam (dkv, dkbody) *)
+  | Eall (Evar (v, _) as v', p, _) ->
+     let ty = translate_type (get_type v') in
+     let nv = mk_var (v, ty) in 
+     let p' = translate_expr p in 
+     mk_lam (nv, p')
+  | Eex (Evar (v, _) as v', p, _) ->
+     let ty = translate_type (get_type v') in
+     let nv = mk_var (v, ty) in 
+     let p' = translate_expr p in 
+     mk_lam (nv, p')
+  | Elam (Evar (v, _) as v', p, _) ->
+     let ty = translate_type (get_type v') in
+     let nv = mk_var (v, ty) in 
+     let p' = translate_expr p in 
+     mk_lam (nv, p')
   | _ -> assert false
 ;;
-
+  
 let mk_pr_var e =
   let norm_e = Rewrite.normalize_fm e in
   try
     Hashtbl.find !context norm_e
   with Not_found ->
-       begin
-	 let dke = mk_var (rawname_prf norm_e,
-			   mk_proof (trexpr_dkprop norm_e)) in
-	 add_context norm_e dke;
-	 dke
-       end
+    begin
+      let v = rawname_prf norm_e in 
+      let ty = translate_expr norm_e in 
+      let dke = mk_var (v, mk_proof (ty)) in 
+      add_context norm_e dke;
+      dke
+    end
 ;;
 
 let get_pr_var e =
@@ -429,13 +556,13 @@ let rec trproof_dk p =
 	mk_DkRnottrue conc
      | Raxiom (p) ->
 	Log.debug 7 "     axiom %a" Print.pp_expr p;
-	let dkp = trexpr_dkprop p in
+	let dkp = translate_expr p in
 	let concp = get_pr_var p in
 	let concnp = get_pr_var (enot p) in
 	mk_DkRaxiom (dkp, concp, concnp)
      | Rcut (p) ->
 	Log.debug 7 "     cut %a" Print.pp_expr p;
-	let dkp = trexpr_dkprop p in
+	let dkp = translate_expr p in
 	let pr0 = mk_pr_var p in
 	let pr1 = mk_pr_var (enot p) in
 	let sub0 = trproof_dk (List.nth phyps 0) in
@@ -445,28 +572,28 @@ let rec trproof_dk p =
 	mk_DkRcut (dkp, lam0, lam1)
      | Rnoteq (t) ->
 	Log.debug 7 "     noteq %a" Print.pp_expr t;
-	let a = trexpr_dktype_aux (get_type t) in
-	let dkt = trexpr_dkprop t in
+	let a = translate_type (get_type t) in
+	let dkt = translate_expr t in
 	let conc = get_pr_var (enot (eeq t t)) in
 	mk_DkRnoteq (a, dkt, conc)
      | Reqsym (t, u) ->
 	Log.debug 7 "     eqsym %a %a" Print.pp_expr t Print.pp_expr u;
-	let a = trexpr_dktype_aux (get_type t) in
-	let dkt = trexpr_dkprop t in
-	let dku = trexpr_dkprop u in
+	let a = translate_type (get_type t) in
+	let dkt = translate_expr t in
+	let dku = translate_expr u in
 	let conc0 = get_pr_var (eeq t u) in
 	let conc1 = get_pr_var (enot (eeq u t)) in
 	mk_DkReqsym  (a, dkt, dku, conc0, conc1)
      | Rnotnot (p) ->
-	let dkp = trexpr_dkprop p in
+	let dkp = translate_expr p in
 	let pr = mk_pr_var p in
 	let sub = trproof_dk (List.nth phyps 0) in
 	let lam = mk_lam (pr, sub) in
 	let conc = get_pr_var (enot (enot p)) in
 	mk_DkRnotnot (dkp, lam, conc)
      | Rconnect (And, p, q) ->
-	let dkp = trexpr_dkprop p in
-	let dkq = trexpr_dkprop q in
+	let dkp = translate_expr p in
+	let dkq = translate_expr q in
 	let prp = mk_pr_var p in
 	let prq = mk_pr_var q in
 	let sub = trproof_dk (List.nth phyps 0) in
@@ -474,8 +601,8 @@ let rec trproof_dk p =
 	let conc = get_pr_var (eand (p, q)) in
 	mk_DkRand (dkp, dkq, lam, conc)
      | Rconnect (Or, p, q) ->
-        let dkp = trexpr_dkprop p in
-	let dkq = trexpr_dkprop q in
+        let dkp = translate_expr p in
+	let dkq = translate_expr q in
 	let prp = mk_pr_var p in
 	let prq = mk_pr_var q in
 	let subp = trproof_dk (List.nth phyps 0) in
@@ -485,8 +612,8 @@ let rec trproof_dk p =
 	let conc = get_pr_var (eor (p, q)) in
 	mk_DkRor (dkp, dkq, lamp, lamq, conc)
      | Rconnect (Imply, p, q) ->
-        let dkp = trexpr_dkprop p in
-	let dkq = trexpr_dkprop q in
+        let dkp = translate_expr p in
+	let dkq = translate_expr q in
 	let prnp = mk_pr_var (enot p) in
 	let prq = mk_pr_var q in
 	let subp = trproof_dk (List.nth phyps 0) in
@@ -496,8 +623,8 @@ let rec trproof_dk p =
 	let conc = get_pr_var (eimply (p, q)) in
 	mk_DkRimply (dkp, dkq, lamp, lamq, conc)
      | Rconnect (Equiv, p, q) ->
-        let dkp = trexpr_dkprop p in
-	let dkq = trexpr_dkprop q in
+        let dkp = translate_expr p in
+	let dkq = translate_expr q in
 	let prp = mk_pr_var p in
 	let prnp = mk_pr_var (enot p) in
 	let prq = mk_pr_var q in
@@ -509,8 +636,8 @@ let rec trproof_dk p =
 	let conc = get_pr_var (eequiv (p, q)) in
 	mk_DkRequiv (dkp, dkq, lam0, lam1, conc)
      | Rnotconnect (And, p, q) ->
-	let dkp = trexpr_dkprop p in
-	let dkq = trexpr_dkprop q in
+	let dkp = translate_expr p in
+	let dkq = translate_expr q in
 	let prnp = mk_pr_var (enot p) in
 	let prnq = mk_pr_var (enot q) in
 	let sub0 = trproof_dk (List.nth phyps 0) in
@@ -520,8 +647,8 @@ let rec trproof_dk p =
 	let conc = get_pr_var (enot (eand (p, q))) in
 	mk_DkRnotand (dkp, dkq, lam0, lam1, conc)
      | Rnotconnect (Or, p, q) ->
-        let dkp = trexpr_dkprop p in
-	let dkq = trexpr_dkprop q in
+        let dkp = translate_expr p in
+	let dkq = translate_expr q in
 	let prnp = mk_pr_var (enot p) in
 	let prnq = mk_pr_var (enot q) in
 	let sub = trproof_dk (List.nth phyps 0) in
@@ -529,8 +656,8 @@ let rec trproof_dk p =
 	let conc = get_pr_var (enot (eor (p, q))) in
 	mk_DkRnotor (dkp, dkq, lam, conc)
      | Rnotconnect (Imply, p, q) ->
-	let dkp = trexpr_dkprop p in
-	let dkq = trexpr_dkprop q in
+	let dkp = translate_expr p in
+	let dkq = translate_expr q in
 	let prp = mk_pr_var p in
 	let prnq = mk_pr_var (enot q) in
 	let sub = trproof_dk (List.nth phyps 0) in
@@ -538,8 +665,8 @@ let rec trproof_dk p =
 	let conc = get_pr_var (enot (eimply (p, q))) in
 	mk_DkRnotimply (dkp, dkq, lam, conc)
      | Rnotconnect (Equiv, p, q) ->
-	let dkp = trexpr_dkprop p in
-	let dkq = trexpr_dkprop q in
+	let dkp = translate_expr p in
+	let dkq = translate_expr q in
 	let prp = mk_pr_var p in
 	let prnp = mk_pr_var (enot p) in
 	let prq = mk_pr_var q in
@@ -552,9 +679,9 @@ let rec trproof_dk p =
 	mk_DkRnotequiv (dkp, dkq, lam0, lam1, conc)
      | Rex (Eex (Evar (x, _) as vx, px, _) as exp, z) ->
 	if (is_binder_of_type_var exp) then
-	  let dkp = trexpr_quant_to_dklam exp in
+	  let dkp = translate_quant_to_dklam exp in
 	  let zz = etau (vx, px) in
-	  let dkzz = trexpr_dkprop zz in
+	  let dkzz = translate_expr zz in
 	  let pzz = substitute [(vx, zz)] px in
 	  let prpzz = mk_pr_var pzz in
 	  let sub = trproof_dk (List.nth phyps 0) in
@@ -562,10 +689,10 @@ let rec trproof_dk p =
 	  let conc = get_pr_var exp in
 	  mk_DkRextype (dkp, lam, conc)
 	else
-	  let dkp = trexpr_quant_to_dklam exp in
-	  let a = trexpr_dktype_aux (get_type_binder exp) in
+	  let dkp = translate_quant_to_dklam exp in
+	  let a = translate_type (get_type_binder exp) in
 	  let zz = etau (vx, px) in
-	  let dkzz = trexpr_dkprop zz in
+	  let dkzz = translate_expr zz in
 	  let pzz = substitute [(vx, zz)] px in
 	  let prpzz = mk_pr_var pzz in
 	  let sub = trproof_dk (List.nth phyps 0) in
@@ -574,8 +701,8 @@ let rec trproof_dk p =
 	  mk_DkRex (a, dkp, lam, conc)
      | Rall (Eall (Evar (x, _) as vx, px, _) as allp, t) ->
 	if (is_binder_of_type_var allp) then
-	  let dkp = trexpr_quant_to_dklam allp in
-	  let dkt = trexpr_dkprop t in
+	  let dkp = translate_quant_to_dklam allp in
+	  let dkt = translate_expr t in
 	  let pt = substitute [(vx, t)] px in
 	  let prpt = mk_pr_var pt in
 	  let sub = trproof_dk (List.nth phyps 0) in
@@ -583,9 +710,9 @@ let rec trproof_dk p =
 	  let conc = get_pr_var allp in
 	  mk_DkRalltype (dkp, dkt, lam, conc)
 	else
-	  let a = trexpr_dktype_aux (get_type_binder allp) in
-	  let dkp = trexpr_quant_to_dklam allp in
-	  let dkt = trexpr_dkprop t in
+	  let a = translate_type (get_type_binder allp) in
+	  let dkp = translate_quant_to_dklam allp in
+	  let dkt = translate_expr t in
 	  let pt = substitute [(vx, t)] px in
 	  let prpt = mk_pr_var pt in
 	  let sub = trproof_dk (List.nth phyps 0) in
@@ -594,8 +721,8 @@ let rec trproof_dk p =
 	  mk_DkRall (a, dkp, dkt, lam, conc)
      | Rnotex (Eex (Evar (x, _) as vx, px, _) as exp, t) ->
 	if (is_binder_of_type_var exp) then
-	  let dkp = trexpr_quant_to_dklam exp in
-	  let dkt = trexpr_dkprop t in
+	  let dkp = translate_quant_to_dklam exp in
+	  let dkt = translate_expr t in
 	  let pt = enot (substitute [(vx, t)] px) in
 	  let prpt = mk_pr_var pt in
 	  let sub = trproof_dk (List.nth phyps 0) in
@@ -603,9 +730,9 @@ let rec trproof_dk p =
 	  let conc = get_pr_var (enot exp) in
 	  mk_DkRnotextype (dkp, dkt, lam, conc)
 	else
-	  let a = trexpr_dktype_aux (get_type_binder exp) in
-	  let dkp = trexpr_quant_to_dklam exp in
-	  let dkt = trexpr_dkprop t in
+	  let a = translate_type (get_type_binder exp) in
+	  let dkp = translate_quant_to_dklam exp in
+	  let dkt = translate_expr t in
 	  let pt = enot (substitute [(vx, t)] px) in
 	  let prpt = mk_pr_var pt in
 	  let sub = trproof_dk (List.nth phyps 0) in
@@ -614,9 +741,9 @@ let rec trproof_dk p =
 	  mk_DkRnotex (a, dkp, dkt, lam, conc)
      | Rnotall (Eall (Evar (x, _) as vx, px, _) as allp, t) ->
 	if (is_binder_of_type_var allp) then
-	  let dkp = trexpr_quant_to_dklam allp in
+	  let dkp = translate_quant_to_dklam allp in
 	  let zz = etau (vx, enot (px)) in
-	  let dkzz = trexpr_dkprop zz in
+	  let dkzz = translate_expr zz in
 	  let pzz = substitute [(vx, zz)] px in
 	  let prpzz = mk_pr_var (enot pzz) in
 	  let sub = trproof_dk (List.nth phyps 0) in
@@ -624,10 +751,10 @@ let rec trproof_dk p =
 	  let conc = get_pr_var (enot allp) in
 	  mk_DkRnotalltype (dkp, lam, conc)
 	else
-	  let dkp = trexpr_quant_to_dklam allp in
-	  let a = trexpr_dktype_aux (get_type_binder allp) in
+	  let dkp = translate_quant_to_dklam allp in
+	  let a = translate_type (get_type_binder allp) in
 	  let zz = etau (vx, enot (px)) in
-	  let dkzz = trexpr_dkprop zz in
+	  let dkzz = translate_expr zz in
 	  let pzz = substitute [(vx, zz)] px in
 	  let prpzz = mk_pr_var (enot pzz) in
 	  let sub = trproof_dk (List.nth phyps 0) in
@@ -651,10 +778,10 @@ let rec trproof_dk p =
      | Rextension (_, "zenon_notallex", _, _, _) ->
 	assert false
      | RcongruenceLR (p, t1, t2) ->
-	let a = trexpr_dktype_aux (get_type t1) in
-	let dkp = trexpr_dkprop p in
-	let dkt1 = trexpr_dkprop t1 in
-	let dkt2 = trexpr_dkprop t2 in
+	let a = translate_type (get_type t1) in
+	let dkp = translate_expr p in
+	let dkt1 = translate_expr t1 in
+	let dkt2 = translate_expr t2 in
 	let prp = mk_pr_var (apply p t2) in
 	let sub = trproof_dk (List.nth phyps 0) in
 	let lam = mk_lam (prp, sub) in
@@ -662,10 +789,10 @@ let rec trproof_dk p =
 	let conc2 = get_pr_var (eeq t1 t2) in
 	mk_DkRconglr (a, dkp, dkt1, dkt2, lam, conc1, conc2)
      | RcongruenceRL (p, t1, t2) ->
-	let a = trexpr_dktype_aux (get_type t1) in
-	let dkp = trexpr_dkprop p in
-	let dkt1 = trexpr_dkprop t1 in
-	let dkt2 = trexpr_dkprop t2 in
+	let a = translate_type (get_type t1) in
+	let dkp = translate_expr p in
+	let dkt1 = translate_expr t1 in
+	let dkt2 = translate_expr t2 in
 	let prp = mk_pr_var (apply p t2) in
 	let sub = trproof_dk (List.nth phyps 0) in
 	let lam = mk_lam (prp, sub) in
@@ -682,7 +809,7 @@ let rec trproof_dk p =
 		  (List.flatten hyps);
         let ext = if ext = "" then "focal" else ext in
         (*List.iter (fun e -> ignore (mk_pr_var e)) (List.flatten hyps);*)
-	let tr_args = List.map trexpr_dkprop args in 
+	let tr_args = List.map translate_expr args in 
 	assert ((List.length hyps) = (List.length phyps));
 	let build_lam hyps phyp = 
 	  let prp = List.map mk_pr_var hyps in 
@@ -716,7 +843,7 @@ let rec trproof_dk p =
     match pp, argspp, argsnqq with
     | Eapp _, [], [] ->
        assert (List.length phyps == 0);
-       let dkp = trexpr_dkprop pp in
+       let dkp = translate_expr pp in
        let concp = get_pr_var pp in
        let concnp = get_pr_var (enot pp) in
        mk_DkRaxiom (dkp, concp, concnp)
@@ -745,17 +872,17 @@ let rec trproof_dk p =
 	 | _ -> assert false
        in
        assert (Expr.equal (get_type h1) (get_type h2));
-       let a = trexpr_dktype_aux (get_type h1) in
+       let a = translate_type (get_type h1) in
        let p_lam = app_to_lam pp h1 in
        let (dkvv, dkpp) =
 	 match p_lam with
 	 | Elam (v, np, _) ->
-	    (trexpr_dkvartype v, trexpr_dkprop np)
+	    (translate_expr v, translate_expr np)
 	 | _ -> assert false
        in
        let dkpp = mk_lam (dkvv, dkpp) in
-       let dkt1 = trexpr_dkprop h1 in
-       let dkt2 = trexpr_dkprop h2 in
+       let dkt1 = translate_expr h1 in
+       let dkt2 = translate_expr h2 in
        let p_subst = apply p_lam h2 in
        let notequalt1t2 = enot (eeq h1 h2) in
        let prnotequalt1t2 = mk_pr_var notequalt1t2 in
@@ -781,8 +908,8 @@ let rec trproof_dk p =
     | Eapp _, Eapp _, [], [] ->
        assert (List.length phyps == 0);
        assert (Expr.equal ff gg);
-       let a = trexpr_dktype_aux (get_type ff) in
-       let dkff = trexpr_dkprop ff in
+       let a = translate_type (get_type ff) in
+       let dkff = translate_expr ff in
        let conc = get_pr_var (enot (eeq ff ff)) in
        mk_DkRnoteq (a, dkff, conc)
     | Eapp _, Eapp _, h1 :: tl1, h2 :: tl2 ->
@@ -812,7 +939,7 @@ let rec trproof_dk p =
        assert (Expr.equal (get_type h1) (get_type h2));
        Log.debug 7 " ff = %a" Print.pp_expr ff;
        Log.debug 7 " h2 = %a" Print.pp_expr h2;
-       let a = trexpr_dktype_aux (get_type h1) in
+       let a = translate_type (get_type h1) in
        let ff_lam = app_to_lam ff h1 in
        Log.debug 7 " ff_lam = %a" Print.pp_expr ff_lam;
        let ff_subst = apply ff_lam h2 in
@@ -820,12 +947,12 @@ let rec trproof_dk p =
        let (dkvv, dkp) =
 	 match ff_lam with
 	 | Elam (v, nf, _) ->
-	    (trexpr_dkvartype v, trexpr_dkprop (enot (eeq nf gg)))
+	    (translate_expr v, translate_expr (enot (eeq nf gg)))
 	 | _ -> assert false
        in
        let dkp = mk_lam (dkvv, dkp) in
-       let dkt1 = trexpr_dkprop h1 in
-       let dkt2 = trexpr_dkprop h2 in
+       let dkt1 = translate_expr h1 in
+       let dkt2 = translate_expr h2 in
        let prneqt1t2 = mk_pr_var (enot (eeq h1 h2)) in
        let prpt2 = mk_pr_var (enot (eeq ff_subst gg)) in
        let (sub, phyps_new) =
@@ -860,10 +987,10 @@ let rec mk_prf_var_def_aux accu phrases =
        mk_prf_var_def_aux accu tl
      else
        (*let v = rawname_prf norm_fm in*)
-       let t = mk_proof (trexpr_dkprop norm_fm) in
-       let dkfm = mk_app (name, t, []) in
+       let ty = mk_proof (translate_expr norm_fm) in
+       let dkfm = mk_app (name, ty, []) in
        add_context norm_fm dkfm;
-       mk_prf_var_def_aux (mk_decl (name, t) :: accu) tl
+       mk_prf_var_def_aux (mk_decl (name, ty) :: accu) tl
   | _ :: tl -> mk_prf_var_def_aux accu tl
 ;;
 
@@ -1058,10 +1185,12 @@ let output_term oc phrases ppphrases llp =
     | Enot (ng, _) -> ng
     | _ -> assert false
   in
-  let dkgoal = trexpr_dkprop ngoal in
+  let dkgoal = translate_expr ngoal in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
   
-  fprintf oc "zen.nnpp (%a)\n\n(%a)" print_dk dkgoal print_dk dkproof;
+  fprintf oc "zen.nnpp (%a)\n\n(%a)" 
+	  print_dk_term dkgoal 
+	  print_dk_term dkproof;
   []
 ;;
