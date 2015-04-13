@@ -331,7 +331,7 @@ zenon_focal_ite_bool :
                             (Not (Is_true thn)))
                        (Imp (Imp
                               (Not (Is_true cond))
-                              (Not (Is_true thn)))
+                              (Not (Is_true els)))
                             (Not
                               (Is_true
                                 (ifb cond thn els))))))))
