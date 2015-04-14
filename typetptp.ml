@@ -160,7 +160,7 @@ let var_name s =
         s
 
 (* Typing *)
-let type_tff_var ty env e = 
+let type_tff_var ty env e =
   Log.debug 4 " |- type var %a >> ty %a" Print.pp_expr e Print.pp_expr ty;
   match e with
   | Evar(v, _) as e ->
@@ -181,7 +181,7 @@ let type_tff_var ty env e =
             end
     | _ -> assert false
 
-let rec type_tff_app env is_pred e = 
+let rec type_tff_app env is_pred e =
   Log.debug 4 " |- type app %a" Print.pp_expr e;
   match e with
     (* Type typechecking *)
@@ -218,7 +218,7 @@ let rec type_tff_app env is_pred e =
     | Eapp(_) -> raise (Type_error (Printf.sprintf "Expected a symbol as function, not an expression."))
     | _ -> assert false
 
-and type_tff_prop env e = 
+and type_tff_prop env e =
   Log.debug 4 " |- type prop %a" Print.pp_expr e;
   match e with
     (* Proposition typechecking *)
@@ -252,7 +252,7 @@ and type_tff_prop env e =
     | Etau(Evar(s, _), body, _) -> assert false
     | _ -> raise (Type_error ("Ill-formed expression"))
 
-and type_tff_quant k mk_quant env e = 
+and type_tff_quant k mk_quant env e =
   Log.debug 4 " |- type quant %a" Print.pp_expr e;
   match e with
     | Eex(Evar(s, _) as v, body, _)
@@ -268,7 +268,7 @@ and type_tff_quant k mk_quant env e =
                     v'
             in
             let map'' = (tvar_none s, nv) :: map' in
-            Log.debug 2 "Introducting '%a' of type '%a' as '%a'" 
+            Log.debug 2 "Introducting '%a' of type '%a' as '%a'"
 		      Print.pp_expr v Print.pp_expr t Print.pp_expr nv;
 	    Log.debug 4 " |- Old Body %a" Print.pp_expr body;
             let body, env'' = k { env' with map = map'' } body in
@@ -276,7 +276,7 @@ and type_tff_quant k mk_quant env e =
             mk_quant (v', body), { env'' with map = env.map }
     | _ -> raise (Type_error ("Ill-formed expression"))
 
-and type_tff_term env e = 
+and type_tff_term env e =
   Log.debug 4 " |- type term %a" Print.pp_expr e;
   match e with
     | Evar(v, _) -> type_tff_var type_iota env e
