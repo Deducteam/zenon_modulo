@@ -154,19 +154,24 @@ let rec print_dk_type o t =
   match t with
   | Dktypetype -> fprintf o "zen.type"
   | Dktypeprop -> fprintf o "zen.prop"
-  | Dktypeiota -> fprintf o "zen.iota"
   | Dkarrow (l, r) ->
      begin
        List.iter (fun x -> fprintf o "%a -> " print_dk_type x) l;
        print_dk_type o r;
      end
   | Dkpi (Dkvar (v, t1) as var, t2) ->
-     fprintf o "%s : zen.term (%a)\n -> %a"
+     fprintf o "%s : %a\n -> %a"
 	     (get_var_newname var) print_dk_type t1 print_dk_type t2
   | Dkpi _ -> assert false
   | Dkproof (t) ->
      fprintf o "zen.proof (%a)" print_dk_term t
-  | t -> fprintf o "zen.term (%a)" print_dk_term t
+  | t -> fprintf o "zen.term (%a)" print_dk_zentype t
+
+and print_dk_zentype o t =
+  match t with
+  | Dktypeiota -> fprintf o "zen.iota"
+  | t -> print_dk_term o t
+
 
 and print_dk_term o t =
   match t with
