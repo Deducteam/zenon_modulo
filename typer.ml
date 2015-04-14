@@ -303,7 +303,7 @@ let declare_phrase (p, _) = match p with
 ;;
 
 (* Check that there is no free variable in phrases *)
-let rec check_fv phrases = 
+let rec check_fv phrases =
   List.iter
     (function
       | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _)) ->
@@ -311,8 +311,8 @@ let rec check_fv phrases =
       | Phrase.Hyp (_, e, _) ->
 	 assert (Expr.get_fv e = [])
       | Phrase.Def d ->
-	 let (params, e) = 
-	   match d with 
+	 let (params, e) =
+	   match d with
 	   | DefReal (_, _, _, params, body, _)
 	   | DefPseudo (_, _, _, params, body)
 	   | DefRec (_, _, _, params, body) ->
@@ -335,7 +335,7 @@ let phrasebl opts l =
   (* Log.debug 15 "All constants:";
   print_constant_decls stdout; *)
   (* Second pass: do the real job of typing everything *)
-  let phrases = List.fold_left (phrase opts) [] (List.rev l) in 
+  let phrases = List.fold_left (phrase opts) [] (List.rev l) in
   check_fv (List.map fst phrases);
   phrases
 ;;

@@ -23,8 +23,8 @@ exception No_meta of string
 ;;
 
 let add_context e dke =
-  Log.debug 4 " |- Add context %s ::  %a" 
-	    (match dke with 
+  Log.debug 4 " |- Add context %s ::  %a"
+	    (match dke with
 	     | Dkvar (name, _) -> name
 	     | Dkapp (name, _, []) -> name
 	     | _ -> assert false)
@@ -34,11 +34,11 @@ let add_context e dke =
 
 let get_context e =
   try
-    let dke = Hashtbl.find !context e in 
+    let dke = Hashtbl.find !context e in
     Log.debug 5 " |- Get context %s :: %a"
-	      (match dke with 
+	      (match dke with
 	       | Dkvar (name, _) -> name
-	       | Dkapp (name, _, []) -> name 
+	       | Dkapp (name, _, []) -> name
 	       | _ -> assert false)
 	      Print.pp_expr e;
     dke
@@ -84,8 +84,8 @@ let predefined_sym =
 ;;
 
 
-let rec translate_type e = 
-  match e with 
+let rec translate_type e =
+  match e with
   | e when (Expr.equal e type_type) ->
      mk_typetype
   | e when (Expr.equal e type_prop) ->
@@ -93,110 +93,110 @@ let rec translate_type e =
   | e when (Expr.equal e type_iota) ->
      mk_typeiota
   | Evar (v, _) as v' ->
-     let ty = translate_type (get_type v') in 
+     let ty = translate_type (get_type v') in
      mk_var (v, ty)
   | Emeta _ -> assert false
-  | Eapp (Evar (v, _) as v', [], _) -> 
-     let ty = translate_type (get_type v') in 
+  | Eapp (Evar (v, _) as v', [], _) ->
+     let ty = translate_type (get_type v') in
      mk_app (v, ty, [])
-  | Eapp (Evar (v, _) as v', args, _) -> 
-     let ty = translate_type (get_type v') in 
-     let args' = List.map translate_type args in 
-     mk_app (v, ty, args')  
-  | Earrow (args, ret, _) -> 
-     let args' = List.map translate_type args in 
-     let ret' = translate_type ret in 
+  | Eapp (Evar (v, _) as v', args, _) ->
+     let ty = translate_type (get_type v') in
+     let args' = List.map translate_type args in
+     mk_app (v, ty, args')
+  | Earrow (args, ret, _) ->
+     let args' = List.map translate_type args in
+     let ret' = translate_type ret in
      mk_arrow (args', ret')
-  | Eall (Evar (v, _) as v', p, _) -> 
-     let ty = translate_type (get_type v') in 
-     let nv = mk_var (v, ty) in 
-     let p' = translate_type p in 
+  | Eall (Evar (v, _) as v', p, _) ->
+     let ty = translate_type (get_type v') in
+     let nv = mk_var (v, ty) in
+     let p' = translate_type p in
      mk_pi (nv, p')
-  | Etau _ as e -> 
-     let v = Index.make_tau_name e in 
-     let ty = translate_type (get_type e) in 
-     mk_var (v, ty) 
+  | Etau _ as e ->
+     let v = Index.make_tau_name e in
+     let ty = translate_type (get_type e) in
+     mk_var (v, ty)
   | _ -> assert false
 
-and translate_expr e = 
-  match e with 
+and translate_expr e =
+  match e with
   | Evar (v, _) as v' ->
-     let ty = translate_type (get_type v') in 
+     let ty = translate_type (get_type v') in
      mk_var (v, ty)
   | Emeta _ -> assert false
-  | Eapp (Evar (v, _) as v', [], _) -> 
-     let ty = translate_type (get_type v') in 
+  | Eapp (Evar (v, _) as v', [], _) ->
+     let ty = translate_type (get_type v') in
      mk_app (v, ty, [])
-  | Eapp (Evar ("=", _), [e1; e2], _) -> 
-     let ty = translate_type (get_type e1) in 
-     let e1' = translate_expr e1 in 
-     let e2' = translate_expr e2 in 
+  | Eapp (Evar ("=", _), [e1; e2], _) ->
+     let ty = translate_type (get_type e1) in
+     let e1' = translate_expr e1 in
+     let e2' = translate_expr e2 in
      mk_equal (ty, e1', e2')
-  | Eapp (Evar (v, _) as v', args, _) 
-       when (List.mem_assoc v predefined_sym) -> 
-     let v = fst (List.assoc v predefined_sym) in 
-     let ty = translate_type (get_type v') in 
-     let args' = List.map translate_expr args in 
+  | Eapp (Evar (v, _) as v', args, _)
+       when (List.mem_assoc v predefined_sym) ->
+     let v = fst (List.assoc v predefined_sym) in
+     let ty = translate_type (get_type v') in
+     let args' = List.map translate_expr args in
      mk_app (v, ty, args')
-  | Eapp (Evar (v, _) as v', args, _) -> 
-     let ty = translate_type (get_type v') in 
-     let args' = List.map translate_expr args in 
+  | Eapp (Evar (v, _) as v', args, _) ->
+     let ty = translate_type (get_type v') in
+     let args' = List.map translate_expr args in
      mk_app (v, ty, args')
-  | Enot (e, _) -> 
-     let e' = translate_expr e in 
+  | Enot (e, _) ->
+     let e' = translate_expr e in
      mk_not (e')
-  | Eand (e1, e2, _) -> 
-     let e1' = translate_expr e1 in 
-     let e2' = translate_expr e2 in 
+  | Eand (e1, e2, _) ->
+     let e1' = translate_expr e1 in
+     let e2' = translate_expr e2 in
      mk_and (e1', e2')
-  | Eor (e1, e2, _) -> 
-     let e1' = translate_expr e1 in 
-     let e2' = translate_expr e2 in 
+  | Eor (e1, e2, _) ->
+     let e1' = translate_expr e1 in
+     let e2' = translate_expr e2 in
      mk_or (e1', e2')
-  | Eimply (e1, e2, _) -> 
-     let e1' = translate_expr e1 in 
-     let e2' = translate_expr e2 in 
+  | Eimply (e1, e2, _) ->
+     let e1' = translate_expr e1 in
+     let e2' = translate_expr e2 in
      mk_imply (e1', e2')
-  | Eequiv (e1, e2, _) -> 
-     let e1' = translate_expr e1 in 
-     let e2' = translate_expr e2 in 
+  | Eequiv (e1, e2, _) ->
+     let e1' = translate_expr e1 in
+     let e2' = translate_expr e2 in
      mk_equiv (e1', e2')
-  | Etrue -> 
+  | Etrue ->
      mk_true
-  | Efalse -> 
-     mk_false 
-  | Eall (Evar (v, _) as v', p, _) 
-       when Expr.equal (get_type v') type_type -> 
-     let ty = mk_typetype in 
-     let nv = mk_var (v, ty) in 
-     let p' = translate_expr p in 
+  | Efalse ->
+     mk_false
+  | Eall (Evar (v, _) as v', p, _)
+       when Expr.equal (get_type v') type_type ->
+     let ty = mk_typetype in
+     let nv = mk_var (v, ty) in
+     let p' = translate_expr p in
      mk_foralltype (mk_lam (nv, p'))
-  | Eall (Evar (v, _) as v', p, _) -> 
-     let ty = translate_type (get_type v') in 
-     let nv = mk_var (v, ty) in 
-     let p' = translate_expr p in 
+  | Eall (Evar (v, _) as v', p, _) ->
+     let ty = translate_type (get_type v') in
+     let nv = mk_var (v, ty) in
+     let p' = translate_expr p in
      mk_forall (ty, mk_lam (nv, p'))
   | Eall _ -> assert false
-  | Eex (Evar (v, _) as v', p, _) 
-       when Expr.equal (get_type v') type_type -> 
-     let ty = mk_typetype in 
-     let nv = mk_var (v, ty) in 
-     let p' = translate_expr p in 
+  | Eex (Evar (v, _) as v', p, _)
+       when Expr.equal (get_type v') type_type ->
+     let ty = mk_typetype in
+     let nv = mk_var (v, ty) in
+     let p' = translate_expr p in
      mk_existstype (mk_lam (nv, p'))
-  | Eex (Evar (v, _) as v', p, _) -> 
-     let ty = translate_type (get_type v') in 
-     let nv = mk_var (v, ty) in 
-     let p' = translate_expr p in 
+  | Eex (Evar (v, _) as v', p, _) ->
+     let ty = translate_type (get_type v') in
+     let nv = mk_var (v, ty) in
+     let p' = translate_expr p in
      mk_exists (ty, mk_lam (nv, p'))
   | Eex _ -> assert false
-  | Etau _ as e -> 
-     let v = Index.make_tau_name e in 
-     let ty = translate_type (get_type e) in 
-     mk_var (v, ty) 
-  | Elam (Evar (v, _) as v', p, _) -> 
+  | Etau _ as e ->
+     let v = Index.make_tau_name e in
+     let ty = translate_type (get_type e) in
+     mk_var (v, ty)
+  | Elam (Evar (v, _) as v', p, _) ->
      let ty = translate_type (get_type v') in
-     let nv = mk_var (v, ty) in 
-     let p' = translate_expr p in 
+     let nv = mk_var (v, ty) in
+     let p' = translate_expr p in
      mk_lam (nv, p')
   | Elam _ -> assert false
   | _ -> assert false
@@ -213,9 +213,9 @@ let rec trexpr_dktype_aux e =
   | e when (Expr.equal e type_iota) ->
      mk_typeiota
   | Evar (s, _) ->
-     mk_var (s, trexpr_dktype_aux (get_type e)) 
+     mk_var (s, trexpr_dktype_aux (get_type e))
   | Eapp (Evar(s, _) as s', args, _) ->
-     let type_app = trexpr_dktype_aux (get_type s') in 
+     let type_app = trexpr_dktype_aux (get_type s') in
      let nargs = List.map trexpr_dktype_aux args in
      mk_app (s, type_app, nargs)
   | Earrow (args, ret, _) ->
@@ -228,7 +228,7 @@ let rec trexpr_dktype_aux e =
      let np =
        match p with
        | Eapp (Evar(s, _) as s', args, _) ->
-	  let type_app = trexpr_dktype_aux (get_type s') in 
+	  let type_app = trexpr_dktype_aux (get_type s') in
 	  let nargs = List.map trexpr_dktype_aux args in
 	  mk_term (mk_app (s, type_app, nargs))
        | Earrow (args, ret, _) when (Expr.equal ret type_prop) ->
@@ -270,9 +270,9 @@ let rec trexpr_dktype e =
   | e when (Expr.equal e type_iota) ->
      mk_typeiota
   | Evar (s, _) ->
-     mk_term (mk_var (s, trexpr_dktype_aux (get_type e))) 
+     mk_term (mk_var (s, trexpr_dktype_aux (get_type e)))
   | Eapp (Evar(s, _) as s', args, _) ->
-     let type_app = trexpr_dktype_aux (get_type s') in 
+     let type_app = trexpr_dktype_aux (get_type s') in
      let nargs = List.map trexpr_dktype_aux args in
      mk_term (mk_app (s, type_app, nargs))
   | Earrow (args, ret, _)
@@ -371,9 +371,9 @@ let rec trexpr_dkprop e =
      trexpr_dkvartype e
   | Emeta _ ->
      assert false
-  | Eapp (Evar(s, _) as s', [], _) -> 
+  | Eapp (Evar(s, _) as s', [], _) ->
      let nvar = trexpr_dkvartype s' in
-     let type_app = get_dkvar_type (nvar) in 
+     let type_app = get_dkvar_type (nvar) in
      mk_app (s, type_app, [])
   | Eapp (Evar("=", _), [e1; e2], _) ->
      let ne1 = trexpr_dkprop e1 in
@@ -385,12 +385,12 @@ let rec trexpr_dkprop e =
      let nvar =
        trexpr_dkvartype (tvar (fst (List.assoc s predefined_sym)) (get_type s'))
      in
-     let type_app = get_dkvar_type (nvar) in 
+     let type_app = get_dkvar_type (nvar) in
      let nargs = List.map trexpr_dkprop args in
      mk_app (s, type_app, nargs)
   | Eapp (Evar(s, _) as s', args, _) ->
      let nvar = trexpr_dkvartype s' in
-     let type_app = get_dkvar_type (nvar) in 
+     let type_app = get_dkvar_type (nvar) in
      let nargs = List.map trexpr_dkprop args in
      mk_app (s, type_app, nargs)
   | Eapp _ -> assert false
@@ -473,8 +473,8 @@ let get_type_binder e =
      get_type v
   | Elam (v, _, _) ->
      get_type v
-  | _ -> 
-     begin 
+  | _ ->
+     begin
        Log.debug 19 " |- Get Type Binder : %a" Print.pp_expr e;
        assert false
      end
@@ -500,31 +500,31 @@ let translate_quant_to_dklam p =
   match p with
   | Eall (Evar (v, _) as v', p, _) ->
      let ty = translate_type (get_type v') in
-     let nv = mk_var (v, ty) in 
-     let p' = translate_expr p in 
+     let nv = mk_var (v, ty) in
+     let p' = translate_expr p in
      mk_lam (nv, p')
   | Eex (Evar (v, _) as v', p, _) ->
      let ty = translate_type (get_type v') in
-     let nv = mk_var (v, ty) in 
-     let p' = translate_expr p in 
+     let nv = mk_var (v, ty) in
+     let p' = translate_expr p in
      mk_lam (nv, p')
   | Elam (Evar (v, _) as v', p, _) ->
      let ty = translate_type (get_type v') in
-     let nv = mk_var (v, ty) in 
-     let p' = translate_expr p in 
+     let nv = mk_var (v, ty) in
+     let p' = translate_expr p in
      mk_lam (nv, p')
   | _ -> assert false
 ;;
-  
+
 let mk_pr_var e =
   let norm_e = Rewrite.normalize_fm e in
   try
     Hashtbl.find !context norm_e
   with Not_found ->
     begin
-      let v = rawname_prf norm_e in 
-      let ty = translate_expr norm_e in 
-      let dke = mk_var (v, mk_proof (ty)) in 
+      let v = rawname_prf norm_e in
+      let ty = translate_expr norm_e in
+      let dke = mk_var (v, mk_proof (ty)) in
       add_context norm_e dke;
       dke
     end
@@ -809,27 +809,27 @@ let rec trproof_dk p =
 		  (List.flatten hyps);
         let ext = if ext = "" then "focal" else ext in
         (*List.iter (fun e -> ignore (mk_pr_var e)) (List.flatten hyps);*)
-	let tr_args = List.map translate_expr args in 
+	let tr_args = List.map translate_expr args in
 	assert ((List.length hyps) = (List.length phyps));
-	let build_lam hyps phyp = 
-	  let prp = List.map mk_pr_var hyps in 
-	  let sub = trproof_dk phyp in 
-	  let lam = 
-	    if (List.length prp > 1) 
+	let build_lam hyps phyp =
+	  let prp = List.map mk_pr_var hyps in
+	  let sub = trproof_dk phyp in
+	  let lam =
+	    if (List.length prp > 1)
 	    then
-	      List.fold_left (fun lam pr -> mk_lam (pr, lam)) 
+	      List.fold_left (fun lam pr -> mk_lam (pr, lam))
 			     (mk_lam (List.hd prp, sub)) (List.tl prp)
-	    else 
+	    else
 	      begin
 		assert (List.length prp = 1);
 		mk_lam (List.hd prp, sub)
 	      end
 	  in
-	  lam 
-	in	
-	let lambdas = List.map2 build_lam hyps phyps in 
-	let tr_concs = List.map get_pr_var concs in 
-        mk_app (ext ^ "." ^ name, 
+	  lam
+	in
+	let lambdas = List.map2 build_lam hyps phyps in
+	let tr_concs = List.map get_pr_var concs in
+        mk_app (ext ^ "." ^ name,
 		mk_typeiota,
                 List.append tr_args (List.append lambdas tr_concs))
      | Rdefinition _ ->
@@ -1049,7 +1049,7 @@ let rec get_sigs_fm accu fm =
      let accu = get_sigs_fm_type accu (get_type v) in
      accu
   | Emeta _ -> assert false
-  | Eapp (Evar (v, _) as v', [], _) -> 
+  | Eapp (Evar (v, _) as v', [], _) ->
      if (List.mem_assoc (v) accu)
      then
        let accu = get_sigs_fm_type accu (get_type v') in
@@ -1139,7 +1139,7 @@ let get_sigs_proof sigs llp =
 
 let output oc phrases llp =
   Log.debug 2 "=========== Generate Dedukti Term =============";
-  let sigs = Expr.get_defs () in 
+  let sigs = Expr.get_defs () in
   Log.debug 13 " |- length Sigs = %i" (List.length sigs);
   let sigs = get_sigs_phrases sigs phrases in
   Log.debug 13 " |- length Sigs = %i" (List.length sigs);
@@ -1181,16 +1181,16 @@ let output_term oc phrases ppphrases llp =
   let _ = mk_prf_var_def phrases in
   let (_, goal) = List.split (select_goal phrases) in
   assert (List.length goal = 1);
-  let ngoal = match (List.hd goal) with 
+  let ngoal = match (List.hd goal) with
     | Enot (ng, _) -> ng
     | _ -> assert false
   in
   let dkgoal = translate_expr ngoal in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-  
-  fprintf oc "zen.nnpp (%a)\n\n(%a)" 
-	  print_dk_term dkgoal 
+
+  fprintf oc "zen.nnpp (%a)\n\n(%a)"
+	  print_dk_term dkgoal
 	  print_dk_term dkproof;
   []
 ;;
