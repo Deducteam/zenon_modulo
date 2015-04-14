@@ -7,8 +7,8 @@ type dkterm =
   | Dktypeiota                                  (* type iota *)
   | Dkseq                                       (* type seq *)
   | Dkproof       of dkterm                     (* type proof of prop *)
-  | Dkterm        of dkterm                     (* type term of app *)
-  | Dkarrow       of dkterm list                (* type arrow of type list *)
+(*  | Dkterm        of dkterm *)                     (* type term of app *)
+  | Dkarrow       of dkterm list * dkterm       (* type arrow of type list *)
   | Dkpi          of dkterm * dkterm            (* type pi of var*arrow *)
 
   | Dkvar         of var  * dkterm              (* term var of string*type *)
@@ -66,8 +66,8 @@ val mk_typeprop         : dkterm
 val mk_typeiota         : dkterm
 val mk_seq              : dkterm
 val mk_proof            : dkterm -> dkterm
-val mk_term             : dkterm -> dkterm
-val mk_arrow            : dkterm list -> dkterm
+(*val mk_term             : dkterm -> dkterm*)
+val mk_arrow            : dkterm list *dkterm -> dkterm
 val mk_pi               : dkterm * dkterm -> dkterm
 val mk_var              : var * dkterm -> dkterm
 val mk_lam              : dkterm * dkterm -> dkterm
@@ -117,7 +117,8 @@ val mk_rwrt             : dkterm list * dkterm * dkterm -> line
 
 val print_line          : out_channel -> line -> unit
 val print_goal_type     : out_channel -> string -> dkterm -> unit
-val print_dk            : out_channel -> dkterm -> unit
+val print_dk_type       : out_channel -> dkterm -> unit
+val print_dk_term       : out_channel -> dkterm -> unit
 val print_proof         : out_channel -> string -> dkterm -> unit
 
 
