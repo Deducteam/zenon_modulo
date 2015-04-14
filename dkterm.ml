@@ -71,25 +71,25 @@ let get_dkvar_type var =
 
 let tbl_var_newname = ref (Hashtbl.create 42);;
 
-let newname () = 
-  let s = Expr.newname () in 
+let newname () =
+  let s = Expr.newname () in
   let res = "v"^(String.sub s 5 (String.length s - 5)) in
 (*  Log.debug 4 " |- Var Newname : %s" res; *)
   res
 ;;
-  
-let get_var_newname var = 
+
+let get_var_newname var =
   try
-    match var with 
-    | Dkvar (v, _) -> 
-       let nv = Hashtbl.find !tbl_var_newname var in 
+    match var with
+    | Dkvar (v, _) ->
+       let nv = Hashtbl.find !tbl_var_newname var in
        nv
     | _ -> assert false
-  with Not_found -> 
+  with Not_found ->
     begin
-      match var with 
-      | Dkvar (v, _) -> 
-	 let nv = newname () in  
+      match var with
+      | Dkvar (v, _) ->
+	 let nv = newname () in
 	 Hashtbl.add !tbl_var_newname var nv;
 	 nv
       | _ -> assert false
@@ -150,40 +150,40 @@ let mk_DkRcongrl       (a, p, t1, t2, pr1, pr2, pr3)  = DkRcongrl (a, p, t1, t2,
 let mk_decl       (v, t)       = Dkdecl (v, t)
 let mk_rwrt       (l, t1, t2)  = Dkrwrt (l, t1, t2)
 
-let rec print_dk_type o t = 
+let rec print_dk_type o t =
   match t with
   | Dktypetype -> fprintf o "zen.type"
   | Dktypeprop -> fprintf o "zen.prop"
   | Dktypeiota -> fprintf o "zen.iota"
-  | Dkarrow (l, r) -> 
+  | Dkarrow (l, r) ->
      begin
        List.iter (fun x -> fprintf o "%a -> " print_dk_type x) l;
        print_dk_type o r;
      end
   | Dkpi (Dkvar (v, t1) as var, t2) ->
-     fprintf o "%s : zen.term (%a)\n -> %a" 
+     fprintf o "%s : zen.term (%a)\n -> %a"
 	     (get_var_newname var) print_dk_type t1 print_dk_type t2
   | Dkpi _ -> assert false
-  | Dkproof (t) -> 
+  | Dkproof (t) ->
      fprintf o "zen.proof (%a)" print_dk_term t
   | t -> fprintf o "zen.term (%a)" print_dk_term t
 
-and print_dk_term o t = 
-  match t with 
+and print_dk_term o t =
+  match t with
   | Dkvar ("false", _) -> fprintf o "basics.false"
   | Dkvar ("true", _) -> fprintf o "basics.true"
   | Dkvar ("Is_true", _) -> fprintf o "dk_logic.ebP"
-  | Dkvar (v, _) as var -> 
+  | Dkvar (v, _) as var ->
      fprintf o "%s" (get_var_newname var)
   | Dklam (Dkvar (v, t1) as var, t2) ->
-     fprintf o "%s : (%a)\n => %a" 
-	     (get_var_newname var) 
+     fprintf o "%s : (%a)\n => %a"
+	     (get_var_newname var)
 	     print_dk_type t1 print_dk_term t2
   | Dklam _ -> assert false
-  | Dkapp (v, _, []) -> 
+  | Dkapp (v, _, []) ->
      fprintf o "%s" v
   | Dkapp (v, _, l) ->
-     begin 
+     begin
        fprintf o "%s " v;
        List.iter (fun x -> fprintf o "(%a) " print_dk_term x) l;
        fprintf o "\n ";
@@ -373,7 +373,7 @@ and print_dk_term o t =
 	     print_dk_term pr3
   | _ -> assert false
 ;;
-  
+
 (*
 let rec print_dk o t =
   match t with
@@ -393,7 +393,7 @@ let rec print_dk o t =
   | Dkvar (v, _) as var -> fprintf o "%s" (get_var_newname var)
   | Dklam (Dkvar (v, t1) as var, t2) ->
      fprintf o "%s : (%a)\n => %a" (get_var_newname var) print_dk t1 print_dk t2
-  | Dklam (Dkapp (v, _, l), _) -> 
+  | Dklam (Dkapp (v, _, l), _) ->
      begin
        Log.debug 4 " crash %s : %i" v (List.length l);
        assert false
@@ -601,36 +601,36 @@ and print_dk_list_app o t =
 let rec pr_list_var o l =
   match l with
   | [] -> ()
-  | [Dkvar (v, t) as var] -> 
+  | [Dkvar (v, t) as var] ->
      fprintf o "%s : %a" (get_var_newname var) print_dk_type t
   | (Dkvar (v, t) as var) :: tl ->
-     fprintf o "%s : %a, %a" 
-	     (get_var_newname var) 
-	     print_dk_type t 
+     fprintf o "%s : %a, %a"
+	     (get_var_newname var)
+	     print_dk_type t
 	     pr_list_var tl
   | _ -> assert false
 ;;
 
 let print_line o line =
   match line with
-  | Dkdecl (v, _) when String.contains v '.' -> 
+  | Dkdecl (v, _) when String.contains v '.' ->
      ()
   | Dkdecl (v, t) ->
      fprintf o "%s : %a.\n\n" v print_dk_type t
-  | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' -> 
+  | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' ->
      ()
   | Dkrwrt (l, t1, t2) ->
-     fprintf o "[%a]\n %a \n --> %a.\n\n" 
+     fprintf o "[%a]\n %a \n --> %a.\n\n"
 	     pr_list_var l print_dk_term t1 print_dk_term t2
 ;;
 
 let print_goal_type o name goal =
-  fprintf o "%s :\n %a\n -> %a.\n" 
+  fprintf o "%s :\n %a\n -> %a.\n"
 	  name print_dk_type goal print_dk_term mk_seq
 ;;
 
 let print_proof o name proof =
-  fprintf o "[] %s -->\n %a.\n" 
+  fprintf o "[] %s -->\n %a.\n"
 	  name print_dk_term proof
 ;;
 
@@ -656,12 +656,12 @@ let create i = Hashtbl.create i
 
 let rec get_var_list_aux env accu ty =
   match ty with
-  | Dktypetype 
-  | Dktypeprop 
-  | Dktypeiota 
+  | Dktypetype
+  | Dktypeprop
+  | Dktypeiota
   | Dkseq -> accu
 (*  | Dkterm (t) -> get_var_list_aux env accu t *)
-  | Dkarrow (l, r) -> 
+  | Dkarrow (l, r) ->
      List.fold_left (get_var_list_aux env) accu (List.append l [r])
   | Dkpi (Dkvar(v, _), t) -> get_var_list_aux (v :: env) accu t
   | Dkvar (v, _) ->
