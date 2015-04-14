@@ -33,6 +33,7 @@ let rec mk_type e = match e with
   | Evar (s, _) -> mk_const_t s (* See coq parser *)
   | Eapp (Evar ("cc.Arrow", _), [t1; t2], _) ->
      arr (mk_type t1) (mk_type t2)
+  | Eapp (Evar ("Prop", _), [], _) -> type_prop
   | Eapp (s, args, _) ->
      eapp (s, List.map mk_type args)
      (* We missparsed an arrow as Eimply *)
