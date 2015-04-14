@@ -172,12 +172,15 @@ and print_dk_zentype o t =
   | Dktypeiota -> fprintf o "zen.iota"
   | t -> print_dk_term o t
 
+and print_dk_cst o t =
+  match t with
+  | "false" -> fprintf o "basics.false"
+  | "true" -> fprintf o "basics.true"
+  | "Is_true" -> fprintf o "dk_logic.ebP"
+  | s -> fprintf o "%s" s
 
 and print_dk_term o t =
   match t with
-  | Dkvar ("false", _) -> fprintf o "basics.false"
-  | Dkvar ("true", _) -> fprintf o "basics.true"
-  | Dkvar ("Is_true", _) -> fprintf o "dk_logic.ebP"
   | Dkvar (v, _) as var ->
      fprintf o "%s" (get_var_newname var)
   | Dklam (Dkvar (v, t1) as var, t2) ->
@@ -185,12 +188,10 @@ and print_dk_term o t =
 	     (get_var_newname var)
 	     print_dk_type t1 print_dk_term t2
   | Dklam _ -> assert false
-  | Dkapp (v, _, []) ->
-     fprintf o "%s" v
   | Dkapp (v, _, l) ->
      begin
-       fprintf o "%s " v;
-       List.iter (fun x -> fprintf o "(%a) " print_dk_term x) l;
+       print_dk_cst o v;
+       List.iter (fun x -> fprintf o " (%a)" print_dk_term x) l;
        fprintf o "\n ";
      end
   | Dkseq -> fprintf o "zen.seq"
