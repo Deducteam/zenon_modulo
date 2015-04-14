@@ -174,8 +174,8 @@ and print_dk_zentype o t =
 
 and print_dk_cst o t =
   match t with
-  | "false" -> fprintf o "basics.false"
-  | "true" -> fprintf o "basics.true"
+(*  | "false" -> fprintf o "basics.false"
+  | "true" -> fprintf o "basics.true"*)
   | "Is_true" -> fprintf o "dk_logic.ebP"
   | s -> fprintf o "%s" s
 
@@ -192,7 +192,7 @@ and print_dk_term o t =
      begin
        print_dk_cst o v;
        List.iter (fun x -> fprintf o " (%a)" print_dk_term x) l;
-       fprintf o "\n ";
+(*       fprintf o "\n ";*)
      end
   | Dkseq -> fprintf o "zen.seq"
   | Dknot (t) ->
