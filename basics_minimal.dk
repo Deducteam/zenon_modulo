@@ -48,29 +48,13 @@ syntactic_equal := _equal_.
 
 __beq_refl  : a : cc.uT ->
               x : cc.eT a ->
-              dk_logic.eP (dk_logic.ebP (_equal_ a x x)) :=
-              dk_builtins.magic_prove
-                (dk_logic.forall_type
-                  (a : cc.uT =>
-                   dk_logic.forall a
-                     (x : cc.eT (a) =>
-                      dk_logic.ebP (_equal_ a x x)))).
+              dk_logic.eP (dk_logic.ebP (_equal_ a x x)).
 
 __beq_symm  : a : cc.uT ->
               x : cc.eT a ->
               y : cc.eT a ->
               dk_logic.eP (dk_logic.ebP (_equal_ a x y)) ->
-              dk_logic.eP (dk_logic.ebP (_equal_ a y x)) :=
-              dk_builtins.magic_prove
-                (dk_logic.forall_type
-                  (a : cc.uT =>
-                   dk_logic.forall a
-                     (x : cc.eT a =>
-                      dk_logic.forall a
-                        (y : cc.eT a =>
-                         dk_logic.imp (dk_logic.ebP (_equal_ a x y))
-                                      (dk_logic.ebP (_equal_ a y x)))))).
-
+              dk_logic.eP (dk_logic.ebP (_equal_ a y x)).
 
 __beq_trans  : a : cc.uT ->
                x : cc.eT a ->
@@ -78,17 +62,4 @@ __beq_trans  : a : cc.uT ->
                z : cc.eT a ->
                dk_logic.eP (dk_logic.ebP (_equal_ a x y)) ->
                dk_logic.eP (dk_logic.ebP (_equal_ a y z)) ->
-               dk_logic.eP (dk_logic.ebP (_equal_ a x z)) :=
-               dk_builtins.magic_prove
-                 (dk_logic.forall_type
-                   (a : cc.uT =>
-                    dk_logic.forall a
-                      (x : cc.eT (a) =>
-                       dk_logic.forall a
-                         (y : cc.eT a =>
-                          dk_logic.forall a
-                            (z : cc.eT a =>
-                             dk_logic.imp (dk_logic.ebP (_equal_ a x y))
-                                          (dk_logic.imp (dk_logic.ebP (_equal_ a y z))
-                                                        (dk_logic.ebP (_equal_ a x z)))))))).
-
+               dk_logic.eP (dk_logic.ebP (_equal_ a x z)).
