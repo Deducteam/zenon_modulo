@@ -259,8 +259,8 @@ applicatives:
 | applicatives simple { $2 :: $1 }
 simple:
 | TYPE { type_type }
-| TRUE { tvar "true" bool1 }
-| FALSE { tvar "false" bool1 }
+| TRUE { tvar "basics.true" bool1 }
+| FALSE { tvar "basics.false" bool1 }
 | qid { tvar_none $1 }
 | LPAREN term RPAREN { $2 }
 typ:
