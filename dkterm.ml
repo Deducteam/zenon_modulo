@@ -190,7 +190,7 @@ and print_dk_term o t =
      begin
        print_dk_cst o v;
        List.iter (fun x -> fprintf o " (%a)" print_dk_term x) l;
-       fprintf o "\n ";
+(*       fprintf o "\n ";*)
      end
   | Dkseq -> fprintf o "zen.seq"
   | Dknot (t) ->
