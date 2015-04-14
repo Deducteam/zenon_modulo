@@ -117,8 +117,10 @@ let var_name s =
         s
 
 (* Typing *)
-let type_tff_var ty env = function
-    | Evar(v, _) as e ->
+let type_tff_var ty env e = 
+  Log.debug 4 " |- type var %a >> ty %a" Print.pp_expr e Print.pp_expr ty;
+  match e with
+  | Evar(v, _) as e ->
             begin try
                 (List.assq e env.map, env)
             with Not_found ->
@@ -136,7 +138,9 @@ let type_tff_var ty env = function
             end
     | _ -> assert false
 
-let rec type_tff_app env is_pred e = match e with
+let rec type_tff_app env is_pred e = 
+  Log.debug 4 " |- type app %a" Print.pp_expr e;
+  match e with
     (* Type typechecking *)
     | _ when e == type_type || e == type_prop || e == type_iota -> e, env
     | Eapp(Evar("$int", _), [], _) -> type_iota, env
@@ -150,10 +154,12 @@ let rec type_tff_app env is_pred e = match e with
     | Eapp(Evar(s, _) as s', args, _) ->
             let args, env' = map_fold type_tff_term env args in
             let f, env'' = match get_type s' with
-                | t when type_iota == t && tff_mem s env ->
+                | t when type_none == t && tff_mem s env ->
+		   Log.debug 4 "case 1 : %a" Print.pp_expr t;
                         let t = tff_app s args env in
                         tvar s t, env'
-                | _ ->
+                | t ->
+		   Log.debug 4 "case 2 : %a" Print.pp_expr t;
                         let ret = if is_pred then type_prop else type_iota in
                         let t = earrow (const_list (List.length args) type_iota) ret in
                         type_tff_var t env' s'
@@ -169,7 +175,9 @@ let rec type_tff_app env is_pred e = match e with
     | Eapp(_) -> raise (Type_error (Printf.sprintf "Expected a symbol as function, not an expression."))
     | _ -> assert false
 
-and type_tff_prop env e = match e with
+and type_tff_prop env e = 
+  Log.debug 4 " |- type prop %a" Print.pp_expr e;
+  match e with
     (* Proposition typechecking *)
     | Evar(v, _) -> type_tff_var type_prop env e
     | Emeta(_) -> assert false
@@ -201,7 +209,9 @@ and type_tff_prop env e = match e with
     | Etau(Evar(s, _), body, _) -> assert false
     | _ -> raise (Type_error ("Ill-formed expression"))
 
-and type_tff_quant k mk_quant env = function
+and type_tff_quant k mk_quant env e = 
+  Log.debug 4 " |- type quant %a" Print.pp_expr e;
+  match e with
     | Eex(Evar(s, _) as v, body, _)
     | Eall(Evar(s, _) as v, body, _)
     | Elam(Evar(s, _) as v, body, _) ->
@@ -214,13 +224,18 @@ and type_tff_quant k mk_quant env = function
                 else
                     v'
             in
-            let map'' = (tvar s t, nv) :: map' in
-            Log.debug 2 "Introducting '%a' of type '%a' as '%a'" Print.pp_expr v Print.pp_expr t Print.pp_expr nv;
+            let map'' = (tvar_none s, nv) :: map' in
+            Log.debug 2 "Introducting '%a' of type '%a' as '%a'" 
+		      Print.pp_expr v Print.pp_expr t Print.pp_expr nv;
+	    Log.debug 4 " |- Old Body %a" Print.pp_expr body;
             let body, env'' = k { env' with map = map'' } body in
+	    Log.debug 4 " |- New Body %a" Print.pp_expr body;
             mk_quant (v', body), { env'' with map = env.map }
     | _ -> raise (Type_error ("Ill-formed expression"))
 
-and type_tff_term env e = match e with
+and type_tff_term env e = 
+  Log.debug 4 " |- type term %a" Print.pp_expr e;
+  match e with
     | Evar(v, _) -> type_tff_var type_iota env e
     | Eapp(_) -> type_tff_app env false e
     | Elam(_) -> type_tff_quant type_tff_term elam env e
@@ -235,8 +250,11 @@ and type_tff_type env e = match e with
     | _ -> raise (Type_error ("Ill-formed expression"))
 
 let type_tff_expr env e =
+    Log.debug 4 " |- type tff expr e : %a" Print.pp_expr e;
     let e', env' = type_tff_prop env e in
     let t = get_type e' in
+    Log.debug 4 " |- e' : %a" Print.pp_expr e';
+    Log.debug 4 " |- t : %a" Print.pp_expr t;
     if type_prop == t then
       e', env'
     else
