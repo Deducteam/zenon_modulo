@@ -67,14 +67,18 @@ let bool3 = arr bool1 bool2;;
 let t_prop = type_prop;;
 
 let ret_prop_to_bool = function
+  | ty when ty == type_prop -> bool1
   | Earrow (l, ret, _) when ret == type_prop -> earrow l bool1
   | ty ->
      Log.debug 15 "Ret_prop_to_bool (%a)" Print.pp_expr ty;
      raise (Invalid_argument "ret_prop_to_bool")
 ;;
 let ret_bool_to_prop = function
+  | ty when ty == bool1 -> type_prop
   | Earrow (l, ret, _) when ret == bool1 -> earrow l type_prop
-  | _ -> raise (Invalid_argument "ret_bool_to_prop")
+  | ty ->
+     Log.debug 15 "Ret_bool_to_prop (%a)" Print.pp_expr_t ty;
+     raise (Invalid_argument "ret_bool_to_prop")
 ;;
 
 let prop_to_bool_args args ty =
