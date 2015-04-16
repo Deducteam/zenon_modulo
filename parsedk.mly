@@ -80,7 +80,7 @@ let mk_eapp : string * expr list -> expr =
   function
   | "cc.Arrow", [t1 ; t2] ->
      arr (mk_type t1) (mk_type t2)
-  | "cc.eT", [t] -> mk_type t
+  | "cc.eT", [t] -> t
 
   | "dk_tuple.prod", [t1; t2] ->
      eapp (tvar "basics.prod" (earrow [type_type; type_type] type_type),
