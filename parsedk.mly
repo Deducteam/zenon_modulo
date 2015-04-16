@@ -242,8 +242,8 @@ proofheaders:
       { $6 }
 
 qid:
-| QID { $1 }
-| ID { $1 }
+| QID { mk_const $1 type_none }
+| ID { tvar_none $1 }
 
 term:
 | domain ARROW term
@@ -267,9 +267,9 @@ applicatives:
 | applicatives simple { $2 :: $1 }
 simple:
 | TYPE { type_type }
-| TRUE { tvar "basics.true" bool1 }
-| FALSE { tvar "basics.false" bool1 }
-| qid { tvar_none $1 }
+| TRUE { btrue }
+| FALSE { bfalse }
+| qid { $1 }
 | LPAREN term RPAREN { $2 }
 typ:
 | applicative { mk_type $1 }
