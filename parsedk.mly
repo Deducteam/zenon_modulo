@@ -14,10 +14,13 @@ let arr ty1 ty2 = match ty2 with
      earrow (ty1 :: l) ret
   | _ -> earrow [ty1] ty2
 ;;
-let bool_t = tvar "basics.bool__t" type_type;;
-let bool1 = eapp (bool_t, []);;
 
-let mk_const_t s = eapp (tvar s type_type, []);;
+let mk_const s ty = eapp (tvar s ty, []);;
+let mk_const_t s = mk_const s type_type;;
+let bool1 = mk_const_t "basics.bool__t";;
+
+let btrue = mk_const "basics.true" bool1;;
+let bfalse = mk_const "basics.false" bool1;;
 
 (* Global list of type aliases *)
 let ty_aliases = ref [];;
@@ -26,20 +29,24 @@ let rec mk_type e = match e with
   (* Alias unfolding *)
   | Evar (x, _) when List.mem_assoc x !ty_aliases ->
      mk_type (List.assoc x !ty_aliases)
-
   | Evar ("dk_logic.Prop", _) -> type_prop
   | Evar ("dk_builtins.prop", _) ->
      type_prop
   | Evar (s, _) -> mk_const_t s (* See coq parser *)
+
+  | Eapp (v, [], _) -> mk_type v
+
   | Eapp (Evar ("cc.Arrow", _), [t1; t2], _) ->
      arr (mk_type t1) (mk_type t2)
-  | Eapp (Evar ("Prop", _), [], _) -> type_prop
   | Eapp (s, args, _) ->
+     assert (get_type s == type_type);
      eapp (s, List.map mk_type args)
      (* We missparsed an arrow as Eimply *)
   | Eimply (e1, e2, _) ->
      arr (mk_type e1) (mk_type e2)
-  | e -> e
+  | e ->
+     assert (get_type e == type_type);
+     e
 ;;
 
 let startwith pref s =
