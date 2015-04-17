@@ -4,31 +4,31 @@ open Expr
 type var = string
 
 type dkterm =
-  | Dktype                                     (* type type *)
-  | Dkprop                                     (* type prop *)
-  | Dkiota                                     (* type iota *)
-  | Dkseq                                      (* type seq *)
-  | Dkproof       of dkterm                    (* type proof of prop *)
-  | Dkterm        of dkterm                    (* type term of type *)
-  | Dkarrow       of dkterm list               (* type arrow of type alphas list *)
-  | Dkpi          of dkterm * dkterm           (* vartype -> arrow *)
+  | Dktypetype                                  (* type type *)
+  | Dktypeprop                                  (* type prop *)
+  | Dktypeiota                                  (* type iota *)
+  | Dkseq                                       (* type seq *)
+  | Dkproof       of dkterm                     (* type proof of prop *)
+(*  | Dkterm        of dkterm                *)     (* type term of app *)
+  | Dkarrow       of dkterm list * dkterm       (* type arrow of type list *)
+  | Dkpi          of dkterm * dkterm            (* type pi of var*arrow *)
 
-  | Dkvar         of var  * dkterm             (* vartype alpha *)
-  | Dklam         of dkterm * dkterm           (* vartype alpha => prop of var *)
-  | Dkapp         of dkterm * dkterm list      (* app term apply to term list *)
+  | Dkvar         of var  * dkterm              (* term var of string*type *)
+  | Dklam         of dkterm * dkterm            (* term lam of var*prop *)
+  | Dkapp         of var * dkterm * dkterm list (* term app of string*type*args *)
 
   | Dknot         of dkterm                    (* not of prop *)
   | Dkand         of dkterm * dkterm           (* and of 2 prop *)
   | Dkor          of dkterm * dkterm           (* or of 2 prop *)
   | Dkimply       of dkterm * dkterm           (* imply of 2 prop *)
   | Dkequiv       of dkterm * dkterm           (* equiv of 2 prop *)
-  | Dkforall      of dkterm * dkterm           (* forall type lambda *)
-  | Dkexists      of dkterm * dkterm           (* exists type lambda *)
-  | Dkforalltype  of dkterm                    (* foralltype prop lambda *)
-  | Dkexiststype  of dkterm                    (* existstype prop lambda *)
+  | Dkforall      of dkterm * dkterm           (* forall of type*lambda *)
+  | Dkexists      of dkterm * dkterm           (* exists of type*lambda *)
+  | Dkforalltype  of dkterm                    (* foralltype of lambda *)
+  | Dkexiststype  of dkterm                    (* existstype of lambda *)
   | Dktrue                                     (* true *)
   | Dkfalse                                    (* false *)
-  | Dkequal       of dkterm * dkterm * dkterm  (* equal type term term *)
+  | Dkequal       of dkterm * dkterm * dkterm  (* equal type*term*term *)
 
   | DkRfalse        of dkterm
   | DkRnottrue      of dkterm
@@ -65,22 +65,48 @@ type line =
 
 let get_dkvar_type var =
   match var with
-  | Dkvar (v, Dktype) -> Dktype
-  | Dkvar (v, Dkterm (t)) -> t
+  | Dkvar (_, t) -> t
   | _ -> assert false
 ;;
 
-let mk_type                    = Dktype
-let mk_prop                    = Dkprop
-let mk_iota                    = Dkiota
+let tbl_var_newname = ref (Hashtbl.create 42);;
+
+let newname () =
+  let s = Expr.newname () in
+  let res = "v"^(String.sub s 5 (String.length s - 5)) in
+(*  Log.debug 4 " |- Var Newname : %s" res; *)
+  res
+;;
+
+let get_var_newname var =
+  try
+    match var with
+    | Dkvar (v, _) ->
+       let nv = Hashtbl.find !tbl_var_newname var in
+       nv
+    | _ -> assert false
+  with Not_found ->
+    begin
+      match var with
+      | Dkvar (v, _) ->
+	 let nv = newname () in
+	 Hashtbl.add !tbl_var_newname var nv;
+	 nv
+      | _ -> assert false
+    end
+;;
+
+let mk_typetype                = Dktypetype
+let mk_typeprop                = Dktypeprop
+let mk_typeiota                = Dktypeiota
 let mk_seq                     = Dkseq
 let mk_proof      (t)          = Dkproof t
-let mk_term       (t)          = Dkterm t
-let mk_arrow      (l)          = Dkarrow l
+(*let mk_term       (t)          = Dkterm t*)
+let mk_arrow      (l, r)       = Dkarrow (l, r)
 let mk_pi         (t1, t2)     = Dkpi (t1, t2)
 let mk_var        (v, t)       = Dkvar (v, t)
 let mk_lam        (t1, t2)     = Dklam (t1, t2)
-let mk_app        (t, l)       = Dkapp (t, l)
+let mk_app        (v, t, l)    = Dkapp (v, t, l)
 let mk_not        (t)          = Dknot t
 let mk_and        (t1, t2)     = Dkand (t1, t2)
 let mk_or         (t1, t2)     = Dkor (t1, t2)
@@ -124,27 +150,261 @@ let mk_DkRcongrl       (a, p, t1, t2, pr1, pr2, pr3)  = DkRcongrl (a, p, t1, t2,
 let mk_decl       (v, t)       = Dkdecl (v, t)
 let mk_rwrt       (l, t1, t2)  = Dkrwrt (l, t1, t2)
 
+let rec print_dk_type o t =
+  match t with
+  | Dktypetype -> fprintf o "zen.type"
+  | Dktypeprop -> fprintf o "zen.prop"
+  | Dkarrow (l, r) ->
+     begin
+       List.iter (fun x -> fprintf o "%a -> " print_dk_type x) l;
+       print_dk_type o r;
+     end
+  | Dkpi (Dkvar (v, t1) as var, t2) ->
+     fprintf o "%s : %a\n -> %a"
+	     (get_var_newname var) print_dk_type t1 print_dk_type t2
+  | Dkpi _ -> assert false
+  | Dkproof (t) ->
+     fprintf o "zen.proof (%a)" print_dk_term t
+  | t -> fprintf o "zen.term (%a)" print_dk_zentype t
+
+and print_dk_zentype o t =
+  match t with
+  | Dktypeiota -> fprintf o "zen.iota"
+  | t -> print_dk_term o t
+
+and print_dk_cst o t =
+  match t with
+  | "Is_true" -> fprintf o "dk_logic.ebP"
+  | s -> fprintf o "%s" s
+
+and print_dk_term o t =
+  match t with
+  | Dkvar (v, _) as var ->
+     fprintf o "%s" (get_var_newname var)
+  | Dklam (Dkvar (v, t1) as var, t2) ->
+     fprintf o "%s : (%a)\n => %a"
+	     (get_var_newname var)
+	     print_dk_type t1 print_dk_term t2
+  | Dklam _ -> assert false
+  | Dkapp (v, _, l) ->
+     begin
+       print_dk_cst o v;
+       List.iter (fun x -> fprintf o " (%a)" print_dk_term x) l;
+(*       fprintf o "\n ";*)
+     end
+  | Dkseq -> fprintf o "zen.seq"
+  | Dknot (t) ->
+     fprintf o "zen.not\n (%a)" print_dk_term t
+  | Dkand (t1, t2) ->
+     fprintf o "zen.and\n (%a) (%a)" print_dk_term t1 print_dk_term t2
+  | Dkor (t1, t2) ->
+     fprintf o "zen.or\n (%a) (%a)" print_dk_term t1 print_dk_term t2
+  | Dkimply (t1, t2) ->
+     fprintf o "zen.imp\n (%a) (%a)" print_dk_term t1 print_dk_term t2
+  | Dkequiv (t1, t2) ->
+     fprintf o "zen.eqv\n (%a) (%a)" print_dk_term t1 print_dk_term t2
+  | Dkforall (t1, t2) ->
+     fprintf o "zen.forall (%a)\n (%a)" print_dk_term t1 print_dk_term t2
+  | Dkexists (t1, t2) ->
+     fprintf o "zen.exists (%a)\n (%a)" print_dk_term t1 print_dk_term t2
+  | Dkforalltype (t) ->
+     fprintf o "zen.foralltype\n (%a)" print_dk_term t
+  | Dkexiststype (t) ->
+     fprintf o "zen.existstype\n (%a)" print_dk_term t
+  | Dktrue -> fprintf o "zen.True"
+  | Dkfalse -> fprintf o "zen.False"
+  | Dkequal (t1, t2, t3) ->
+     fprintf o "zen.equal (%a)\n (%a)\n (%a)"
+	     print_dk_term t1
+	     print_dk_term t2
+	     print_dk_term t3
+  | DkRfalse (pr) -> fprintf o "zen.Rfalse\n (%a)" print_dk_term pr
+  | DkRnottrue (pr) -> fprintf o "zen.Rnottrue\n (%a)" print_dk_term pr
+  | DkRaxiom (p, pr1, pr2) ->
+     fprintf o "zen.Raxiom\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRnoteq (a, t, pr) ->
+     fprintf o "zen.Rnoteq\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term a
+	     print_dk_term t
+	     print_dk_term pr
+  | DkReqsym (a, t, u, pr1, pr2) ->
+     fprintf o "zen.Reqsym\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term a
+	     print_dk_term t
+	     print_dk_term u
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRcut (p, pr1, pr2) ->
+     fprintf o "zen.Rcut\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRnotnot (p, pr1, pr2) ->
+     fprintf o "zen.Rnotnot\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRand (p, q, pr1, pr2) ->
+     fprintf o "zen.Rand\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term q
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRor (p, q, pr1, pr2, pr3) ->
+     fprintf o "zen.Ror\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term q
+	     print_dk_term pr1
+	     print_dk_term pr2
+	     print_dk_term pr3
+  | DkRimply (p, q, pr1, pr2, pr3) ->
+     fprintf o "zen.Rimply\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term q
+	     print_dk_term pr1
+	     print_dk_term pr2
+	     print_dk_term pr3
+  | DkRequiv (p, q, pr1, pr2, pr3) ->
+     fprintf o "zen.Requiv\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term q
+	     print_dk_term pr1
+	     print_dk_term pr2
+	     print_dk_term pr3
+  | DkRnotand (p, q, pr1, pr2, pr3) ->
+     fprintf o "zen.Rnotand\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term q
+	     print_dk_term pr1
+	     print_dk_term pr2
+	     print_dk_term pr3
+  | DkRnotor (p, q, pr1, pr2) ->
+     fprintf o "zen.Rnotor\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term q
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRnotimply (p, q, pr1, pr2) ->
+     fprintf o "zen.Rnotimply\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term q
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRnotequiv (p, q, pr1, pr2, pr3) ->
+     fprintf o "zen.Rnotequiv\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term q
+	     print_dk_term pr1
+	     print_dk_term pr2
+	     print_dk_term pr3
+  | DkRex (a, p, pr1, pr2) ->
+     fprintf o "zen.Rex\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term a
+	     print_dk_term p
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRall (a, p, t, pr1, pr2) ->
+     fprintf o "zen.Rall\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term a
+	     print_dk_term p
+	     print_dk_term t
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRnotex (a, p, t, pr1, pr2) ->
+     fprintf o "zen.Rnotex\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term a
+	     print_dk_term p
+	     print_dk_term t
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRnotall (a, p, pr1, pr2) ->
+     fprintf o "zen.Rnotall\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term a
+	     print_dk_term p
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRextype (p, pr1, pr2) ->
+     fprintf o "zen.Rextype\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRalltype (p, a, pr1, pr2) ->
+     fprintf o "zen.Ralltype\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term a
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRnotextype (p, a, pr1, pr2) ->
+     fprintf o "zen.Rnotextype\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term a
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRnotalltype (p, pr1, pr2) ->
+     fprintf o "zen.Rnotalltype\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term p
+	     print_dk_term pr1
+	     print_dk_term pr2
+  | DkRsubst  (a, p, t1, t2, pr1, pr2, pr3) ->
+     fprintf o "zen.Rsubst\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term a
+	     print_dk_term p
+	     print_dk_term t1
+	     print_dk_term t2
+	     print_dk_term pr1
+	     print_dk_term pr2
+	     print_dk_term pr3
+  | DkRconglr (a, p, t1, t2, pr1, pr2, pr3) ->
+     fprintf o "zen.Rconglr\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term a
+	     print_dk_term p
+	     print_dk_term t1
+	     print_dk_term t2
+	     print_dk_term pr1
+	     print_dk_term pr2
+	     print_dk_term pr3
+  | DkRcongrl (a, p, t1, t2, pr1, pr2, pr3) ->
+     fprintf o "zen.Rcongrl\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
+	     print_dk_term a
+	     print_dk_term p
+	     print_dk_term t1
+	     print_dk_term t2
+	     print_dk_term pr1
+	     print_dk_term pr2
+	     print_dk_term pr3
+  | _ -> assert false
+;;
+
+(*
 let rec print_dk o t =
   match t with
-  | Dktype -> fprintf o "zen.type"
-  | Dkprop -> fprintf o "zen.prop"
-  | Dkiota -> fprintf o "zen.iota"
+  | Dktypetype -> fprintf o "zen.type"
+  | Dktypeprop -> fprintf o "zen.prop"
+  | Dktypeiota -> fprintf o "zen.iota"
   | Dkseq  -> fprintf o "zen.seq"
   | Dkproof (t) ->  fprintf o "zen.proof (%a)" print_dk t
   | Dkterm (t) -> fprintf o "zen.term (%a)" print_dk t
   | Dkarrow (l) -> print_dk_list_arrow o l
-  | Dkpi (Dkvar (v, t1), t2) ->
-     fprintf o "%s : %a\n -> %a" v print_dk t1 print_dk t2
+  | Dkpi (Dkvar (v, t1) as var, t2) ->
+     fprintf o "%s : %a\n -> %a" (get_var_newname var) print_dk t1 print_dk t2
   | Dkpi _ -> assert false
   | Dkvar ("false", _) -> fprintf o "basics.false"
   | Dkvar ("true", _) -> fprintf o "basics.true"
   | Dkvar ("Is_true", _) -> fprintf o "dk_logic.ebP"
-  | Dkvar (v, _) -> fprintf o "%s" v
-  | Dklam (Dkvar (v, t1), t2) ->
-     fprintf o "%s : (%a)\n => %a" v print_dk t1 print_dk t2
+  | Dkvar (v, _) as var -> fprintf o "%s" (get_var_newname var)
+  | Dklam (Dkvar (v, t1) as var, t2) ->
+     fprintf o "%s : (%a)\n => %a" (get_var_newname var) print_dk t1 print_dk t2
+  | Dklam (Dkapp (v, _, l), _) ->
+     begin
+       Log.debug 4 " crash %s : %i" v (List.length l);
+       assert false
+     end
   | Dklam _ -> assert false
-  | Dkapp (t, l) ->
-     fprintf o "%a %a" print_dk t print_dk_list_app l
+  | Dkapp (v, _, l) ->
+     fprintf o "%s %a" v print_dk_list_app l
   | Dknot (t) ->
      fprintf o "zen.not\n (%a)" print_dk t
   | Dkand (t1, t2) ->
@@ -340,30 +600,42 @@ and print_dk_list_app o t =
   | [h] -> fprintf o "(%a)" print_dk h
   | h :: tl -> fprintf o "(%a)\n %a" print_dk h print_dk_list_app tl
 ;;
+ *)
 
 let rec pr_list_var o l =
   match l with
   | [] -> ()
-  | [Dkvar (v, t)] -> fprintf o "%s : %a" v print_dk t
-  | (Dkvar (v, t)) :: tl ->
-     fprintf o "%s : %a, %a" v print_dk t pr_list_var tl
+  | [Dkvar (v, t) as var] ->
+     fprintf o "%s : %a" (get_var_newname var) print_dk_type t
+  | (Dkvar (v, t) as var) :: tl ->
+     fprintf o "%s : %a, %a"
+	     (get_var_newname var)
+	     print_dk_type t
+	     pr_list_var tl
   | _ -> assert false
 ;;
 
 let print_line o line =
   match line with
+  | Dkdecl (v, _) when String.contains v '.' ->
+     ()
   | Dkdecl (v, t) ->
-     fprintf o "%s : %a.\n\n" v print_dk t
+     fprintf o "%s : %a.\n\n" v print_dk_type t
+  | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' ->
+     ()
   | Dkrwrt (l, t1, t2) ->
-     fprintf o "[%a]\n %a \n --> %a.\n\n" pr_list_var l print_dk t1 print_dk t2
+     fprintf o "[%a]\n %a \n --> %a.\n\n"
+	     pr_list_var l print_dk_term t1 print_dk_term t2
 ;;
 
 let print_goal_type o name goal =
-  fprintf o "%s :\n %a\n -> %a.\n" name print_dk goal print_dk mk_seq
+  fprintf o "%s :\n %a\n -> %a.\n"
+	  name print_dk_type goal print_dk_term mk_seq
 ;;
 
 let print_proof o name proof =
-  fprintf o "[] %s -->\n %a.\n" name print_dk proof
+  fprintf o "[] %s -->\n %a.\n"
+	  name print_dk_term proof
 ;;
 
 (* to manage dependances of symbols definitions *)
@@ -388,14 +660,18 @@ let create i = Hashtbl.create i
 
 let rec get_var_list_aux env accu ty =
   match ty with
-  | Dktype | Dkprop | Dkiota | Dkseq -> accu
-  | Dkterm (t) -> get_var_list_aux env accu t
-  | Dkarrow (l) -> List.fold_left (get_var_list_aux env) accu l
+  | Dktypetype
+  | Dktypeprop
+  | Dktypeiota
+  | Dkseq -> accu
+(*  | Dkterm (t) -> get_var_list_aux env accu t *)
+  | Dkarrow (l, r) ->
+     List.fold_left (get_var_list_aux env) accu (List.append l [r])
   | Dkpi (Dkvar(v, _), t) -> get_var_list_aux (v :: env) accu t
   | Dkvar (v, _) ->
      if List.mem v env then accu
      else v :: accu
-  | Dkapp (Dkvar (v, _), l) ->
+  | Dkapp (v, _, l) ->
      if List.mem v env
      then List.fold_left (get_var_list_aux env) accu l
      else List.fold_left (get_var_list_aux env) (v :: accu) l

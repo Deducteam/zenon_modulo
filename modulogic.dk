@@ -36,7 +36,7 @@ seq        : Type.
 [] seq
       --> proof False.
 
-(; Law of Excluded Middle ;)
+(; Law of eXcluded Middle ;)
 
 xmid       : p : prop ->
 	     z : prop ->
@@ -283,29 +283,163 @@ lemme_4 (p : prop)
 			     => H5 : (proof q -> proof p)
 				=> lemme_4 p q H5 H2 H4 H1 (lemme_2 p q H5 H2)).
 
-(;[p : prop, q : prop] Rnotand p q
+[p : prop, q : prop] Rnotand p q
       --> H1 : (proof (not p) -> proof False)
 	  => H2 : (proof (not q) -> proof False)
 	     => H3 : proof (not (and p q))
-		=> H3 ;)
-(;
+		=> H1 (H5 : proof p =>
+                       H2 (H6 : proof q =>
+                           H3 (z : prop =>
+                               (H4 : (proof p -> proof q -> proof z) =>
+                                H4 H5 H6)))).
+
+lemme_5 : p : prop ->
+	  q : prop ->
+	  proof p -> proof (or p q).
+
+[p : prop, q : prop] lemme_5 p q
+      --> H1 : proof p
+	  => z : prop
+	     => H2 : (proof p -> proof z)
+		=> H3 : (proof q -> proof z)
+		   => H2 H1.
+
+lemme_5bis : p : prop ->
+	     q : prop ->
+	     proof q -> proof (or p q).
+
+[p : prop, q : prop] lemme_5bis p q
+      --> H1 : proof q
+	  => z : prop
+	     => H2 : (proof p -> proof z)
+		=> H3 : (proof q -> proof z)
+		   => H3 H1.
+
+lemme_6 (p : prop)
+	(q : prop)
+	(H2 : proof (not (or p q)))
+	: proof (not p)
+:=
+  lemme_imp p (or p q) (lemme_5 p q) H2.
+
+lemme_7 (p : prop)
+	(q : prop)
+	(H2 : proof (not (or p q)))
+	: proof (not q)
+:=
+  lemme_imp q (or p q) (lemme_5bis p q) H2.
+
+[p : prop, q : prop] Rnotor p q
+      --> H1 : (proof (not p) -> proof (not q) -> proof False)
+	  => H2 : proof (not (or p q))
+	     => H1 (lemme_6 p q H2) (lemme_7 p q H2).
+
+lemme_8 (p : prop)
+	(q : prop)
+	(H2 : proof (not (imp p q)))
+	: proof (not q)
+:=
+  H3 : proof q
+  => H2 (H4 : proof p
+	 => H3).
+
+lemme_9 (p : prop)
+	(q : prop)
+	(H1 : proof p -> proof (not (not q)))
+	(H2 : proof (not (imp p q)))
+	: proof (not p)
+:=
+  H3 : proof p
+  => (H1 H3) (lemme_8 p q H2).
+
+lemme_10 (p : prop)
+	 (q : prop)
+	 (H3 : proof (not p))
+	 : proof (imp p q)
+:=
+  H4 : proof p
+  => H3 H4 q.
+
+[p : prop, q : prop] Rnotimply p q
+      --> H1 : (proof p -> proof (not q) -> proof False)
+	  => H2 : proof (not (imp p q))
+	     => H2 (lemme_10 p q (lemme_9 p q H1 H2)).
+
+lemme_11 (p : prop)
+         (q : prop)
+         (H2 : proof p -> proof (not (not q)))
+         (H3 : proof (not (eqv p q)))
+         : proof (not p)
+:=
+  HP : proof p
+  => H2 HP (HQ : proof q
+            => H3 (z : prop
+                   => H4 : (proof (imp p q) -> proof (imp q p) -> proof z)
+                      => H4 (__ : proof p => HQ) (__ : proof q => HP))).
+
+[p : prop, q : prop] Rnotequiv p q
+      --> H1 : (proof (not p) -> proof (not q))
+          => H2 : (proof p -> proof (not (not q)))
+             => H3 : proof (not (eqv p q))
+                => (HNP : proof (not p)
+                    => H3 (z : prop
+                           => H4 : (proof (imp p q) -> proof (imp q p) -> proof z)
+                              => H4 (HP : proof p => HNP HP q)
+                                    (HQ : proof q => H1 HNP HQ p)))
+                   (lemme_11 p q H2 H3).
+
 [a : type, p : (term a -> prop)] Rex a p
       --> H1 : (t : term a -> proof (p t) -> proof False)
 	  => H2 : proof (exists a p)
-	     => H2 False H1.;)
-(;
+	     => H2 False H1.
+
 [a : type, p : (term a -> prop), t : term a] Rall a p t
       --> H1 : (proof (p t) -> proof False)
 	  => H2 : proof (forall a p)
-	     => H1 (H2 t).;)
+	     => H1 (H2 t).
 
-(;[a : type, p : (term a -> prop), t : term a] Rnotex a p t
+[a : type, p : (term a -> prop), t : term a] Rnotex a p t
       --> H1 : (proof (not (p t)) -> proof False)
 	  => H2 : proof (not (exists a p))
-	     => H2 .;)
-(;
-[a : type, p : (term a -> prop), t1 : term a, t2 : term a] Rsubst a p t1 t2
+	     => H1 (H4 : proof (p t)
+                    => H2 (z : prop
+		           => H3 : (x : term a -> proof (p x) -> proof z)
+		              => H3 t H4)).
+
+[a : type, p : (term a -> prop)] Rnotall a p
+      --> H1 : (t : term a -> proof (not (p t)) -> proof False)
+	  => H2 : proof (not (forall a p))
+	     => H2 (t : term a
+		    => nnpp (p t) (H1 t)).
+
+[p : (type -> prop)] Rextype p
+      --> H1 : (a : type -> proof (p a) -> proof False)
+	  => H2 : proof (existstype p)
+	     => H2 False H1.
+
+[p : (type -> prop), a : type] Ralltype p a
+      --> H1 : (proof (p a) -> proof False)
+	  => H2 : proof (foralltype p)
+	     => H1 (H2 a).
+
+[p : (type -> prop), a : type] Rnotextype p a
+      --> H1 : (proof (not (p a)) -> proof False)
+	  => H2 : proof (not (existstype p))
+	     => H1 (H4 : proof (p a)
+                    => (H2 (z : prop
+		            => H3 : (b : type -> proof (p b) -> proof z)
+		               => H3 a H4))).
+
+[p : (type -> prop)] Rnotalltype p
+      --> H1 : (a : type -> proof (not (p a)) -> proof False)
+	  => H2 : proof (not (foralltype p))
+	     => H2 (a : type
+		    => nnpp (p a) (H1 a)).
+
+[a : type, p : (term a -> prop), t1 : term a, t2 : term a]
+    Rsubst a p t1 t2
       --> H1 : (proof (not (equal a t1 t2)) -> proof False)
 	  => H2 : (proof (p t2) -> proof False)
 	     => H3 : proof (p t1)
-		=> ;)
+		=> H1 (H4 : proof (equal a t1 t2)
+                       => H2 (H4 p H3)).
