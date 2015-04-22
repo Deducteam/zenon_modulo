@@ -86,6 +86,8 @@ let b_axiom_to_rwrt_prop = [
 ];;
 
 let b_axiom_to_rwrt_term = [
+  "match_bool_True";
+  "match_bool_False";
   "tuple2_proj_1_def";
   "tuple2_proj_2_def";
   "tuple2_inversion";
@@ -420,10 +422,31 @@ let rec is_equal_term body =
   | _ -> is_equal_term body
 ;;*)
 
+let is_empty_list l =
+  match l with
+  | [] -> true
+  | _ -> false
+;;
+
+let is_heuri_rwrt_term_aux body =
+  match body with
+  | Eapp (Evar ("=", _), [t1; t2], _)
+       when not (is_commut_term body)
+            && not (Expr.equal t1 t2) ->
+     begin
+       match t1, t2 with
+       | Eapp _, _ ->
+          test_fv (get_fv t1) (get_fv t2)
+          && not (is_empty_list (get_fv t1))
+       | _, _ -> false
+     end
+  | _ -> false
+;;
+
 let rec is_heuri_rwrt_term body =
   match body with
   | Eall (_, pred, _) -> is_heuri_rwrt_term pred
-  | _ -> is_equal_term body
+  | _ -> is_heuri_rwrt_term_aux body
 ;;
 
 let rec is_equiv_prop body =
@@ -433,13 +456,9 @@ let rec is_equiv_prop body =
     begin
       match body with
       | Eequiv (e1, e2, _) ->
-	 begin
-	   (is_literal_noteq e1
-	    && test_fv (get_fv e1) (get_fv e2))
-(*	   ||
-	     (is_literal_noteq e2
-	      && test_fv (get_fv e2) (get_fv e1)) *)
-	 end
+	 is_literal_noteq e1
+	 && test_fv (get_fv e1) (get_fv e2)
+         && not (is_empty_list (get_fv e1))
       | _ -> false
     end
 ;;
@@ -536,9 +555,9 @@ let rec select_rwrt_rules_aux accu phrase =
        else if !Globals.build_rwrt_sys
 	       && is_heuri_rwrt_prop body
        then (add_rwrt_prop name body; (Rew (name, body, 1) :: accu))
-  (*     else if !Globals.build_rwrt_sys
+       else if !Globals.build_rwrt_sys
 	       && is_heuri_rwrt_term body
-       then (add_rwrt_term name body; (Rew (name, body, 0) :: accu)) *)
+       then (add_rwrt_term name body; (Rew (name, body, 0) :: accu))
        else if !Globals.build_rwrt_sys_casc
 	       && is_heuri_rwrt_prop body
        then (add_rwrt_prop name body; (Rew (name, body, 1) :: accu))
