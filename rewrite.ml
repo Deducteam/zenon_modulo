@@ -128,7 +128,7 @@ let rec unif_aux l e1 e2 =
       else if (assoc_expr e1 l) = e2 then l
       else raise Unif_failed
 
-    | Eapp (Evar(f1, _), args1, _), Eapp (Evar(f2, _), args2, _) when f1 = f2
+    | Eapp (f1, args1, _), Eapp (f2, args2, _) when (Expr.equal f1 f2)
          -> (try
 	      List.fold_left2 unif_aux l args1 args2
 	     with
@@ -217,19 +217,9 @@ let rec norm_prop_aux rules fm =
 	then norm_prop_aux tl fm
 	else
 	  begin
-	   (* Globals.compteur_rwrt_p := !Globals.compteur_rwrt_p + 1;*)
-	    if !Globals.debug_flag || !Globals.debug_rwrt
-	    then
-	      begin
-		print_endline "";
-		print_endline " -- Rewriting Prop -- ";
-		print_string "Fm : ";
-		printer fm;
-		print_string " --> ";
-		printer new_fm;
-		print_endline "";
-		print_endline "";
-	      end;
+            Log.debug 14 "normalize prop";
+            Log.debug 14 " |- %a --> %a" Print.pp_expr fm
+                      Print.pp_expr new_fm;
 	    new_fm
 	  end
       end
@@ -237,8 +227,8 @@ let rec norm_prop_aux rules fm =
 
 let norm_prop fm =
   let rules = Hashtbl.find_all !Expr.tbl_prop (find_first_sym fm) in
-  let rules_sort = List.sort (ordering_two fm) rules in
-  norm_prop_aux rules_sort fm
+  (*let rules = List.sort (ordering_two fm) rules in*)
+  norm_prop_aux rules fm
 ;;
 
 let rec rewrite_term (l, r) p =
@@ -259,23 +249,13 @@ let rec norm_term_aux rules t =
 let rec norm_term t =
   let rules = Hashtbl.find_all !Expr.tbl_term (find_first_sym t) in
 (*  let rules_sort = List.sort ordering rules in *)
-  let rules_sort = List.sort (ordering_two t) rules in
-  let new_t = norm_term_aux rules_sort t in
+  (*let rules = List.sort (ordering_two t) rules in*)
+  let new_t = norm_term_aux rules t in
   if not (Expr.equal t new_t)
   then
     begin
-      if !Globals.debug_flag || !Globals.debug_rwrt
-      then
-	begin
-	  print_endline "";
-	  print_endline " -- Rewriting Term -- ";
-	  print_string "t : ";
-	  printer t;
-	  print_string " --> ";
-	  printer new_t;
-	  print_endline "";
-	  print_endline "";
-	end;
+      Log.debug 4 "normalize term";
+      Log.debug 4 " |- %a --> %a" Print.pp_expr t Print.pp_expr new_t;
       norm_term new_t
     end
   else
@@ -314,7 +294,12 @@ let rec normalize_fm fm =
       let fm_p = norm_prop fm_t in
       if (Expr.equal fm_p fm)
       then fm
-      else normalize_fm fm_p
+      else
+        begin
+          Log.debug 2 "normalize fm";
+          Log.debug 2 " |- %a --> %a" Print.pp_expr fm Print.pp_expr fm_p;
+          normalize_fm fm_p
+        end
     end
   else
     fm
