@@ -309,8 +309,8 @@ let rec normalize_list_aux accu list =
   match list with
   | [] -> List.rev accu
   | h :: t ->
-    let new_accu = (normalize_fm h) :: accu in
-    normalize_list_aux new_accu t
+    let accu = (normalize_fm h) :: accu in
+    normalize_list_aux accu t
 ;;
 
 let normalize_list list =
