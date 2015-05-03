@@ -29,7 +29,7 @@ type opts =
 ;;
 
 (* A global hashtable of constant values.
-   These constants are declared in extensions.
+   These constants are declared in extensions and parsers.
    (declare_constant is exported)
    This table is used for typing applications. *)
 let const_env : (string, expr) Hashtbl.t = Hashtbl.create 97;;
@@ -277,9 +277,6 @@ let definition opts d =
 let phrase opts l (p, b) =
   Log.debug 15 "Check Phrase %a" Print.pp_phrase p;
   match p with
-  | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _)) ->
-     declare_constant (s, ty);
-     l
   | Phrase.Hyp (s, e, n) ->
      (Phrase.Hyp (s, check_expr opts [] type_prop e, n), b) :: l
   | Phrase.Def d ->
@@ -291,7 +288,6 @@ let phrase opts l (p, b) =
    does not try to type the body to find the type to give to the symbol.
    This is only used in first pass. *)
 let declare_phrase (p, _) = match p with
-  | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _))
   | Phrase.Def (DefReal (_, s, ty, _, _, _))
   | Phrase.Def (DefPseudo (_, s, ty, _, _))
   | Phrase.Def (DefRec (_, s, ty, _, _)) ->

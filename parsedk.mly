@@ -224,12 +224,7 @@ proofheaders:
   | BEGIN_TYPEALIAS ID DEF typ END_TYPEALIAS proofheaders
       { ty_aliases := ($2, $4) :: !ty_aliases; $6 }
   | BEGIN_VAR ID COLON typ END_VAR proofheaders
-              { (Phrase.Def (DefReal ("Typing declaration",
-                                      $2,
-                                      $4,
-                                      [],
-                                      etrue, None)), true)
-                :: $6 }
+              { Typer.declare_constant ($2, $4); $6 }
   | BEGIN_HYP ID COLON term END_HYP proofheaders
       { $6 }
 
