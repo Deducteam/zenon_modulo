@@ -132,9 +132,6 @@ let rec infer_expr opts env = function
      elam (x, infer_expr opts (x :: env) body)
   | _ -> assert false
 and xcheck_expr opts env ty e =
-  if get_type e == ty
-  then e
-  else
     if ty == type_none
     then infer_expr opts env e
     else
