@@ -570,7 +570,7 @@ let to_llargs tr_expr r =
       let he1 = tr_expr (isfalse c) in
       let he2 = tr_expr (eapp (r, [e; e2])) in
       let concl = tr_expr a in
-      let v1 = newtvar type_none and v2 = newtvar type_none in
+      let v1 = newtvar ty and v2 = newtvar (get_type e2) in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_l", List.map tr_expr [ty; rf; c; t; e; e2],
        [concl], [ [ht1; ht2]; [he1; he2] ])
@@ -582,7 +582,7 @@ let to_llargs tr_expr r =
       let he1 = tr_expr (isfalse c) in
       let he2 = tr_expr (eapp (r, [e1; e])) in
       let concl = tr_expr a in
-      let v1 = newtvar type_none and v2 = newtvar type_none in
+      let v1 = newtvar (get_type e1) and v2 = newtvar ty in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_r", List.map tr_expr [ty; rf; e1; c; t; e],
        [concl], [ [ht1; ht2]; [he1; he2] ])
@@ -595,7 +595,7 @@ let to_llargs tr_expr r =
       let he1 = tr_expr (isfalse c) in
       let he2 = tr_expr (enot (eapp (r, [e; e2]))) in
       let concl = tr_expr a in
-      let v1 = newtvar type_none and v2 = newtvar type_none in
+      let v1 = newtvar ty and v2 = newtvar (get_type e2) in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_nl", List.map tr_expr [ty; rf; c; t; e; e2],
        [concl], [ [ht1; ht2]; [he1; he2] ])
@@ -608,7 +608,7 @@ let to_llargs tr_expr r =
       let he1 = tr_expr (isfalse c) in
       let he2 = tr_expr (enot (eapp (r, [e1; e]))) in
       let concl = tr_expr a in
-      let v1 = newtvar type_none and v2 = newtvar type_none in
+      let v1 = newtvar (get_type e1) and v2 = newtvar ty in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
       ("zenon_focal_ite_rel_nr", List.map tr_expr [ty; rf; e1; c; t; e],
        [concl], [ [ht1; ht2]; [he1; he2] ])
