@@ -712,8 +712,8 @@ let predecl () =
     );
   [
     ("Is_true", arr bool1 t_prop);
-    ("true", bool1);
-    ("false", bool1);
+    ("basics.true", bool1);
+    ("basics.false", bool1);
 
     ("basics._tilda__tilda_", bool2);
     ("basics._amper__amper_", bool3);
