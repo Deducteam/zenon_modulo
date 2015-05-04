@@ -94,6 +94,7 @@ let rec xinstantiate accu args ty =
 let instantiate args ty =
   if arity ty = List.length args then
     let (reversed_ty_args, args, tys, ret) = xinstantiate [] args ty in
+    assert (get_type ret == type_type);
     (List.rev reversed_ty_args, args, tys, ret)
   else
     raise (Arity_mismatch (ty, args))
@@ -228,6 +229,7 @@ and xcheck_expr opts env ty e =
     | _ -> assert false
 and check_expr opts env ty e =
   Log.debug 15 "Check %a : %a" Print.pp_expr e Print.pp_expr ty;
+  assert (get_type ty == type_type);
   let result = xcheck_expr opts env ty e in
   let rty = get_type result in
   if opts.fully_type && not (ty == rty) then
