@@ -186,6 +186,9 @@ and print_dk_term o t =
      fprintf o "%s : (%a)\n => %a"
 	     (get_var_newname var)
 	     print_dk_type t1 print_dk_term t2
+  | Dklam (Dkapp (v, t1, []), t2) ->
+     fprintf o "%s : (%a)\n => %a"
+	     v print_dk_type t1 print_dk_term t2
   | Dklam _ -> assert false
   | Dkapp (v, _, l) ->
      begin
