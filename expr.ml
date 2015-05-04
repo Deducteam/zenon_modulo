@@ -448,7 +448,7 @@ module HashedExpr = struct
 
   let equal e1 e2 = get_type e1 == get_type e2 &&
     match e1, e2 with
-    | Evar (v1, _), Evar (v2, _) -> v1 =%= v2 && get_type e1 == get_type e2
+    | Evar (v1, _), Evar (v2, _) -> v1 =%= v2
     | Emeta (f1, _), Emeta (f2, _) -> f1 == f2
     | Earrow(args1, ret1, _), Earrow(args2, ret2, _) ->
         ret1 == ret2 && List.length args1 =%= List.length args2
