@@ -254,7 +254,11 @@ let declare_def_constant opts = function
            let typed_body = check_expr opts env ty_body body in
            declare_constant (s, ty);
            (env, typed_body)
-        | _ -> assert false)      (* Constant must have arrow types *)
+        | ty ->
+           assert (env = []);
+           let typed_body = check_expr opts env ty body in
+           declare_constant (s, ty);
+           ([], typed_body))
 ;;
 
 (* Type a definition and declare it. *)
