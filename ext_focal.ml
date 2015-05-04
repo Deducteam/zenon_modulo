@@ -66,14 +66,18 @@ let bool2 = arr bool1 bool1;;
 let bool3 = arr bool1 bool2;;
 let t_prop = type_prop;;
 
-let ret_prop_to_bool = function
-  | Earrow (l, ret, _) when ret == type_prop -> earrow l bool1
+let rec ret_prop_to_bool = function
+  | ty when ty == type_prop -> bool1
+  | Earrow (l, ret, _) -> earrow l bool1
+  | Eall (v, ty, _) -> eall (v, ret_prop_to_bool ty)
   | ty ->
      Log.debug 15 "Ret_prop_to_bool (%a)" Print.pp_expr ty;
      raise (Invalid_argument "ret_prop_to_bool")
 ;;
-let ret_bool_to_prop = function
-  | Earrow (l, ret, _) when ret == bool1 -> earrow l type_prop
+let rec ret_bool_to_prop = function
+  | ty when ty == bool1 -> type_prop
+  | Earrow (l, ret, _) -> earrow l type_prop
+  | Eall (v, ty, _) -> eall (v, ret_bool_to_prop ty)
   | _ -> raise (Invalid_argument "ret_bool_to_prop")
 ;;
 
@@ -712,8 +716,8 @@ let predecl () =
     );
   [
     ("Is_true", arr bool1 t_prop);
-    ("true", bool1);
-    ("false", bool1);
+    ("basics.true", bool1);
+    ("basics.false", bool1);
 
     ("basics._tilda__tilda_", bool2);
     ("basics._amper__amper_", bool3);
