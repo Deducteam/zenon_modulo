@@ -175,6 +175,7 @@ and print_dk_zentype o t =
 and print_dk_cst o t =
   match t with
   | "Is_true" -> fprintf o "dk_logic.ebP"
+  | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
   | s -> fprintf o "%s" s
 
 and print_dk_term o t =
