@@ -101,6 +101,7 @@ and k_tau   = 0x4ae7fad
 and k_lam   = 0x24adcb3
 ;;
 
+let combine x y = x + y * 131 + 1;;
 
 let mkpriv skel fv sz taus metas submetas typ = {
   hash = Hashtbl.hash (skel, fv);
@@ -139,14 +140,17 @@ let type_type =
     typ = None;
 })
 
-let v_type_prop = Evar("Prop", mkpriv 0 ["$o"] 1 0 [] [] type_type)
-let type_prop = Eapp(v_type_prop, [], mkpriv 0 [] 1 0 [] [] type_type)
+let v_type_prop_priv = mkpriv 0 ["$o"] 1 0 [] [] type_type
+let v_type_prop = Evar("Prop", v_type_prop_priv)
+let type_prop = Eapp(v_type_prop, [], mkpriv (combine k_app v_type_prop_priv.hash) [] 1 0 [] [] type_type)
 
-let v_type_iota = Evar("Iota", mkpriv 0 ["$i"] 1 0 [] [] type_type)
-let type_iota = Eapp(v_type_iota, [], mkpriv 0 [] 1 0 [] [] type_type)
+let v_type_iota_priv = mkpriv 0 ["$i"] 1 0 [] [] type_type
+let v_type_iota = Evar("Iota", v_type_iota_priv)
+let type_iota = Eapp(v_type_iota, [], mkpriv (combine k_app v_type_iota_priv.hash) [] 1 0 [] [] type_type)
 
-let v_type_none = Evar("$none", mkpriv 0 ["$none"] 1 0 [] [] type_type)
-let type_none = Eapp(v_type_none, [], mkpriv 0 [] 1 0 [] [] type_type)
+let v_type_none_priv = mkpriv 0 ["$none"] 1 0 [] [] type_type
+let v_type_none = Evar("$none", v_type_none_priv)
+let type_none = Eapp(v_type_none, [], mkpriv (combine k_app v_type_none_priv.hash) [] 1 0 [] [] type_type)
 
 (* Expr creation *)
 let priv_true = mkpriv k_true [] 1 0 [] [] type_prop;;
@@ -228,8 +232,6 @@ let rec remove x l =
   | Evar (v, _), h::t when v =%= h -> t
   | _, h::t -> h :: (remove x t)
 ;;
-
-let combine x y = x + y * 131 + 1;;
 
 let rec make_list c acc = function
     | 0 -> acc
@@ -446,7 +448,7 @@ module HashedExpr = struct
 
   let equal e1 e2 = get_type e1 == get_type e2 &&
     match e1, e2 with
-    | Evar (v1, _), Evar (v2, _) -> v1 =%= v2 && get_type e1 == get_type e2
+    | Evar (v1, _), Evar (v2, _) -> v1 =%= v2
     | Emeta (f1, _), Emeta (f2, _) -> f1 == f2
     | Earrow(args1, ret1, _), Earrow(args2, ret2, _) ->
         ret1 == ret2 && List.length args1 =%= List.length args2
@@ -487,6 +489,13 @@ let he_merge k =
     HE.add tbl k;
     k
 ;;
+
+(* Register builtin types *)
+List.iter
+  (HE.add tbl)
+  [v_type_prop; type_prop;
+   v_type_iota; type_iota;
+   v_type_none; type_none];;
 
 let print_stats oc =
   let (tbllen, entries, bucklen, least, median, largest) = HE.stats tbl in

@@ -254,7 +254,11 @@ let declare_def_constant opts = function
            let typed_body = check_expr opts env ty_body body in
            declare_constant (s, ty);
            (env, typed_body)
-        | _ -> assert false)      (* Constant must have arrow types *)
+        | ty ->
+           assert (env = []);
+           let typed_body = check_expr opts env ty body in
+           declare_constant (s, ty);
+           ([], typed_body))
 ;;
 
 (* Type a definition and declare it. *)
@@ -298,9 +302,7 @@ let declare_phrase (p, _) = match p with
 (* Check that there is no free variable in phrases *)
 let rec check_fv phrases =
   List.iter
-    (function
-      | Phrase.Def (DefReal ("Typing declaration", s, ty, _, _, _)) ->
-	 assert false
+    (fun p -> Log.debug 15 "Checking free vars of %a" Print.pp_phrase p; match p with
       | Phrase.Hyp (_, e, _) ->
 	 assert (Expr.get_fv e = [])
       | Phrase.Def d ->
