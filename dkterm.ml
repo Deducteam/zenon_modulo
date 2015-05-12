@@ -175,6 +175,7 @@ and print_dk_zentype o t =
 and print_dk_cst o t =
   match t with
   | "Is_true" -> fprintf o "dk_logic.ebP"
+  | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
   | s -> fprintf o "%s" s
 
 and print_dk_term o t =
@@ -185,6 +186,9 @@ and print_dk_term o t =
      fprintf o "%s : (%a)\n => %a"
 	     (get_var_newname var)
 	     print_dk_type t1 print_dk_term t2
+  | Dklam (Dkapp (v, t1, []), t2) ->
+     fprintf o "%s : (%a)\n => %a"
+	     v print_dk_type t1 print_dk_term t2
   | Dklam _ -> assert false
   | Dkapp (v, _, l) ->
      begin

@@ -120,6 +120,9 @@ let rec translate_type e =
 
 and translate_expr e =
   match e with
+  | Evar (v, _) as v' when Mltoll.is_meta v ->
+     let ty = translate_type (get_type v') in
+     mk_app (v, ty, [])
   | Evar (v, _) as v' ->
      let ty = translate_type (get_type v') in
      mk_var (v, ty)

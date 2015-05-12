@@ -817,6 +817,12 @@ let dots o ?full_output:(b=true) ?max_depth:(d=(-1)) l =
 
 (* Functions for easy debug printing *)
 
+let rec pp_lst f (sep : string) o = function
+  | [] -> ()
+  | [a] -> f o a
+  | a :: l ->
+     Printf.bprintf o "%a%s%a" f a sep (pp_lst f sep) l
+
 let pp_expr b e = expr_soft (Buff b) e
 let pp_expr_t b e = Printf.bprintf b "%a : %a" pp_expr e pp_expr (get_type e)
 
