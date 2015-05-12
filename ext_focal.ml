@@ -698,6 +698,10 @@ let pair a b x y = eapp (pair_var, [a; b; x; y])
 let first a b c = eapp (fst_var, [a; b; c])
 let second a b c = eapp (snd_var, [a; b; c])
 
+let eq_ty =
+  let ty = newtvar type_type in
+  eall (ty, earrow [ty; ty] bool1)
+
 let predecl () =
   (* Add rewrite-rules on pairs *)
   Rewrite.add_rwrt_term "fst"
@@ -714,6 +718,14 @@ let predecl () =
      let b = newtvar tyb in
      eeq (second tyb tya (pair tyb tya a b)) b
     );
+  Rewrite.add_rwrt_prop "basics._equal_"
+    (let ty = newtvar type_type in
+     let a = newtvar ty in
+     let b = newtvar ty in
+     eequiv
+       (istrue (eapp (tvar "basics._equal_" eq_ty, [ty; a; b])),
+        eeq a b)
+    );
   [
     ("Is_true", arr bool1 t_prop);
     ("basics.true", bool1);
@@ -728,9 +740,9 @@ let predecl () =
      let ty = newtvar type_type in
      eall (ty, earrow [bool1; ty; ty] ty));
 
-    ("basics.syntactic_equal",
-     let ty = newtvar type_type in
-     eall (ty, earrow [ty; ty] bool1));
+    ("basics.syntactic_equal", eq_ty);
+
+    ("basics._equal_", eq_ty);
 
     ("basics.prod", prod_ty);
     ("basics.fst", first_ty);
@@ -896,6 +908,7 @@ let predef () =
      "basics._bar__lt__gt__bar_";
      "basics.pair"; "basics.fst"; "basics.snd";
      "true"; "false"; "FOCAL.ifthenelse" ;
+     "basics._equal_";
      "List.cons"; "List.nil";
     ]
 ;;

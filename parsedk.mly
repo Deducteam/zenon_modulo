@@ -94,6 +94,12 @@ let mk_eapp : string * expr list -> expr =
      in
      eapp (tvar "basics.pair" ty, [mk_type t2; mk_type t1; e1; e2])
 
+  | "basics._equal_", [ty; t1; t2] ->
+     let eq_ty =
+       let a = newtvar type_type in
+       eall (a, earrow [a; a] bool1) in
+     eapp (tvar "basics._equal_" eq_ty, [mk_type ty; t1; t2])
+
   | "basics.fst", [t1; t2; e] ->
      let ty =
        let a = newtvar type_type in
