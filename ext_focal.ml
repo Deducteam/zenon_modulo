@@ -93,8 +93,8 @@ let is_true_equal x =
   List.exists (fun y -> x = "Is_true**" ^ y) names_of_equality
 ;;
 
-let btrue = tvar "basics.true" bool1;;
-let bfalse = tvar "basics.false" bool1;;
+let btrue = eapp (tvar "basics.true" bool1, []);;
+let bfalse = eapp (tvar "basics.false" bool1, []);;
 
 let newnodes_istrue e g =
   let mk_unfold ctx p args =
