@@ -39,7 +39,7 @@ let rec mk_type e = match e with
   | Eapp (Evar ("cc.Arrow", _), [t1; t2], _) ->
      arr (mk_type t1) (mk_type t2)
   | Eapp (s, args, _) ->
-     assert (get_type s == type_type);
+     assert (match get_type s with Earrow (_, ty, _) -> ty == type_type | _ -> false);
      eapp (s, List.map mk_type args)
      (* We missparsed an arrow as Eimply *)
   | Eimply (e1, e2, _) ->
