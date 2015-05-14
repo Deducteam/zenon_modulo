@@ -714,6 +714,12 @@ let predecl () =
      let b = newtvar tyb in
      eeq (second tyb tya (pair tyb tya a b)) b
     );
+  Rewrite.add_rwrt_prop "Istrue_true"
+    (eequiv (istrue btrue, etrue)
+    );
+  Rewrite.add_rwrt_prop "Istrue_false"
+    (eequiv (istrue bfalse, efalse)
+    );
   [
     ("Is_true", arr bool1 t_prop);
     ("basics.true", bool1);
