@@ -222,10 +222,10 @@ let newnodes_istrue e g =
          ngoal = g;
          nbranches = branches;
        }; Stop ]
-  | Eapp (Evar("Is_true",_), [Evar ("true", _)], _) -> [Stop]
-  | Enot (Eapp (Evar("Is_true",_), [Evar ("false", _)], _), _) -> [Stop]
+  | Eapp (Evar("Is_true",_), [Evar ("basics.true", _)], _) -> [Stop]
+  | Enot (Eapp (Evar("Is_true",_), [Evar ("basics.false", _)], _), _) -> [Stop]
 
-  | Eapp (Evar("Is_true",_), [Evar ("false", _)], _) ->
+  | Eapp (Evar("Is_true",_), [Evar ("basics.false", _)], _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "false", []);
@@ -233,7 +233,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| |];
       }; Stop ]
-  | Enot (Eapp (Evar("Is_true",_), [Evar ("true", _)], _), _) ->
+  | Enot (Eapp (Evar("Is_true",_), [Evar ("basics.true", _)], _), _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "nottrue", []);
@@ -241,9 +241,9 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| |];
       }; Stop ]
-  | Enot (Eapp (Evar("=",_), [Evar ("true", _); Evar ("false", _)], _), _) -> [Stop]
-  | Enot (Eapp (Evar("=",_), [Evar ("false", _); Evar ("true", _)], _), _) -> [Stop]
-  | Eapp (Evar("=",_), [Evar ("true", _); e1], _) ->
+  | Enot (Eapp (Evar("=",_), [Evar ("basics.true", _); Evar ("basics.false", _)], _), _) -> [Stop]
+  | Enot (Eapp (Evar("=",_), [Evar ("basics.false", _); Evar ("basics.true", _)], _), _) -> [Stop]
+  | Eapp (Evar("=",_), [Evar ("basics.true", _); e1], _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "trueequal", [e1]);
@@ -251,7 +251,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [istrue e1] |];
       }; Stop ]
-  | Eapp (Evar("=",_), [e1; Evar ("true", _)], _) ->
+  | Eapp (Evar("=",_), [e1; Evar ("basics.true", _)], _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "equaltrue", [e1]);
@@ -259,7 +259,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [istrue e1] |];
       }; Stop ]
-  | Enot (Eapp (Evar("=",_), [Evar ("true", _); e1], _), _) ->
+  | Enot (Eapp (Evar("=",_), [Evar ("basics.true", _); e1], _), _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "truenotequal", [e1]);
@@ -267,7 +267,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [isfalse e1] |];
       }; Stop ]
-  | Enot (Eapp (Evar("=",_), [e1; Evar ("true", _)], _), _) ->
+  | Enot (Eapp (Evar("=",_), [e1; Evar ("basics.true", _)], _), _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "notequaltrue", [e1]);
@@ -275,7 +275,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [isfalse e1] |];
       }; Stop ]
-  | Eapp (Evar("=",_), [Evar ("false", _); e1], _) ->
+  | Eapp (Evar("=",_), [Evar ("basics.false", _); e1], _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "falseequal", [e1]);
@@ -283,7 +283,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [isfalse e1] |];
       }; Stop ]
-  | Eapp (Evar("=",_), [e1; Evar ("false", _)], _) ->
+  | Eapp (Evar("=",_), [e1; Evar ("basics.false", _)], _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "equalfalse", [e1]);
@@ -291,7 +291,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [isfalse e1] |];
       }; Stop ]
-  | Enot (Eapp (Evar("=",_), [Evar ("false", _); e1], _), _) ->
+  | Enot (Eapp (Evar("=",_), [Evar ("basics.false", _); e1], _), _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "falsenotequal", [e1]);
@@ -299,7 +299,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [istrue e1] |];
       }; Stop ]
-  | Enot (Eapp (Evar("=",_), [e1; Evar ("false", _)], _), _) ->
+  | Enot (Eapp (Evar("=",_), [e1; Evar ("basics.false", _)], _), _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "notequalfalse", [e1]);
@@ -759,7 +759,7 @@ let built_in_defs () =
                [ ("basics.pair", [Param "A"; Param "B"]) ],
                "@Datatypes.prod_ind");
     Inductive ("basics.bool__t", [],
-               [ ("true", []); ("false", []) ], "basics.bool__t_ind");
+               [ ("basics.true", []); ("basics.false", []) ], "basics.bool__t_ind");
 
     (* deprecated, kept for compatibility only *)
     Def (DefReal ("and_b", "basics.and_b", bool3, [b1; b2],
@@ -901,7 +901,7 @@ let predef () =
      "basics._bar__bar_";
      "basics._bar__lt__gt__bar_";
      "basics.pair"; "basics.fst"; "basics.snd";
-     "true"; "false"; "FOCAL.ifthenelse" ;
+     "basics.true"; "basics.false"; "FOCAL.ifthenelse" ;
      "List.cons"; "List.nil";
     ]
 ;;
