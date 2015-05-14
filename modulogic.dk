@@ -33,10 +33,6 @@ equal      : a : type -> term a -> term a -> prop.
 
 seq : Type.
 
-
-
-
-
 (; LLproof Deduction Rules ;)
 
 (; Rfalse ;)
@@ -222,11 +218,7 @@ Rsubst : a : type ->
          proof (p t1) ->
          seq.
 
-
-
-
 (; Proofs of these rules in the logic of Focalide ;)
-
 
 [] prop  --> dk_logic.Prop.
 [] proof --> dk_logic.eP.
@@ -393,7 +385,7 @@ xmid       : p : prop ->
                             proof z)
                       => H4 (__ : proof p => HQ) (__ : proof q => HP))).
 
-
+(; Proofs of LLproof Rules ;)
 
 [] Rfalse -->
   x : proof False
