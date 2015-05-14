@@ -29,5 +29,6 @@ val printer : expr -> unit;;
 exception Unif_failed;;
 
 val add_rwrt_term : string -> expr -> unit;;
+val add_rwrt_prop : string -> expr -> unit;;
 
 val select_rwrt_rules : Phrase.phrase list -> Phrase.phrase list;;
