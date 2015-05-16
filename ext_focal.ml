@@ -698,6 +698,12 @@ let pair a b x y = eapp (pair_var, [a; b; x; y])
 let first a b c = eapp (fst_var, [a; b; c])
 let second a b c = eapp (snd_var, [a; b; c])
 
+let eq_ty =
+  let ty = newtvar type_type in
+  eall (ty, earrow [ty; ty] bool1)
+
+let bequal ty a b = eapp (tvar "basics.syntactic_equal" eq_ty, [ty; a; b])
+
 let predecl () =
   (* Add rewrite-rules on pairs *)
   Rewrite.add_rwrt_term "fst"
@@ -720,10 +726,24 @@ let predecl () =
   Rewrite.add_rwrt_prop "Istrue_false"
     (eequiv (istrue bfalse, efalse)
     );
+  (* Aliases *)
+  Rewrite.add_rwrt_term "basics._equal_"
+    (let ty = newtvar type_type in
+     let a = newtvar ty in
+     let b = newtvar ty in
+     eeq (eapp (tvar "basics._equal_" eq_ty, [ty; a; b]))
+         (bequal ty a b)
+    );
+  Rewrite.add_rwrt_term "dk_bool.true"
+    (eeq (eapp (tvar "dk_bool.true" bool1, [])) btrue);
+  Rewrite.add_rwrt_term "dk_bool.false"
+    (eeq (eapp (tvar "dk_bool.false" bool1, [])) bfalse);
   [
     ("Is_true", arr bool1 t_prop);
     ("basics.true", bool1);
     ("basics.false", bool1);
+    ("dk_bool.true", bool1);
+    ("dk_bool.false", bool1);
 
     ("basics._tilda__tilda_", bool2);
     ("basics._amper__amper_", bool3);
@@ -735,6 +755,10 @@ let predecl () =
      eall (ty, earrow [bool1; ty; ty] ty));
 
     ("basics.syntactic_equal",
+     let ty = newtvar type_type in
+     eall (ty, earrow [ty; ty] bool1));
+
+    ("basics._equal_",
      let ty = newtvar type_type in
      eall (ty, earrow [ty; ty] bool1));
 
