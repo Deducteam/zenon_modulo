@@ -679,6 +679,10 @@ let pair_ty =
   let a = newtvar type_type in
   let b = newtvar type_type in
   eall (b, eall (a, earrow [a; b] (prod a b)))
+let dk_pair_ty =
+  let a = newtvar type_type in
+  let b = newtvar type_type in
+  eall (a, eall (b, earrow [a; b] (prod a b)))
 
 let first_ty =
   let a = newtvar type_type in
@@ -691,10 +695,13 @@ let second_ty =
   eall (b, eall (a, earrow [prod a b] b))
 
 let pair_var = tvar "basics.pair" pair_ty
+let dk_pair_var = tvar "dk_tuple.pair" dk_pair_ty
 let fst_var = tvar "basics.fst" first_ty
 let snd_var = tvar "basics.snd" second_ty
 
 let pair a b x y = eapp (pair_var, [a; b; x; y])
+let dk_pair a b x y = eapp (dk_pair_var, [a; b; x; y])
+
 let first a b c = eapp (fst_var, [a; b; c])
 let second a b c = eapp (snd_var, [a; b; c])
 
@@ -738,6 +745,13 @@ let predecl () =
     (eeq (eapp (tvar "dk_bool.true" bool1, [])) btrue);
   Rewrite.add_rwrt_term "dk_bool.false"
     (eeq (eapp (tvar "dk_bool.false" bool1, [])) bfalse);
+  Rewrite.add_rwrt_term "dk_tuple.pair"
+    (let tya = newtvar type_type in
+     let tyb = newtvar type_type in
+     let a = newtvar tya in
+     let b = newtvar tyb in
+     eeq (dk_pair tya tyb a b)
+         (pair tyb tya a b));
   [
     ("Is_true", arr bool1 t_prop);
     ("basics.true", bool1);
@@ -766,6 +780,7 @@ let predecl () =
     ("basics.fst", first_ty);
     ("basics.snd", second_ty);
     ("basics.pair", pair_ty);
+    ("dk_tuple.pair", dk_pair_ty);
 
   ]
 ;;
