@@ -734,10 +734,16 @@ let predecl () =
      eeq (eapp (tvar "basics._equal_" eq_ty, [ty; a; b]))
          (bequal ty a b)
     );
+  Rewrite.add_rwrt_term "dk_bool.true"
+    (eeq (eapp (tvar "dk_bool.true" bool1, [])) btrue);
+  Rewrite.add_rwrt_term "dk_bool.false"
+    (eeq (eapp (tvar "dk_bool.false" bool1, [])) bfalse);
   [
     ("Is_true", arr bool1 t_prop);
     ("basics.true", bool1);
     ("basics.false", bool1);
+    ("dk_bool.true", bool1);
+    ("dk_bool.false", bool1);
 
     ("basics._tilda__tilda_", bool2);
     ("basics._amper__amper_", bool3);
