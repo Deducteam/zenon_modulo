@@ -372,7 +372,10 @@ let p_rule oc r =
            p_expr eq (getname neq);
      in
      List.iter2 aux (List.rev args1) (List.rev args2);
-     poc "(apply %s_proper || congruence).\n" f;
+     if f <> "=" then
+       poc "(apply %s_proper || congruence).\n" f
+     else
+       poc "congruence.\n"
   | Rpnotp _ -> assert false
   | Rnoteq e ->
       poc "apply %s. apply refl_equal.\n" (getname (enot (eeq e e)));
