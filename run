@@ -39,6 +39,11 @@ case $1 in
         rm -f /home/guigui/build/tptp/Problems/ARI/*.svg
         exit 0
         ;;
+    bench)
+        echo "Benchmarking TPTP/ARI"
+        FILES=`cat ~/benchs/ari.problems`
+        ZINPUT=-itptp
+        ;;
     *)
         FILES=$1
         ZINPUT=$2

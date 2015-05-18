@@ -849,7 +849,7 @@ let mk_tuple l =
 ;;
 
 let rec to_llproof p =
-  if p.mlrefc < 0 then
+  if false && p.mlrefc < 0 then
     get_lemma p
   else begin
     let (result, extras) =
@@ -865,7 +865,7 @@ let rec to_llproof p =
         } in
         (nn, extras)
     in
-    if p.mlrefc > 1 then begin
+    if false && p.mlrefc > 1 then begin
       make_lemma result extras p;
       get_lemma p
     end else begin
