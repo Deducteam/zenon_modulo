@@ -70,8 +70,8 @@ everything went well and the proof has been accepted by the coq compiler.
 
 ### VERSION NUMBER
 
-As the arithmetic extension has not yet been integrated into the main branch of
-Zenon, the version number starts from scratch.
+The version number starts from scratch fro this extension, but this extension
+will be merged into the main branch of Zenon sooner or later.
 
 ### LINEAR ARITHMETIC BENCHMARKS
 
@@ -81,4 +81,8 @@ These problems only involve linear arithmetic, and do not use the `$to_int`,
 `$to_rat`, `$to_real`, `$is_int` or `$is_rat` functions and predicates.
 This is the list of files used to benchmark the arithmetic extension of zenon
 against the princess and beagle automated provers.
+
+## CONTACT
+
+Guillaume Bury <guillaume.bury@inria.fr>
 
