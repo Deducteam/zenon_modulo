@@ -77,12 +77,12 @@ let parse_size_time s =
 ;;
 
 let short_version () =
-  printf "zenon version %s\n" Versionnum.full;
+  printf "zenon-arith version %s\n" Versionnum.full;
   exit 0;
 ;;
 
 let cvs_version () =
-  printf "zenon version %s\n" Versionnum.full;
+  printf "zenon-arith version %s\n" Versionnum.full;
   Version.print_cvs stdout;
   printf "source checksum: %s\n" Checksum.v;
   exit 0;
