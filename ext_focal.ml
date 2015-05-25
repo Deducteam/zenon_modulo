@@ -88,7 +88,10 @@ let prop_to_bool_args args ty =
 
 let istrue e = eapp (tvar "Is_true" (arr bool1 t_prop), [e]);;
 let isfalse e = enot (istrue e);;
-
+let ite_ty =
+  let ty = newtvar type_type in
+  eall (ty, earrow [bool1; ty; ty] ty)
+;;
 let is_true_equal x =
   List.exists (fun y -> x = "Is_true**" ^ y) names_of_equality
 ;;
@@ -389,20 +392,20 @@ let ite_branches pat cond thn els =
 
 let newnodes_ifthenelse e g =
   match e with
-  | Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [ty; cond; thn; els], _) ->
+  | Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [_; cond; thn; els], _) ->
       let branches = ite_branches istrue cond thn els in
       [ Node {
           nconc = [e];
-          nrule = Ext ("focal", "ite_bool", [ty; cond; thn; els]);
+          nrule = Ext ("focal", "ite_bool", [cond; thn; els]);
           nprio = Arity;
           ngoal = g;
           nbranches = branches;
       }; Stop ]
-  | Enot (Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [ty; cond; thn; els], _), _) ->
+  | Enot (Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [_; cond; thn; els], _), _) ->
       let branches = ite_branches isfalse cond thn els in
       [ Node {
           nconc = [e];
-          nrule = Ext ("focal", "ite_bool_n", [ty; cond; thn; els]);
+          nrule = Ext ("focal", "ite_bool_n", [cond; thn; els]);
           nprio = Arity;
           ngoal = g;
           nbranches = branches;
@@ -479,9 +482,8 @@ let to_llargs tr_expr r =
   | Ext (_, "equal", [Evar (name, _)as a; e1; e2; e3]) ->
       let h = tr_expr (eeq e2 e3) in
       let c = tr_expr (istrue (eapp (a, [e1; e2; e3]))) in
-      let eqdec = tvar_none ("zenon_focal_eqdec") in
-      (name_of_equality_lemma,
-       List.map tr_expr [eqdec; e1; e2; e3], [c], [ [h] ])
+      ("zenon_syntactic_equal",
+       List.map tr_expr [e1; e2; e3], [c], [ [h] ])
   | Ext (_, "notand", [e1; e2]) ->
       let h = tr_expr (enot (eand (istrue e1, istrue e2))) in
       let c = tr_expr (enot (istrue (eapp (tvar "basics._amper__amper_" bool3, [e1; e2])))) in
@@ -501,7 +503,7 @@ let to_llargs tr_expr r =
   | Ext (_, "notequal", [Evar (name, _) as a; e1; e2; e3]) ->
       let h = tr_expr (enot (eeq e2 e3)) in
       let c = tr_expr (enot (istrue (eapp (a, [e1; e2; e3])))) in
-      (name_of_notequality_lemma,
+      ("zenon_not_syntactic_equal",
        [tr_expr e1; tr_expr e2; tr_expr e3], [c], [ [h] ])
   | Ext (_, "false", []) ->
       let c = tr_expr (istrue bfalse) in
@@ -544,28 +546,24 @@ let to_llargs tr_expr r =
   | Ext (_, "merge", _) -> ("zenon_focal_merge", [], [], [])
   | Ext (_, "split", _) -> ("zenon_focal_split", [], [], [])
 
-  | Ext (_, "ite_bool", ([ty; cond; thn; els] as args)) ->
+  | Ext (_, "ite_bool", ([cond; thn; els] as args)) ->
       let ht1 = tr_expr (istrue cond) in
       let ht2 = tr_expr (istrue thn) in
       let he1 = tr_expr (isfalse cond) in
       let he2 = tr_expr (istrue els) in
-      let nty = newtvar type_type in
-      let ty_ite = eall (nty, earrow [bool1; nty; nty] nty) in
-      let c = tr_expr (istrue (eapp (tvar "FOCAL.ifthenelse" ty_ite, [ty; cond; thn; els])))
+      let c = tr_expr (istrue (eapp (tvar "FOCAL.ifthenelse" ite_ty, [bool1; cond; thn; els])))
       in
       ("zenon_focal_ite_bool", List.map tr_expr args, [c],
-       [ [ht1; ht2]; [he1; he2] ])
-  | Ext (_, "ite_bool_n", ([ty; cond; thn; els] as args)) ->
+       [ [ht2; ht1]; [he2; he1] ])
+  | Ext (_, "ite_bool_n", ([cond; thn; els] as args)) ->
       let ht1 = tr_expr (istrue cond) in
       let ht2 = tr_expr (isfalse thn) in
       let he1 = tr_expr (isfalse cond) in
       let he2 = tr_expr (isfalse els) in
-      let nty = newtvar type_type in
-      let ty_ite = eall (ty, earrow [bool1; nty; nty] nty) in
-      let c = tr_expr (isfalse (eapp (tvar "FOCAL.ifthenelse" ty_ite, [ty; cond; thn; els])))
+      let c = tr_expr (isfalse (eapp (tvar "FOCAL.ifthenelse" ite_ty, [bool1; cond; thn; els])))
       in
       ("zenon_focal_ite_bool_n", List.map tr_expr args, [c],
-       [ [ht1; ht2]; [he1; he2] ])
+       [ [ht2; ht1]; [he2; he1] ])
   | Ext (_, "ite_rel_l",
          [Eapp (r, [Eapp (Evar("FOCAL.ifthenelse",_), [ty; c; t; e], _); e2], _) as a])
     ->
@@ -576,8 +574,8 @@ let to_llargs tr_expr r =
       let concl = tr_expr a in
       let v1 = newtvar ty and v2 = newtvar (get_type e2) in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
-      ("zenon_focal_ite_rel_l", List.map tr_expr [ty; rf; c; t; e; e2],
-       [concl], [ [ht1; ht2]; [he1; he2] ])
+      ("zenon_focal_ite_rel_l", List.map tr_expr [ty; get_type e2; rf; c; t; e; e2],
+       [concl], [ [ht2; ht1]; [he2; he1] ])
   | Ext (_, "ite_rel_r",
          [Eapp (r, [e1; Eapp (Evar("FOCAL.ifthenelse",_), [ty; c; t; e], _)], _) as a])
     ->
@@ -588,8 +586,8 @@ let to_llargs tr_expr r =
       let concl = tr_expr a in
       let v1 = newtvar (get_type e1) and v2 = newtvar ty in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
-      ("zenon_focal_ite_rel_r", List.map tr_expr [ty; rf; e1; c; t; e],
-       [concl], [ [ht1; ht2]; [he1; he2] ])
+      ("zenon_focal_ite_rel_r", List.map tr_expr [get_type e1; ty; rf; e1; c; t; e],
+       [concl], [ [ht2; ht1]; [he2; he1] ])
   | Ext (_, "ite_rel_nl",
          [Enot (Eapp (r, [Eapp (Evar("FOCAL.ifthenelse",_),
                                 [ty; c; t; e], _); e2], _), _) as a])
@@ -601,8 +599,8 @@ let to_llargs tr_expr r =
       let concl = tr_expr a in
       let v1 = newtvar ty and v2 = newtvar (get_type e2) in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
-      ("zenon_focal_ite_rel_nl", List.map tr_expr [ty; rf; c; t; e; e2],
-       [concl], [ [ht1; ht2]; [he1; he2] ])
+      ("zenon_focal_ite_rel_nl", List.map tr_expr [ty; get_type e2; rf; c; t; e; e2],
+       [concl], [ [ht2; ht1]; [he2; he1] ])
   | Ext (_, "ite_rel_nr",
          [Enot (Eapp (r, [e1; Eapp (Evar("FOCAL.ifthenelse",_),
                                     [ty; c; t; e], _)], _), _) as a])
@@ -614,8 +612,8 @@ let to_llargs tr_expr r =
       let concl = tr_expr a in
       let v1 = newtvar (get_type e1) and v2 = newtvar ty in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
-      ("zenon_focal_ite_rel_nr", List.map tr_expr [ty; rf; e1; c; t; e],
-       [concl], [ [ht1; ht2]; [he1; he2] ])
+      ("zenon_focal_ite_rel_nr", List.map tr_expr [get_type e1; ty; rf; e1; c; t; e],
+       [concl], [ [ht2; ht1]; [he2; he1] ])
   | Ext (_, "istrue_true", [e1]) ->
      let h = tr_expr (eeq e1 btrue) in
      let c = tr_expr (istrue e1) in

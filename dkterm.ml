@@ -625,7 +625,7 @@ let print_line o line =
      ()
   | Dkdecl (v, t) ->
      fprintf o "%s : %a.\n\n" v print_dk_type t
-  | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' ->
+  | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' || s = "Is_true" ->
      ()
   | Dkrwrt (l, t1, t2) ->
      fprintf o "[%a]\n %a \n --> %a.\n\n"

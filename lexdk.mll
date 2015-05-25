@@ -26,6 +26,7 @@ rule token = parse
 | "dk_logic.or" { OR }
 | "dk_logic.imp" { IMP }
 | "dk_logic.eqv" { EQV }
+| "dk_logic.equal" { EQUAL }
 | "dk_logic.forall" { ALL }
 | "dk_logic.exists" { EX }
 | "dk_logic.eP" { PROOF }
