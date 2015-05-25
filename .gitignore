@@ -5,9 +5,9 @@
 *.glob
 .config_var
 .depend
-zenon_modulo.bin
-zenon_modulo.byt
-zenon
+*.dko
+*.bin
+*.byt
 zenon_modulo
 *.output
 parsecoq.ml
