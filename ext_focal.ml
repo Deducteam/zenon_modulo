@@ -479,9 +479,8 @@ let to_llargs tr_expr r =
   | Ext (_, "equal", [Evar (name, _)as a; e1; e2; e3]) ->
       let h = tr_expr (eeq e2 e3) in
       let c = tr_expr (istrue (eapp (a, [e1; e2; e3]))) in
-      let eqdec = tvar_none ("zenon_focal_eqdec") in
-      (name_of_equality_lemma,
-       List.map tr_expr [eqdec; e1; e2; e3], [c], [ [h] ])
+      ("zenon_syntactic_equal",
+       List.map tr_expr [e1; e2; e3], [c], [ [h] ])
   | Ext (_, "notand", [e1; e2]) ->
       let h = tr_expr (enot (eand (istrue e1, istrue e2))) in
       let c = tr_expr (enot (istrue (eapp (tvar "basics._amper__amper_" bool3, [e1; e2])))) in
@@ -501,7 +500,7 @@ let to_llargs tr_expr r =
   | Ext (_, "notequal", [Evar (name, _) as a; e1; e2; e3]) ->
       let h = tr_expr (enot (eeq e2 e3)) in
       let c = tr_expr (enot (istrue (eapp (a, [e1; e2; e3])))) in
-      (name_of_notequality_lemma,
+      ("zenon_not_syntactic_equal",
        [tr_expr e1; tr_expr e2; tr_expr e3], [c], [ [h] ])
   | Ext (_, "false", []) ->
       let c = tr_expr (istrue bfalse) in
