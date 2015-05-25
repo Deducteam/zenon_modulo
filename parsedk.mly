@@ -81,6 +81,11 @@ proofheaders:
       { Typer.declare_constant ($2, type_type); $3 }
   | BEGIN_TYPEALIAS ID DEF type_simple END_TYPEALIAS proofheaders
       { (* Type aliases are substituted in the parser *)
+        (* This does not work because it does not substitute
+           the alias in already-parsed input.
+           TODO: give it to the typer. *)
+        Log.debug 15 "Registering alias %s := %a"
+                  $2 Print.pp_expr $4;
         ty_aliases := ($2, $4) :: !ty_aliases; $6 }
   | BEGIN_VAR ID COLON typ END_VAR proofheaders
       { Typer.declare_constant ($2, $4); $6 }
