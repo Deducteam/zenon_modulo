@@ -203,6 +203,11 @@ let get_meta_type = function
     | _ -> assert false
 ;;
 
+let is_var = function
+  | Evar _ -> true
+  | _ -> false
+;;
+
 let get_name = function
     | Evar (s, _) -> s
     | _ -> assert false
@@ -546,9 +551,9 @@ let eimply (e1, e2) = he_merge (Eimply (e1, e2, priv_imply e1 e2));;
 let etrue = Etrue;;
 let efalse = Efalse;;
 let eequiv (e1, e2) = he_merge (Eequiv (e1, e2, priv_equiv e1 e2));;
-let eall (v, e) = he_merge (Eall (v, e, priv_all v e));;
-let eex (v, e) = he_merge (Eex (v, e, priv_ex v e));;
-let etau (v, e) = he_merge (Etau (v, e, priv_tau v e));;
+let eall (v, e) = assert (is_var v); he_merge (Eall (v, e, priv_all v e));;
+let eex (v, e) = assert (is_var v); he_merge (Eex (v, e, priv_ex v e));;
+let etau (v, e) = assert (is_var v); he_merge (Etau (v, e, priv_tau v e));;
 
 let exor (e1,e2) = eor (eand (e1, enot e2), eand (enot e1, e2));;
 
@@ -557,7 +562,7 @@ let priv_lam v e =
          (remove v (get_fv e)) 1 (get_taus e) (get_metas e) (get_submetas e)
          (add_arg (get_type v) (get_type e))
 
-let elam (v, e) = he_merge (Elam (v, e, priv_lam v e))
+let elam (v, e) = assert (is_var v); he_merge (Elam (v, e, priv_lam v e))
 ;;
 
 let estring = tvar_type "$string";;
@@ -696,7 +701,7 @@ let rec priv_app s args =
   let typ = type_app (get_type s) args in
   mkpriv skel fv sz taus metas submetas typ
 
-and eapp (s, args) = he_merge (Eapp (s, args, priv_app s args))
+and eapp (s, args) = assert (is_var s); he_merge (Eapp (s, args, priv_app s args))
 
 (* Delay the actual substitution of type arguments so that the complexity stays linear *)
 and inst_app map s args = match s, args with
