@@ -669,3 +669,19 @@ zenon_focal_ite_rel_nr_s (A : cc.uT)
                          (h2 : eP (Not (Is_true cond)) -> eP (NotNot (r e1 els)))
 := zenon_focal_ite_rel_nr A B r e1 cond thn els h1 h2 c.
 
+
+
+
+syntactic_equal : A : cc.uT -> cc.eT A -> cc.eT A -> dk_bool.Bool.
+
+zenon_syntactic_equal : A : cc.uT ->
+                        x : cc.eT A ->
+                        y : cc.eT A ->
+                        eP (Not (equal x y)) ->
+                        eP (Not (Is_true (syntactic_equal A x y))).
+
+zenon_not_syntactic_equal : A : cc.uT ->
+                            x : cc.eT A ->
+                            y : cc.eT A ->
+                            eP (NotNot (equal x y)) ->
+                            eP (NotNot (Is_true (syntactic_equal A x y))).
