@@ -389,20 +389,20 @@ let ite_branches pat cond thn els =
 
 let newnodes_ifthenelse e g =
   match e with
-  | Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [ty; cond; thn; els], _) ->
+  | Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [_; cond; thn; els], _) ->
       let branches = ite_branches istrue cond thn els in
       [ Node {
           nconc = [e];
-          nrule = Ext ("focal", "ite_bool", [ty; cond; thn; els]);
+          nrule = Ext ("focal", "ite_bool", [cond; thn; els]);
           nprio = Arity;
           ngoal = g;
           nbranches = branches;
       }; Stop ]
-  | Enot (Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [ty; cond; thn; els], _), _) ->
+  | Enot (Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [_; cond; thn; els], _), _) ->
       let branches = ite_branches isfalse cond thn els in
       [ Node {
           nconc = [e];
-          nrule = Ext ("focal", "ite_bool_n", [ty; cond; thn; els]);
+          nrule = Ext ("focal", "ite_bool_n", [cond; thn; els]);
           nprio = Arity;
           ngoal = g;
           nbranches = branches;
@@ -544,7 +544,7 @@ let to_llargs tr_expr r =
   | Ext (_, "merge", _) -> ("zenon_focal_merge", [], [], [])
   | Ext (_, "split", _) -> ("zenon_focal_split", [], [], [])
 
-  | Ext (_, "ite_bool", ([ty; cond; thn; els] as args)) ->
+  | Ext (_, "ite_bool", ([cond; thn; els] as args)) ->
       let ht1 = tr_expr (istrue cond) in
       let ht2 = tr_expr (istrue thn) in
       let he1 = tr_expr (isfalse cond) in
@@ -555,7 +555,7 @@ let to_llargs tr_expr r =
       in
       ("zenon_focal_ite_bool", List.map tr_expr args, [c],
        [ [ht1; ht2]; [he1; he2] ])
-  | Ext (_, "ite_bool_n", ([ty; cond; thn; els] as args)) ->
+  | Ext (_, "ite_bool_n", ([cond; thn; els] as args)) ->
       let ht1 = tr_expr (istrue cond) in
       let ht2 = tr_expr (isfalse thn) in
       let he1 = tr_expr (isfalse cond) in
