@@ -743,6 +743,15 @@ let predecl () =
     (eeq (eapp (tvar "dk_bool.true" bool1, [])) btrue);
   Rewrite.add_rwrt_term "dk_bool.false"
     (eeq (eapp (tvar "dk_bool.false" bool1, [])) bfalse);
+  Rewrite.add_rwrt_term "dk_bool.ite"
+    (let ty = newtvar type_type in
+     let b = newtvar bool1 in
+     let t = newtvar ty in
+     let e = newtvar ty in
+     eeq (eapp (tvar "dk_bool.ite" ite_ty,
+                [ty; b; t; e]))
+         (eapp (tvar "FOCAL.ifthenelse" ite_ty,
+                [ty; b; t; e])));
   Rewrite.add_rwrt_term "dk_tuple.pair"
     (let tya = newtvar type_type in
      let tyb = newtvar type_type in
@@ -762,9 +771,8 @@ let predecl () =
     ("basics._bar__bar_", bool3);
     ("basics._bar__lt__gt__bar_", bool3);
 
-    ("FOCAL.ifthenelse",
-     let ty = newtvar type_type in
-     eall (ty, earrow [bool1; ty; ty] ty));
+    ("FOCAL.ifthenelse", ite_ty);
+    ("dk_bool.ite", ite_ty);
 
     ("basics.syntactic_equal",
      let ty = newtvar type_type in
