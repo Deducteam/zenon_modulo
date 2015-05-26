@@ -83,26 +83,28 @@ let arity = xarity 0;;
    Returns the type arguments, the remaining arguments, their expected types
    and the expected return type *)
 (* Helper function that accumulates type arguments in reverse order. *)
-let rec xinstantiate accu args ty =
+let rec xinstantiate opts env accu args ty =
   match (ty, args) with
   | (Eall (v, ty, _), hd :: tl) ->
-     xinstantiate (hd :: accu) tl (substitute_safe [v, hd] ty)
+     (* We have to type type arguments at type type_type to avoid type
+        arguments at type type_none leading to ill-typed substitutions *)
+     let hd' = check_type opts env hd in
+     xinstantiate opts env (hd' :: accu) tl (substitute_safe [v, hd'] ty)
   | (Earrow (l, ret, _), args) -> (accu, args, l, ret)
   | (ty, []) -> (accu, [], [], ty)
   | (_, _ :: _) -> assert false  (* Should not occur because we have checked arity *)
 
-let instantiate args ty =
+and instantiate opts env args ty =
   if arity ty = List.length args then
-    let (reversed_ty_args, args, tys, ret) = xinstantiate [] args ty in
+    let (reversed_ty_args, args, tys, ret) = xinstantiate opts env [] args ty in
     assert (get_type ret == type_type);
     (List.rev reversed_ty_args, args, tys, ret)
   else
     raise (Arity_mismatch (ty, args))
-;;
 
 (* Main functions walking through expressions infering and checking types. *)
 (* This type-checking is bidirectionnal. *)
-let rec infer_expr opts env = function
+and infer_expr opts env = function
   | Evar (s, _) as v ->
      (
        try (tvar s (assoc s env))
@@ -125,7 +127,7 @@ let rec infer_expr opts env = function
           for scoping purpose *)
        eapp (f, List.map (infer_expr opts env) args)
      else
-       let (type_args, term_args, tys, ret_ty) = instantiate args tyf in
+       let (type_args, term_args, tys, ret_ty) = instantiate opts env args tyf in
        eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr opts env) tys term_args)
   | Etau (Evar _ as x, body, _) ->
      etau (x, check_expr opts (x :: env) type_prop body)
@@ -183,7 +185,8 @@ and xcheck_expr opts env ty e =
           eapp (tvar f_sym infered_const_type, typed_args))
        else
          (Log.debug 15 "Check declared symbol %s : %a" f_sym Print.pp_expr tyf;
-          let (type_args, term_args, tys, ret_ty) = instantiate args tyf in
+          let (type_args, term_args, tys, ret_ty) = instantiate opts env args tyf in
+          Log.debug 15 "Type arguments : %a" (Print.pp_lst Print.pp_expr_t ", ") type_args;
           if ret_ty == ty
           then
             eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr opts env) tys term_args)
@@ -235,6 +238,23 @@ and check_expr opts env ty e =
   if opts.fully_type && not (ty == rty) then
     raise (Type_Mismatch (ty, rty, "Typer.check_expr"));
   result
+and xcheck_type opts env ty =
+  Log.debug 15 "xCheck %a : %a" Print.pp_expr ty Print.pp_expr type_type;
+  match ty with
+  | Evar (s, _) ->               (* TODO: also scope type variables *)
+     eapp (tvar_type s, [])
+  | Eapp (Evar (f_sym, _), args, _) ->
+     let tys = List.map (fun _ -> type_type) args in
+     eapp (tvar f_sym (earrow tys type_type), List.map (check_type opts env) args)
+  | ty -> Log.debug 15 "Unexpected type argument: %a"
+                   Print.pp_expr ty;
+         assert false
+and check_type opts env ty =
+  Log.debug 15 "Check %a : %a" Print.pp_expr ty Print.pp_expr type_type;
+  let ret = xcheck_type opts env ty in
+  Log.debug 15 "%a" Print.pp_expr_t ret;
+  assert (get_type ret == type_type);
+  ret
 ;;
 
 (* Declare the defined identifier and return the typed version of the body

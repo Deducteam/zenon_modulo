@@ -7,173 +7,16 @@ Version.add "$Id: parsedk.mly,v 1.34 2012-04-11 18:27:26 doligez Exp $";;
 open Expr
 open Printf
 
-let pos () = (Parsing.symbol_start_pos (), Parsing.symbol_end_pos ())
-
-let arr ty1 ty2 = match ty2 with
-  | Earrow (l, ret, _) ->
-     earrow (ty1 :: l) ret
-  | _ -> earrow [ty1] ty2
-;;
-
 let mk_const s ty = eapp (tvar s ty, []);;
 let mk_const_t s = mk_const s type_type;;
-let bool1 = mk_const_t "basics.bool__t";;
-
-let btrue = mk_const "basics.true" bool1;;
-let bfalse = mk_const "basics.false" bool1;;
 
 (* Global list of type aliases *)
-let ty_aliases = ref [];;
-
-let rec mk_type e = match e with
-  (* Alias unfolding *)
-  | Evar (x, _) when List.mem_assoc x !ty_aliases ->
-     mk_type (List.assoc x !ty_aliases)
-  | Evar ("dk_logic.Prop", _) -> type_prop
-  | Evar ("dk_builtins.prop", _) ->
-     type_prop
-  | Evar (s, _) -> mk_const_t s (* See coq parser *)
-
-  | Eapp (v, [], _) -> mk_type v
-
-  | Eapp (Evar ("cc.Arrow", _), [t1; t2], _) ->
-     arr (mk_type t1) (mk_type t2)
-  | Eapp (s, args, _) ->
-     assert (get_type s == type_type);
-     eapp (s, List.map mk_type args)
-     (* We missparsed an arrow as Eimply *)
-  | Eimply (e1, e2, _) ->
-     arr (mk_type e1) (mk_type e2)
-  | e ->
-     assert (get_type e == type_type);
-     e
-;;
-
-let startwith pref s =
-  String.length pref <= String.length s &&
-    String.sub s 0 (String.length pref) = pref
-;;
+let ty_aliases = ref [("dk_tuple.prod", mk_const_t "basics.prod")];;
 
 exception Unknown_builtin of string;;
 exception Bad_arity of string * int;;
 
-let rec mk_pat (constr : string) (arity : int) (body : expr) ret_ty : expr =
-  if arity = 0
-  then
-    let ret_ty_arr = eall (tvar "__dummy" type_type, arr ret_ty ret_ty) in
-    eapp (tvar "$match-case" ret_ty_arr, [tvar constr type_type; body])
-  else
-    (match body with
-     | Elam (x, e, _) ->
-        elam (x, mk_pat constr (arity - 1) e ret_ty)
-     | _ -> failwith "Bad pattern : not a lambda")
-;;
-
-let mk_prod a b =
-  eapp (tvar "basics.prod" (earrow [type_type; type_type] type_type), [a; b])
-;;
-
-(* create an expression application,
-   applications of logical connectives
-   produce the corresponding formulae *)
-let mk_eapp : string * expr list -> expr =
-  function
-  | "cc.Arrow", [t1 ; t2] ->
-     arr (mk_type t1) (mk_type t2)
-  | "cc.eT", [t] -> t
-
-  | "dk_tuple.prod", [t1; t2] ->
-     eapp (tvar "basics.prod" (earrow [type_type; type_type] type_type),
-           [mk_type t1; mk_type t2])
-
-  | "dk_tuple.pair", [t1; t2; e1; e2] ->
-     let ty =
-       let a = newtvar type_type in
-       let b = newtvar type_type in
-       eall (b, eall (a, earrow [a; b] (mk_prod a b)))
-     in
-     eapp (tvar "basics.pair" ty, [mk_type t2; mk_type t1; e1; e2])
-
-  | "basics._equal_", [ty; t1; t2] ->
-     let eq_ty =
-       let a = newtvar type_type in
-       eall (a, earrow [a; a] bool1) in
-     eapp (tvar "basics._equal_" eq_ty, [mk_type ty; t1; t2])
-
-  | "basics.fst", [t1; t2; e] ->
-     let ty =
-       let a = newtvar type_type in
-       let b = newtvar type_type in
-       eall (b, eall (a, earrow [mk_prod a b] a))
-     in
-     eapp (tvar "basics.fst" ty, [mk_type t1; mk_type t2; e])
-
-  | "basics.snd", [t1; t2; e] ->
-     let ty =
-       let a = newtvar type_type in
-       let b = newtvar type_type in
-       eall (b, eall (a, earrow [mk_prod a b] b))
-     in
-     eapp (tvar "basics.snd" ty, [mk_type t1; mk_type t2; e])
-
-  | "dk_fail.fail", [t] -> eapp (tvar "dk_fail.fail"
-                                     (let x = tvar "_failvar" type_type in
-                                      eall (x, x)), [mk_type t])
-
-  | "dk_logic.and", [e1; e2] -> eand (e1, e2)
-  | "dk_logic.or", [e1; e2] -> eor (e1, e2)
-  | "dk_logic.imp", [e1; e2] -> eimply (e1, e2)
-  | "dk_logic.eqv", [e1; e2] -> eequiv (e1, e2)
-  | "dk_logic.not", [e1] -> enot (e1)
-  | "dk_logic.forall", [_; Elam (x, e, _)] -> eall (x, e)
-  | "dk_logic.forall", [_; _] -> assert false
-  | "dk_logic.forall", l -> raise (Bad_arity ("forall", List.length l))
-  | "dk_logic.exists", [_; Elam (x, e, _)] -> eex (x, e)
-  | "dk_logic.ebP", [e1] -> eapp (tvar "Is_true" (arr bool1 type_prop), [e1]) (* dk_logic.ebP is the equivalent of Coq's coq_builtins.Is_true *)
-  | "dk_logic.eP", [e] -> e                        (* eP is ignored *)
-  | "dk_bool.ite", [ty1; c; t; e] ->
-     let v = newtvar type_type in
-     let ty = eall (v, earrow [bool1; v; v] v) in
-     eapp (tvar "FOCAL.ifthenelse" ty, [mk_type ty1; c; t; e])
-  (* There should not be any other logical connectives *)
-  | s, args ->
-     if (startwith "dk_" s)
-     then raise (Unknown_builtin s)
-     else
-       (if args = []
-        then tvar_none s
-        else eapp (tvar_none s, args))
-;;
-
 exception Application_head_is_not_a_var of expr;;
-
-let rec mk_apply (e, l) =
-  match l with
-  | [] -> e
-  | arg :: tail ->
-     begin
-       match e with
-       | Eapp (Evar(s, _), args, _) -> mk_eapp (s, args @ l)
-       | Evar (s, _) -> mk_eapp (s, l)
-       | Elam (x, body, _) ->
-          mk_apply (substitute_2nd_unsafe [(x, arg)] body, tail)
-       | _ ->
-          Printf.eprintf "Error: application head is not a variable %a @ [%a]\n"
-                         (fun oc -> Print.expr (Print.Chan oc)) e
-                         (fun oc -> List.iter (fun e ->
-                                            Print.expr (Print.Chan oc) e;
-                                            Printf.fprintf oc ";\n")) l;
-          raise Parse_error
-     end
-;;
-
-let mk_all var ty e =
-  eall (tvar var ty, e)
-;;
-
-let mk_lam var ty e =
-  elam (tvar var ty, e)
-;;
 
 let rec get_params e =
   match e with
@@ -184,10 +27,11 @@ let rec get_params e =
 ;;
 
 %}
-%token <string> ID QID STRING
-%token TYPE COLON DOT ARROW DOUBLE_ARROW LONG_ARROW DEF
+%token <string> ID QID
+%token COLON DOT DOUBLE_ARROW DEF
+%token TERM PROOF CCARR PROP
 %token LPAREN RPAREN EOF
-%token TRUE FALSE
+%token TRUE FALSE NOT AND OR IMP EQV ALL EX ISTRUE EQUAL
 
 %token MUSTUSE
 %token BEGINPROOF
@@ -204,9 +48,9 @@ let rec get_params e =
 
 %start file
 %type <string * (Phrase.phrase * bool) list> file
+%type <expr> typ
 %type <expr> term
-%type <expr> applicative
-%type <expr> simple
+%type <expr> term_simple
 
 %%
 
@@ -215,9 +59,9 @@ file:
 | proof_head body ENDPROOF EOF   { let (n, l) = $2 in (n, List.rev_append ($1) l) }
 
 body:
-| ID COLON term DOT
+| ID COLON PROOF term_simple DOT
      { ($1,
-        [Phrase.Hyp (Namespace.goal_name, Expr.enot $3, 0),
+        [Phrase.Hyp (Namespace.goal_name, Expr.enot $4, 0),
          false]) }
 | dep_hyp_def body
               { let (n, l) = $2 in (n, List.rev_append ($1) l) }
@@ -234,51 +78,112 @@ proofheaders:
   | BEGINHEADER proofheaders
       { $2 }
   | BEGIN_TY ID proofheaders
-      { $3 }
-  | BEGIN_TYPEALIAS ID DEF typ END_TYPEALIAS proofheaders
-      { ty_aliases := ($2, $4) :: !ty_aliases; $6 }
+      { Typer.declare_constant ($2, type_type); $3 }
+  | BEGIN_TYPEALIAS ID DEF type_simple END_TYPEALIAS proofheaders
+      { (* Type aliases are substituted in the parser *)
+        (* This does not work because it does not substitute
+           the alias in already-parsed input.
+           TODO: give it to the typer. *)
+        Log.debug 15 "Registering alias %s := %a"
+                  $2 Print.pp_expr $4;
+        ty_aliases := ($2, $4) :: !ty_aliases; $6 }
   | BEGIN_VAR ID COLON typ END_VAR proofheaders
-              { Typer.declare_constant ($2, $4); $6 }
-  | BEGIN_HYP ID COLON term END_HYP proofheaders
-      { $6 }
+      { Typer.declare_constant ($2, $4); $6 }
+  | BEGIN_HYP ID COLON PROOF term_simple END_HYP proofheaders
+      { $7 }
 
 qid:
-| QID { mk_const $1 type_none }
-| ID { tvar_none $1 }
-
+| QID
+      { (* Qualified IDs cannot be variables *)
+        mk_const $1 type_none }
+| ID
+      { (* Unqualified IDs can be either variables or
+           constants. It would be hard to determine it here
+           so we parse them as variables and let the typer
+           do the necessary scoping (see Typer.ml) *)
+        tvar_none $1 }
+term_simple:
+| qid { $1 }
+| TRUE { etrue }
+| FALSE { efalse }
+| NOT term_simple { enot $2 }
+| AND term_simple term_simple { eand   ($2, $3) }
+| OR  term_simple term_simple { eor    ($2, $3) }
+| IMP term_simple term_simple { eimply ($2, $3) }
+| EQV term_simple term_simple { eequiv ($2, $3) }
+| ALL type_simple LPAREN ID COLON typ DOUBLE_ARROW term_simple RPAREN
+      { eall (tvar $4 $6, $8)}
+| EX type_simple LPAREN ID COLON typ DOUBLE_ARROW term_simple RPAREN
+      { eex (tvar $4 $6, $8)}
+| ISTRUE term_simple {eapp (tvar "Is_true" (earrow [mk_const_t "basics.bool__t"] type_prop), [$2])}
+| EQUAL type_simple term_simple term_simple { eeq $3 $4 }
+| LPAREN term RPAREN { $2 }
+terms:
+| term_simple { [$1] }
+| terms term_simple { $2 :: $1 }
 term:
-| domain ARROW term
-         { let (x, a) = $1 in mk_all x a $3 }
-| ID COLON typ DOUBLE_ARROW term
-     { mk_lam $1 $3 $5 }
-| applicative { $1 }
-domain:
-| ID COLON typ { ($1, $3) }
-| typ { ("", $1) }
-
-applicative:
-| applicatives {
+| terms {
+      (* The "applicatives" rules contains a list of
+         arguments in reverse order.
+         This list is not empty. *)
   match List.rev $1 with
-  | [] -> raise Parse_error
-  | head :: tail -> mk_apply (head, tail)
+  | [] -> assert false
+  | [e] -> e
+  | head :: tail ->
+     match head with
+                   | Evar _ ->
+                      eapp (head, tail)
+                   | Eapp (v, l, _) ->
+                      eapp (v, l @ tail)
+                   | e ->
+                      Log.debug 15 "Parse Error: head is %a"
+                                Print.pp_expr head;
+                      raise Parse_error
 }
 
-applicatives:
-| simple { [$1] }
-| applicatives simple { $2 :: $1 }
-simple:
-| TYPE { type_type }
-| TRUE { btrue }
-| FALSE { bfalse }
-| qid { $1 }
-| LPAREN term RPAREN { $2 }
+type_qid:
+| ID { (* We don't support type variables in the input *)
+      if List.mem_assoc $1 !ty_aliases then
+        List.assoc $1 !ty_aliases else
+        mk_const_t $1 }
+| QID { if List.mem_assoc $1 !ty_aliases then
+        List.assoc $1 !ty_aliases else
+        mk_const_t $1 }
+type_simple:
+| type_qid { $1 }
+| PROP { type_prop }
+| LPAREN pre_typ RPAREN { $2 }
+typs:
+| type_simple { [$1] }
+| typs type_simple { $2 :: $1 }
+pre_typ:
+| typs { match List.rev $1 with
+         | [] -> assert false
+         | [ ty ] -> ty
+         | (Eapp (Evar (head, _), [], _)) :: tail ->
+            let tys = List.map (fun _ -> type_type) tail in
+            eapp (tvar head (earrow tys type_type), tail)
+         | head :: tail ->
+            Log.debug 0 "Error: application head is not a constant %a @ [%a]\n"
+                      Print.pp_expr head
+                      (Print.pp_lst Print.pp_expr "; ") tail;
+            raise Parse_error
+       }
+| CCARR type_simple type_simple
+        { match $3 with
+          | Earrow (tys, ty, _) -> earrow ($2 :: tys) ty
+          | ty -> earrow [$2] ty }
+
 typ:
-| applicative { mk_type $1 }
+| TERM type_simple { $2 }
 
 hyp_def:
-| ID COLON term DOT { [Phrase.Hyp ($1, $3, 1)] }
+| ID COLON PROOF term_simple DOT { [Phrase.Hyp ($1, $4, 1)] }
+| ID COLON TERM type_simple DOT { Typer.declare_constant ($1, $4); [] }
 | ID COLON typ DEF term DOT
-     {
+     { (* Definition without argument.
+          We don't add the rewrite rule now because the definition
+          has not yet been scoped and typed. *)
        let (other_params, expr) = get_params $5 in
        [ Phrase.Def (DefReal ($1,
                               $1,
@@ -288,7 +193,7 @@ hyp_def:
                               None)) ]
      }
 | ID compact_args COLON typ DEF term DOT
-     {
+     { (* Definition with arguments *)
        let (other_params, expr) = get_params $6 in
        let args_tys = List.map get_type $2 in
        let ty = earrow args_tys $4 in

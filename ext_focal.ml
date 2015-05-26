@@ -88,13 +88,16 @@ let prop_to_bool_args args ty =
 
 let istrue e = eapp (tvar "Is_true" (arr bool1 t_prop), [e]);;
 let isfalse e = enot (istrue e);;
-
+let ite_ty =
+  let ty = newtvar type_type in
+  eall (ty, earrow [bool1; ty; ty] ty)
+;;
 let is_true_equal x =
   List.exists (fun y -> x = "Is_true**" ^ y) names_of_equality
 ;;
 
-let btrue = tvar "basics.true" bool1;;
-let bfalse = tvar "basics.false" bool1;;
+let btrue = eapp (tvar "basics.true" bool1, []);;
+let bfalse = eapp (tvar "basics.false" bool1, []);;
 
 let newnodes_istrue e g =
   let mk_unfold ctx p args =
@@ -222,10 +225,10 @@ let newnodes_istrue e g =
          ngoal = g;
          nbranches = branches;
        }; Stop ]
-  | Eapp (Evar("Is_true",_), [Evar ("true", _)], _) -> [Stop]
-  | Enot (Eapp (Evar("Is_true",_), [Evar ("false", _)], _), _) -> [Stop]
+  | Eapp (Evar("Is_true",_), [Evar ("basics.true", _)], _) -> [Stop]
+  | Enot (Eapp (Evar("Is_true",_), [Evar ("basics.false", _)], _), _) -> [Stop]
 
-  | Eapp (Evar("Is_true",_), [Evar ("false", _)], _) ->
+  | Eapp (Evar("Is_true",_), [Evar ("basics.false", _)], _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "false", []);
@@ -233,7 +236,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| |];
       }; Stop ]
-  | Enot (Eapp (Evar("Is_true",_), [Evar ("true", _)], _), _) ->
+  | Enot (Eapp (Evar("Is_true",_), [Evar ("basics.true", _)], _), _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "nottrue", []);
@@ -241,9 +244,9 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| |];
       }; Stop ]
-  | Enot (Eapp (Evar("=",_), [Evar ("true", _); Evar ("false", _)], _), _) -> [Stop]
-  | Enot (Eapp (Evar("=",_), [Evar ("false", _); Evar ("true", _)], _), _) -> [Stop]
-  | Eapp (Evar("=",_), [Evar ("true", _); e1], _) ->
+  | Enot (Eapp (Evar("=",_), [Evar ("basics.true", _); Evar ("basics.false", _)], _), _) -> [Stop]
+  | Enot (Eapp (Evar("=",_), [Evar ("basics.false", _); Evar ("basics.true", _)], _), _) -> [Stop]
+  | Eapp (Evar("=",_), [Evar ("basics.true", _); e1], _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "trueequal", [e1]);
@@ -251,7 +254,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [istrue e1] |];
       }; Stop ]
-  | Eapp (Evar("=",_), [e1; Evar ("true", _)], _) ->
+  | Eapp (Evar("=",_), [e1; Evar ("basics.true", _)], _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "equaltrue", [e1]);
@@ -259,7 +262,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [istrue e1] |];
       }; Stop ]
-  | Enot (Eapp (Evar("=",_), [Evar ("true", _); e1], _), _) ->
+  | Enot (Eapp (Evar("=",_), [Evar ("basics.true", _); e1], _), _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "truenotequal", [e1]);
@@ -267,7 +270,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [isfalse e1] |];
       }; Stop ]
-  | Enot (Eapp (Evar("=",_), [e1; Evar ("true", _)], _), _) ->
+  | Enot (Eapp (Evar("=",_), [e1; Evar ("basics.true", _)], _), _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "notequaltrue", [e1]);
@@ -275,7 +278,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [isfalse e1] |];
       }; Stop ]
-  | Eapp (Evar("=",_), [Evar ("false", _); e1], _) ->
+  | Eapp (Evar("=",_), [Evar ("basics.false", _); e1], _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "falseequal", [e1]);
@@ -283,7 +286,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [isfalse e1] |];
       }; Stop ]
-  | Eapp (Evar("=",_), [e1; Evar ("false", _)], _) ->
+  | Eapp (Evar("=",_), [e1; Evar ("basics.false", _)], _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "equalfalse", [e1]);
@@ -291,7 +294,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [isfalse e1] |];
       }; Stop ]
-  | Enot (Eapp (Evar("=",_), [Evar ("false", _); e1], _), _) ->
+  | Enot (Eapp (Evar("=",_), [Evar ("basics.false", _); e1], _), _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "falsenotequal", [e1]);
@@ -299,7 +302,7 @@ let newnodes_istrue e g =
         ngoal = g;
         nbranches = [| [istrue e1] |];
       }; Stop ]
-  | Enot (Eapp (Evar("=",_), [e1; Evar ("false", _)], _), _) ->
+  | Enot (Eapp (Evar("=",_), [e1; Evar ("basics.false", _)], _), _) ->
       [ Node {
         nconc = [e];
         nrule = Ext ("focal", "notequalfalse", [e1]);
@@ -389,20 +392,20 @@ let ite_branches pat cond thn els =
 
 let newnodes_ifthenelse e g =
   match e with
-  | Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [ty; cond; thn; els], _) ->
+  | Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [_; cond; thn; els], _) ->
       let branches = ite_branches istrue cond thn els in
       [ Node {
           nconc = [e];
-          nrule = Ext ("focal", "ite_bool", [ty; cond; thn; els]);
+          nrule = Ext ("focal", "ite_bool", [cond; thn; els]);
           nprio = Arity;
           ngoal = g;
           nbranches = branches;
       }; Stop ]
-  | Enot (Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [ty; cond; thn; els], _), _) ->
+  | Enot (Eapp (Evar("Is_true**FOCAL.ifthenelse",_), [_; cond; thn; els], _), _) ->
       let branches = ite_branches isfalse cond thn els in
       [ Node {
           nconc = [e];
-          nrule = Ext ("focal", "ite_bool_n", [ty; cond; thn; els]);
+          nrule = Ext ("focal", "ite_bool_n", [cond; thn; els]);
           nprio = Arity;
           ngoal = g;
           nbranches = branches;
@@ -479,9 +482,8 @@ let to_llargs tr_expr r =
   | Ext (_, "equal", [Evar (name, _)as a; e1; e2; e3]) ->
       let h = tr_expr (eeq e2 e3) in
       let c = tr_expr (istrue (eapp (a, [e1; e2; e3]))) in
-      let eqdec = tvar_none ("zenon_focal_eqdec") in
-      (name_of_equality_lemma,
-       List.map tr_expr [eqdec; e1; e2; e3], [c], [ [h] ])
+      ("zenon_syntactic_equal",
+       List.map tr_expr [e1; e2; e3], [c], [ [h] ])
   | Ext (_, "notand", [e1; e2]) ->
       let h = tr_expr (enot (eand (istrue e1, istrue e2))) in
       let c = tr_expr (enot (istrue (eapp (tvar "basics._amper__amper_" bool3, [e1; e2])))) in
@@ -501,7 +503,7 @@ let to_llargs tr_expr r =
   | Ext (_, "notequal", [Evar (name, _) as a; e1; e2; e3]) ->
       let h = tr_expr (enot (eeq e2 e3)) in
       let c = tr_expr (enot (istrue (eapp (a, [e1; e2; e3])))) in
-      (name_of_notequality_lemma,
+      ("zenon_not_syntactic_equal",
        [tr_expr e1; tr_expr e2; tr_expr e3], [c], [ [h] ])
   | Ext (_, "false", []) ->
       let c = tr_expr (istrue bfalse) in
@@ -544,28 +546,24 @@ let to_llargs tr_expr r =
   | Ext (_, "merge", _) -> ("zenon_focal_merge", [], [], [])
   | Ext (_, "split", _) -> ("zenon_focal_split", [], [], [])
 
-  | Ext (_, "ite_bool", ([ty; cond; thn; els] as args)) ->
+  | Ext (_, "ite_bool", ([cond; thn; els] as args)) ->
       let ht1 = tr_expr (istrue cond) in
       let ht2 = tr_expr (istrue thn) in
       let he1 = tr_expr (isfalse cond) in
       let he2 = tr_expr (istrue els) in
-      let nty = newtvar type_type in
-      let ty_ite = eall (nty, earrow [bool1; nty; nty] nty) in
-      let c = tr_expr (istrue (eapp (tvar "FOCAL.ifthenelse" ty_ite, [ty; cond; thn; els])))
+      let c = tr_expr (istrue (eapp (tvar "FOCAL.ifthenelse" ite_ty, [bool1; cond; thn; els])))
       in
       ("zenon_focal_ite_bool", List.map tr_expr args, [c],
-       [ [ht1; ht2]; [he1; he2] ])
-  | Ext (_, "ite_bool_n", ([ty; cond; thn; els] as args)) ->
+       [ [ht2; ht1]; [he2; he1] ])
+  | Ext (_, "ite_bool_n", ([cond; thn; els] as args)) ->
       let ht1 = tr_expr (istrue cond) in
       let ht2 = tr_expr (isfalse thn) in
       let he1 = tr_expr (isfalse cond) in
       let he2 = tr_expr (isfalse els) in
-      let nty = newtvar type_type in
-      let ty_ite = eall (ty, earrow [bool1; nty; nty] nty) in
-      let c = tr_expr (isfalse (eapp (tvar "FOCAL.ifthenelse" ty_ite, [ty; cond; thn; els])))
+      let c = tr_expr (isfalse (eapp (tvar "FOCAL.ifthenelse" ite_ty, [bool1; cond; thn; els])))
       in
       ("zenon_focal_ite_bool_n", List.map tr_expr args, [c],
-       [ [ht1; ht2]; [he1; he2] ])
+       [ [ht2; ht1]; [he2; he1] ])
   | Ext (_, "ite_rel_l",
          [Eapp (r, [Eapp (Evar("FOCAL.ifthenelse",_), [ty; c; t; e], _); e2], _) as a])
     ->
@@ -576,8 +574,8 @@ let to_llargs tr_expr r =
       let concl = tr_expr a in
       let v1 = newtvar ty and v2 = newtvar (get_type e2) in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
-      ("zenon_focal_ite_rel_l", List.map tr_expr [ty; rf; c; t; e; e2],
-       [concl], [ [ht1; ht2]; [he1; he2] ])
+      ("zenon_focal_ite_rel_l", List.map tr_expr [ty; get_type e2; rf; c; t; e; e2],
+       [concl], [ [ht2; ht1]; [he2; he1] ])
   | Ext (_, "ite_rel_r",
          [Eapp (r, [e1; Eapp (Evar("FOCAL.ifthenelse",_), [ty; c; t; e], _)], _) as a])
     ->
@@ -588,8 +586,8 @@ let to_llargs tr_expr r =
       let concl = tr_expr a in
       let v1 = newtvar (get_type e1) and v2 = newtvar ty in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
-      ("zenon_focal_ite_rel_r", List.map tr_expr [ty; rf; e1; c; t; e],
-       [concl], [ [ht1; ht2]; [he1; he2] ])
+      ("zenon_focal_ite_rel_r", List.map tr_expr [get_type e1; ty; rf; e1; c; t; e],
+       [concl], [ [ht2; ht1]; [he2; he1] ])
   | Ext (_, "ite_rel_nl",
          [Enot (Eapp (r, [Eapp (Evar("FOCAL.ifthenelse",_),
                                 [ty; c; t; e], _); e2], _), _) as a])
@@ -601,8 +599,8 @@ let to_llargs tr_expr r =
       let concl = tr_expr a in
       let v1 = newtvar ty and v2 = newtvar (get_type e2) in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
-      ("zenon_focal_ite_rel_nl", List.map tr_expr [ty; rf; c; t; e; e2],
-       [concl], [ [ht1; ht2]; [he1; he2] ])
+      ("zenon_focal_ite_rel_nl", List.map tr_expr [ty; get_type e2; rf; c; t; e; e2],
+       [concl], [ [ht2; ht1]; [he2; he1] ])
   | Ext (_, "ite_rel_nr",
          [Enot (Eapp (r, [e1; Eapp (Evar("FOCAL.ifthenelse",_),
                                     [ty; c; t; e], _)], _), _) as a])
@@ -614,8 +612,8 @@ let to_llargs tr_expr r =
       let concl = tr_expr a in
       let v1 = newtvar (get_type e1) and v2 = newtvar ty in
       let rf = elam (v1, elam (v2, eapp (r, [v1; v2]))) in
-      ("zenon_focal_ite_rel_nr", List.map tr_expr [ty; rf; e1; c; t; e],
-       [concl], [ [ht1; ht2]; [he1; he2] ])
+      ("zenon_focal_ite_rel_nr", List.map tr_expr [get_type e1; ty; rf; e1; c; t; e],
+       [concl], [ [ht2; ht1]; [he2; he1] ])
   | Ext (_, "istrue_true", [e1]) ->
      let h = tr_expr (eeq e1 btrue) in
      let c = tr_expr (istrue e1) in
@@ -679,6 +677,10 @@ let pair_ty =
   let a = newtvar type_type in
   let b = newtvar type_type in
   eall (b, eall (a, earrow [a; b] (prod a b)))
+let dk_pair_ty =
+  let a = newtvar type_type in
+  let b = newtvar type_type in
+  eall (a, eall (b, earrow [a; b] (prod a b)))
 
 let first_ty =
   let a = newtvar type_type in
@@ -691,16 +693,21 @@ let second_ty =
   eall (b, eall (a, earrow [prod a b] b))
 
 let pair_var = tvar "basics.pair" pair_ty
+let dk_pair_var = tvar "dk_tuple.pair" dk_pair_ty
 let fst_var = tvar "basics.fst" first_ty
 let snd_var = tvar "basics.snd" second_ty
 
 let pair a b x y = eapp (pair_var, [a; b; x; y])
+let dk_pair a b x y = eapp (dk_pair_var, [a; b; x; y])
+
 let first a b c = eapp (fst_var, [a; b; c])
 let second a b c = eapp (snd_var, [a; b; c])
 
 let eq_ty =
   let ty = newtvar type_type in
   eall (ty, earrow [ty; ty] bool1)
+
+let bequal ty a b = eapp (tvar "basics.syntactic_equal" eq_ty, [ty; a; b])
 
 let predecl () =
   (* Add rewrite-rules on pairs *)
@@ -726,28 +733,68 @@ let predecl () =
        (istrue (eapp (tvar "basics._equal_" eq_ty, [ty; a; b])),
         eeq a b)
     );
+  Rewrite.add_rwrt_prop "Istrue_true"
+    (eequiv (istrue btrue, etrue)
+    );
+  Rewrite.add_rwrt_prop "Istrue_false"
+    (eequiv (istrue bfalse, efalse)
+    );
+  (* Aliases *)
+  Rewrite.add_rwrt_term "basics._equal_"
+    (let ty = newtvar type_type in
+     let a = newtvar ty in
+     let b = newtvar ty in
+     eeq (eapp (tvar "basics._equal_" eq_ty, [ty; a; b]))
+         (bequal ty a b)
+    );
+  Rewrite.add_rwrt_term "dk_bool.true"
+    (eeq (eapp (tvar "dk_bool.true" bool1, [])) btrue);
+  Rewrite.add_rwrt_term "dk_bool.false"
+    (eeq (eapp (tvar "dk_bool.false" bool1, [])) bfalse);
+  Rewrite.add_rwrt_term "dk_bool.ite"
+    (let ty = newtvar type_type in
+     let b = newtvar bool1 in
+     let t = newtvar ty in
+     let e = newtvar ty in
+     eeq (eapp (tvar "dk_bool.ite" ite_ty,
+                [ty; b; t; e]))
+         (eapp (tvar "FOCAL.ifthenelse" ite_ty,
+                [ty; b; t; e])));
+  Rewrite.add_rwrt_term "dk_tuple.pair"
+    (let tya = newtvar type_type in
+     let tyb = newtvar type_type in
+     let a = newtvar tya in
+     let b = newtvar tyb in
+     eeq (dk_pair tya tyb a b)
+         (pair tyb tya a b));
   [
     ("Is_true", arr bool1 t_prop);
     ("basics.true", bool1);
     ("basics.false", bool1);
+    ("dk_bool.true", bool1);
+    ("dk_bool.false", bool1);
 
     ("basics._tilda__tilda_", bool2);
     ("basics._amper__amper_", bool3);
     ("basics._bar__bar_", bool3);
     ("basics._bar__lt__gt__bar_", bool3);
 
-    ("FOCAL.ifthenelse",
-     let ty = newtvar type_type in
-     eall (ty, earrow [bool1; ty; ty] ty));
+    ("FOCAL.ifthenelse", ite_ty);
+    ("dk_bool.ite", ite_ty);
 
     ("basics.syntactic_equal", eq_ty);
 
     ("basics._equal_", eq_ty);
 
+    ("basics._equal_",
+     let ty = newtvar type_type in
+     eall (ty, earrow [ty; ty] bool1));
+
     ("basics.prod", prod_ty);
     ("basics.fst", first_ty);
     ("basics.snd", second_ty);
     ("basics.pair", pair_ty);
+    ("dk_tuple.pair", dk_pair_ty);
 
   ]
 ;;
@@ -765,7 +812,7 @@ let built_in_defs () =
                [ ("basics.pair", [Param "A"; Param "B"]) ],
                "@Datatypes.prod_ind");
     Inductive ("basics.bool__t", [],
-               [ ("true", []); ("false", []) ], "basics.bool__t_ind");
+               [ ("basics.true", []); ("basics.false", []) ], "basics.bool__t_ind");
 
     (* deprecated, kept for compatibility only *)
     Def (DefReal ("and_b", "basics.and_b", bool3, [b1; b2],
@@ -907,8 +954,8 @@ let predef () =
      "basics._bar__bar_";
      "basics._bar__lt__gt__bar_";
      "basics.pair"; "basics.fst"; "basics.snd";
-     "true"; "false"; "FOCAL.ifthenelse" ;
      "basics._equal_";
+     "basics.true"; "basics.false"; "FOCAL.ifthenelse" ;
      "List.cons"; "List.nil";
     ]
 ;;

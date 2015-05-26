@@ -47,6 +47,17 @@ let get_context e =
 				    (Print.sexpr e)))
 ;;
 
+
+let exists_in_context e =
+  try
+    let _ = Hashtbl.find !context (Rewrite.normalize_fm e) in
+    true
+  with Not_found ->
+    Log.debug 5 "Expression %a not found in context"
+       Print.pp_expr_t e;
+    false
+;;
+
 let add_metactx e dke =
   Log.debug 3 " |- Add metactx %a" Print.pp_expr e;
   Hashtbl.add !metactx e dke
@@ -803,6 +814,9 @@ let rec trproof_dk p =
 	let conc2 = get_pr_var (eeq t2 t1) in
 	mk_DkRcongrl (a, dkp, dkt1, dkt2, lam, conc1, conc2)
      | Rextension (ext, name, args, concs, hyps) ->
+
+        assert (List.for_all exists_in_context concs);
+
 	Log.debug 7 "  |- Extension Proof Step >> %s" name;
 	List.iter (fun x -> Log.debug 7 "    args : %a" Print.pp_expr x)
 		  args;
