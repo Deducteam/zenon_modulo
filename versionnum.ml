@@ -4,7 +4,7 @@ Version.add "$Id$";;
 open Printf;;
 
 let number = 5;;      (* strictly increasing *)
-let date = "2015-02-23";;
+let date = "2015-05-25";;
 
 let major = 0;;
 let minor = 4;;
