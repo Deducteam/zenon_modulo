@@ -217,8 +217,8 @@ let rec norm_prop_aux rules fm =
 	then norm_prop_aux tl fm
 	else
 	  begin
-            Log.debug 14 "normalize prop";
-            Log.debug 14 " |- %a --> %a" Print.pp_expr fm
+            Log.debug 4 "normalize prop";
+            Log.debug 4 "~~ %a --> %a" Print.pp_expr fm
                       Print.pp_expr new_fm;
 	    new_fm
 	  end
@@ -255,7 +255,7 @@ let rec norm_term t =
   then
     begin
       Log.debug 4 "normalize term";
-      Log.debug 4 " |- %a --> %a" Print.pp_expr t Print.pp_expr new_t;
+      Log.debug 4 "~~ %a --> %a" Print.pp_expr t Print.pp_expr new_t;
       norm_term new_t
     end
   else
@@ -297,7 +297,7 @@ let rec normalize_fm fm =
       else
         begin
           Log.debug 2 "normalize fm";
-          Log.debug 2 " |- %a --> %a" Print.pp_expr fm Print.pp_expr fm_p;
+          Log.debug 2 "~ %a --> %a" Print.pp_expr fm Print.pp_expr fm_p;
           normalize_fm fm_p
         end
     end
