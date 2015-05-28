@@ -65,20 +65,72 @@ iteb : Bool -> Bool -> Bool -> Bool
 
 (; negation ;)
 not : Bool -> Bool.
-[ b : Bool ] not b --> iteb b false true.
+[] not true --> false
+[] not false --> true
+[ b : Bool ] not (not b) --> b.
 
 (; binary operators ;)
 and : Bool -> Bool -> Bool.
-[ x : Bool, y : Bool ] and x y --> iteb x y false.
+[ b : Bool ] and b true --> b
+[ b : Bool ] and true b --> b
+[ b : Bool ] and b false --> false
+[ b : Bool ] and false b --> false.
 
 or : Bool -> Bool -> Bool.
-[ x : Bool, y : Bool ] or x y --> iteb x true y.
+[ b : Bool ] or b true --> true
+[ b : Bool ] or true b --> true
+[ b : Bool ] or b false --> b
+[ b : Bool ] or false b --> b.
 
 xor : Bool -> Bool -> Bool.
-[ x : Bool, y : Bool ] xor x y --> iteb x (not y) y.
+[ b : Bool ] xor b true --> not b
+[ b : Bool ] xor true b --> not b
+[ b : Bool ] xor b false --> b
+[ b : Bool ] xor false b --> b.
 
 imp : Bool -> Bool -> Bool.
-[ x : Bool, y : Bool ] imp x y --> iteb x y true.
+[ b : Bool ] imp b true --> true
+[ b : Bool ] imp true b --> b
+[ b : Bool ] imp b false --> not b
+[ b : Bool ] imp false b --> true.
 
 eqv : Bool -> Bool -> Bool.
-[ x : Bool, y : Bool ] eqv x y --> iteb x y (not y).
+[ b : Bool ] eqv b true --> b
+[ b : Bool ] eqv true b --> b
+[ b : Bool ] eqv b false --> not b
+[ b : Bool ] eqv false b --> not b.
+
+(; Associativity ;)
+[ b1 : Bool, b2 : Bool, b3 : Bool ]
+    and b1 (and b2 b3) --> and (and b1 b2) b3.
+[ b1 : Bool, b2 : Bool, b3 : Bool ]
+    or b1 (or b2 b3) --> or (or b1 b2) b3.
+[ b1 : Bool, b2 : Bool, b3 : Bool ]
+    xor b1 (xor b2 b3) --> xor (xor b1 b2) b3.
+
+(; Distributivity ;)
+[ b1 : Bool, b2 : Bool, b3 : Bool ]
+    and b1 (or b2 b3) --> or (and b1 b2) (and b1 b3).
+[ b1 : Bool, b2 : Bool, b3 : Bool ]
+    and (or b1 b2) b3 --> or (and b1 b3) (and b2 b3).
+
+[ b1 : Bool, b2 : Bool ]
+    not (and b1 b2) --> or (not b1) (not b2).
+[ b1 : Bool, b2 : Bool ]
+    not (or b1 b2) --> and (not b1) (not b2).
+[ b1 : Bool, b2 : Bool ]
+    not (xor b1 b2) --> eqv (not b1) (not b2).
+[ b1 : Bool, b2 : Bool ]
+    not (eqv b1 b2) --> xor (not b1) (not b2).
+
+(; Indempotence ;)
+[ b : Bool ]
+    and b b --> b.
+[ b : Bool ]
+    or b b --> b.
+[ b : Bool ]
+    xor b b --> false.
+[ b : Bool ]
+    imp b b --> true.
+[ b : Bool ]
+    eqv b b --> true.
