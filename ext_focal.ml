@@ -457,7 +457,35 @@ let newnodes_ifthenelse e g =
   | _ -> []
 ;;
 
-let newnodes e g _ = newnodes_istrue e g @ newnodes_ifthenelse e g;;
+let newnodes_quantifier_bool e g =
+  match e with
+  | Eex (var, p, _) when get_type var == bool1 ->
+     let h = elam (var, p) in
+     let htrue = substitute [(var, btrue)] p in
+     let hfalse = substitute [(var, bfalse)] p in
+     [ Node {
+       nconc = [e];
+       nrule = Ext ("focal", "ex_bool", [h]);
+       nprio = Arity;
+       ngoal = g;
+       nbranches = [| [htrue]; [hfalse] |];
+     }; Stop ]
+  | Enot (Eall (var, p, _), _) when get_type var == bool1 ->
+     let h = elam (var, p) in
+     let htrue = substitute [(var, btrue)] p in
+     let hfalse = substitute [(var, bfalse)] p in
+     [ Node {
+       nconc = [e];
+       nrule = Ext ("focal", "not_all_bool", [h]);
+       nprio = Arity;
+       ngoal = g;
+       nbranches = [| [enot htrue]; [enot hfalse] |];
+     }; Stop ]
+  | _ -> []
+;;
+
+
+let newnodes e g _ = newnodes_istrue e g @ newnodes_ifthenelse e g @ newnodes_quantifier_bool e g;;
 
 let make_inst m term g = assert false;;
 
@@ -622,6 +650,20 @@ let to_llargs tr_expr r =
      let h = tr_expr (eeq e1 bfalse) in
      let c = tr_expr (enot (istrue e1)) in
      ("zenon_focal_notistrue_false", [tr_expr e1], [c], [ [h] ])
+  | Ext (_, "ex_bool", [Elam (var, p, _)]) ->
+     let ptrue = substitute [(var, btrue)] p in
+     let pfalse = substitute [(var, bfalse)] p in
+     ("zenon_focal_ex_bool",
+      [tr_expr p],
+      [tr_expr (eex (var, p))],
+      [ [tr_expr ptrue]; [tr_expr pfalse] ])
+  | Ext (_, "not_all_bool", [Elam (var, p, _)]) ->
+     let ptrue = substitute [(var, btrue)] p in
+     let pfalse = substitute [(var, bfalse)] p in
+     ("zenon_focal_not_all_bool",
+      [tr_expr p],
+      [tr_expr (enot (eall (var, p)))],
+      [ [tr_expr (enot ptrue)]; [tr_expr (enot pfalse)] ])
   | Ext (x, y, _) ->
      Printf.eprintf "unknown extension rule %s/%s\n" x y;
      assert false
