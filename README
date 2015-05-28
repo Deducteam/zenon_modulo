@@ -1,15 +1,25 @@
-2015.02.23
-README file for Zenon Modulo 0.3.1
+2015.05.25
+README file for Zenon Modulo 0.4.0
 
 ----------------------------------------
 
 For license information, see LICENSE
-For install information, see INSTALL
 
 ----------------------------------------
 
 Contact: Pierre Halmagrand <pierre.halmagrand@inria.fr>
 	 Guillaume Bury <guillaume.bury@inria.fr>
+         Raphael Cauderlier <raphael.cauderlier@inria.fr>
+
+----------------------------------------
+
+Prerequisites:
+  - OCaml 4.02.1 (with ocamlopt)
+  - Coq 8.0.x
+  - Dedukti 2.3
+  - zarith 1.3
+  - ImageMagick (optional)
+  - Ghostscript (optional)
 
 ----------------------------------------
 
@@ -32,12 +42,17 @@ Remarks:
 - Zenon Modulo is part of the BWare project
   http://bware.lri.fr/
 
+- Zenon Modulo is used in FoCaLiZe project
+  http://focalize.inria.fr/
+
 - Proceedings about Zenon Modulo may be found here
   http://hal.inria.fr/hal-00909784
   http://hal.inria.fr/hal-00909688
 
 - Zenon Modulo accepts input files with the TPTP syntax (FOF and TFF1)
   http://www.cs.miami.edu/~tptp/
+  And also with Dedukti syntax
+  http://dedukti.gforge.inria.fr/
 
 - Zenon Modulo may produce proof certificats for Dedukti
   http://dedukti.gforge.inria.fr/
@@ -52,11 +67,19 @@ Remarks:
   >> activate the '-om' to print a proof
   >> activate the '-dbg-rwrt' to print the rewrite system and rewriting steps
 
+- To use Zenon Modulo with Dedukti files for FoCaLiZe project
+
 ----------------------------------------
 
 Examples:
 
-Some TFF1 input files are given as examples into ./tff1_examples repository
+First, compile Dedukti file modulogic.dk:
+
+# dkcheck -e cc.dk dk_bool.dk dk_logic.dk modulogic.dk
+
+1/ BWare with TFF1 files
+
+Some TFF1 input files are given as examples into ./examples repository
 Four of them are set properties coming from the B-Book, and the last one
 is a Proof Obligation coming from the BWare benchmark.
 
@@ -72,9 +95,8 @@ To run and test Zenon Modulo:
  # zenon_modulo -itptp -b-rwrt -odk ./tff1_examples/file_name.p > certificate.dk
 
  - To verify the proof with dedukti
-   >> to generate the zen.dko library file
-   # dkcheck -e modulogic.dk
-   >> to check the proof
    # dkcheck certificate.dk
+
+2/ FoCaLiZe with Dedukti files
 
 ----------------------------------------

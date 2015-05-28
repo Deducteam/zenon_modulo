@@ -40,6 +40,10 @@ rule token = parse
 | ":=" { DEF }
 | "(" { LPAREN }
 | ")" { RPAREN }
+| "[" { LBRACK }
+| "]" { RBRACK }
+| "," { COMMA }
+| "-->" { REW }
 
 | "(;_MUST_USE_;)"        { MUSTUSE }
 
