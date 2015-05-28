@@ -214,6 +214,7 @@ let tr_rule r =
     -> assert false
 
   | Close_refl (s, _) (* when s <> "=" *) -> assert false
+  | EqSet _ -> failwith "Not implemented"
 ;;
 
 let rec merge l1 l2 =
@@ -315,6 +316,7 @@ let is_derived = function
   | Miniscope _ -> true
   | Ext ("", _, _) -> false
   | Ext _ -> true
+  | EqSet _ -> failwith "Not implemented"
 ;;
 
 let remove f l = Expr.diff l [f];;
@@ -1083,6 +1085,7 @@ and translate_derived p =
   | CongruenceLR _
   | CongruenceRL _
     -> assert false
+  | EqSet _ -> failwith "Not implemented"
 
 and translate_pseudo_def p def_hyp s args folded unfolded =
   match args with

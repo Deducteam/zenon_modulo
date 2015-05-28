@@ -48,6 +48,7 @@ type rule =
   | Miniscope of expr * expr * expr list
 
   | Ext of string * string * expr list
+  | EqSet of expr * expr
 ;;
 
 type proof = {

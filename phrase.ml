@@ -178,7 +178,8 @@ let rec xseparate predef deps multi defs hyps l =
   match l with
   | [] -> (List.rev defs, List.rev hyps)
   | Def d :: t -> xseparate predef deps multi (d :: defs) hyps t
-  | Hyp (_, e, p) :: t when is_def predef [] e ->
+  (* no more definition form axioms *)
+(*  | Hyp (_, e, p) :: t when is_def predef [] e ->
       let d = make_def predef (e, p) [] e in
       let sym = get_symbol d in
       let newdep = extract_dep d in
@@ -189,7 +190,7 @@ let rec xseparate predef deps multi defs hyps l =
         xseparate predef (List.remove_assoc sym deps) (sym::multi) ndefs
                   ((e, p) :: ep2 :: hyps) t
       else
-        xseparate predef (newdep :: deps) multi (d :: defs) hyps t
+        xseparate predef (newdep :: deps) multi (d :: defs) hyps t *)
   | Hyp (_, e, p) :: t -> xseparate predef deps multi defs ((e, p) :: hyps) t
   | Sig _ :: t -> xseparate predef deps multi defs hyps t
   | Inductive _ :: t -> xseparate predef deps multi defs hyps t

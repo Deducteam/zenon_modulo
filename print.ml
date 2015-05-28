@@ -266,6 +266,7 @@ let get_rule_name = function
   | CongruenceRL (p, a, b) -> "CongruenceRL", [p; a; b]
   | Miniscope (e1, t, vs) -> "Miniscope", e1 :: t :: vs
   | Ext (th, ru, args) -> "Extension/"^th^"/"^ru, args
+  | EqSet _ -> failwith "Not implemented"
 ;;
 
 let mlproof_rule o r =
@@ -359,6 +360,7 @@ let hlrule_name = function
   | CongruenceRL (p, a, b) -> "CongruenceRL", [p; a; b]
   | Miniscope (e1, t, vs) -> "Miniscope", e1 :: t :: vs
   | Ext (th, ru, args) -> ("Extension/"^th^"/"^ru), args
+  | EqSet _ -> failwith "Not implemented"
 ;;
 
 let hlrule o r =
@@ -741,6 +743,7 @@ let dot_rule_name = function
   | CongruenceRL (p, a, b) -> "CongruenceRL", [p; a; b]
   | Miniscope (e1, t, vs) -> "Miniscope", e1 :: t :: vs
   | Ext (th, ru, args) -> "Extension/"^th^"/"^ru, args
+  | EqSet _ -> failwith "Not implemented"
 ;;
 
 let default_color = "LIGHTBLUE"

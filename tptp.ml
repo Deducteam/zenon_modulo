@@ -102,7 +102,7 @@ let process_annotations forms =
 			    || name = "enum_POSITION" -> form
  *)   | Hyp (name, body, kind) ->
 	 Log.debug 15 "Process Annotation '%a'" Print.pp_expr body;
-          if List.mem name !eq_defs then
+           if List.mem name !eq_defs then
             make_definition name form (make_annot_expr body) kind
           else
             Hyp (tptp_to_coq name, make_annot_expr body, kind)

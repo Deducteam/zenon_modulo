@@ -695,6 +695,72 @@ let orient_meta m1 m2 =
   else List.length l1 > List.length l2
 ;;
 
+(*
+let newnodes_eqset st fm g _ =
+  match fm with
+  | Eapp (Evar("=",_), [e1; e2], _)
+       when begin
+           match (Expr.get_type e1) with
+           | Eapp (Evar ("set", _), _, _) -> true
+           | _ -> false
+         end
+    ->
+     Log.debug 2 "~~ extensionality node ~~";
+     let vartyp = match (Expr.get_type e1) with
+       | Eapp (Evar ("set", _), [ty], _) -> ty
+       | _ -> assert false
+     in
+     let ctx = Expr.get_defs() in
+     let xvar = newtvar vartyp in
+     Log.debug 2 "~~ xvar = %a" Print.pp_expr_t xvar;
+     let memty = List.assoc "mem" ctx in
+     Log.debug 2 "~~ memty = %a" Print.pp_expr_t memty;
+     let mem1 = eapp ((tvar "mem" memty), [vartyp; xvar; e1]) in
+     Log.debug 2 "~~ mem1 = %a" Print.pp_expr_t mem1;
+     let mem2 = eapp ((tvar "mem" memty), [vartyp; xvar; e2]) in
+     Log.debug 2 "~~ mem2 = %a" Print.pp_expr_t mem2;
+     let nfm = eall (xvar, eequiv (mem1, mem2)) in
+     Log.debug 2 "~~ nfm  = %a" Print.pp_expr_t nfm;
+     add_node st {
+                nconc = [fm];
+                nrule = EqSet (e1, e2);
+                nprio = Arity;
+                ngoal = g;
+                nbranches = [| [nfm] |];
+              }, false
+  | Enot (Eapp (Evar("=",_), [e1; e2], _), _)
+       when begin
+           match (Expr.get_type e1) with
+           | Eapp (Evar ("set", _), _, _) -> true
+           | _ -> false
+         end
+    ->
+     Log.debug 2 "~~ extensionality node ~~";
+     let vartyp = match (Expr.get_type e1) with
+       | Eapp (Evar ("set", _), [vty], _) -> vty
+       | _ -> assert false
+     in
+     let ctx = Expr.get_defs() in
+     let xvar = newtvar vartyp in
+     Log.debug 2 "~~ xvar = %a" Print.pp_expr_t xvar;
+     let memty = List.assoc "mem" ctx in
+     Log.debug 2 "~~ memty = %a" Print.pp_expr_t memty;
+     let mem1 = eapp ((tvar "mem" memty), [vartyp; xvar; e1]) in
+     Log.debug 2 "~~ mem1 = %a" Print.pp_expr_t mem1;
+     let mem2 = eapp ((tvar "mem" memty), [vartyp; xvar; e2]) in
+     Log.debug 2 "~~ mem2 = %a" Print.pp_expr_t mem2;
+     let nfm = enot (eall (xvar, eequiv (mem1, mem2))) in
+     Log.debug 2 "~~ nfm  = %a" Print.pp_expr_t nfm;
+     add_node st {
+                nconc = [fm];
+                nrule = EqSet (e1, e2);
+                nprio = Arity;
+                ngoal = g;
+                nbranches = [| [nfm] |];
+              }, false
+  | _ -> st, false
+;;
+ *)
 let newnodes_refl st fm g _ =
   match fm with
   | Enot (Eapp (Evar(s,_) as s', [e1; e2], _), _)
@@ -705,8 +771,7 @@ let newnodes_refl st fm g _ =
       nprio = Arity;
       ngoal = g;
       nbranches = [| [enot (eeq e1 e2)] |];
-    }, false
-
+             }, false
   | Enot (Eapp (Evar("=",_), [Emeta (m1, _) as e1;
                               Emeta (m2, _) as e2], _), _) ->
     let (st1, _) = make_inst st m2 e1 g in
@@ -1186,6 +1251,7 @@ let prove_rules = [
   newnodes_delta;
   newnodes_gamma;
   newnodes_unfold;
+  (*  newnodes_eqset; *)
   newnodes_refl;
   newnodes_preunif;
   newnodes_match_congruence;

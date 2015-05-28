@@ -63,8 +63,8 @@ type rule =
       (* $scope (f, t, v1, ...) / f[v1] | ... | t != v1, ... , f[t]
                                                                 [f t v1 ...] *)
 
-  | Ext of string * string * expr list
-                                (* ... [extension, rule, arguments]*)
+  | Ext of string * string * expr list (* ... [extension, rule, arguments]*)
+  | EqSet of expr * expr (* extensionality *)
 ;;
 
 type proof = {
