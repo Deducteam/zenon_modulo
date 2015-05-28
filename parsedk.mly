@@ -29,7 +29,7 @@ let rec get_params e =
 %}
 %token <string> ID QID
 %token COLON DOT DOUBLE_ARROW DEF
-%token TERM PROOF CCARR PROP
+%token TYPE TERM PROOF CCARR PROP
 %token LPAREN RPAREN EOF
 %token LBRACK COMMA RBRACK REW
 %token TRUE FALSE NOT AND OR IMP EQV ALL EX ISTRUE EQUAL
@@ -179,6 +179,7 @@ typ:
 | TERM type_simple { $2 }
 
 hyp_def:
+| ID COLON TYPE DOT { Typer.declare_constant ($1, type_type); [] }
 | ID COLON PROOF term_simple DOT { [Phrase.Hyp ($1, $4, 1)] }
 | ID COLON TERM type_simple DOT { Typer.declare_constant ($1, $4); [] }
 | ID COLON typ DEF term DOT
