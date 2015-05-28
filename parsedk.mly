@@ -31,6 +31,7 @@ let rec get_params e =
 %token COLON DOT DOUBLE_ARROW DEF
 %token TERM PROOF CCARR PROP
 %token LPAREN RPAREN EOF
+%token LBRACK COMMA RBRACK REW
 %token TRUE FALSE NOT AND OR IMP EQV ALL EX ISTRUE EQUAL
 
 %token MUSTUSE
@@ -204,6 +205,16 @@ hyp_def:
                               expr,
                               None)) ]
      }
+| env term REW term_simple DOT
+         {                      (* Rewrite rule, assumed to be at term level *)
+           let rec aux = function
+             | [] -> eeq $2 $4
+             | decl :: env -> eall (decl, aux env)
+           in
+           let e = aux $1 in
+           [ (* Phrase.Hyp ("rew", e, 1); *)
+             Phrase.Rew ("rew", e, 0) ]
+         }
 
 compact_args:
 | LPAREN ID COLON typ RPAREN
@@ -214,6 +225,17 @@ compact_args:
            [tvar $2 $4] }
 | LPAREN ID COLON typ RPAREN compact_args
          { (tvar $2 $4) :: $6 }
+
+env_decl:
+| ID COLON typ
+    { tvar $1 $3 }
+env_decls:
+| env_decl { [$1] }
+| env_decl COMMA env_decls { $1 :: $3 }
+env:
+| LBRACK RBRACK { [] }
+| LBRACK env_decls RBRACK { $2 }
+
 
 dep_hyp_def:
 | MUSTUSE hyp_def            { List.map (fun a -> (a, true)) $2 }

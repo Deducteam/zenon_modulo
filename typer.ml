@@ -295,8 +295,6 @@ let definition opts d =
      DefRec (infer_expr opts env e, s, ty, params, typed_body)
 ;;
 
-(* Declarations are encoded as "real definitions" by the parser
-   (currently only parsedk). *)
 (* This function is folded on the list of phrases,
    it removes declarations and return the typed phrases
    in reverse order *)
@@ -307,6 +305,10 @@ let phrase opts l (p, b) =
      (Phrase.Hyp (s, check_expr opts [] type_prop e, n), b) :: l
   | Phrase.Def d ->
      (Phrase.Def (definition opts d), b) :: l
+  | Phrase.Rew (s, e, i) ->
+     let typed_equality = check_expr opts [] type_prop e in
+     Rewrite.add_rwrt_term s typed_equality;
+     (Phrase.Rew (s, typed_equality, i), b) :: l
   | _ -> (p, b) :: l                  (* TODO *)
 ;;
 
