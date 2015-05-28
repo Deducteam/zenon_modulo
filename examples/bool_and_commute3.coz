@@ -1,35 +1,26 @@
 
 %%begin-auto-proof
 %%name: bool_and_commute
+%%begin-type-alias: bool := basics.bool__t %%end-type-alias
 
-bool : cc.uT.
-true : cc.eT bool.
-false : cc.eT bool.
-
-bool_case : dk_logic.eP (
-              dk_logic.forall
-                bool
-                (b : cc.eT bool =>
-                 dk_logic.or
-                   (dk_logic.equal bool b true)
-                   (dk_logic.equal bool b false))).
-
-and : cc.eT (cc.Arrow bool (cc.Arrow bool bool)).
 [ b : cc.eT bool ]
-    and b true --> b.
+    basics._amper__amper_ b basics.true --> b.
 [ b : cc.eT bool ]
-    and true b --> b.
+    basics._amper__amper_ basics.true b --> b.
 [ b : cc.eT bool ]
-    and b false --> false.
+    basics._amper__amper_ b basics.false --> basics.false.
 [ b : cc.eT bool ]
-    and false b --> false.
+    basics._amper__amper_ basics.false b --> basics.false.
 
-
-b1 : cc.eT bool.
-b2 : cc.eT bool.
-
-bool_and_commute : cc.eP (dk_logic.equal bool
-                            (and b1 b2)
-                            (and b2 b1)).
+bool_and_commute : dk_logic.eP (
+                     dk_logic.forall
+                       bool
+                       (b1 : cc.eT bool =>
+                        dk_logic.forall
+                          bool
+                          (b2 : cc.eT bool =>
+                           dk_logic.equal bool
+                             (basics._amper__amper_ b1 b2)
+                             (basics._amper__amper_ b2 b1)))).
 
 %%end-auto-proof
