@@ -88,8 +88,8 @@ To run and test Zenon Modulo:
  - Minimal call
  # zenon_modulo -itptp -b-rwrt ./tff1_examples/file_name.p
 
- - Print proof and rewriting steps
- # zenon_modulo -itptp -b-rwrt -dbg-rwrt -om ./tff1_examples/file_name.p
+ - Print proof and search information
+ # zenon_modulo -itptp -b-rwrt -vv 4 -om ./tff1_examples/file_name.p
 
  - Generate proof certificate for dedukti
  # zenon_modulo -itptp -b-rwrt -odk ./tff1_examples/file_name.p > certificate.dk
