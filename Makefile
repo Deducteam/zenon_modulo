@@ -39,7 +39,7 @@ DOCSRC =
 
 TESTSRC =
 
-OTHERSRC = INSTALL LICENSE Makefile configure .depend
+OTHERSRC = LICENSE Makefile configure .depend
 
 MLSRC = $(SOURCES:%.dummy=)
 
