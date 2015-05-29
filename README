@@ -67,14 +67,17 @@ Remarks:
   >> activate the '-om' flag to print a proof
 
 - To use Zenon Modulo with Dedukti files for FoCaLiZe project
+  >> activate the '-idk' flag to read input in Dedukti format
+  >> activate the '-x focal' flag to load FoCaLiZe extension (for dealing with booleans and pairs)
+  >> activate the '-odkterm' flag to get a Dedukti term as output
 
 ----------------------------------------
 
 Examples:
 
-First, compile Dedukti file modulogic.dk:
+First, compile Dedukti files:
 
-# dkcheck -e cc.dk dk_bool.dk dk_logic.dk modulogic.dk
+$ dkcheck -e cc.dk dk_bool.dk dk_logic.dk dk_tuple.dk basics_minimal.dk modulogic.dk zenon_focal.dk
 
 1/ BWare with TFF1 files
 
@@ -85,17 +88,36 @@ is a Proof Obligation coming from the BWare benchmark.
 To run and test Zenon Modulo:
 
  - Minimal call
- # zenon_modulo -itptp -b-rwrt ./tff1_examples/file_name.p
+ $ zenon_modulo -itptp -b-rwrt ./examples/file_name.p
 
  - Print proof and search information
- # zenon_modulo -itptp -b-rwrt -vv 4 -om ./tff1_examples/file_name.p
+ $ zenon_modulo -itptp -b-rwrt -vv 4 -om ./examples/file_name.p
 
  - Generate proof certificate for dedukti
- # zenon_modulo -itptp -b-rwrt -odk ./tff1_examples/file_name.p > certificate.dk
+ $ zenon_modulo -itptp -b-rwrt -odk ./examples/file_name.p > certificate.dk
 
  - To verify the proof with dedukti
-   # dkcheck certificate.dk
+ $ dkcheck certificate.dk
 
 2/ FoCaLiZe with Dedukti files
+
+An example of a problem written in Dedukti syntax and using the
+FoCaLiZe extension is also given in the ./examples repository
+
+To run it:
+ $ zenon_modulo -idk -x focal ./examples/bool_and_commute.coz -odkterm > bool_and_commute.dk
+
+and then paste the given Dedukti term in a Dedukti file wich contains the problem statement:
+ - bool_and_commute : dk_logic.eP (
+                        dk_logic.forall
+                          bool
+                          (b1 : cc.eT bool =>
+                           dk_logic.forall
+                             bool
+                             (b2 : cc.eT bool =>
+                              dk_logic.equal bool
+                                (basics._amper__amper_ b1 b2)
+                                (basics._amper__amper_ b2 b1))))
+    := <the given term>.
 
 ----------------------------------------
