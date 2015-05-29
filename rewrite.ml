@@ -217,8 +217,8 @@ let rec norm_prop_aux rules fm =
 	then norm_prop_aux tl fm
 	else
 	  begin
-            Log.debug 4 "normalize prop";
-            Log.debug 4 "~~ %a --> %a" Print.pp_expr fm
+            Log.debug 3 "rewrite prop";
+            Log.debug 3 "## %a --> %a" Print.pp_expr fm
                       Print.pp_expr new_fm;
 	    new_fm
 	  end
@@ -254,8 +254,8 @@ let rec norm_term t =
   if not (Expr.equal t new_t)
   then
     begin
-      Log.debug 4 "normalize term";
-      Log.debug 4 "~~ %a --> %a" Print.pp_expr t Print.pp_expr new_t;
+      Log.debug 3 "rewrite term";
+      Log.debug 3 "## %a --> %a" Print.pp_expr t Print.pp_expr new_t;
       norm_term new_t
     end
   else
@@ -287,7 +287,6 @@ let is_literal fm =
 
 
 let rec normalize_fm fm =
-  Log.debug 42 " |- Normalize %a" Print.pp_expr fm;
   if is_literal fm then
     begin
       let fm_t = norm_term fm in
@@ -296,8 +295,8 @@ let rec normalize_fm fm =
       then fm
       else
         begin
-          Log.debug 2 "normalize fm";
-          Log.debug 2 "~ %a --> %a" Print.pp_expr fm Print.pp_expr fm_p;
+          Log.debug 2 "norm fm";
+          Log.debug 2 "# %a --> %a" Print.pp_expr fm Print.pp_expr fm_p;
           normalize_fm fm_p
         end
     end
@@ -509,11 +508,17 @@ let split_to_term_rule body =
 
 let add_rwrt_term name body  =
   let (x, y) = split_to_term_rule body in
+  Log.debug 4 "+ rwrt_term %s: %a --> %a" name
+            Print.pp_expr x
+            Print.pp_expr y;
   Hashtbl.add !Expr.tbl_term (find_first_sym x) (x, y)
 ;;
 
 let add_rwrt_prop name body =
   let (x, y) = split_to_prop_rule body in
+  Log.debug 4 "+ rwrt_prop %s: %a --> %a" name
+            Print.pp_expr x
+            Print.pp_expr y;
   Hashtbl.add !Expr.tbl_prop (find_first_sym x) (x, y)
 ;;
 
@@ -557,5 +562,7 @@ let rec select_rwrt_rules_aux accu phrase =
 ;;
 
 let select_rwrt_rules phrases =
+  Log.debug 2 "====================";
+  Log.debug 2 "Select Rewrite Rules";
   List.rev (List.fold_left select_rwrt_rules_aux [] phrases)
 ;;
