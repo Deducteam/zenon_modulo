@@ -654,14 +654,14 @@ let to_llargs tr_expr r =
      let ptrue = substitute [(var, btrue)] p in
      let pfalse = substitute [(var, bfalse)] p in
      ("zenon_focal_ex_bool",
-      [tr_expr p],
+      [tr_expr (elam (var, p))],
       [tr_expr (eex (var, p))],
       [ [tr_expr ptrue]; [tr_expr pfalse] ])
   | Ext (_, "not_all_bool", [Elam (var, p, _)]) ->
      let ptrue = substitute [(var, btrue)] p in
      let pfalse = substitute [(var, bfalse)] p in
      ("zenon_focal_not_all_bool",
-      [tr_expr p],
+      [tr_expr (elam (var, p))],
       [tr_expr (enot (eall (var, p)))],
       [ [tr_expr (enot ptrue)]; [tr_expr (enot pfalse)] ])
   | Ext (x, y, _) ->
