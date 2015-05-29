@@ -63,9 +63,8 @@ Remarks:
   >> activate the '-b-rwrt' flag to build the rewrite system
   >> activate the '-rwrt' flag to transform more axioms into rewrite rules
   >> activate the '-x arith' flag to use the arithmetic extension
-  >> activate the '-odk' to generate a proof certificate for dedukti
-  >> activate the '-om' to print a proof
-  >> activate the '-dbg-rwrt' to print the rewrite system and rewriting steps
+  >> activate the '-odk' flag to generate a proof certificate for dedukti
+  >> activate the '-om' flag to print a proof
 
 - To use Zenon Modulo with Dedukti files for FoCaLiZe project
 
