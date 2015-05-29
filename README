@@ -50,7 +50,7 @@ Remarks:
   And also with Dedukti syntax
   http://dedukti.gforge.inria.fr/
 
-- Zenon Modulo may produce proof certificats for Dedukti
+- Zenon Modulo may produce proof certificates for Dedukti
   http://dedukti.gforge.inria.fr/
   https://gforge.inria.fr/projects/dedukti/
 
@@ -87,10 +87,10 @@ To run and test Zenon Modulo:
  - Print proof and search information
  $ zenon_modulo -itptp -b-rwrt -vv 4 -om ./examples/file_name.p
 
- - Generate proof certificate for dedukti
+ - Generate proof certificate for Dedukti
  $ zenon_modulo -itptp -b-rwrt -odk ./examples/file_name.p > certificate.dk
 
- - To verify the proof with dedukti
+ - To verify the proof with Dedukti
  $ dkcheck certificate.dk
 
 2/ FoCaLiZe with Dedukti files
