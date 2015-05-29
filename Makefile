@@ -13,6 +13,11 @@ CAMLFLAGS = -warn-error "$(WARN_ERROR)"
 CAMLBINFLAGS = $(CAMLFLAGS) $(BIN_DEBUG_FLAGS)
 CAMLBYTFLAGS = $(CAMLFLAGS) $(BYT_DEBUG_FLAGS)
 
+VERSION_MAJOR = $(shell grep 'let major' versionnum.ml | sed 's/let major = \([0-9]*\);;/\1/')
+VERSION_MINOR = $(shell grep 'let minor' versionnum.ml | sed 's/let minor = \([0-9]*\);;/\1/')
+VERSION_BUGFIX = $(shell grep 'let bugfix' versionnum.ml | sed 's/let bugfix = \([0-9]*\);;/\1/')
+VERSION = $(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_BUGFIX)
+
 # SOURCES specifies both the list of source files and the set of
 # modules in linking order.
 
@@ -175,7 +180,7 @@ checksum.ml: $(IMPL:checksum.ml=)
 dist: $(ALLSRC)
 	mkdir -p dist/zenon_modulo
 	cp $(ALLSRC) dist/zenon_modulo
-	cd dist && tar cf - zenon_modulo | gzip >../zenon_modulo.tar.gz
+	cd dist && tar cf - zenon_modulo | gzip >../zenon_modulo_$(VERSION).tar.gz
 
 .PHONY: doc odoc docdir
 doc docdir:
