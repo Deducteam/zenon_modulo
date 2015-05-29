@@ -108,16 +108,19 @@ To run it:
  $ zenon_modulo -idk -x focal ./examples/bool_and_commute.coz -odkterm > bool_and_commute.dk
 
 and then paste the given Dedukti term in a Dedukti file wich contains the problem statement:
- - bool_and_commute : dk_logic.eP (
+
+#NAME bool_and_commute.
+bool := basics.bool__t.
+bool_and_commute : dk_logic.eP (
+                     dk_logic.forall
+                       bool
+                       (b1 : cc.eT bool =>
                         dk_logic.forall
                           bool
-                          (b1 : cc.eT bool =>
-                           dk_logic.forall
-                             bool
-                             (b2 : cc.eT bool =>
-                              dk_logic.equal bool
-                                (basics._amper__amper_ b1 b2)
-                                (basics._amper__amper_ b2 b1))))
-    := <the given term>.
+                          (b2 : cc.eT bool =>
+                           dk_logic.equal bool
+                             (basics._amper__amper_ b1 b2)
+                             (basics._amper__amper_ b2 b1))))
+ := <the given term>.
 
 ----------------------------------------
