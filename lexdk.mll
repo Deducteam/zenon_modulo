@@ -16,6 +16,7 @@ rule token = parse
 | space { token lexbuf } (* skip blanks *)
 | '\n' { Lexing.new_line lexbuf; token lexbuf }
 | "(;" { comment (pos lexbuf) [] lexbuf }
+| "cc.uT" { TYPE }
 | "cc.eT" { TERM }
 | "cc.eP" { PROOF }
 | "cc.Arrow" { CCARR }

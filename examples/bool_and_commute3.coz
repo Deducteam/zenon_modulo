@@ -3,14 +3,6 @@
 %%name: bool_and_commute
 %%begin-type-alias: bool := basics.bool__t %%end-type-alias
 
-bool_case : dk_logic.eP (
-              dk_logic.forall
-                bool
-                (b : cc.eT bool =>
-                 dk_logic.or
-                   (dk_logic.equal bool b (basics.true))
-                   (dk_logic.equal bool b (basics.false)))).
-
 [ b : cc.eT bool ]
     basics._amper__amper_ b basics.true --> b.
 [ b : cc.eT bool ]
@@ -20,12 +12,15 @@ bool_case : dk_logic.eP (
 [ b : cc.eT bool ]
     basics._amper__amper_ basics.false b --> basics.false.
 
-b1 : cc.eT bool.
-b2 : cc.eT bool.
-
-
-bool_and_commute : cc.eP (dk_logic.equal bool
-                            (basics._amper__amper_ b1 b2)
-                            (basics._amper__amper_ b2 b1)).
+bool_and_commute : dk_logic.eP (
+                     dk_logic.forall
+                       bool
+                       (b1 : cc.eT bool =>
+                        dk_logic.forall
+                          bool
+                          (b2 : cc.eT bool =>
+                           dk_logic.equal bool
+                             (basics._amper__amper_ b1 b2)
+                             (basics._amper__amper_ b2 b1)))).
 
 %%end-auto-proof

@@ -677,11 +677,28 @@ syntactic_equal : A : cc.uT -> cc.eT A -> cc.eT A -> dk_bool.Bool.
 zenon_syntactic_equal : A : cc.uT ->
                         x : cc.eT A ->
                         y : cc.eT A ->
-                        eP (Not (equal x y)) ->
+                        eP (Not (equal A x y)) ->
                         eP (Not (Is_true (syntactic_equal A x y))).
 
 zenon_not_syntactic_equal : A : cc.uT ->
                             x : cc.eT A ->
                             y : cc.eT A ->
-                            eP (NotNot (equal x y)) ->
+                            eP (NotNot (equal A x y)) ->
                             eP (NotNot (Is_true (syntactic_equal A x y))).
+
+zenon_focal_not_all_bool (P : Bool -> Prop)
+                         (h1 : eP (NotNot (P true)))
+                         (h2 : eP (NotNot (P false)))
+                         (hc : eP (Not (dk_logic.forall bool P)))
+:=
+  hc (match
+       (b : Bool => eeP (P b))
+       (zen.nnpp (P true) h1)
+       (zen.nnpp (P false) h2)).
+
+
+zenon_focal_ex_bool : P : (Bool -> Prop) ->
+                      h1 : eP (Not (P true)) ->
+                      h2 : eP (Not (P false)) ->
+                      hc : eP (Not (dk_logic.exists bool P)) ->
+                      eP False.
