@@ -40,11 +40,13 @@ SOURCES = log.ml version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
 
 COQSRC = zenon.v zenon_coqbool.v zenon_equiv.v zenon_induct.v zenon_focal.v zenon_arith.v zenon_arith_reals.v
 
+DKSRC = cc.dk dk_bool.dk dk_logic.dk dk_tuple.dk basics_minimal.dk modulogic.dk zenon_focal.dk
+
 DOCSRC =
 
 TESTSRC =
 
-OTHERSRC = LICENSE Makefile configure .depend
+OTHERSRC = README LICENSE Makefile configure .depend
 
 MLSRC = $(SOURCES:%.dummy=)
 
@@ -53,7 +55,7 @@ MLISRC2 = $(MLISRC1:%.mll=%.mli)
 MLISRC3 = $(MLISRC2:%.dummy=%.mli)
 MLISRC = $(MLISRC3:%.ml=%.mli)
 
-ALLSRC = $(MLSRC) $(MLISRC) $(COQSRC) $(DOCSRC) $(TESTSRC) $(OTHERSRC)
+ALLSRC = $(MLSRC) $(MLISRC) $(COQSRC) $(DKSRC) $(DOCSRC) $(TESTSRC) $(OTHERSRC) examples
 
 
 MODULES1 = $(SOURCES:%.ml=%)
@@ -68,11 +70,15 @@ BINOBJS = $(MODULES:%=%.cmx)
 
 COQOBJ = $(COQSRC:%.v=%.vo)
 
+DKOBJ = $(DKSRC:%.dk=%.dko)
+
 .PHONY: all byt bin coq
 
-all: byt bin zenon_modulo coq
+all: byt bin zenon_modulo coq dk
 
 coq: $(COQOBJ)
+
+dk: $(DKOBJ)
 
 byt: zenon_modulo.byt
 
@@ -101,13 +107,17 @@ install:
 	for i in $(COQOBJ); \
 	  do [ ! -f $$i ] || cp $$i "$(DESTDIR)$(INSTALL_LIB_DIR)/"; \
 	done
+	cp $(DKSRC) "$(DESTDIR)$(INSTALL_LIB_DIR)/"
+	for i in $(DKOBJ); \
+	  do [ ! -f $$i ] || cp $$i "$(DESTDIR)$(INSTALL_LIB_DIR)/"; \
+	done
 
 .PHONY: uninstall
 uninstall:
 	rm -f "$(DESTDIR)$(BIN_DIR)/zenon_modulo$(EXE)"
 	rm -rf "$(DESTDIR)$(LIB_DIR)/zenon_modulo"
 
-.SUFFIXES: .ml .mli .cmo .cmi .cmx .v .vo
+.SUFFIXES: .ml .mli .cmo .cmi .cmx .v .vo .dk .dko
 
 .ml.cmo:
 	$(CAMLBYT) $(CAMLBYTFLAGS) -c $*.ml
@@ -176,10 +186,14 @@ checksum.ml: $(IMPL:checksum.ml=)
 .v.vo:
 	$(COQC) -q $*.v
 
+.dk.dko:
+	$(DKCHECK) -e $*.dk
+
 .PHONY: dist
 dist: $(ALLSRC)
+	rm -rf dist/zenon_modulo
 	mkdir -p dist/zenon_modulo
-	cp $(ALLSRC) dist/zenon_modulo
+	cp -r $(ALLSRC) dist/zenon_modulo
 	cd dist && tar cf - zenon_modulo | gzip >../zenon_modulo_$(VERSION).tar.gz
 
 .PHONY: doc odoc docdir
@@ -191,7 +205,7 @@ clean:
 	cd doc; make clean
 	[ ! -d test ] || (cd test; make clean)
 	rm -f .#*
-	rm -f *.cm* *.o *.vo *.annot *.output *.glob
+	rm -f *.cm* *.o *.vo *.dko *.annot *.output *.glob
 	rm -f parsezen.ml parsezen.mli lexzen.ml
 	rm -f parsetptp.ml parsetptp.mli lextptp.ml
 	rm -f parsecoq.ml parsecoq.mli lexcoq.ml

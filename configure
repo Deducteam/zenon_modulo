@@ -52,6 +52,7 @@ if check convert; then CONVERT=convert; else CONVERT=:; fi
 if check coqc; then COQC=coqc; else COQC=:; fi
 if check coqdep; then COQDEP=coqdep; else COQDEP=:; fi
 if check gs; then GS=gs; else GS=:; fi
+if check dkcheck; then DKCHECK=dkcheck; else DKCHECK=:; fi
 
 for i in sum md5 md5sum md5deep sha1deep sha256deep; do
   if check $i; then SUM=$i; break; fi
@@ -73,6 +74,7 @@ while : ; do
     -libdir | --libdir) LIB_DIR="$2"; shift 2;;
     -convert | --convert) CONVERT="$2"; shift 2;;
     -coqc | --coqc) COQC="$2"; shift 2;;
+    -dkchec | --dkcheck) DKCHECK="$2"; shift 2;;
     -debug | --debug | -enable-debug | --enable-debug) DEBUG=true; shift;;
     -gs | --gs) GS="$2"; shift 2;;
     -nodebug | --nodebug | -disable-debug | --disable-debug)
@@ -88,6 +90,8 @@ while : ; do
        echo "    set absolute path for the \"convert\" command."
        echo "  [-]-coq <executable-file>"
        echo "    set absolute path for the \"coqc\" command."
+       echo "  [-]-dkcheck <executable-file>"
+       echo "    set absolute path for the \"dkcheck\" command."
        echo "  [-]-debug | [-]-enable-debug"
        echo "    enable debugging"
        echo "  [-]-nodebug | [-]-disable-debug"
@@ -140,6 +144,7 @@ echo "CAMLYACC=ocamlyacc" >>.config_var
 echo "CAMLDEP=ocamldep" >>.config_var
 echo "COQC=$COQC" >>.config_var
 echo "COQDEP=$COQDEP" >>.config_var
+echo "DKCHECK=$DKCHECK" >> .config_var
 
 
 # Create the .depend file
