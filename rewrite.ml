@@ -280,11 +280,10 @@ let rec norm_term t =
 
 let is_literal fm =
   match fm with
-  | Eapp(Evar(sym, _), _, _) -> true
-  | Enot(Eapp(Evar(sym, _), _, _), _) -> true
+  | Eapp(Evar _, _, _) -> true
+  | Enot(Eapp(Evar _, _, _), _) -> true
   | _ -> false
 ;;
-
 
 let rec normalize_fm fm =
   if is_literal fm then
@@ -421,7 +420,7 @@ let is_heuri_rwrt_term_aux body =
        match t1, t2 with
        | Eapp _, _ ->
           test_fv (get_fv t1) (get_fv t2)
-          && not (is_empty_list (get_fv t1))
+       (*&& not (is_empty_list (get_fv t1))*)
        | _, _ -> false
      end
   | _ -> false
@@ -531,6 +530,8 @@ let get_rwrt_from_def = function
 ;;
 
 let rec select_rwrt_rules_aux accu phrase =
+(*  Log.debug 4 "select phrase";
+  Log.debug 4 " >> %a" Print.pp_phrase phrase;*)
   match phrase with
   | Hyp (name, body, flag)
        when (flag = 2) || (flag = 1) (*|| (flag = 12) || (flag = 11) *)
@@ -557,7 +558,7 @@ let rec select_rwrt_rules_aux accu phrase =
   | Def d ->
      let (name, body) = get_rwrt_from_def d in
      add_rwrt_term name body;
-     phrase :: accu
+     accu
   | _ -> phrase :: accu
 ;;
 
