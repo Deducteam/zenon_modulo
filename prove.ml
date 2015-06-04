@@ -94,6 +94,7 @@ let add_node_list st ns =
 ;;
 
 let make_inst st m term g =
+  Log.debug 4 "make inst %a with %a" Print.pp_expr m Print.pp_expr term;
   match m with
   | Eall (v, p, _) ->
     let n = Expr.substitute [(v, term)] p in
@@ -1133,12 +1134,28 @@ let newnodes_preunif st fm g _ =
       let f st1 (m, e) = fst (make_inst st1 m e (min g g2)) in
       List.fold_left f st (preunify p fm)
     in
+    if (List.length (Index.find_pos s) > 0)
+    then
+      begin
+        List.iter
+          (fun x -> Log.debug 4 "newnodes_preunif %a with %a"
+                              Print.pp_expr fm Print.pp_expr (fst x))
+          (Index.find_pos s);
+      end;
     List.fold_left do_match st (Index.find_pos s), false
   | Eapp (Evar(s,_), _, _) ->
     let do_match st (p, g2) =
       let f st1 (m, e) = fst (make_inst st1 m e (min g g2)) in
       List.fold_left f st (preunify p fm)
     in
+    if (List.length (Index.find_pos s) > 0)
+    then
+      begin
+        List.iter
+          (fun x -> Log.debug 4 "newnodes_preunif %a with %a"
+                              Print.pp_expr fm Print.pp_expr (fst x))
+          (Index.find_pos s);
+      end;
     List.fold_left do_match st (Index.find_neg s), false
   | _ -> (st, false)
 ;;
