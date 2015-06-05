@@ -178,11 +178,15 @@ pre_typ:
 typ:
 | TERM type_simple { $2 }
 
+declared_or_defined_id:
+| ID { $1 }
+| QID { $1 }
+
 hyp_def:
-| ID COLON TYPE DOT { Typer.declare_constant ($1, type_type); [] }
-| ID COLON PROOF term_simple DOT { [Phrase.Hyp ($1, $4, 1)] }
-| ID COLON TERM type_simple DOT { Typer.declare_constant ($1, $4); [] }
-| ID COLON typ DEF term DOT
+| declared_or_defined_id COLON TYPE DOT { Typer.declare_constant ($1, type_type); [] }
+| declared_or_defined_id COLON PROOF term_simple DOT { [Phrase.Hyp ($1, $4, 1)] }
+| declared_or_defined_id COLON TERM type_simple DOT { Typer.declare_constant ($1, $4); [] }
+| declared_or_defined_id COLON typ DEF term DOT
      { (* Definition without argument.
           We don't add the rewrite rule now because the definition
           has not yet been scoped and typed. *)
@@ -194,7 +198,7 @@ hyp_def:
                               expr,
                               None)) ]
      }
-| ID compact_args COLON typ DEF term DOT
+| declared_or_defined_id compact_args COLON typ DEF term DOT
      { (* Definition with arguments *)
        let (other_params, expr) = get_params $6 in
        let args_tys = List.map get_type $2 in
