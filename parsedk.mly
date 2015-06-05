@@ -102,6 +102,10 @@ qid:
            constants. It would be hard to determine it here
            so we parse them as variables and let the typer
            do the necessary scoping (see Typer.ml) *)
+        (* Also unfold type aliases because types can be passed as arguments
+           to polymorphic functions *)
+     if List.mem_assoc $1 !ty_aliases then
+        List.assoc $1 !ty_aliases else
         tvar_none $1 }
 term_simple:
 | qid { $1 }
