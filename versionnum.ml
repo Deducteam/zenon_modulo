@@ -8,7 +8,7 @@ let date = "2015-05-25";;
 
 let major = 0;;
 let minor = 4;;
-let bugfix = 0;;
+let bugfix = 1;;
 
 let short = sprintf "%d.%d.%d" major minor bugfix;;
 let full = sprintf "%d.%d.%d [a%d] %s" major minor bugfix number date;;
