@@ -30,6 +30,8 @@ rule token = parse
 | "dk_logic.equal" { EQUAL }
 | "dk_logic.forall" { ALL }
 | "dk_logic.exists" { EX }
+| "dk_logic.forall_type" { ALL_TYPE }
+| "dk_logic.exists_type" { EX_TYPE }
 | "dk_logic.eP" { PROOF }
 | "dk_logic.ebP" { ISTRUE }
 | "dk_builtins.prop" { PROP }
