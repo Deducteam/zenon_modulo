@@ -187,10 +187,25 @@ declared_or_defined_id:
 | QID { $1 }
 
 hyp_def:
-| declared_or_defined_id COLON TYPE DOT { Typer.declare_constant ($1, type_type); [] }
-| declared_or_defined_id COLON PROOF term_simple DOT { [Phrase.Hyp ($1, $4, 1)] }
-| declared_or_defined_id COLON TERM type_simple DOT { Typer.declare_constant ($1, $4); [] }
-| declared_or_defined_id COLON typ DEF term DOT
+| ID COLON TYPE DOT { Typer.declare_constant ($1, type_type); [] }
+| QID COLON TYPE DOT { Typer.declare_constant ($1, type_type); [] }
+| ID COLON PROOF term_simple DOT { [Phrase.Hyp ($1, $4, 1)] }
+| QID COLON PROOF term_simple DOT { [Phrase.Hyp ($1, $4, 1)] }
+| ID COLON TERM type_simple DOT { Typer.declare_constant ($1, $4); [] }
+| QID COLON TERM type_simple DOT { Typer.declare_constant ($1, $4); [] }
+| ID COLON typ DEF term DOT
+     { (* Definition without argument.
+          We don't add the rewrite rule now because the definition
+          has not yet been scoped and typed. *)
+       let (other_params, expr) = get_params $5 in
+       [ Phrase.Def (DefReal ($1,
+                              $1,
+                              $3,
+                              other_params,
+                              expr,
+                              None)) ]
+     }
+| QID COLON typ DEF term DOT
      { (* Definition without argument.
           We don't add the rewrite rule now because the definition
           has not yet been scoped and typed. *)
