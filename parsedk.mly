@@ -57,7 +57,7 @@ let rec get_params e =
 
 file:
 | body EOF                       { $1 }
-| proof_head body ENDPROOF EOF   { let (n, l) = $2 in (n, List.rev_append ($1) l) }
+| proof_head body ENDPROOF EOF   { $2 }
 
 body:
 | ID COLON PROOF term_simple DOT
@@ -68,18 +68,18 @@ body:
               { let (n, l) = $2 in (n, List.rev_append ($1) l) }
 
 proof_head:
-| BEGINPROOF proofheaders BEGINNAME proofheaders
-             { $2 @ $4 }
 | BEGINPROOF proofheaders
-             { [] }
+             { () }
 
 proofheaders:
   | /* empty */
-      { [] }
+      { () }
+  | BEGINNAME proofheaders
+      { () }
   | BEGINHEADER proofheaders
-      { $2 }
+      { () }
   | BEGIN_TY ID proofheaders
-      { Typer.declare_constant ($2, type_type); $3 }
+      { Typer.declare_constant ($2, type_type) }
   | BEGIN_TYPEALIAS ID DEF type_simple END_TYPEALIAS proofheaders
       { (* Type aliases are substituted in the parser *)
         (* This does not work because it does not substitute
@@ -87,11 +87,11 @@ proofheaders:
            TODO: give it to the typer. *)
         Log.debug 15 "Registering alias %s := %a"
                   $2 Print.pp_expr $4;
-        ty_aliases := ($2, $4) :: !ty_aliases; $6 }
+        ty_aliases := ($2, $4) :: !ty_aliases }
   | BEGIN_VAR ID COLON typ END_VAR proofheaders
-      { Typer.declare_constant ($2, $4); $6 }
+      { () }
   | BEGIN_HYP ID COLON PROOF term_simple END_HYP proofheaders
-      { $7 }
+      { () }
 
 qid:
 | QID
