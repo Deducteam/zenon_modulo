@@ -32,7 +32,7 @@ let rec get_params e =
 %token TYPE TERM PROOF CCARR PROP
 %token LPAREN RPAREN EOF
 %token LBRACK COMMA RBRACK REW
-%token TRUE FALSE NOT AND OR IMP EQV ALL EX ISTRUE EQUAL
+%token TRUE FALSE NOT AND OR IMP EQV ALL EX ALL_TYPE EX_TYPE ISTRUE EQUAL
 
 %token MUSTUSE
 %token BEGINPROOF
@@ -120,6 +120,10 @@ term_simple:
       { eall (tvar $4 $6, $8)}
 | EX type_simple LPAREN ID COLON typ DOUBLE_ARROW term_simple RPAREN
       { eex (tvar $4 $6, $8)}
+| ALL_TYPE LPAREN ID COLON TYPE DOUBLE_ARROW term_simple RPAREN
+      { eall (tvar $3 type_type, $7)}
+| EX_TYPE LPAREN ID COLON TYPE DOUBLE_ARROW term_simple RPAREN
+      { eex (tvar $3 type_type, $7)}
 | ISTRUE term_simple {eapp (tvar "Is_true" (earrow [mk_const_t "basics.bool__t"] type_prop), [$2])}
 | EQUAL type_simple term_simple term_simple { eeq $3 $4 }
 | LPAREN term RPAREN { $2 }
