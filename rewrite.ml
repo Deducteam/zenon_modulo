@@ -558,7 +558,7 @@ let rec select_rwrt_rules_aux accu phrase =
   | Def d ->
      let (name, body) = get_rwrt_from_def d in
      add_rwrt_term name body;
-     accu
+     phrase :: accu
   | _ -> phrase :: accu
 ;;
 
