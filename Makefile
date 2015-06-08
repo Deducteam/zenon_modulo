@@ -114,8 +114,8 @@ install:
 
 .PHONY: uninstall
 uninstall:
-	rm -f "$(DESTDIR)$(BIN_DIR)/zenon_modulo$(EXE)"
-	rm -rf "$(DESTDIR)$(LIB_DIR)/zenon_modulo"
+	rm -f "$(DESTDIR)$(INSTALL_BIN_DIR)/zenon_modulo$(EXE)"
+	rm -rf "$(DESTDIR)$(INSTALL_LIB_DIR)/zenon_modulo"
 
 .SUFFIXES: .ml .mli .cmo .cmi .cmx .v .vo .dk .dko
 
