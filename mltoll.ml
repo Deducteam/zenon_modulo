@@ -486,58 +486,66 @@ let rec find_diff x f1 f2 =
   assert (not (Expr.equal f1 f2));
   match f1, f2 with
   | Eapp (s1, args1, _), Eapp (s2, args2, _) when compare s1 s2 = 0 ->
-     let (args, l, r) = find_diff_list x args1 args2 in
-     eapp (s1, args), l, r
+     let (args, l, r, x) = find_diff_list x args1 args2 in
+     eapp (s1, args), l, r, x
   | Enot (g1, _), Enot (g2, _) ->
-     let (lam, l, r) = find_diff x g1 g2 in
-     enot (lam), l, r
+     let (lam, l, r, x) = find_diff x g1 g2 in
+     enot (lam), l, r, x
   | Eand (g1, h1, _), Eand (g2, h2, _) ->
      if Expr.equal g1 g2 then begin
-       let (lam, l, r) = find_diff x h1 h2 in
-       eand (g1, lam), l, r
+       let (lam, l, r, x) = find_diff x h1 h2 in
+       eand (g1, lam), l, r, x
      end else begin
-       let (lam, l, r) = find_diff x g1 g2 in
-       eand (lam, h1), l, r
+       let (lam, l, r, x) = find_diff x g1 g2 in
+       eand (lam, h1), l, r, x
      end
   | Eor (g1, h1, _), Eand (g2, h2, _) ->
      if Expr.equal g1 g2 then begin
-       let (lam, l, r) = find_diff x h1 h2 in
-       eor (g1, lam), l, r
+       let (lam, l, r, x) = find_diff x h1 h2 in
+       eor (g1, lam), l, r, x
      end else begin
-       let (lam, l, r) = find_diff x g1 g2 in
-       eor (lam, h1), l, r
+       let (lam, l, r, x) = find_diff x g1 g2 in
+       eor (lam, h1), l, r, x
      end
   | Eimply (g1, h1, _), Eand (g2, h2, _) ->
      if Expr.equal g1 g2 then begin
-       let (lam, l, r) = find_diff x h1 h2 in
-       eimply (g1, lam), l, r
+       let (lam, l, r, x) = find_diff x h1 h2 in
+       eimply (g1, lam), l, r, x
      end else begin
-       let (lam, l, r) = find_diff x g1 g2 in
-       eimply (lam, h1), l, r
+       let (lam, l, r, x) = find_diff x g1 g2 in
+       eimply (lam, h1), l, r, x
      end
   | Eequiv (g1, h1, _), Eand (g2, h2, _) ->
      if Expr.equal g1 g2 then begin
-       let (lam, l, r) = find_diff x h1 h2 in
-       eequiv (g1, lam), l, r
+       let (lam, l, r, x) = find_diff x h1 h2 in
+       eequiv (g1, lam), l, r, x
      end else begin
-       let (lam, l, r) = find_diff x g1 g2 in
-       eequiv (lam, h1), l, r
+       let (lam, l, r, x) = find_diff x g1 g2 in
+       eequiv (lam, h1), l, r, x
      end
   | Eall _, Eall _ -> assert false
   | Eex _, Eex _ -> assert false
   | Etau _, Etau _ -> assert false
   | Elam _, Elam _ -> assert false
-  | _, _ -> x, f1, f2
+  | _, _ ->
+     begin
+       match x with
+       | Evar (vx, _) ->
+          assert (get_type f1 == get_type f2);
+          let x = tvar vx (get_type f1) in
+          x, f1, f2, x
+       | _ -> assert false
+     end
 
 and find_diff_list x l1 l2 =
   match l1, l2 with
   | h1::t1, h2::t2 when Expr.equal h1 h2 ->
-     let args, l, r = find_diff_list x t1 t2 in
-     (h1 :: args), l, r
+     let args, l, r, x = find_diff_list x t1 t2 in
+     (h1 :: args), l, r, x
   | h1::t1, h2::t2 ->
      assert (List.for_all2 Expr.equal t1 t2);
-     let lam, l, r = find_diff x h1 h2 in
-     (lam :: t1), l, r
+     let lam, l, r, x = find_diff x h1 h2 in
+     (lam :: t1), l, r, x
   | _, _ -> assert false
 ;;
 
@@ -550,8 +558,8 @@ let rec get_univ f =
 let get_diff_args folded unfolded =
   let x = Expr.newtvar type_none in
   match find_diff x folded unfolded with
-  | _, Eapp (_, args, _), _ -> args
-  | _, Evar (_, _), _ -> []
+  | _, Eapp (_, args, _), _, _ -> args
+  | _, Evar (_, _), _, _ -> []
   | _ -> assert false
 ;;
 
@@ -1121,7 +1129,7 @@ and translate_pseudo_def_base p def_hyp s args folded unfolded =
        | _ -> assert false
      in
      let x = Expr.newtvar type_none in
-     let (ctx, a, b) = find_diff x folded unfolded in
+     let (ctx, a, b, x) = find_diff x folded unfolded in
      make_cong (elam (x, ctx)) a b n0
   | _ -> assert false
 
@@ -1131,9 +1139,9 @@ and translate_rec_def p eqn s args folded unfolded =
     | _ -> assert false
   in
   let x = Expr.newtvar type_none in
-  let (ctx, a, b) = find_diff x folded unfolded in
+  let (ctx, a, b, x) = find_diff x folded unfolded in
   let p = elam (x, ctx) in
-  let eq = add_argument eqn (mk_tuple args) in
+  let eq = match eqn with None -> etrue | Some eqn -> add_argument eqn (mk_tuple args) in
   make_node [apply p a] (Ext ("recfun", "unfold", [p; a; b; eq]))
             [[apply p b]] [n0]
 ;;

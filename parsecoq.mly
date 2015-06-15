@@ -408,7 +408,7 @@ hyp_def:
       }
   | FUNCTION IDENT compact_args COLON_ typ LBRACE_ expr RBRACE_ COLON_EQ_
     expr PERIOD_
-      { Def (DefRec ($7, $2, $5, $3, $10)) }
+      { Def (DefRec (Some $7, $2, $5, $3, $10)) }
   | INDUCTIVE IDENT binding_list COLON_ typ COLON_EQ_ constr_list PERIOD_
       { mk_inductive $2 $5 $3 $7 }
 ;

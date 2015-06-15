@@ -41,7 +41,7 @@ and private_info = {
 type definition =
   | DefReal of string * string * expr * expr list * expr * string option
   | DefPseudo of (expr * int) * string * expr * expr list * expr
-  | DefRec of expr * string * expr * expr list * expr
+  | DefRec of expr option * string * expr * expr list * expr
 ;;
 
 type rwrt_tbl = (string, expr * expr) Hashtbl.t;;
