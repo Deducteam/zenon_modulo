@@ -526,7 +526,7 @@ let get_rwrt_from_def = function
      (name, eeq (eapp (tvar id ty, args)) body)
   | DefPseudo (_, id, ty, args, body) ->
      ("pseudoDef_"^id, eeq (eapp (tvar id ty, args)) body)
-  | DefRec _ -> failwith "Recursive definitions not supported"
+  | DefRec _ -> assert false   (* This case has been filtered out in select_rwrt_rules_aux *)
 ;;
 
 let rec select_rwrt_rules_aux accu phrase =
@@ -555,6 +555,9 @@ let rec select_rwrt_rules_aux accu phrase =
 
        else phrase :: accu;
      end
+  | Def (DefRec _) ->
+     (* Recursive definitions are not turned into rewrite-rules (yet) *)
+     phrase :: accu
   | Def d ->
      let (name, body) = get_rwrt_from_def d in
      add_rwrt_term name body;

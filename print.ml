@@ -200,8 +200,11 @@ let phrase o ph =
       print_list (buf o) print_var " " args;
       pro ") ";
       expr o e;
-      pro " ";
-      expr o eqn;
+      begin
+        match eqn with
+        | None -> ()
+        | Some eqn -> pro " "; expr o eqn
+      end;
       pro "\n";
   | Phrase.Def (DefPseudo ((hyp, prio), s, ty, args, e)) ->
       pro "#pseudo-def: ";

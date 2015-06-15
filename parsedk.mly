@@ -35,6 +35,7 @@ let rec get_params e =
 %token TRUE FALSE NOT AND OR IMP EQV ALL EX ALL_TYPE EX_TYPE ISTRUE EQUAL
 
 %token MUSTUSE
+%token RECURSIVE
 %token BEGINPROOF
 %token BEGIN_TYPEALIAS
 %token BEGIN_TY
@@ -232,6 +233,17 @@ hyp_def:
                               $2 @ other_params,
                               expr,
                               None)) ]
+     }
+| RECURSIVE declared_or_defined_id compact_args COLON typ DEF term DOT
+     { (* Recursive definition *)
+       let (other_params, expr) = get_params $7 in
+       let args_tys = List.map get_type $3 in
+       let ty = earrow args_tys $5 in
+       [ Phrase.Def (DefRec (None,
+                             $2,
+                             ty,
+                             $3 @ other_params,
+                             expr)) ]
      }
 | env term REW term_simple DOT
          {                      (* Rewrite rule, assumed to be at term level *)

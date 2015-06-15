@@ -813,6 +813,22 @@ let rec trproof_dk p =
 	let conc1 = get_pr_var (apply p t1) in
 	let conc2 = get_pr_var (eeq t2 t1) in
 	mk_DkRcongrl (a, dkp, dkt1, dkt2, lam, conc1, conc2)
+     | Rextension (_, "zenon_recfun_unfold", _, [conc], [[hyp]]) ->
+        (* For recursive definitions, we assume that conc and hyp
+           are convertible in Dedukti. We just print the eta-expanded
+           form of the subtree *)
+        begin
+          match phyps with
+          | [phyp] ->
+	     let prp = mk_pr_var hyp in
+	     let sub = trproof_dk phyp in
+	     let lam = mk_lam (prp, sub) in
+	     let tr_conc = get_pr_var conc in
+             (* Hack for applying the lambda *)
+             mk_app ("", mk_typeiota, [lam; tr_conc])
+          | _ -> assert false
+        end
+
      | Rextension (ext, name, args, concs, hyps) ->
 
         assert (List.for_all exists_in_context concs);

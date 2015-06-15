@@ -49,13 +49,14 @@ rule token = parse
 | "-->" { REW }
 
 | "(;_MUST_USE_;)"        { MUSTUSE }
+| "%recursive"            { RECURSIVE }
 
 | "%%begin-auto-proof"                      { BEGINPROOF }
 | "%%type:"                                 { BEGIN_TY }
 | "%%begin-type-alias:"                     { BEGIN_TYPEALIAS }
 | "%%begin-variable:"                       { BEGIN_VAR }
 | "%%begin-hypothesis:"                     { BEGIN_HYP }
-| "%%end-type-alias"                       { END_TYPEALIAS }
+| "%%end-type-alias"                        { END_TYPEALIAS }
 | "%%end-variable"                          { END_VAR }
 | "%%end-hypothesis"                        { END_HYP }
 | "%%name:" space* (id as name) space*      { BEGINNAME name }

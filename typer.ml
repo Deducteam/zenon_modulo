@@ -291,8 +291,10 @@ let definition opts d =
      DefReal (name, ident, ty, params, typed_body, decarg)
   | DefPseudo ((e, n), s, ty, params, body) ->
      DefPseudo ((infer_expr opts env e, n), s, ty, params, typed_body)
-  | DefRec (e, s, ty, params, body) ->
-     DefRec (infer_expr opts env e, s, ty, params, typed_body)
+  | DefRec (None, s, ty, params, body) ->
+     DefRec (None, s, ty, params, typed_body)
+  | DefRec (Some e, s, ty, params, body) ->
+     DefRec (Some (infer_expr opts env e), s, ty, params, typed_body)
 ;;
 
 (* This function is folded on the list of phrases,

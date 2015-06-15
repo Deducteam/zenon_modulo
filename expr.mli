@@ -30,7 +30,7 @@ type definition =
   | DefReal of string * string * expr * expr list * expr * string option
      (* definition-name, defined-ident, type, params, body, decreasing-arg *)
   | DefPseudo of (expr * int) * string * expr * expr list * expr
-  | DefRec of expr * string * expr * expr list * expr
+  | DefRec of expr option * string * expr * expr list * expr
 ;;
 
 (* Exceptions *)
