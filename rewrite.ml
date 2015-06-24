@@ -122,10 +122,9 @@ exception Unif_failed;;
 
 let rec unif_aux l e1 e2 =
   match e1, e2 with
-
     | Evar (_, _), _ ->
       if  not(mem_assoc_expr e1 l) then (e1, e2)::l
-      else if (assoc_expr e1 l) = e2 then l
+      else if (Expr.equal (assoc_expr e1 l) e2) then l
       else raise Unif_failed
 
     | Eapp (f1, args1, _), Eapp (f2, args2, _) when (Expr.equal f1 f2)

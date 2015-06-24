@@ -746,7 +746,7 @@ and substitute_unsafe map e =
           else
             tvar (get_name v) t
       in
-      if v <> nv then
+      if not (equal v nv) then
         f (nv, substitute_unsafe ((v, nv) :: map1) body)
       else
         f (v, substitute_unsafe map1 body)
