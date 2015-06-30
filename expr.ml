@@ -6,6 +6,7 @@ open Namespace;;
 
 let ( =%= ) = ( = );;
 let ( = ) = ();;
+let ( <> ) = ();;
 
 type expr =
   | Evar of string * private_info
@@ -635,7 +636,7 @@ let preunify_list l1 l2 =
 
 let occurs_as_meta e f = List.exists ((==) e) (get_metas f);;
 let size = get_size;;
-let has_metas e = get_metas e <> [];;
+let has_metas e = not (get_metas e =%= []);;
 let count_metas e = List.length (get_metas e);;
 
 let cursym = ref (Bytes.of_string var_prefix)
