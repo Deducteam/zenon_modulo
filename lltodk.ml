@@ -1184,9 +1184,9 @@ let output oc phrases llp =
   List.iter (add_sym_graph dep_graph) dksigs;
   let dksigs = topo_sort dep_graph in
   let dkctx = mk_prf_var_def phrases in
-  let rules = Hashtbl.fold (fun x y z -> y :: z) !tbl_term [] in
+  let rules = Hashtbl.fold (fun x y z -> (snd y) :: z) !tbl_term [] in
   let rules = List.append rules
-			  (Hashtbl.fold (fun x y z -> y :: z) !tbl_prop []) in
+			  (Hashtbl.fold (fun x y z -> (snd y) :: z) !tbl_prop []) in
   let dkrules = List.map build_dkrwrt rules in
   let (name, goal) = List.split (select_goal phrases) in
   let dkgoal = trexpr_dkgoal goal in

@@ -28,3 +28,5 @@ val build_rwrt_sys_B : bool ref;;
 val build_rwrt_sys_casc : bool ref;;
 
 val debug_rwrt : bool ref;;
+
+val use_b_rwrt : int ref;;

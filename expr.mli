@@ -178,7 +178,7 @@ exception Unsplitable;;
 val split_list : int -> expr list -> expr list * expr list;;
 val get_tvar : expr -> expr list;;
 
-type rwrt_tbl = (string, expr * expr) Hashtbl.t;;
+type rwrt_tbl = (string, string * (expr * expr)) Hashtbl.t;;
 type rwrt_tbls = rwrt_tbl * rwrt_tbl;;
 
 val tbl_term : rwrt_tbl ref;;

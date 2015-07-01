@@ -45,7 +45,7 @@ type definition =
   | DefRec of expr option * string * expr * expr list * expr
 ;;
 
-type rwrt_tbl = (string, expr * expr) Hashtbl.t;;
+type rwrt_tbl = (string, string * (expr * expr)) Hashtbl.t;;
 type rwrt_tbls = rwrt_tbl * rwrt_tbl;;
 
 

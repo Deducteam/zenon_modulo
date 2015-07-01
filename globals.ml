@@ -28,3 +28,5 @@ let build_rwrt_sys_B = ref false;;
 let build_rwrt_sys_casc = ref false;;
 
 let debug_rwrt = ref false;;
+
+let use_b_rwrt = ref 0;;

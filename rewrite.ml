@@ -20,6 +20,45 @@ let rec find_first_sym t =
     | _ -> ""
 ;;
 
+let b_set_rwrt = [
+  "infix_eqeq_def";
+  "subset_def";
+  "subsetnoteq_def";
+  "empty1";
+  "mem_singleton";
+  "all_def";
+  "mem_union";
+  "mem_inter";
+  "mem_diff";
+  "mem_b_bool";
+  "mem_times";
+  "mem_power";
+  "mem_relation";
+  "mem_inverse";
+  "mem_dom";
+  "mem_ran";
+  "mem_semicolon";
+  "mem_id";
+  "mem_domain_restriction";
+  "mem_range_restriction";
+  "mem_domain_substraction";
+  "mem_range_substraction";
+  "mem_image";
+  "mem_overriding";
+  "mem_direct_product";
+  "mem_proj_op_1";
+  "mem_proj_op_2";
+  "mem_parallel_product";
+  "mem_partial_function_set";
+  "mem_total_function_set";
+  "mem_partial_injection_set";
+  "mem_total_injection_set";
+  "mem_partial_surjection_set";
+  "mem_total_surjection_set";
+  "mem_partial_bijection_set";
+  "mem_total_bijection_set"
+];;
+
 let b_axiom_to_rwrt_prop = [
   "infix_eqeq_def";
   "subset_def";
@@ -209,15 +248,19 @@ let rec rewrite_prop (l, r) p =
 let rec norm_prop_aux rules fm =
   match rules with
     | [] -> fm
-    | (l, r) :: tl ->
+    | (name, (l, r)) :: tl ->
       begin
 	let new_fm = rewrite_prop (l, r) fm in
 	if (Expr.equal fm new_fm)
 	then norm_prop_aux tl fm
 	else
 	  begin
-            Log.debug 3 "rewrite prop";
-            Log.debug 3 "## %a --> %a" Print.pp_expr fm
+            if (List.mem name b_set_rwrt)
+            then incr Globals.use_b_rwrt;
+            Log.debug 1 "rewrite prop";
+            Log.debug 1 "## %s : %a --> %a"
+                      name
+                      Print.pp_expr fm
                       Print.pp_expr new_fm;
 	    new_fm
 	  end
@@ -241,7 +284,7 @@ let rec rewrite_term (l, r) p =
 let rec norm_term_aux rules t =
   match rules with
     | [] -> t
-    | (l, r) :: tl ->
+    | (_, (l, r)) :: tl ->
       norm_term_aux tl (rewrite_term (l, r) t)
 ;;
 
@@ -253,8 +296,8 @@ let rec norm_term t =
   if not (Expr.equal t new_t)
   then
     begin
-      Log.debug 3 "rewrite term";
-      Log.debug 3 "## %a --> %a" Print.pp_expr t Print.pp_expr new_t;
+      Log.debug 1 "rewrite term";
+      Log.debug 1 "## %a --> %a" Print.pp_expr t Print.pp_expr new_t;
       norm_term new_t
     end
   else
@@ -293,8 +336,8 @@ let rec normalize_fm fm =
       then fm
       else
         begin
-          Log.debug 2 "norm fm";
-          Log.debug 2 "# %a --> %a" Print.pp_expr fm Print.pp_expr fm_p;
+(*          Log.debug 1 "norm fm";
+          Log.debug 1 "# %a --> %a" Print.pp_expr fm Print.pp_expr fm_p;*)
           normalize_fm fm_p
         end
     end
@@ -506,18 +549,18 @@ let split_to_term_rule body =
 
 let add_rwrt_term name body  =
   let (x, y) = split_to_term_rule body in
-  Log.debug 4 "+ rwrt_term %s: %a --> %a" name
+  Log.debug 1 "+ rwrt_term %s: %a --> %a" name
             Print.pp_expr x
             Print.pp_expr y;
-  Hashtbl.add !Expr.tbl_term (find_first_sym x) (x, y)
+  Hashtbl.add !Expr.tbl_term (find_first_sym x) (name, (x, y))
 ;;
 
 let add_rwrt_prop name body =
   let (x, y) = split_to_prop_rule body in
-  Log.debug 4 "+ rwrt_prop %s: %a --> %a" name
+  Log.debug 1 "+ rwrt_prop %s: %a --> %a" name
             Print.pp_expr x
             Print.pp_expr y;
-  Hashtbl.add !Expr.tbl_prop (find_first_sym x) (x, y)
+  Hashtbl.add !Expr.tbl_prop (find_first_sym x) (name, (x, y))
 ;;
 
 let get_rwrt_from_def = function
@@ -565,7 +608,7 @@ let rec select_rwrt_rules_aux accu phrase =
 ;;
 
 let select_rwrt_rules phrases =
-  Log.debug 2 "====================";
-  Log.debug 2 "Select Rewrite Rules";
+  Log.debug 1 "====================";
+  Log.debug 1 "Select Rewrite Rules";
   List.rev (List.fold_left select_rwrt_rules_aux [] phrases)
 ;;

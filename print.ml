@@ -878,10 +878,10 @@ let pr_def b d =
   | DefPseudo (_, _, _, _, e) -> pp_expr b e;
 ;;
 
-let print_rwrt_rule o key (l, r) =
+let print_rwrt_rule o key (name, (l, r)) =
   let pr f = oprintf o f in
   let pr_expr e = expr_soft o e in
-  pr "%s : " key;
+  pr "%s with Key %s " name key;
   pr_expr l; pr "  -->  ";
   pr_expr r; pr "\n";
 ;;
