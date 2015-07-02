@@ -475,14 +475,19 @@ let main () =
      retcode := 13;
      if not !quiet_flag then printf "(* NO-PROOF *)\n";
   end;
-  if !stats_flag then begin
+(*  if !stats_flag then begin
     eprintf "nodes searched: %d\n" !Globals.inferences;
     eprintf "max branch formulas: %d\n" !Globals.top_num_forms;
     eprintf "proof nodes created: %d\n" !Globals.proof_nodes;
     eprintf "formulas created: %d\n" !Globals.num_expr;
     eprintf "\n";
     (*Gc.print_stat stderr;*)
+                   end;*)
+    if !stats_flag then begin
+    eprintf "%d\n" !Globals.proof_nodes;
+    (*Gc.print_stat stderr;*)
   end;
+
   do_exit !retcode
 ;;
 
