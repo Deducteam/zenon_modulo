@@ -1,5 +1,5 @@
 2015.05.25
-README file for Zenon Modulo 0.4.0
+README file for Zenon Modulo 0.4.1
 
 ----------------------------------------
 
@@ -48,6 +48,7 @@ Remarks:
 - Proceedings about Zenon Modulo may be found here
   http://hal.inria.fr/hal-00909784
   http://hal.inria.fr/hal-00909688
+  http://hal.inria.fr/hal-01171360
 
 - Zenon Modulo accepts input files with the TPTP syntax (FOF and TFF1)
   http://www.cs.miami.edu/~tptp/
