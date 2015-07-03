@@ -55,7 +55,7 @@ exception Ill_typed_substitution of (expr * expr) list;;
 let defs = ref ([] : (string * expr) list)
 let add_defs l =
     defs := l @ !defs
-let get_defs () = !defs
+let get_defs () = List.rev !defs
 
 (************************)
 (* small sets of formulas (represented as lists) *)
