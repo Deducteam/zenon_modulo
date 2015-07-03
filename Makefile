@@ -195,7 +195,7 @@ dist: $(ALLSRC)
 	rm -rf dist/zenon_modulo
 	mkdir -p dist/zenon_modulo
 	cp -r $(ALLSRC) dist/zenon_modulo
-	cd dist && tar cf - zenon_modulo | gzip >../zenon_modulo_$(VERSION).tar.gz
+	cd dist && tar cf - zenon_modulo | gzip >../zenon_modulo_focalide_$(VERSION).tar.gz
 
 .PHONY: doc odoc docdir
 doc docdir:
