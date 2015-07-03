@@ -283,6 +283,7 @@ let parse_file f =
           let pp = Filename.parent_dir_name in
           let upup = Filename.concat (Filename.concat d pp) pp in
           let incpath = List.rev (upup :: d :: !include_path) in
+          Log.debug 15 "TPTP.translate...";
           let (forms, name) = Tptp.translate incpath tpphrases in
           let forms = Typetptp.typecheck forms in
           (name, List.map (fun x -> (x, false)) forms)
@@ -387,9 +388,9 @@ let main () =
         retcode := 12;
     if not !quiet_flag then begin
       if is_open then
-        printf "(* NO-PROOF *)\n"
+        printf "%% SZS status Unknown for %s\n" file
       else
-        printf "(* PROOF-FOUND *)\n";
+        printf "%% SZS status Theorem for %s\n" file;
       flush stdout
       end;
     let llp = lazy (optim (Extension.postprocess
@@ -404,8 +405,10 @@ let main () =
         Print.llproof (Print.Chan stdout) lxp;
     | Proof_l -> Print.llproof (Print.Chan stdout) (Lazy.force llp);
     | Proof_coq ->
+        printf "%% SZS output start Proof for %s\n" file;
         let u = Lltocoq.output stdout phrases ppphrases (Lazy.force llp) in
         Watch.warn phrases_dep llp u;
+        printf "%% SZS output end Proof for %s\n" file
     | Proof_coqterm ->
         let (p, u) = Coqterm.trproof phrases ppphrases (Lazy.force llp) in
         Coqterm.print stdout p;
@@ -419,10 +422,10 @@ let main () =
   with
   | Prove.NoProof ->
      retcode := 12;
-     if not !quiet_flag then printf "(* NO-PROOF *)\n";
+     if not !quiet_flag then printf "%% SZS status Unknown for %s\n" file;
   | Prove.LimitsExceeded ->
      retcode := 13;
-     if not !quiet_flag then printf "(* NO-PROOF *)\n";
+     if not !quiet_flag then printf "%% SZS status Unknown for %s\n" file;
   end;
   if !stats_flag then begin
     eprintf "nodes searched: %d\n" !Globals.inferences;
@@ -459,8 +462,6 @@ let do_main () =
                                                      (Print.sexpr_t y))
                                      map))
                         s;
-
-  (*
   | e -> eprintf "Zenon error: uncaught exception %s\n" (Printexc.to_string e);
-         do_exit 14; *)
+         do_exit 14;
 ;;

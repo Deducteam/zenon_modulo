@@ -88,6 +88,8 @@ let rec p_binding oc v =
 and p_expr oc e =
   let poc fmt = fprintf oc fmt in
   match e with
+  | _ when Expr.equal e Expr.type_type ->
+      poc "Type"
   | Evar (v, _) as var when Mltoll.is_meta v ->
       poc "%s" (Coqterm.synthesize (get_type var));
   | Evar (v, _) ->
