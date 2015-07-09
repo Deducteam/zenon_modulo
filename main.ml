@@ -21,10 +21,10 @@ let proof_level = ref Proof_none;;
 let default_depth = 100;;
 
 type open_level =
-    | Open_none
-    | Open_all
-    | Open_first of int
-    | Open_last of int
+  | Open_none
+  | Open_all
+  | Open_first of int
+  | Open_last of int
 ;;
 let keep_open = ref Open_none;;
 
@@ -102,107 +102,107 @@ let usage_msg = "Usage: zenon [options] <file>";;
 
 let argspec = [
   "-", Arg.Unit (fun () -> input_file "-"),
-    "                  read input from stdin";
+  "                  read input from stdin";
   "-context", Arg.Set ctx_flag,
-           "           provide context for checking the proof independently";
+  "           provide context for checking the proof independently";
   "-d", Arg.Unit (fun () -> Globals.debug_flag := true;
-                            Progress.level := Progress.No),
-     "                 debug mode";
+                   Progress.level := Progress.No),
+  "                 debug mode";
   "-errmsg", Arg.String Error.set_header,
-          "<message>   prefix warnings and errors with <message>";
+  "<message>   prefix warnings and errors with <message>";
   "-I", Arg.String (fun x -> include_path := x :: !include_path),
-     " <dir>           add <dir> to the include path";
+  " <dir>           add <dir> to the include path";
   "-I-", Arg.Unit (fun () -> include_path := []),
-      "                clear the include path";
+  "                clear the include path";
   "-icoq", Arg.Unit (fun () -> input_format := I_focal),
-        "              read input file in Coq format";
+  "              read input file in Coq format";
   "-ifocal", Arg.Unit (fun () -> input_format := I_focal),
-          "            read input file in Focal format";
+  "            read input file in Focal format";
   "-itptp", Arg.Unit (fun () -> input_format := I_tptp),
-         "             read input file in TPTP format";
+  "             read input file in TPTP format";
   "-iz", Arg.Unit (fun () -> input_format := I_zenon),
-      "                read input file in Zenon format (default)";
+  "                read input file in Zenon format (default)";
   "-k", Arg.Unit (fun () -> keep_open := Open_last 0),
-     "                 use incomplete proof attempts to instanciate";
+  "                 use incomplete proof attempts to instanciate";
   "-kall", Arg.Unit (fun () -> keep_open := Open_all),
-        "              keep all incomplete proof attempts";
+  "              keep all incomplete proof attempts";
   "-kf", Arg.Int (fun n -> keep_open := Open_first n),
-      "<n>             keep the first <n> proof attempts";
+  "<n>             keep the first <n> proof attempts";
   "-kl", Arg.Int (fun n -> keep_open := Open_last n),
-      "<n>             keep the last <n> proof attempts";
+  "<n>             keep the last <n> proof attempts";
   "-loadpath", Arg.Set_string load_path,
-    sprintf "          path to Zenon's coq libraries (default %s)"
-            Config.libdir;
+  sprintf "          path to Zenon's coq libraries (default %s)"
+    Config.libdir;
   "-max", Arg.String parse_size_time,
-       "<s>[kMGT]/<i>[kMGT]/<t>[smhd] set size, step, and time limits"
-       ^ " (see below)";
+  "<s>[kMGT]/<i>[kMGT]/<t>[smhd] set size, step, and time limits"
+  ^ " (see below)";
   "-max-size", Arg.String (int_arg size_limit),
-            "<s>[kMGT] limit heap size to <s> kilo/mega/giga/tera byte"
-            ^ " (1G)";
+  "<s>[kMGT] limit heap size to <s> kilo/mega/giga/tera byte"
+  ^ " (1G)";
   "-max-step", Arg.String (int_arg step_limit),
-            "<i>[kMGT] limit number of steps to <i> kilo/mega/giga/tera"
-            ^ " (10k)";
+  "<i>[kMGT] limit number of steps to <i> kilo/mega/giga/tera"
+  ^ " (10k)";
   "-max-time", Arg.String (int_arg time_limit),
-            "<t>[smhd] limit CPU time to <t> second/minute/hour/day"
-            ^ " (5m)";
+  "<t>[smhd] limit CPU time to <t> second/minute/hour/day"
+  ^ " (5m)";
   "-ocoq", Arg.Unit (fun () -> namespace_flag := true; proof_level := Proof_coq),
-        "              print the proof in Coq script format (force -rename)";
+  "              print the proof in Coq script format (force -rename)";
   "-ocoqterm", Arg.Unit (fun () -> proof_level := Proof_coqterm),
-            "          print the proof in Coq term format";
+  "          print the proof in Coq term format";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
-      "<n>             print the proof in high-level format up to depth <n>";
+  "<n>             print the proof in high-level format up to depth <n>";
   "-oisar", Arg.Unit (fun () -> proof_level := Proof_isar),
-         "             print the proof in Isar format";
+  "             print the proof in Isar format";
   "-ol", Arg.Unit (fun () -> proof_level := Proof_l),
-      "                print the proof in low-level format";
+  "                print the proof in low-level format";
   "-olx", Arg.Unit (fun () -> proof_level := Proof_lx),
-       "               print the proof in raw low-level format";
+  "               print the proof in raw low-level format";
   "-om", Arg.Unit (fun () -> proof_level := Proof_m),
-      "                print the proof in middle-level format";
+  "                print the proof in middle-level format";
   "-onone", Arg.Unit (fun () -> proof_level := Proof_none),
-         "             do not print the proof (default)";
+  "             do not print the proof (default)";
   "-odot", Arg.Unit (fun () -> proof_level := Proof_dot (true, default_depth)),
-        "              print the proof in dot format (use with -q option)";
+  "              print the proof in dot format (use with -q option)";
   "-odotd", Arg.Int (fun n -> proof_level := Proof_dot (true, n)),
-         "             print the proof in dot format (use with -q option)(less verbose)";
+  "             print the proof in dot format (use with -q option)(less verbose)";
   "-odotl", Arg.Int (fun n -> proof_level := Proof_dot (false, n)),
-         "             print the proof in dot format (use with -q option)(less verbose)";
+  "             print the proof in dot format (use with -q option)(less verbose)";
   "-opt0", Arg.Unit (fun () -> opt_level := 0),
-        "              do not optimise the proof";
+  "              do not optimise the proof";
   "-opt1", Arg.Unit (fun () -> opt_level := 1),
-        "              do peephole optimisation of the proof (default)";
+  "              do peephole optimisation of the proof (default)";
   "-p0", Arg.Unit (fun () -> Progress.level := Progress.No),
-      "                turn off progress bar and progress messages";
+  "                turn off progress bar and progress messages";
   "-p1", Arg.Unit (fun () -> Progress.level := Progress.Bar),
-      "                display progress bar (default)";
+  "                display progress bar (default)";
   "-p2", Arg.Unit (fun () -> Progress.level := Progress.Msg),
-      "                display progress messages";
+  "                display progress messages";
   "-q", Arg.Set quiet_flag,
-     "                 suppress proof-found/no-proof/begin-proof/end-proof";
+  "                 suppress proof-found/no-proof/begin-proof/end-proof";
   "-rename", Arg.Set namespace_flag,
-          "            prefix all input symbols to avoid clashes";
+  "            prefix all input symbols to avoid clashes";
   "-rnd", Arg.Int set_random,
-       "<seed>         randomize proof search";
+  "<seed>         randomize proof search";
   "-stats", Arg.Set stats_flag,
-         "             print statistics";
+  "             print statistics";
   "-short", Arg.Set short_flag,
-         "             output a less detailed proof";
+  "             output a less detailed proof";
   "-use-all", Arg.Set use_all_flag,
-           "           output a proof that uses all the hypotheses";
+  "           output a proof that uses all the hypotheses";
   "-v", Arg.Unit short_version,
-     "                 print version string and exit";
+  "                 print version string and exit";
   "-vv", Arg.Int Log.set_debug,
-      "                set the verbose level for debug output (default 0)";
+  "                set the verbose level for debug output (default 0)";
   "-versions", Arg.Unit cvs_version,
-            "          print CVS version strings and exit";
+  "          print CVS version strings and exit";
   "-w", Arg.Clear Error.warnings_flag,
-     "                 suppress warnings";
+  "                 suppress warnings";
   "-where", Arg.Unit print_libdir,
-         "             print the location of the zenon library and exit";
+  "             print the location of the zenon library and exit";
   "-wout", Arg.Set_string Error.err_file,
-        "<file>        output errors and warnings to <file> instead of stderr";
+  "<file>        output errors and warnings to <file> instead of stderr";
   "-x", Arg.String Extension.activate,
-     "<ext>            activate extension <ext>"
+  "<ext>            activate extension <ext>"
 ];;
 
 let print_usage () =
@@ -228,10 +228,10 @@ let make_lexbuf stdin_opt f =
   in
   let lexbuf = Lexing.from_channel chan in
   lexbuf.Lexing.lex_curr_p <- {
-     Lexing.pos_fname = name;
-     Lexing.pos_lnum = 1;
-     Lexing.pos_bol = 0;
-     Lexing.pos_cnum = 0;
+    Lexing.pos_fname = name;
+    Lexing.pos_lnum = 1;
+    Lexing.pos_bol = 0;
+    Lexing.pos_cnum = 0;
   };
   (lexbuf, fun () -> close chan)
 ;;
@@ -251,22 +251,22 @@ let rec expand_includes incpath zphrases =
     | Phrase.Zsig (s, l, t) -> [Phrase.Sig (s, l, t)]
     | Phrase.Zinductive (s, a, l, sc) -> [Phrase.Inductive (s, a, l, sc)]
     | Phrase.Zinclude f ->
-       begin
-         let rec loop l =
-           match l with
-           | [] ->
-              eprintf "include file not found: %s\n" f;
-              do_exit 15;
-           | h::t ->
-              let pf = try Some (zparse_file (Filename.concat h f))
-                       with _ -> None
-              in
-              match pf with
-              | Some p -> expand_includes incpath p
-              | None -> loop t
-         in
-         loop incpath
-       end
+      begin
+        let rec loop l =
+          match l with
+          | [] ->
+            eprintf "include file not found: %s\n" f;
+            do_exit 15;
+          | h::t ->
+            let pf = try Some (zparse_file (Filename.concat h f))
+              with _ -> None
+            in
+            match pf with
+            | Some p -> expand_includes incpath p
+            | None -> loop t
+        in
+        loop incpath
+      end
   in
   List.concat (List.map exp zphrases)
 ;;
@@ -277,47 +277,47 @@ let parse_file f =
     try
       match !input_format with
       | I_tptp ->
-          let tpphrases = Parsetptp.file Lextptp.token lexbuf in
-          closer ();
-          let d = Filename.dirname f in
-          let pp = Filename.parent_dir_name in
-          let upup = Filename.concat (Filename.concat d pp) pp in
-          let incpath = List.rev (upup :: d :: !include_path) in
-          Log.debug 15 "TPTP.translate...";
-          let (forms, name) = Tptp.translate incpath tpphrases in
-          let forms = Typetptp.typecheck forms in
-          (name, List.map (fun x -> (x, false)) forms)
+        let tpphrases = Parsetptp.file Lextptp.token lexbuf in
+        closer ();
+        let d = Filename.dirname f in
+        let pp = Filename.parent_dir_name in
+        let upup = Filename.concat (Filename.concat d pp) pp in
+        let incpath = List.rev (upup :: d :: !include_path) in
+        Log.debug 15 "TPTP.translate...";
+        let (forms, name) = Tptp.translate incpath tpphrases in
+        let forms = Typetptp.typecheck forms in
+        (name, List.map (fun x -> (x, false)) forms)
       | I_focal ->
-          let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
-          closer ();
-          let typer_options =
-            { Typer.default_type = Expr.type_none;
-              Typer.scope_warnings = true;
-              Typer.undeclared_functions_warning = true;
-              Typer.register_new_constants = true;
-              Typer.fully_type = false }
-          in
-          (name, Typer.phrasebl typer_options result)
+        let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
+        closer ();
+        let typer_options =
+          { Typer.default_type = Expr.type_none;
+            Typer.scope_warnings = true;
+            Typer.undeclared_functions_warning = true;
+            Typer.register_new_constants = true;
+            Typer.fully_type = false }
+        in
+        (name, Typer.phrasebl typer_options result)
       | I_zenon ->
-          let zphrases = Parsezen.file Lexzen.token lexbuf in
-          closer ();
-          let incpath = List.rev (Filename.dirname f :: !include_path) in
-          let phrases = expand_includes incpath zphrases in
-          let result = List.map (fun x -> (x, false)) phrases in
-          let is_goal = function
-            | (Phrase.Hyp (name, _, _), _) -> name = goal_name
-            | _ -> false
-          in
-          let goal_found = List.exists is_goal result in
-          if not goal_found then Error.warn "no goal given";
-          let typer_options =
-            { Typer.default_type = Expr.type_none;
-              Typer.scope_warnings = false;
-              Typer.undeclared_functions_warning = false;
-              Typer.register_new_constants = false;
-              Typer.fully_type = false }
-          in
-          (thm_default_name, Typer.phrasebl typer_options result)
+        let zphrases = Parsezen.file Lexzen.token lexbuf in
+        closer ();
+        let incpath = List.rev (Filename.dirname f :: !include_path) in
+        let phrases = expand_includes incpath zphrases in
+        let result = List.map (fun x -> (x, false)) phrases in
+        let is_goal = function
+          | (Phrase.Hyp (name, _, _), _) -> name = goal_name
+          | _ -> false
+        in
+        let goal_found = List.exists is_goal result in
+        if not goal_found then Error.warn "no goal given";
+        let typer_options =
+          { Typer.default_type = Expr.type_none;
+            Typer.scope_warnings = false;
+            Typer.undeclared_functions_warning = false;
+            Typer.register_new_constants = false;
+            Typer.fully_type = false }
+        in
+        (thm_default_name, Typer.phrasebl typer_options result)
     with
     | Parsing.Parse_error -> report_error lexbuf "syntax error."
     | Error.Lex_error msg -> report_error lexbuf msg
@@ -344,88 +344,90 @@ let main () =
           Gc.major_heap_increment = 1_000_000;
          };
   let file = match !files with
-             | [f] -> f
-             | _ -> Arg.usage argspec usage_msg; exit 2
+    | [f] -> f
+    | _ -> Arg.usage argspec usage_msg; exit 2
   in
   let (th_name, phrases_dep) = parse_file file in
   begin match !proof_level with
-  | Proof_coq | Proof_coqterm -> Watch.warn_unused_var phrases_dep;
-  | _ -> ()
+    | Proof_coq | Proof_coqterm -> Watch.warn_unused_var phrases_dep;
+    | _ -> ()
   end;
   let retcode = ref 0 in
   begin try
-    let phrases = List.map fst phrases_dep in
-    let ppphrases = Extension.preprocess phrases in
-    List.iter Extension.add_phrase ppphrases;
-    let (defs, hyps) = Phrase.separate (Extension.predef ()) ppphrases in
-    List.iter (fun (fm, _) -> Eqrel.analyse fm) hyps;
-    let hyps = List.filter (fun (fm, _) -> not (Eqrel.subsumed fm)) hyps in
-    if !debug_flag then begin
-      let ph_defs = List.map (fun x -> Phrase.Def x) defs in
-      let ph_hyps = List.map (fun (x, y) -> Phrase.Hyp ("", x, y)) hyps in
-      eprintf "initial formulas:\n";
-      List.iter (Print.phrase (Print.Chan stderr)) (ph_defs @ ph_hyps);
-      eprintf "relations: ";
-      Eqrel.print_rels stderr;
-      eprintf "\n";
-      eprintf "typing declarations: ";
-      eprintf "\n";
-      Typer.print_constant_decls stderr;
-      eprintf "----\n";
-      flush stderr;
-      Gc.set {(Gc.get ()) with Gc.verbose = 0x010};
-    end;
-    let params = match !keep_open with
+      let phrases = List.map fst phrases_dep in
+      let ppphrases = Extension.preprocess phrases in
+      List.iter Extension.add_phrase ppphrases;
+      let (defs, hyps) = Phrase.separate (Extension.predef ()) ppphrases in
+      List.iter (fun (fm, _) -> Eqrel.analyse fm) hyps;
+      let hyps = List.filter (fun (fm, _) -> not (Eqrel.subsumed fm)) hyps in
+      if !debug_flag then begin
+        let ph_defs = List.map (fun x -> Phrase.Def x) defs in
+        let ph_hyps = List.map (fun (x, y) -> Phrase.Hyp ("", x, y)) hyps in
+        eprintf "initial formulas:\n";
+        List.iter (Print.phrase (Print.Chan stderr)) (ph_defs @ ph_hyps);
+        eprintf "relations: ";
+        Eqrel.print_rels stderr;
+        eprintf "\n";
+        eprintf "typing declarations: ";
+        eprintf "\n";
+        Typer.print_constant_decls stderr;
+        eprintf "----\n";
+        flush stderr;
+        Gc.set {(Gc.get ()) with Gc.verbose = 0x010};
+      end;
+      let params = match !keep_open with
         | Open_none -> Prove.default_params
         | Open_all -> Prove.open_params None
         | Open_first n -> Prove.open_params (Some n)
         | Open_last n -> Prove.open_params (Some (-n))
-    in
-    let proofs = Prove.prove params defs hyps in
-    let proof= List.hd proofs in
-    let is_open = Mlproof.is_open_proof proof in
-    if is_open then
-        retcode := 12;
-    if not !quiet_flag then begin
+      in
+      let proofs = Prove.prove params defs hyps in
+      let proof= List.hd proofs in
+      let is_open = Mlproof.is_open_proof proof in
       if is_open then
-        printf "%% SZS status Unknown for %s\n" file
-      else
-        printf "%% SZS status Theorem for %s\n" file;
-      flush stdout
+        retcode := 12;
+      if not !quiet_flag then begin
+        if is_open then
+          printf "%% SZS status GaveUp for %s\n" file
+        else
+          printf "%% SZS status Theorem for %s\n" file;
+        flush stdout
       end;
-    let llp = lazy (optim (Extension.postprocess
-                             (Mltoll.translate th_name ppphrases proof)))
-    in
-    begin match !proof_level with
-    | Proof_none -> ()
-    | Proof_h n -> Print.hlproof (Print.Chan stdout) n proof;
-    | Proof_m -> Print.mlproof (Print.Chan stdout) proof;
-    | Proof_lx ->
-        let lxp = Mltoll.translate th_name ppphrases proof in
-        Print.llproof (Print.Chan stdout) lxp;
-    | Proof_l -> Print.llproof (Print.Chan stdout) (Lazy.force llp);
-    | Proof_coq ->
-        printf "%% SZS output start Proof for %s\n" file;
-        let u = Lltocoq.output stdout phrases ppphrases (Lazy.force llp) in
-        Watch.warn phrases_dep llp u;
-        printf "%% SZS output end Proof for %s\n" file
-    | Proof_coqterm ->
-        let (p, u) = Coqterm.trproof phrases ppphrases (Lazy.force llp) in
-        Coqterm.print stdout p;
-        Watch.warn phrases_dep llp u;
-    | Proof_isar ->
-        let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in
-        Watch.warn phrases_dep llp u;
-    | Proof_dot (b, n) ->
-        Print.dots ~full_output:b ~max_depth:n (Print.Chan stdout) (List.rev proofs);
-    end;
-  with
-  | Prove.NoProof ->
-     retcode := 12;
-     if not !quiet_flag then printf "%% SZS status Unknown for %s\n" file;
-  | Prove.LimitsExceeded ->
-     retcode := 13;
-     if not !quiet_flag then printf "%% SZS status Unknown for %s\n" file;
+      let llp = lazy (optim (Extension.postprocess
+                               (Mltoll.translate th_name ppphrases proof)))
+      in
+      begin match !proof_level with
+        | Proof_none -> ()
+        | Proof_h n -> Print.hlproof (Print.Chan stdout) n proof;
+        | Proof_m -> Print.mlproof (Print.Chan stdout) proof;
+        | Proof_lx ->
+          let lxp = Mltoll.translate th_name ppphrases proof in
+          Print.llproof (Print.Chan stdout) lxp;
+        | Proof_l -> Print.llproof (Print.Chan stdout) (Lazy.force llp);
+        | Proof_coq ->
+          if not is_open then begin
+            printf "%% SZS output start Proof for %s\n" file;
+            let u = Lltocoq.output stdout phrases ppphrases (Lazy.force llp) in
+            Watch.warn phrases_dep llp u;
+            printf "%% SZS output end Proof for %s\n" file
+          end
+        | Proof_coqterm ->
+          let (p, u) = Coqterm.trproof phrases ppphrases (Lazy.force llp) in
+          Coqterm.print stdout p;
+          Watch.warn phrases_dep llp u;
+        | Proof_isar ->
+          let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in
+          Watch.warn phrases_dep llp u;
+        | Proof_dot (b, n) ->
+          Print.dots ~full_output:b ~max_depth:n (Print.Chan stdout) (List.rev proofs);
+      end;
+    with
+    | Prove.NoProof ->
+      retcode := 12;
+      if not !quiet_flag then printf "%% SZS status GaveUp for %s\n" file;
+    | Prove.LimitsExceeded ->
+      retcode := 13;
+      if not !quiet_flag then printf "%% SZS status ResourceOut for %s\n" file;
   end;
   if !stats_flag then begin
     eprintf "nodes searched: %d\n" !Globals.inferences;
@@ -446,6 +448,11 @@ let parse_command_line argspec =
 let do_main () =
   try main ()
   with
+  | e ->
+    let f = List.hd !files in
+    printf "%% SZS status Error for %s: uncaught exception %s\n" f (Printexc.to_string e);
+    do_exit 14;
+    (*
   | Error.Abort -> do_exit 11;
   | Expr.Type_Mismatch (t, t', f) ->
           let s = Printexc.get_backtrace () in
@@ -462,6 +469,5 @@ let do_main () =
                                                      (Print.sexpr_t y))
                                      map))
                         s;
-  | e -> eprintf "Zenon error: uncaught exception %s\n" (Printexc.to_string e);
-         do_exit 14;
+       *)
 ;;

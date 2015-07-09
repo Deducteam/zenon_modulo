@@ -161,6 +161,22 @@ checksum.ml: $(IMPL:checksum.ml=)
 .v.vo:
 	$(COQC) -q $*.v
 
+# StarExec
+
+STAREXEC_DIR=starexec
+STAREXEC_ARCHIVE=zenon-arith.tar.gz
+
+copy-libs:
+	./starexec/bin/copy_libs.sh
+
+starexec-build: all copy-libs
+	cp zenon $(STAREXEC_DIR)/bin/zenon
+	rm -f $(STAREXEC_ARCHIVE) || true
+	cd starexec; tar cavf $(STAREXEC_ARCHIVE) *
+	mv starexec/$(STAREXEC_ARCHIVE) ./
+
+.PHONY: starexec-build copy-libs
+
 .PHONY: dist
 dist: $(ALLSRC)
 	mkdir -p dist/zenon
