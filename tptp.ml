@@ -66,6 +66,7 @@ let rec make_annot_expr e =
   match e with
   | Evar _ -> e
   | Emeta _  -> e
+  | Eapp (Evar("#", _), _, _) -> e
   | Eapp (Evar(s,_) as v, l, _) ->
       let s = tptp_to_coq s in
       let l = List.map make_annot_expr l in
