@@ -89,7 +89,7 @@ let get_all () = HE.fold (fun e g l -> (e, g) :: l) allforms [];;
 
 let member e = HE.mem allforms e;;
 
-let get_goalness e = HE.find allforms e;;
+let get_goalness e = try HE.find allforms e with Not_found -> 0;;
 let add_g e = (e, get_goalness e);;
 
 let find_pos s =

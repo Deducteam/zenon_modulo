@@ -449,8 +449,9 @@ let do_main () =
   try main ()
   with
   | e ->
+    let s = Printexc.get_backtrace () in
     let f = List.hd !files in
-    printf "%% SZS status Error for %s: uncaught exception %s\n" f (Printexc.to_string e);
+    printf "%% SZS status Error for %s: uncaught exception %s\n%s\n" f (Printexc.to_string e) s;
     do_exit 14;
     (*
   | Error.Abort -> do_exit 11;

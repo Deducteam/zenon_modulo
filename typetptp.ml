@@ -71,11 +71,13 @@ let tff_add_type name t env =
         { env with tff = M.add name [t] env.tff }
 
 let tff_app_aux args t =
-    try
-        ignore (type_app t args);
-        raise (Type_found t)
-    with Type_Mismatch (t', t'', _) ->
+    match (type_app t args) with
+      | _ -> raise (Type_found t)
+      | exception Type_Mismatch (t', t'', _) ->
         Log.debug 9 "mismatch : %a <> %a" Print.pp_expr t' Print.pp_expr t''
+      | exception Bad_Arity (e, l) ->
+        Log.debug 9 "Bad Arity for %a with arguments:" Print.pp_expr e;
+        List.iter (fun e' -> Log.debug 9 " |- %a" Print.pp_expr e') l
 
 let tff_app f args env =
     try
