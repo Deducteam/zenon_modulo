@@ -14,7 +14,7 @@ Under the new BSD License (see the file LICENSE for details)
 This depends on:
 - `OCaml >= 4.02.1`
 - `ZArith >= 1.3`
-- `Coq >= 8.0`
+- `Coq >= 8.0` (optional)
 - Graphviz (optional)
 
 ### COMPILATION
