@@ -3,5 +3,5 @@
 export LD_LIBRARY_PATH=${PWD}
 
 echo "start Zenon-Arith..."
-exec ./ld.so ./zenon -p0 -opt0 -ocoq -k -x arith -itptp -max-time "${STAREXEC_WALLCLOCK_LIMIT}s" -max-size "${STAREXEC_MAX_MEM}M" "$1"
+exec ./ld.so ./zenon -p0 -opt0 -context -ocoq -k -x arith -itptp -max-time "${STAREXEC_WALLCLOCK_LIMIT}s" -max-size "${STAREXEC_MAX_MEM}M" "$1"
 

@@ -164,7 +164,7 @@ checksum.ml: $(IMPL:checksum.ml=)
 # StarExec
 
 STAREXEC_DIR=starexec
-STAREXEC_ARCHIVE=zenon-arith.tar.gz
+STAREXEC_ARCHIVE=zenon-arith-starexec.tgz
 
 copy-libs:
 	./starexec/bin/copy_libs.sh
