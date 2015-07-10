@@ -29,7 +29,7 @@ case $1 in
         ;;
     simon)
         echo "Testing simon's becnhes"
-        FILES=`cat benchs/arith_problems`
+        FILES=`cat tptp_int_problems`
         ZINPUT=-itptp
         ;;
     clean)
@@ -61,14 +61,14 @@ for f in $FILES
 do
     echo -ne "\r\033[K\e[32m$COQS proved\e[0m /\e[38m $SOLVED solved \e[0m / \e[35m$TOTAL total\e[0m"
     TOTAL=$(($TOTAL + 1))
-    ./zenon -p0 -max-time 5s -q -kf 5 -x arith $ZINPUT $f > /dev/null 2> /dev/null
+    ./zenon -p0 -max-time 60s -q -kf 5 -x arith $ZINPUT $f > /dev/null 2> /dev/null
     RET=$?
     if [ $RET -eq 0 ];
     then
         SOLVED=$(($SOLVED + 1))
-        ./zenon -p0 -max-time 10s -q -odotd 50 -kall -x arith $ZINPUT $f > $f.gv
+        ./zenon -p0 -max-time 120s -q -odotd 50 -kall -x arith $ZINPUT $f > $f.gv
         dot -Tsvg $f.gv -o $f.svg
-        ./zenon -p0 -max-time 10s -q -context -ocoq -opt0 -k -x arith $ZINPUT $f > $TEMP 2> /dev/null
+        ./zenon -p0 -max-time 120s -q -context -ocoq -opt0 -k -x arith $ZINPUT $f > $TEMP 2> /dev/null
         coqc -I ./ $TEMP > /dev/null 2> /dev/null
         if [ $? -eq 0 ];
         then

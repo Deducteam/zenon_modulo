@@ -406,10 +406,10 @@ let main () =
         | Proof_l -> Print.llproof (Print.Chan stdout) (Lazy.force llp);
         | Proof_coq ->
           if not is_open then begin
-            printf "%% SZS output start Proof for %s\n" file;
+            if not !quiet_flag then printf "%% SZS output start Proof for %s\n" file;
             let u = Lltocoq.output stdout phrases ppphrases (Lazy.force llp) in
             Watch.warn phrases_dep llp u;
-            printf "%% SZS output end Proof for %s\n" file
+            if not !quiet_flag then printf "%% SZS output end Proof for %s\n" file
           end
         | Proof_coqterm ->
           let (p, u) = Coqterm.trproof phrases ppphrases (Lazy.force llp) in
@@ -453,8 +453,12 @@ let do_main () =
     let f = List.hd !files in
     printf "%% SZS status Error for %s: uncaught exception %s\n%s\n" f (Printexc.to_string e) s;
     do_exit 14;
-    (*
+  (*
   | Error.Abort -> do_exit 11;
+  | Expr.Bad_Arity (e, l) ->
+    Printexc.print_backtrace stdout;
+    printf "Bad arity in:\n%s\n" (Print.sexpr e);
+    List.iter (fun e' -> printf "%s\n" (Print.sexpr e')) l
   | Expr.Type_Mismatch (t, t', f) ->
           let s = Printexc.get_backtrace () in
           Format.eprintf "Mismatched type : expected '%s' but instead received '%s' (in %s)@\nBacktrace :@\n%s@."
