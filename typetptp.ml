@@ -340,6 +340,15 @@ let type_phrase env p = match p with
             Log.debug 15 "%a" Print.pp_expr e;
             let e', env' = type_tff_expr env e in
             Phrase.Hyp (name, e', notype_kind kind), env'
+    | Phrase.Rew (name, e, kind) when is_tff_axiom kind ->
+            Log.debug 1 "typechecking TFF axiom/rewrite '%s'" name;
+            let e', env' = type_tff_expr env e in
+            Phrase.Rew (name, e', notype_kind kind), env'
+    | Phrase.Rew (name, e, kind) when is_tff_expr kind ->
+            Log.debug 1 "typechecking TFF expression/rewrite '%s'" name;
+            Log.debug 15 "%a" Print.pp_expr e;
+            let e', env' = type_tff_expr env e in
+            Phrase.Rew (name, e', notype_kind kind), env'
     | Phrase.Hyp (name, e, kind) ->
             Log.debug 1 "typechecking FOF formula '%s'" name;
             let e' = type_fof_expr env e in
