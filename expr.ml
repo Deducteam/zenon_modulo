@@ -263,13 +263,14 @@ let priv_var s t =
   mkpriv 0 [s] 1 0 [] [] t
 ;;
 let rec priv_arrow args ret =
+  let l = ret :: args in
   let comb_skel accu e = combine (get_skel e) accu in
   let skel = combine k_app (List.fold_left comb_skel (get_hash ret) args) in
-  let fv = List.fold_left (fun a e -> str_union a (get_fv e)) [] args in
-  let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
-  let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
-  let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
-  let submetas = List.fold_left (fun a e -> union (get_submetas e) a) [] args in
+  let fv = List.fold_left (fun a e -> str_union a (get_fv e)) [] l in
+  let sz = List.fold_left (fun a e -> a + get_size e) 1 l in
+  let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 l in
+  let metas = List.fold_left (fun a e -> union (get_metas e) a) [] l in
+  let submetas = List.fold_left (fun a e -> union (get_submetas e) a) [] l in
   mkpriv skel fv sz taus metas submetas type_type
 ;;
 let priv_meta e =
