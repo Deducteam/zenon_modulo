@@ -116,7 +116,6 @@ let process_annotations forms =
       | Def _
       | Sig _
       | Inductive _
-      | Rew _
         -> assert false
   in
   List.rev (List.rev_map process_one (List.filter keep forms))
