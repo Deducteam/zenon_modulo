@@ -528,49 +528,32 @@ let get_rwrt_from_def = function
   | DefRec _ -> assert false   (* This case has been filtered out in select_rwrt_rules_aux *)
 ;;
 
-exception Bad_Rewrite_Rule of string * expr;;
-
 let rec select_rwrt_rules_aux accu phrase =
+(*  Log.debug 4 "select phrase";
+  Log.debug 4 " >> %a" Print.pp_phrase phrase;*)
   match phrase with
-  | Rew (name, body, flag)
-       when (flag = 2) || (flag = 1)
-    ->
-     assert !Globals.modulo;
-     if is_heuri_rwrt_prop body
-     then
-       begin
-         Log.debug 1 "|- adding rewrite prop %s: %a" name Print.pp_expr body;
-         add_rwrt_prop name body;
-         Rew (name, body, 1) :: accu
-       end
-     else if is_heuri_rwrt_term body
-     then
-       begin
-         Log.debug 1 "|- adding rewrite term %s: %a" name Print.pp_expr body;
-         add_rwrt_term name body;
-         Rew (name, body, 0) :: accu
-       end
-     else raise (Bad_Rewrite_Rule (name, body))
   | Hyp (name, body, flag)
        when (flag = 2) || (flag = 1) (*|| (flag = 12) || (flag = 11) *)
     ->
-     if !Globals.modulo_heuri
-	&& is_heuri_rwrt_prop body
-     then
-       begin
-         Log.debug 1 "|- adding rewrite prop %s: %a" name Print.pp_expr body;
-         add_rwrt_prop name body;
-         Rew (name, body, 1) :: accu
-       end
-     else if !Globals.modulo_heuri
-	     && is_heuri_rwrt_term body
-     then
-       begin
-         Log.debug 1 "|- adding rewrite term %s: %a" name Print.pp_expr body;
-         add_rwrt_term name body;
-         Rew (name, body, 0) :: accu
-       end
-     else phrase :: accu;
+     begin
+       if !Globals.build_rwrt_sys_B
+	  && List.mem name b_axiom_to_rwrt_term
+       then (add_rwrt_term name body; (Rew (name, body, 0) :: accu))
+       else if !Globals.build_rwrt_sys_B
+	       && List.mem name b_axiom_to_rwrt_prop
+       then (add_rwrt_prop name body; (Rew (name, body, 1) :: accu))
+       else if !Globals.build_rwrt_sys
+	       && is_heuri_rwrt_prop body
+       then (add_rwrt_prop name body; (Rew (name, body, 1) :: accu))
+       else if !Globals.build_rwrt_sys
+	       && is_heuri_rwrt_term body
+       then (add_rwrt_term name body; (Rew (name, body, 0) :: accu))
+       else if !Globals.build_rwrt_sys_casc
+	       && is_heuri_rwrt_prop body
+       then (add_rwrt_prop name body; (Rew (name, body, 1) :: accu))
+
+       else phrase :: accu;
+     end
   | Def (DefRec _) ->
      (* Recursive definitions are not turned into rewrite-rules (yet) *)
      phrase :: accu
@@ -582,7 +565,7 @@ let rec select_rwrt_rules_aux accu phrase =
 ;;
 
 let select_rwrt_rules phrases =
-  Log.debug 1 "====================";
-  Log.debug 1 "Select Rewrite Rules";
+  Log.debug 2 "====================";
+  Log.debug 2 "Select Rewrite Rules";
   List.rev (List.fold_left select_rwrt_rules_aux [] phrases)
 ;;
