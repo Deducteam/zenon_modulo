@@ -148,10 +148,10 @@ let rec translate_one dirs accu p =
       Hyp (name, body, 12) :: accu
   | Formula (name, "tff_hypothesis", body, None) ->
       Hyp (name, body, 11) :: accu
-  | Formula (name, ("tff_axiom" | "tff_definition"), body, Some "rewrite") ->
+  | Formula (name, ("tff_axiom" | "tff_definition"), body, Some _) ->
      if !Globals.modulo then Rew (name, body, 12) :: accu
      else Hyp (name, body, 12) :: accu
-  | Formula (name, "tff_hypothesis", body, Some "rewrite") ->
+  | Formula (name, "tff_hypothesis", body, Some _) ->
      if !Globals.modulo then Rew (name, body, 11) :: accu
      else Hyp (name, body, 11) :: accu
   | Formula (name, ("tff_lemma"|"tff_theorem"), body, None) ->
@@ -162,7 +162,7 @@ let rec translate_one dirs accu p =
   | Formula (name, "tff_negated_conjecture", body, None) ->
       Hyp (name, body, 10) :: accu
   (* Fallback *)
-  | Formula (name, k, body, _)->
+  | Formula (name, k, body, None) ->
       Error.warn ("unknown formula kind: " ^ k);
       Hyp (name, body, 1) :: accu
 
