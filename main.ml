@@ -159,7 +159,6 @@ let argspec = [
   "-ocoqterm", Arg.Unit (fun () -> proof_level := Proof_coqterm),
             "          print the proof in Coq term format";
   "-odk", Arg.Unit (fun () -> namespace_flag := true;
-                              quiet_flag := true;
 			      proof_level := Proof_dk;
 			      opt_level := 0;
 			      Globals.output_dk := true),
