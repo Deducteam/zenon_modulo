@@ -161,7 +161,7 @@ let var_name s =
 
 (* Typing *)
 let type_tff_var ty env e =
-  Log.debug 4 " |- type var %a >> ty %a" Print.pp_expr e Print.pp_expr ty;
+  Log.debug 4 " |- type var %a with %a" Print.pp_expr_t e Print.pp_expr ty;
   match e with
   | Evar(v, _) as e ->
             begin try
@@ -179,7 +179,19 @@ let type_tff_var ty env e =
                 | t -> e, env
                 end
             end
-    | _ -> assert false
+  | _ -> assert false
+
+let rec infer_type accu env le lty =
+  match le, lty with
+  | [], [] -> (List.rev accu, env)
+  | Eapp(Evar(v, _) as v', [], _) :: tl1, ty :: tl2
+       when not (tff_mem v env) ->
+     Log.debug 6 " |- inferred type for %a with %a" Print.pp_expr_t v' Print.pp_expr ty;
+     let newexp = eapp (tvar v ty, []) in
+     Log.debug 6 " |- result = %a" Print.pp_expr_t newexp;
+     infer_type (newexp :: accu) (tff_add_type v ty env) tl1 tl2
+  | e :: tl1, _ :: tl2 -> infer_type (e :: accu) env tl1 tl2
+  | _, _ -> assert false
 
 let rec type_tff_app env is_pred e =
   Log.debug 4 " |- type app %a" Print.pp_expr e;
@@ -208,7 +220,18 @@ let rec type_tff_app env is_pred e =
                         type_tff_var t env' s'
             in
             begin try
-                eapp (f, args), env''
+                let args, env''' =
+                  if List.exists (fun x -> type_none == (get_type x)) args then
+                    let targs = match (get_type f) with
+                      | Earrow(fargs, _, _) -> fargs
+                      | _ -> assert false
+                    in
+                    infer_type [] env'' args targs
+                  else (args, env'')
+                in
+                let res = eapp (f, args), env''' in
+                Log.debug 6 "type app res = %a" Print.pp_expr_t (fst res);
+                res
             with
             | Type_Mismatch (t, t', s) ->
                     Log.debug 0 "Expected %a but received %a in %s" Print.pp_expr t Print.pp_expr t' s;
@@ -285,12 +308,18 @@ and type_tff_term env e =
     | _ -> raise (Type_error ("Ill-formed expression"))
 
 and type_tff_type env e = match e with
-    | Evar(v, _) -> type_tff_var type_type env e
-    | Eapp(_) -> type_tff_app env false e
-    | Eall(_) -> type_tff_quant type_tff_type eall env e
-    | Earrow(args, ret, _) ->
-            earrow (List.map (fun e -> fst (type_tff_term env e)) args) (fst (type_tff_term env ret)), env
-    | _ -> raise (Type_error ("Ill-formed expression"))
+  | Evar(v, _) -> type_tff_var type_type env e
+  | Eapp(Evar(v, _), [], _)
+       when not (tff_mem v env) ->
+     Log.debug 3 "Adding type (%s : %a) to env" v Print.pp_expr type_type;
+     let env' = tff_add_type v type_type env in
+     let ty = eapp (tvar_type v, []) in
+     (ty, env')
+  | Eapp(_) -> type_tff_app env false e
+  | Eall(_) -> type_tff_quant type_tff_type eall env e
+  | Earrow(args, ret, _) ->
+     earrow (List.map (fun e -> fst (type_tff_term env e)) args) (fst (type_tff_term env ret)), env
+  | _ -> raise (Type_error ("Ill-formed expression"))
 
 let type_tff_expr env e =
     Log.debug 4 " |- type tff expr e : %a" Print.pp_expr e;
@@ -305,9 +334,9 @@ let type_tff_expr env e =
 
 let type_tff_def env e = match e with
     | Eapp (Evar("#", _), [Evar(v, _); t], _) ->
-            let t', _ = type_tff_type env t in
+            let t', env' = type_tff_type env t in
             Log.debug 3 "Adding type (%s : %a) to env" v Print.pp_expr t';
-            tff_add_type v t' env
+            tff_add_type v t' env'
     | _ -> raise (Type_error (Printf.sprintf "Ill-formed expression."))
 
 (* Check the quantifiers so that no type except Namespace.univ_name is present ? *)
