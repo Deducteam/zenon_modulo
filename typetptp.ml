@@ -32,7 +32,7 @@ let rec rm_binding v map =
 ;;
 
 (* Typing specifications for tff *)
-let type_tff_i = eapp (tvar "$i" type_type, [])
+let type_tff_i = type_iota
 
 (* Environment for typing *)
 type env = {
@@ -192,9 +192,9 @@ let rec type_tff_app env expected e =
     eeq a' b', env''
   | Eapp(Evar(s, _) as s', args, _) ->
     let args, env' = map_fold type_tff_term env args in
-    assert (get_type s' == type_none);
     let f, env'' =
-      if tff_mem s env then begin
+      if not (get_type s' == type_none) then s', env
+      else if tff_mem s env then begin
         let t = tff_app s args env in
         Log.debug 4 "found in env %s : %a" s Print.pp_expr t;
         tvar s t, env'
