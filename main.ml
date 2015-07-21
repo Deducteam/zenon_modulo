@@ -221,10 +221,12 @@ let argspec = [
         "<file>        output errors and warnings to <file> instead of stderr";
   "-x", Arg.String Extension.activate,
      "<ext>            activate extension <ext>";
-  "-modulo", Arg.Set modulo,
-     "             build the rewrite system from TPTP meta info";
-  "-modulo-heuri", Arg.Set modulo_heuri,
-     "             build the rewrite system from heuristic";
+  "-rwrt", Arg.Set build_rwrt_sys,
+     "             build automatically the rewrite system";
+  "-b-rwrt", Arg.Set build_rwrt_sys_B,
+     "             build automatically the rewrite system for B";
+  "-casc-rwrt", Arg.Set build_rwrt_sys_casc,
+     "             build automatically the rewrite system (optimized)";
   "-dbg-rwrt", Arg.Set debug_rwrt,
      "             debug mode for rewriting"
 ];;
