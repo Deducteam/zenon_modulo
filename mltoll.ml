@@ -900,6 +900,7 @@ let rec to_llproof p =
 	begin
 	  (result, extras)
 	end
+    end
 
 and get_sub l =
   match l with
