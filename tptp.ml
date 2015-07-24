@@ -69,6 +69,7 @@ let rec make_annot_expr e =
   | Emeta _  -> e
   | e when (List.exists (Expr.equal e)
                         [type_type; type_prop; type_iota; type_none]) -> e
+  | Eapp (Evar("#", _), _, _) -> e
   | Eapp (Evar(s,_) as v, l, _) ->
      let s = tptp_to_coq s in
      let l = List.map make_annot_expr l in
