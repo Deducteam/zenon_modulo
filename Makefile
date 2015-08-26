@@ -189,6 +189,20 @@ checksum.ml: $(IMPL:checksum.ml=)
 .dk.dko:
 	$(DKCHECK) -e $*.dk
 
+# StarExec
+
+STAREXEC_DIR=starexec
+STAREXEC_ARCHIVE=zenon-modulo-starexec.tgz
+
+copy-libs:
+	./starexec/bin/copy_libs.sh
+
+starexec-build: all copy-libs
+	cp zenon_modulo $(STAREXEC_DIR)/bin/zenon_modulo
+	rm -f $(STAREXEC_ARCHIVE) || true
+	cd starexec; tar cavf $(STAREXEC_ARCHIVE) *
+	mv starexec/$(STAREXEC_ARCHIVE) ./
+
 .PHONY: dist
 dist: $(ALLSRC)
 	rm -rf dist/zenon_modulo

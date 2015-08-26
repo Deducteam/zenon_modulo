@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+export LD_LIBRARY_PATH=${PWD}
+
+echo "start Zenon-Modulo..."
+exec ./ld.so ./zenon_modulo -p0 -x arith -itptp -max-time "${STAREXEC_WALLCLOCK_LIMIT}s" -max-size "${STAREXEC_MAX_MEM}M" "$1"
+
