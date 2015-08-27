@@ -316,7 +316,10 @@ let parse_file f =
               let forms = Typetptp.typecheck forms in
 	      (name, List.map (fun x -> (x, false)) forms)
             with Not_found ->
-                 failwith "TPTP environmental variable not found!";
+              let incpath = List.rev (upup :: d :: !include_path) in
+              let (forms, name) = Tptp.translate incpath tpphrases in
+              let forms = Typetptp.typecheck forms in
+	      (name, List.map (fun x -> (x, false)) forms)
           end
       | I_focal ->
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
