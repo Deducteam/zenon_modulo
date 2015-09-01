@@ -159,6 +159,7 @@ let argspec = [
   "-ocoqterm", Arg.Unit (fun () -> proof_level := Proof_coqterm),
             "          print the proof in Coq term format";
   "-odk", Arg.Unit (fun () -> namespace_flag := true;
+                              quiet_flag := true;
 			      proof_level := Proof_dk;
 			      opt_level := 0;
 			      Globals.output_dk := true),
@@ -221,12 +222,10 @@ let argspec = [
         "<file>        output errors and warnings to <file> instead of stderr";
   "-x", Arg.String Extension.activate,
      "<ext>            activate extension <ext>";
-  "-rwrt", Arg.Set build_rwrt_sys,
-     "             build automatically the rewrite system";
-  "-b-rwrt", Arg.Set build_rwrt_sys_B,
-     "             build automatically the rewrite system for B";
-  "-casc-rwrt", Arg.Set build_rwrt_sys_casc,
-     "             build automatically the rewrite system (optimized)";
+  "-modulo", Arg.Set modulo,
+     "             build the rewrite system from TPTP meta info";
+  "-modulo-heuri", Arg.Set modulo_heuri,
+     "             build the rewrite system from heuristic";
   "-dbg-rwrt", Arg.Set debug_rwrt,
      "             debug mode for rewriting"
 ];;
