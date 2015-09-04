@@ -362,7 +362,7 @@ let rec is_good_rwrt_prop_aux body =
       | Eequiv (e1, e2, _) ->
 	 is_literal_noteq e1
 	 && test_fv (get_fv e1) (get_fv e2)
-         && not (is_empty_list (get_fv e1))
+      (* && not (is_empty_list (get_fv e1))*)
       | _ -> false
     end
 ;;
@@ -382,24 +382,16 @@ let is_heuri_rwrt_term_aux body =
        match t1, t2 with
        | Eapp _, _ ->
           test_fv (get_fv t1) (get_fv t2)
-          && not (is_empty_list (get_fv t1))
+       (*&& not (is_empty_list (get_fv t1))*)
        | _, _ -> false
      end
   | _ -> false
 ;;
 
-let rec is_heuri_rwrt_term_conj body =
-  match body with
-  | Eand (p1, p2, _) ->
-     (is_heuri_rwrt_term_conj p1)
-     && (is_heuri_rwrt_term_conj p2)
-  | _ -> is_heuri_rwrt_term_aux body
-;;
-
 let rec is_heuri_rwrt_term body =
   match body with
   | Eall (_, pred, _) -> is_heuri_rwrt_term pred
-  | _ -> is_heuri_rwrt_term_conj body
+  | _ -> is_heuri_rwrt_term_aux body
 ;;
 
 let rec is_heuri_rwrt_prop_aux body =
@@ -416,18 +408,10 @@ let rec is_heuri_rwrt_prop_aux body =
     end
 ;;
 
-let rec is_heuri_rwrt_prop_conj body =
-  match body with
-  | Eand (p1, p2, _) ->
-     (is_heuri_rwrt_prop_conj p1)
-     && (is_heuri_rwrt_prop_conj p2)
-  | _ -> is_heuri_rwrt_prop_aux body
-;;
-
 let rec is_heuri_rwrt_prop body =
   match body with
   | Eall (_, pred, _) -> is_heuri_rwrt_prop pred
-  | _ -> is_heuri_rwrt_prop_conj body
+  | _ -> is_heuri_rwrt_prop_aux body
 ;;
 
 let split_to_prop_rule body =
@@ -445,16 +429,10 @@ let split_to_prop_rule body =
       -> (expr, efalse)
     | _ -> assert false
   in
-  let rec parse_conj body =
-    match body with
-    | Eand (p1, p2, _) ->
-       List.append (parse_conj p1) (parse_conj p2)
-    | _ -> [ parse_equiv body ]
-  in
   let rec parse body =
     match body with
     | Eall (_, expr, _) -> parse expr
-    | _ -> parse_conj body
+    | _ -> parse_equiv body
   in
   parse body
 ;;
@@ -475,40 +453,28 @@ let split_to_term_rule body =
        end
     | _ -> assert false
   in
-  let rec parse_conj body =
-    match body with
-    | Eand (p1, p2, _) ->
-       List.append (parse_conj p1) (parse_conj p2)
-    | _ -> [ parse_equal body ]
-  in
   let rec parse body =
     match body with
     | Eall (_, expr, _) -> parse expr
-    | _ -> parse_conj body
+    | _ -> parse_equal body
   in
   parse body
 ;;
 
 let add_rwrt_term name body  =
-  let add_rule (x, y) =
-    Log.debug 4 "+ rwrt_term %s: %a --> %a" name
-              Print.pp_expr x
-              Print.pp_expr y;
-    Hashtbl.add !Expr.tbl_term (find_first_sym x) (x, y)
-  in
-  let list_rules = split_to_term_rule body in
-  List.iter add_rule list_rules
+  let (x, y) = split_to_term_rule body in
+  Log.debug 4 "+ rwrt_term %s: %a --> %a" name
+            Print.pp_expr x
+            Print.pp_expr y;
+  Hashtbl.add !Expr.tbl_term (find_first_sym x) (x, y)
 ;;
 
 let add_rwrt_prop name body =
-  let add_rule (x, y) =
-    Log.debug 4 "+ rwrt_prop %s: %a --> %a" name
-              Print.pp_expr x
-              Print.pp_expr y;
-    Hashtbl.add !Expr.tbl_prop (find_first_sym x) (x, y)
-  in
-  let list_rules = split_to_prop_rule body in
-  List.iter add_rule list_rules
+  let (x, y) = split_to_prop_rule body in
+  Log.debug 4 "+ rwrt_prop %s: %a --> %a" name
+            Print.pp_expr x
+            Print.pp_expr y;
+  Hashtbl.add !Expr.tbl_prop (find_first_sym x) (x, y)
 ;;
 
 let get_rwrt_from_def = function
