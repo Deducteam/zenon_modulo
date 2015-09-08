@@ -120,6 +120,7 @@ let to_infix = function
 let rec expr_soft o ex =
   let pr f = oprintf o f in
   match ex with
+  | _ when Expr.equal ex Expr.type_type -> pr "Type"
   | Evar (v, _) -> pr "%s" v;
   | Emeta (e, _) -> pr "%s%d" meta_prefix (Index.get_number e);
   | Earrow (args, ret, _) ->

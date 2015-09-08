@@ -34,12 +34,12 @@ let add_ignore_directive ext fname =
 
 let keep form =
   match form with
-    | Hyp (name, _, _) -> not (List.mem name !to_ignore)
-    | Def _
-    | Sig _
-    | Inductive _
-    | Rew _
-      -> assert false
+  | Rew (name, _, _)
+  | Hyp (name, _, _) -> not (List.mem name !to_ignore)
+  | Def _
+  | Sig _
+  | Inductive _
+    -> assert false
 ;;
 
 let add_annotation s =
@@ -67,7 +67,9 @@ let rec make_annot_expr e =
   match e with
   | Evar _ -> e
   | Emeta _  -> e
-  | e when (Expr.equal e type_type) -> e
+  | e when (List.exists (Expr.equal e)
+                        [type_type; type_prop; type_iota; type_none]) -> e
+  | Eapp (Evar("#", _), _, _) -> e
   | Eapp (Evar(s,_) as v, l, _) ->
      let s = tptp_to_coq s in
      let l = List.map make_annot_expr l in
@@ -97,20 +99,26 @@ let make_definition name form body p =
 let process_annotations forms =
   let process_one form =
     match form with
-(*    | Hyp (name, _, _) when name = "bool"
+    (*    | Hyp (name, _, _) when name = "bool"
 			    || name = "uninterpreted_type"
 			    || name = "enum_POSITION" -> form
- *)   | Hyp (name, body, kind) ->
-	 Log.debug 15 "Process Annotation '%a'" Print.pp_expr body;
-          if List.mem name !eq_defs then
-            make_definition name form (make_annot_expr body) kind
-          else
-            Hyp (tptp_to_coq name, make_annot_expr body, kind)
-      | Def _
-      | Sig _
-      | Inductive _
-      | Rew _
-        -> assert false
+     *)
+    | Hyp (name, body, kind) ->
+       Log.debug 15 "Process Annotation '%a'" Print.pp_expr body;
+       if List.mem name !eq_defs then
+         make_definition name form (make_annot_expr body) kind
+       else
+         Hyp (tptp_to_coq name, make_annot_expr body, kind)
+    | Rew (name, body, kind) ->
+       Log.debug 15 "Process Annotation '%a'" Print.pp_expr body;
+       if List.mem name !eq_defs then
+         make_definition name form (make_annot_expr body) kind
+       else
+         Rew (tptp_to_coq name, make_annot_expr body, kind)
+    | Def _
+    | Sig _
+    | Inductive _
+      -> assert false
   in
   List.rev (List.rev_map process_one (List.filter keep forms))
 ;;
@@ -123,33 +131,39 @@ let rec translate_one dirs accu p =
       (* for the moment, we just ignore the include *)
       accu
   | Annotation s -> add_annotation s; accu
-  | Formula (name, ("axiom" | "definition"), body) ->
+  | Formula (name, ("axiom" | "definition"), body, None) ->
       Hyp (name, body, 2) :: accu
-  | Formula (name, "hypothesis", body) ->
+  | Formula (name, "hypothesis", body, None) ->
       Hyp (name, body, 1) :: accu
-  | Formula (name, ("lemma"|"theorem"), body) ->
+  | Formula (name, ("lemma"|"theorem"), body, None) ->
       Hyp (name, body, 1) :: accu
-  | Formula (name, "conjecture", body) ->
+  | Formula (name, "conjecture", body, None) ->
       tptp_thm_name := name;
       Hyp (goal_name, enot (body), 0) :: accu
-  | Formula (name, "negated_conjecture", body) ->
+  | Formula (name, "negated_conjecture", body, None) ->
       Hyp (name, body, 0) :: accu
   (* TFF formulas *)
-  | Formula (name, "tff_type", body) ->
+  | Formula (name, "tff_type", body, None) ->
       Hyp (name, body, 13) :: accu
-  | Formula (name, ("tff_axiom" | "tff_definition"), body) ->
+  | Formula (name, ("tff_axiom" | "tff_definition"), body, None) ->
       Hyp (name, body, 12) :: accu
-  | Formula (name, "tff_hypothesis", body) ->
+  | Formula (name, "tff_hypothesis", body, None) ->
       Hyp (name, body, 11) :: accu
-  | Formula (name, ("tff_lemma"|"tff_theorem"), body) ->
+  | Formula (name, ("tff_axiom" | "tff_definition"), body, Some "rewrite") ->
+     if !Globals.modulo then Rew (name, body, 12) :: accu
+     else Hyp (name, body, 12) :: accu
+  | Formula (name, "tff_hypothesis", body, Some "rewrite") ->
+     if !Globals.modulo then Rew (name, body, 11) :: accu
+     else Hyp (name, body, 11) :: accu
+  | Formula (name, ("tff_lemma"|"tff_theorem"), body, None) ->
       Hyp (name, body, 11) :: accu
-  | Formula (name, "tff_conjecture", body) ->
+  | Formula (name, "tff_conjecture", body, None) ->
       tptp_thm_name := name;
       Hyp (goal_name, enot (body), 10) :: accu
-  | Formula (name, "tff_negated_conjecture", body) ->
+  | Formula (name, "tff_negated_conjecture", body, None) ->
       Hyp (name, body, 10) :: accu
   (* Fallback *)
-  | Formula (name, k, body) ->
+  | Formula (name, k, body, _) ->
       Error.warn ("unknown formula kind: " ^ k);
       Hyp (name, body, 1) :: accu
 

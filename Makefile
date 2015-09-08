@@ -203,7 +203,7 @@ doc docdir:
 
 .PHONY: clean
 clean:
-	cd doc; make clean
+	[ ! -d test ] || (cd doc; make clean)
 	[ ! -d test ] || (cd test; make clean)
 	rm -f .#*
 	rm -f *.cm* *.o *.vo *.dko *.annot *.output *.glob

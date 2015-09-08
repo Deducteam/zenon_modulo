@@ -924,6 +924,19 @@ let declare_hyp oc h =
   | Phrase.Rew _ -> ()
 ;;
 
+let eq_pred_string t =
+  if Expr.equal t Expr.type_prop then "iff"
+  else "eq"
+
+let print_type_sig oc (s, t) =
+  fprintf oc "Parameter %s : %s.\n" s (Print.sexpr t);
+  match t with
+  | Expr.Earrow (args, ret, _) ->
+    fprintf oc "Axiom %s_proper : Proper ( " s;
+    List.iter (fun t -> fprintf oc "%s ==>" (eq_pred_string t)) args;
+    fprintf oc "%s) %s.\n" (eq_pred_string ret) s
+  | _ -> ()
+
 let declare_context oc phrases =
   if not !Globals.quiet_flag then fprintf oc "(* BEGIN-CONTEXT *)\n";
   fprintf oc "Add LoadPath \"%s\".\n" !Globals.load_path;
@@ -933,7 +946,7 @@ let declare_context oc phrases =
   let type_defs = Expr.get_defs () in
   fprintf oc "Parameter %s : Set.\n" univ_name;
   fprintf oc "Parameter %s : %s.\n" any_name univ_name;
-  List.iter (fun (s, t) -> fprintf oc "Parameter %s : %s.\n" s (Print.sexpr t)) type_defs;
+  List.iter (print_type_sig oc) type_defs;
   let sigs = get_signatures phrases (ext_decl @ (List.map fst type_defs)) in
   List.iter (print_signature oc) sigs;
   List.iter (declare_hyp oc) phrases;

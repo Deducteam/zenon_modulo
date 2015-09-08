@@ -159,17 +159,14 @@ let argspec = [
   "-ocoqterm", Arg.Unit (fun () -> proof_level := Proof_coqterm),
             "          print the proof in Coq term format";
   "-odk", Arg.Unit (fun () -> namespace_flag := true;
+                              quiet_flag := true;
 			      proof_level := Proof_dk;
 			      opt_level := 0;
-			      Globals.output_dk := true;
-			      Progress.level := Progress.No;
-			      quiet_flag := true),
+			      Globals.output_dk := true),
         "              print the proof in Dk script format (force -rename)";
   "-odkterm", Arg.Unit (fun () -> proof_level := Proof_dkterm;
 				  opt_level := 0;
-				  Globals.output_dk := true;
-				  Progress.level := Progress.No;
-				  quiet_flag := true),
+				  Globals.output_dk := true),
             "          print the proof in DK term format";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
       "<n>             print the proof in high-level format up to depth <n>";
@@ -225,12 +222,10 @@ let argspec = [
         "<file>        output errors and warnings to <file> instead of stderr";
   "-x", Arg.String Extension.activate,
      "<ext>            activate extension <ext>";
-  "-rwrt", Arg.Set build_rwrt_sys,
-     "             build automatically the rewrite system";
-  "-b-rwrt", Arg.Set build_rwrt_sys_B,
-     "             build automatically the rewrite system for B";
-  "-casc-rwrt", Arg.Set build_rwrt_sys_casc,
-     "             build automatically the rewrite system (optimized)";
+  "-modulo", Arg.Set modulo,
+     "             build the rewrite system from TPTP meta info";
+  "-modulo-heuri", Arg.Set modulo_heuri,
+     "             build the rewrite system from heuristic";
   "-dbg-rwrt", Arg.Set debug_rwrt,
      "             debug mode for rewriting"
 ];;
@@ -312,10 +307,19 @@ let parse_file f =
           let d = Filename.dirname f in
           let pp = Filename.parent_dir_name in
           let upup = Filename.concat (Filename.concat d pp) pp in
-          let incpath = List.rev (upup :: d :: !include_path) in
-	  let (forms, name) = Tptp.translate incpath tpphrases in
-          let forms = Typetptp.typecheck forms in
-	  (name, List.map (fun x -> (x, false)) forms)
+          begin
+            try
+              let tptp_env = Sys.getenv "TPTP" in
+              let incpath = List.rev (tptp_env :: upup :: d :: !include_path) in
+              let (forms, name) = Tptp.translate incpath tpphrases in
+              let forms = Typetptp.typecheck forms in
+	      (name, List.map (fun x -> (x, false)) forms)
+            with Not_found ->
+              let incpath = List.rev (upup :: d :: !include_path) in
+              let (forms, name) = Tptp.translate incpath tpphrases in
+              let forms = Typetptp.typecheck forms in
+	      (name, List.map (fun x -> (x, false)) forms)
+          end
       | I_focal ->
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
           closer ();
@@ -487,6 +491,7 @@ let main () =
     eprintf "\n";
     (*Gc.print_stat stderr;*)
   end;
+
   do_exit !retcode
 ;;
 
