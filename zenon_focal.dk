@@ -1,64 +1,64 @@
 #NAME focal.
 
-bool := dk_bool.bool.
-Bool := dk_bool.Bool.
-true := dk_bool.true.
-false := dk_bool.false.
-not := dk_bool.not.
-and := dk_bool.and.
-or := dk_bool.or.
-xor := dk_bool.xor.
-if := dk_bool.ite.
-ifb := dk_bool.iteb.
-match := dk_bool.match.
+def bool := dk_bool.bool.
+def Bool := dk_bool.Bool.
+def true := dk_bool.true.
+def false := dk_bool.false.
+def not := dk_bool.not.
+def and := dk_bool.and.
+def or := dk_bool.or.
+def xor := dk_bool.xor.
+def if := dk_bool.ite.
+def ifb := dk_bool.iteb.
+def match := dk_bool.match.
 
-Prop := dk_logic.Prop.
-eP := dk_logic.eP.
-eeP : Prop -> cc.uT := dk_logic.eeP.
-Is_true : Bool -> Prop := dk_logic.ebP.
-True := dk_logic.True.
-False := dk_logic.False.
-TrueT := dk_logic.TrueT.
-FalseT := dk_logic.FalseT.
-Not := dk_logic.not.
-NotNot : Prop -> Prop := H : Prop => Not (Not H).
-And := dk_logic.and.
-Or := dk_logic.or.
-Imp := dk_logic.imp.
-Eqv := dk_logic.eqv.
-Forall := dk_logic.forall.
-Forallb := Forall bool.
+def Prop := dk_logic.Prop.
+def eP := dk_logic.eP.
+def eeP : Prop -> cc.uT := dk_logic.eeP.
+def Is_true : Bool -> Prop := dk_logic.ebP.
+def True := dk_logic.True.
+def False := dk_logic.False.
+def TrueT := dk_logic.TrueT.
+def FalseT := dk_logic.FalseT.
+def Not := dk_logic.not.
+def NotNot : Prop -> Prop := H : Prop => Not (Not H).
+def And := dk_logic.and.
+def Or := dk_logic.or.
+def Imp := dk_logic.imp.
+def Eqv := dk_logic.eqv.
+def Forall := dk_logic.forall.
+def Forallb := Forall bool.
 
-equal := dk_logic.equal.
-eqb := equal bool.
-refl := dk_logic.refl bool.
-sym := dk_logic.equal_sym bool.
+def equal := dk_logic.equal.
+def eqb := equal bool.
+def refl := dk_logic.refl bool.
+def sym := dk_logic.equal_sym bool.
 
-tt : TrueT := P : dk_logic.Prop => H : eP P => H.
-ff (H : FalseT) : FalseT := H.
+def tt : TrueT := P : dk_logic.Prop => H : eP P => H.
+def ff (H : FalseT) : FalseT := H.
 
 
 
-zenon_focal_false : eP (Not (Is_true false)) := ff.
+def zenon_focal_false : eP (Not (Is_true false)) := ff.
 
-zenon_focal_nottrue (H : eP (Not (Is_true true))) : FalseT := H tt.
+def zenon_focal_nottrue (H : eP (Not (Is_true true))) : FalseT := H tt.
 
-zenon_focal_trueequal (x : Bool)
-                      (H : eP (Not (Is_true x)))
-                      (G : eP (eqb true x)) : FalseT
+def zenon_focal_trueequal (x : Bool)
+                          (H : eP (Not (Is_true x)))
+                          (G : eP (eqb true x)) : FalseT
 :=
   H (G Is_true tt).
 
-zenon_focal_equaltrue (x : Bool)
-                      (H : eP (Not (Is_true x)))
-                      (G : eP (eqb x true)) : FalseT
+def zenon_focal_equaltrue (x : Bool)
+                          (H : eP (Not (Is_true x)))
+                          (G : eP (eqb x true)) : FalseT
 :=
   zenon_focal_trueequal x H (sym x true G).
 
-zenon_focal_truenotequal :
-  x : Bool ->
-  eP (NotNot (Is_true x)) ->
-  eP (NotNot (eqb true x))
+def zenon_focal_truenotequal :
+      x : Bool ->
+      eP (NotNot (Is_true x)) ->
+      eP (NotNot (eqb true x))
   :=
     match (x : Bool =>
            eeP (Imp
@@ -71,18 +71,18 @@ zenon_focal_truenotequal :
            G : eP (Not (eqb true false)) =>
            H ff).
 
-zenon_focal_notequaltrue (x : Bool)
-                         (H : eP (NotNot (Is_true x)))
-                         (Abs : eP (Not (eqb x true))) : FalseT
+def zenon_focal_notequaltrue (x : Bool)
+                             (H : eP (NotNot (Is_true x)))
+                             (Abs : eP (Not (eqb x true))) : FalseT
 :=
   zenon_focal_truenotequal x H
                            (G : eP (eqb true x) =>
                             Abs (sym true x G)).
 
-zenon_focal_falseequal :
-  x : Bool ->
-  eP (NotNot (Is_true x)) ->
-  eP (Not (eqb false x))
+def zenon_focal_falseequal :
+      x : Bool ->
+      eP (NotNot (Is_true x)) ->
+      eP (Not (eqb false x))
   :=
     match (x : Bool =>
            eeP (Imp
@@ -95,16 +95,16 @@ zenon_focal_falseequal :
            G : eP (eqb false false) =>
            H ff).
 
-zenon_focal_equalfalse (x : Bool)
-                       (H : eP (NotNot (Is_true x)))
-                       (G : eP (eqb x false)) : FalseT
+def zenon_focal_equalfalse (x : Bool)
+                           (H : eP (NotNot (Is_true x)))
+                           (G : eP (eqb x false)) : FalseT
 :=
   zenon_focal_falseequal x H (sym x false G).
 
-zenon_focal_falsenotequal :
-  x : Bool ->
-  eP (Not (Is_true x)) ->
-  eP (NotNot (eqb false x))
+def zenon_focal_falsenotequal :
+      x : Bool ->
+      eP (Not (Is_true x)) ->
+      eP (NotNot (eqb false x))
   :=
     match (x : Bool =>
            eeP (Imp
@@ -117,18 +117,18 @@ zenon_focal_falsenotequal :
            G : eP (Not (eqb false false)) =>
            G (refl false)).
 
-zenon_focal_notequalfalse (x : Bool)
-                          (H : eP (Not (Is_true x)))
-                          (G : eP (Not (eqb x false))) : FalseT
+def zenon_focal_notequalfalse (x : Bool)
+                              (H : eP (Not (Is_true x)))
+                              (G : eP (Not (eqb x false))) : FalseT
 :=
   zenon_focal_falsenotequal x H
                             (E : eP (eqb false x) =>
                              G (sym false x E)).
 
-zenon_focal_not :
-  a : Bool ->
-  eP (NotNot (Is_true a)) ->
-  eP (Not (Is_true (not a)))
+def zenon_focal_not :
+      a : Bool ->
+      eP (NotNot (Is_true a)) ->
+      eP (Not (Is_true (not a)))
   :=
     match (a : Bool =>
            eeP (Imp (NotNot (Is_true a))
@@ -138,10 +138,10 @@ zenon_focal_not :
           (H : eP (NotNot False) =>
            G : TrueT => H ff).
 
-zenon_focal_notnot :
-  a : Bool ->
-  eP (Not (Is_true a)) ->
-  eP (NotNot (Is_true (not a)))
+def zenon_focal_notnot :
+      a : Bool ->
+      eP (Not (Is_true a)) ->
+      eP (NotNot (Is_true (not a)))
   :=
     match (a : Bool =>
            eeP (Imp (Not (Is_true a))
@@ -151,12 +151,12 @@ zenon_focal_notnot :
           (H : eP (Not False) =>
            G : eP (Not True) => G tt).
 
-zenon_focal_and :
-  a : Bool ->
-  b : Bool ->
-  eP (Not (And (Is_true a) (Is_true b))) ->
-  eP (Is_true (and a b)) ->
-  FalseT
+def zenon_focal_and :
+      a : Bool ->
+      b : Bool ->
+      eP (Not (And (Is_true a) (Is_true b))) ->
+      eP (Is_true (and a b)) ->
+      FalseT
   :=
     match (a : Bool =>
            eeP (Forallb (b : Bool =>
@@ -173,11 +173,11 @@ zenon_focal_and :
            H : eP (Not (And False (Is_true b))) =>
            G : FalseT => G).
 
-zenon_focal_notand :
-  a : Bool ->
-  b : Bool ->
-  eP (NotNot (And (Is_true a) (Is_true b))) ->
-  eP (NotNot (Is_true (and a b)))
+def zenon_focal_notand :
+      a : Bool ->
+      b : Bool ->
+      eP (NotNot (And (Is_true a) (Is_true b))) ->
+      eP (NotNot (Is_true (and a b)))
   :=
     match (a : Bool =>
            eeP (Forallb (b : Bool =>
@@ -200,11 +200,11 @@ zenon_focal_notand :
                        J : eP (Is_true b) =>
                        ff))).
 
-zenon_focal_or :
-  a : Bool ->
-  b : Bool ->
-  eP (Not (Or (Is_true a) (Is_true b))) ->
-  eP (Not (Is_true (or a b)))
+def zenon_focal_or :
+      a : Bool ->
+      b : Bool ->
+      eP (Not (Or (Is_true a) (Is_true b))) ->
+      eP (Not (Is_true (or a b)))
   :=
     match (a : Bool =>
            eeP (Forallb (b : Bool =>
@@ -226,11 +226,11 @@ zenon_focal_or :
               Hr : (eP (Is_true b) -> eP P) =>
               Hr G)).
 
-zenon_focal_notor :
-  a : Bool ->
-  b : Bool ->
-  eP (NotNot (Or (Is_true a) (Is_true b))) ->
-  eP (NotNot (Is_true (or a b)))
+def zenon_focal_notor :
+      a : Bool ->
+      b : Bool ->
+      eP (NotNot (Or (Is_true a) (Is_true b))) ->
+      eP (NotNot (Is_true (or a b)))
   :=
     match (a : Bool =>
            eeP (Forallb (b : Bool =>
@@ -249,11 +249,11 @@ zenon_focal_notor :
                    (J : FalseT => J (Is_true b))
                    (J : eP (Is_true b) => J)))).
 
-zenon_focal_xor :
-  a : Bool ->
-  b : Bool ->
-  eP (NotNot (Eqv (Is_true a) (Is_true b))) ->
-  eP (Not (Is_true (xor a b)))
+def zenon_focal_xor :
+      a : Bool ->
+      b : Bool ->
+      eP (NotNot (Eqv (Is_true a) (Is_true b))) ->
+      eP (Not (Is_true (xor a b)))
   :=
     match (a : Bool =>
            eeP (Forallb (b : Bool =>
@@ -279,11 +279,11 @@ zenon_focal_xor :
                  H2 : (eP (Is_true b) -> FalseT) =>
                  H2 G))).
 
-zenon_focal_notxor :
-  a : Bool ->
-  b : Bool ->
-  eP (Not (Eqv (Is_true a) (Is_true b))) ->
-  eP (NotNot (Is_true (xor a b)))
+def zenon_focal_notxor :
+      a : Bool ->
+      b : Bool ->
+      eP (Not (Eqv (Is_true a) (Is_true b))) ->
+      eP (NotNot (Is_true (xor a b)))
   :=
     match (a : Bool =>
            eeP (Forallb (b : Bool =>
@@ -311,15 +311,15 @@ zenon_focal_notxor :
               I (J : FalseT => J (Is_true b))
                 G)).
 
-zenon_focal_ite_bool :
-  cond : Bool ->
-  thn : Bool ->
-  els : Bool ->
-  eP (Imp (Is_true cond)
-          (Not (Is_true thn))) ->
-  eP (Imp (Not (Is_true cond))
-          (Not (Is_true els))) ->
-  eP (Not (Is_true (ifb cond thn els)))
+def zenon_focal_ite_bool :
+      cond : Bool ->
+      thn : Bool ->
+      els : Bool ->
+      eP (Imp (Is_true cond)
+              (Not (Is_true thn))) ->
+      eP (Imp (Not (Is_true cond))
+              (Not (Is_true els))) ->
+      eP (Not (Is_true (ifb cond thn els)))
   :=
     match (cond : Bool =>
            eeP
@@ -350,15 +350,15 @@ zenon_focal_ite_bool :
                 eP (Not (Is_true els))) =>
            G ff).
 
-zenon_focal_ite_bool_n :
-  cond : Bool ->
-  thn : Bool ->
-  els : Bool ->
-  eP (Imp (Is_true cond)
-          (NotNot (Is_true thn))) ->
-  eP (Imp (Not (Is_true cond))
-          (NotNot (Is_true els))) ->
-  eP (NotNot (Is_true (ifb cond thn els)))
+def zenon_focal_ite_bool_n :
+      cond : Bool ->
+      thn : Bool ->
+      els : Bool ->
+      eP (Imp (Is_true cond)
+              (NotNot (Is_true thn))) ->
+      eP (Imp (Not (Is_true cond))
+              (NotNot (Is_true els))) ->
+      eP (NotNot (Is_true (ifb cond thn els)))
   :=
     match (cond : Bool =>
            eeP
@@ -391,16 +391,16 @@ zenon_focal_ite_bool_n :
                 eP (NotNot (Is_true els))) =>
            G ff).
 
-zenon_focal_ite_rel_l (A : cc.uT)
-                      (B : cc.uT)
-                      (r : cc.eT A -> cc.eT B -> Prop) :
-                      cond : Bool ->
-                      thn : cc.eT A ->
-                      els : cc.eT A ->
-                      e2 : cc.eT B ->
-                      eP (Imp (Is_true cond) (Not (r thn e2))) ->
-                      eP (Imp (Not (Is_true cond)) (Not (r els e2))) ->
-                      eP (Not (r (if A cond thn els) e2))
+def zenon_focal_ite_rel_l (A : cc.uT)
+                          (B : cc.uT)
+                          (r : cc.eT A -> cc.eT B -> Prop) :
+                          cond : Bool ->
+                          thn : cc.eT A ->
+                          els : cc.eT A ->
+                          e2 : cc.eT B ->
+                          eP (Imp (Is_true cond) (Not (r thn e2))) ->
+                          eP (Imp (Not (Is_true cond)) (Not (r els e2))) ->
+                          eP (Not (r (if A cond thn els) e2))
 :=
   match (cond : Bool =>
          eeP
@@ -431,57 +431,57 @@ zenon_focal_ite_rel_l (A : cc.uT)
          G : (eP (Not False) -> eP (Not (r els e2))) =>
          G ff).
 
-zenon_focal_ite_rel_r (A : cc.uT)
-                      (B : cc.uT)
-                      (r : cc.eT A -> cc.eT B -> Prop)
-                      (e1 : cc.eT A)
-                      (cond : Bool)
-                      (thn : cc.eT B)
-                      (els : cc.eT B)
-                      (H : eP (Is_true cond) ->
-                       eP (Not (r e1 thn)))
-                      (G : eP (Not (Is_true cond)) ->
-                       eP (Not (r e1 els)))
-                      : eP (Not (r e1 (if B cond thn els)))
+def zenon_focal_ite_rel_r (A : cc.uT)
+                          (B : cc.uT)
+                          (r : cc.eT A -> cc.eT B -> Prop)
+                          (e1 : cc.eT A)
+                          (cond : Bool)
+                          (thn : cc.eT B)
+                          (els : cc.eT B)
+                          (H : eP (Is_true cond) ->
+                           eP (Not (r e1 thn)))
+                          (G : eP (Not (Is_true cond)) ->
+                           eP (Not (r e1 els)))
+                          : eP (Not (r e1 (if B cond thn els)))
 :=
   zenon_focal_ite_rel_l B A (b : cc.eT B => a : cc.eT A => r a b) cond thn els e1 H G.
 
-zenon_focal_ite_rel_nl (A : cc.uT)
-                       (B : cc.uT)
-                       (r: cc.eT A -> cc.eT B -> Prop)
-                       (cond : Bool)
-                       (thn : cc.eT A)
-                       (els : cc.eT A)
-                       (e2 : cc.eT B)
-                       (H : eP (Is_true cond) ->
-                        eP (NotNot (r thn e2)))
-                       (G : eP (Not (Is_true cond)) ->
-                        eP (NotNot (r els e2)))
-                       : eP (NotNot (r (if A cond thn els) e2))
+def zenon_focal_ite_rel_nl (A : cc.uT)
+                           (B : cc.uT)
+                           (r: cc.eT A -> cc.eT B -> Prop)
+                           (cond : Bool)
+                           (thn : cc.eT A)
+                           (els : cc.eT A)
+                           (e2 : cc.eT B)
+                           (H : eP (Is_true cond) ->
+                            eP (NotNot (r thn e2)))
+                           (G : eP (Not (Is_true cond)) ->
+                            eP (NotNot (r els e2)))
+                           : eP (NotNot (r (if A cond thn els) e2))
 :=
   zenon_focal_ite_rel_l A B (a : cc.eT A => b : cc.eT B => Not (r a b))
                             cond thn els e2 H G.
 
-zenon_focal_ite_rel_nr (A : cc.uT)
-                       (B : cc.uT)
-                       (r : cc.eT A -> cc.eT B -> Prop)
-                       (e1 : cc.eT A)
-                       (cond : Bool)
-                       (thn : cc.eT B)
-                       (els : cc.eT B)
-                       (H : eP (Is_true cond) ->
-                        eP (NotNot (r e1 thn)))
-                       (G : eP (Not (Is_true cond)) ->
-                        eP (NotNot (r e1 els)))
-                       : eP (NotNot (r e1 (if B cond thn els)))
+def zenon_focal_ite_rel_nr (A : cc.uT)
+                           (B : cc.uT)
+                           (r : cc.eT A -> cc.eT B -> Prop)
+                           (e1 : cc.eT A)
+                           (cond : Bool)
+                           (thn : cc.eT B)
+                           (els : cc.eT B)
+                           (H : eP (Is_true cond) ->
+                            eP (NotNot (r e1 thn)))
+                           (G : eP (Not (Is_true cond)) ->
+                            eP (NotNot (r e1 els)))
+                           : eP (NotNot (r e1 (if B cond thn els)))
 :=
   zenon_focal_ite_rel_r A B (a : cc.eT A => b : cc.eT B => Not (r a b))
                             e1 cond thn els H G.
 
-zenon_focal_istrue_true :
-  e : Bool ->
-  eP (Not (eqb e true)) ->
-  eP (Not (Is_true e))
+def zenon_focal_istrue_true :
+      e : Bool ->
+      eP (Not (eqb e true)) ->
+      eP (Not (Is_true e))
   :=
     match (e : Bool =>
            eeP (Imp (Not (eqb e true)) (Not (Is_true e))))
@@ -490,10 +490,10 @@ zenon_focal_istrue_true :
            H (refl true))
           (H : eP (Not (eqb false true)) => ff).
 
-zenon_focal_notistrue_false :
-  e : Bool ->
-  eP (Not (eqb e false)) ->
-  eP (NotNot (Is_true e))
+def zenon_focal_notistrue_false :
+      e : Bool ->
+      eP (Not (eqb e false)) ->
+      eP (NotNot (Is_true e))
   :=
     match (e : Bool =>
            eeP (Imp (Not (eqb e false))
@@ -508,165 +508,165 @@ zenon_focal_eqdec : T : cc.uT ->
 		    y : cc.eT T ->
 		    eP (Or (equal T x y) (Not (equal T x y))).
 
-zenon_focal_false_s := zenon_focal_false.
-zenon_focal_nottrue_s := zenon_focal_nottrue.
-zenon_focal_trueequal_s (x : Bool)
-                        (c : eP (eqb true x))
-                        (h : eP (Not (Is_true x)))
+def zenon_focal_false_s := zenon_focal_false.
+def zenon_focal_nottrue_s := zenon_focal_nottrue.
+def zenon_focal_trueequal_s (x : Bool)
+                            (c : eP (eqb true x))
+                            (h : eP (Not (Is_true x)))
 :=
   zenon_focal_trueequal x h c.
 
-zenon_focal_equaltrue_s (x : Bool)
-                        (c : eP (eqb x true))
-                        (h : eP (Not (Is_true x)))
+def zenon_focal_equaltrue_s (x : Bool)
+                            (c : eP (eqb x true))
+                            (h : eP (Not (Is_true x)))
 :=
   zenon_focal_equaltrue x h c.
 
-zenon_focal_truenotequal_s (x : Bool)
-                           (c : eP (Not (eqb true x)))
-                           (h : eP (NotNot (Is_true x)))
+def zenon_focal_truenotequal_s (x : Bool)
+                               (c : eP (Not (eqb true x)))
+                               (h : eP (NotNot (Is_true x)))
 :=
   zenon_focal_truenotequal x h c.
 
-zenon_focal_notequaltrue_s (x : Bool)
-                           (c : eP (eqb x true))
-                           (h : eP (Not (Is_true x)))
+def zenon_focal_notequaltrue_s (x : Bool)
+                               (c : eP (eqb x true))
+                               (h : eP (Not (Is_true x)))
 :=
   zenon_focal_equaltrue x h c.
 
-zenon_focal_falseequal_s (x : Bool)
-                         (c : eP (eqb false x))
-                         (h : eP (NotNot (Is_true x)))
+def zenon_focal_falseequal_s (x : Bool)
+                             (c : eP (eqb false x))
+                             (h : eP (NotNot (Is_true x)))
 := zenon_focal_falseequal x h c.
 
-zenon_focal_equalfalse_s (x : Bool)
-                         (c : eP (eqb x false))
-                         (h : eP (NotNot (Is_true x)))
+def zenon_focal_equalfalse_s (x : Bool)
+                             (c : eP (eqb x false))
+                             (h : eP (NotNot (Is_true x)))
 := zenon_focal_equalfalse x h c.
 
-zenon_focal_falsenotequal_s (x : Bool)
-                            (c : eP (Not (eqb false x)))
-                            (h : eP (Not (Is_true x)))
+def zenon_focal_falsenotequal_s (x : Bool)
+                                (c : eP (Not (eqb false x)))
+                                (h : eP (Not (Is_true x)))
 := zenon_focal_falsenotequal x h c.
 
-zenon_focal_notequalfalse_s (x : Bool)
-                            (c : eP (Not (eqb x false)))
-                            (h : eP (Not (Is_true x)))
+def zenon_focal_notequalfalse_s (x : Bool)
+                                (c : eP (Not (eqb x false)))
+                                (h : eP (Not (Is_true x)))
 := zenon_focal_notequalfalse x h c.
 
-zenon_focal_not_s (a : Bool)
-                  (c : eP (Is_true (not a)))
-                  (h : eP (NotNot (Is_true a)))
+def zenon_focal_not_s (a : Bool)
+                      (c : eP (Is_true (not a)))
+                      (h : eP (NotNot (Is_true a)))
 := zenon_focal_not a h c.
 
-zenon_focal_notnot_s (a : Bool)
-                     (c : eP (Not (Is_true (not a))))
-                     (h : eP (Not (Is_true a)))
+def zenon_focal_notnot_s (a : Bool)
+                         (c : eP (Not (Is_true (not a))))
+                         (h : eP (Not (Is_true a)))
 := zenon_focal_notnot a h c.
 
-zenon_focal_and_s (a : Bool)
-                  (b : Bool)
-                  (c : eP (Is_true (and a b)))
-                  (h : eP (Not (And (Is_true a) (Is_true b))))
+def zenon_focal_and_s (a : Bool)
+                      (b : Bool)
+                      (c : eP (Is_true (and a b)))
+                      (h : eP (Not (And (Is_true a) (Is_true b))))
 := zenon_focal_and a b h c.
 
-zenon_focal_notand_s (a : Bool)
-                     (b : Bool)
-                     (c : eP (Not (Is_true (and a b))))
-                     (h : eP (NotNot (And (Is_true a) (Is_true b))))
+def zenon_focal_notand_s (a : Bool)
+                         (b : Bool)
+                         (c : eP (Not (Is_true (and a b))))
+                         (h : eP (NotNot (And (Is_true a) (Is_true b))))
 := zenon_focal_notand a b h c.
 
-zenon_focal_or_s (a : Bool)
-                 (b : Bool)
-                 (c : eP (Is_true (or a b)))
-                 (h : eP (Not (Or (Is_true a) (Is_true b))))
+def zenon_focal_or_s (a : Bool)
+                     (b : Bool)
+                     (c : eP (Is_true (or a b)))
+                     (h : eP (Not (Or (Is_true a) (Is_true b))))
 := zenon_focal_or a b h c.
 
-zenon_focal_notor_s (a : Bool)
-                    (b : Bool)
-                    (c : eP (Not (Is_true (or a b))))
-                    (h : eP (NotNot (Or (Is_true a) (Is_true b))))
+def zenon_focal_notor_s (a : Bool)
+                        (b : Bool)
+                        (c : eP (Not (Is_true (or a b))))
+                        (h : eP (NotNot (Or (Is_true a) (Is_true b))))
 := zenon_focal_notor a b h c.
 
-zenon_focal_xor_s (a : Bool)
-                  (b : Bool)
-                  (c : eP (Is_true (xor a b)))
-                  (h : eP (NotNot (Eqv (Is_true a) (Is_true b))))
+def zenon_focal_xor_s (a : Bool)
+                      (b : Bool)
+                      (c : eP (Is_true (xor a b)))
+                      (h : eP (NotNot (Eqv (Is_true a) (Is_true b))))
 := zenon_focal_xor a b h c.
 
-zenon_focal_notxor_s (a : Bool)
-                     (b : Bool)
-                     (c : eP (Not (Is_true (xor a b))))
-                     (h : eP (Not (Eqv (Is_true a) (Is_true b))))
+def zenon_focal_notxor_s (a : Bool)
+                         (b : Bool)
+                         (c : eP (Not (Is_true (xor a b))))
+                         (h : eP (Not (Eqv (Is_true a) (Is_true b))))
 := zenon_focal_notxor a b h c.
 
-zenon_focal_ite_bool_s (cond : Bool)
-                       (thn : Bool)
-                       (els : Bool)
-                       (c : eP (Is_true (ifb cond thn els)))
-                       (h1 : eP (Imp (Is_true cond)
-                                     (Not (Is_true thn))))
-                       (h2 : eP (Imp (Not (Is_true cond))
-                                     (Not (Is_true els))))
+def zenon_focal_ite_bool_s (cond : Bool)
+                           (thn : Bool)
+                           (els : Bool)
+                           (c : eP (Is_true (ifb cond thn els)))
+                           (h1 : eP (Imp (Is_true cond)
+                                         (Not (Is_true thn))))
+                           (h2 : eP (Imp (Not (Is_true cond))
+                                         (Not (Is_true els))))
 := zenon_focal_ite_bool cond thn els h1 h2 c.
 
-zenon_focal_ite_bool_n_s (cond : Bool)
-                         (thn : Bool)
-                         (els : Bool)
-                         (c : eP (Not (Is_true (ifb cond thn els))))
-                         (h1 : eP (Imp (Is_true cond)
-                                       (NotNot (Is_true thn))))
-                         (h2 : eP (Imp (Not (Is_true cond))
-                                       (NotNot (Is_true els))))
+def zenon_focal_ite_bool_n_s (cond : Bool)
+                             (thn : Bool)
+                             (els : Bool)
+                             (c : eP (Not (Is_true (ifb cond thn els))))
+                             (h1 : eP (Imp (Is_true cond)
+                                           (NotNot (Is_true thn))))
+                             (h2 : eP (Imp (Not (Is_true cond))
+                                           (NotNot (Is_true els))))
 := zenon_focal_ite_bool_n cond thn els h1 h2 c.
 
-zenon_focal_ite_rel_l_s (A : cc.uT)
-                        (B : cc.uT)
-                        (r : cc.eT A -> cc.eT B -> Prop)
-                        (cond : Bool)
-                        (thn : cc.eT A)
-                        (els : cc.eT A)
-                        (e2 : cc.eT B)
-                        (c : eP (r (if A cond thn els) e2))
-                        (h1 : eP (Is_true cond) -> eP (Not (r thn e2)))
-                        (h2 : eP (Not (Is_true cond)) -> eP (Not (r els e2)))
+def zenon_focal_ite_rel_l_s (A : cc.uT)
+                            (B : cc.uT)
+                            (r : cc.eT A -> cc.eT B -> Prop)
+                            (cond : Bool)
+                            (thn : cc.eT A)
+                            (els : cc.eT A)
+                            (e2 : cc.eT B)
+                            (c : eP (r (if A cond thn els) e2))
+                            (h1 : eP (Is_true cond) -> eP (Not (r thn e2)))
+                            (h2 : eP (Not (Is_true cond)) -> eP (Not (r els e2)))
 := zenon_focal_ite_rel_l A B r cond thn els e2 h1 h2 c.
 
-zenon_focal_ite_rel_r_s (A : cc.uT)
-                        (B : cc.uT)
-                        (r : cc.eT A -> cc.eT B -> Prop)
-                        (e1 : cc.eT A)
-                        (cond : Bool)
-                        (thn : cc.eT B)
-                        (els : cc.eT B)
-                        (c : eP (r e1 (if B cond thn els)))
-                        (h1 : eP (Is_true cond) -> eP (Not (r e1 thn)))
-                        (h2 : eP (Not (Is_true cond)) -> eP (Not (r e1 els)))
+def zenon_focal_ite_rel_r_s (A : cc.uT)
+                            (B : cc.uT)
+                            (r : cc.eT A -> cc.eT B -> Prop)
+                            (e1 : cc.eT A)
+                            (cond : Bool)
+                            (thn : cc.eT B)
+                            (els : cc.eT B)
+                            (c : eP (r e1 (if B cond thn els)))
+                            (h1 : eP (Is_true cond) -> eP (Not (r e1 thn)))
+                            (h2 : eP (Not (Is_true cond)) -> eP (Not (r e1 els)))
 := zenon_focal_ite_rel_r A B r e1 cond thn els h1 h2 c.
 
-zenon_focal_ite_rel_nl_s (A : cc.uT)
-                         (B : cc.uT)
-                         (r : cc.eT A -> cc.eT B -> Prop)
-                         (cond : Bool)
-                         (thn : cc.eT A)
-                         (els : cc.eT A)
-                         (e2 : cc.eT B)
-                         (c : eP (Not (r (if A cond thn els) e2)))
-                         (h1 : eP (Is_true cond) -> eP (NotNot (r thn e2)))
-                         (h2 : eP (Not (Is_true cond)) -> eP (NotNot (r els e2)))
+def zenon_focal_ite_rel_nl_s (A : cc.uT)
+                             (B : cc.uT)
+                             (r : cc.eT A -> cc.eT B -> Prop)
+                             (cond : Bool)
+                             (thn : cc.eT A)
+                             (els : cc.eT A)
+                             (e2 : cc.eT B)
+                             (c : eP (Not (r (if A cond thn els) e2)))
+                             (h1 : eP (Is_true cond) -> eP (NotNot (r thn e2)))
+                             (h2 : eP (Not (Is_true cond)) -> eP (NotNot (r els e2)))
 :=
   zenon_focal_ite_rel_nl A B r cond thn els e2 h1 h2 c.
 
-zenon_focal_ite_rel_nr_s (A : cc.uT)
-                         (B : cc.uT)
-                         (r : cc.eT A -> cc.eT B -> Prop)
-                         (e1 : cc.eT A)
-                         (cond : Bool)
-                         (thn : cc.eT B)
-                         (els : cc.eT B)
-                         (c : eP (Not (r e1 (if B cond thn els))))
-                         (h1 : eP (Is_true cond) -> eP (NotNot (r e1 thn)))
-                         (h2 : eP (Not (Is_true cond)) -> eP (NotNot (r e1 els)))
+def zenon_focal_ite_rel_nr_s (A : cc.uT)
+                             (B : cc.uT)
+                             (r : cc.eT A -> cc.eT B -> Prop)
+                             (e1 : cc.eT A)
+                             (cond : Bool)
+                             (thn : cc.eT B)
+                             (els : cc.eT B)
+                             (c : eP (Not (r e1 (if B cond thn els))))
+                             (h1 : eP (Is_true cond) -> eP (NotNot (r e1 thn)))
+                             (h2 : eP (Not (Is_true cond)) -> eP (NotNot (r e1 els)))
 := zenon_focal_ite_rel_nr A B r e1 cond thn els h1 h2 c.
 
 
@@ -686,10 +686,10 @@ zenon_not_syntactic_equal : A : cc.uT ->
                             eP (NotNot (equal A x y)) ->
                             eP (NotNot (Is_true (syntactic_equal A x y))).
 
-zenon_focal_not_all_bool (P : Bool -> Prop)
-                         (h1 : eP (NotNot (P true)))
-                         (h2 : eP (NotNot (P false)))
-                         (hc : eP (Not (dk_logic.forall bool P)))
+def zenon_focal_not_all_bool (P : Bool -> Prop)
+                             (h1 : eP (NotNot (P true)))
+                             (h2 : eP (NotNot (P false)))
+                             (hc : eP (Not (dk_logic.forall bool P)))
 :=
   hc (match
        (b : Bool => eeP (P b))
