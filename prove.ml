@@ -540,7 +540,8 @@ let has_free_var v e = List.mem v (get_fv e);;
 let newnodes_delta st fm g _ =
   match fm with
   | Eex (v, p, _) ->
-    let h = substitute [(v, etau (v, p))] p in
+     Log.debug 6 "delta %a" Print.pp_expr fm;
+     let h = substitute [(v, etau (v, p))] p in
     add_node st {
       nconc = [fm];
       nrule = Ex (fm);
@@ -559,6 +560,7 @@ let newnodes_delta st fm g _ =
       nbranches = [| [h1; h2] |];
     }, true *)
   | Enot (Eall (v, p, _), _) ->
+     Log.debug 6 "delta %a" Print.pp_expr fm;
     let h1 = substitute [(v, etau (v, enot p))] (enot p) in
     add_node st {
       nconc = [fm];
@@ -573,6 +575,7 @@ let newnodes_delta st fm g _ =
 let newnodes_gamma st fm g _ =
   match fm with
   | Eall (v, p, _) ->
+     Log.debug 6 "gamma %a" Print.pp_expr fm;
     let w = emeta (fm) in
     let branches = [| [Expr.substitute [(v, w)] p] |] in
     add_node st {
@@ -583,7 +586,8 @@ let newnodes_gamma st fm g _ =
       nbranches = branches;
     }, true
   | Enot (Eex (v, p, _) as fm1, _) ->
-    let w = emeta (fm1) in
+     Log.debug 6 "gamma %a" Print.pp_expr fm;
+     let w = emeta (fm1) in
     let branches = [| [enot (Expr.substitute [(v, w)] p)] |] in
     add_node st {
       nconc = [fm];
@@ -699,7 +703,8 @@ let orient_meta m1 m2 =
 let newnodes_refl st fm g _ =
   match fm with
   | Enot (Eapp (Evar(s,_) as s', [e1; e2], _), _)
-    when s <> "=" && Eqrel.refl s' ->
+       when s <> "=" && Eqrel.refl s' ->
+     Log.debug 6 "refl %a" Print.pp_expr fm;
     add_node st {
       nconc = [fm];
       nrule = Refl (s', e1, e2);
@@ -729,6 +734,7 @@ let newnodes_match_congruence st fm g _ =
   | Enot (Eapp (Evar("=",_), [(Eapp (f1, a1, _) as e1);
                               (Eapp (f2, a2, _) as e2)], _), _)
     when Expr.equal f1 f2 ->
+     Log.debug 6 "congruence %a" Print.pp_expr fm;
      let (tyvar1, argsvar1) = Expr.split_list (Expr.nb_tvar e1) a1 in
      let (tyvar2, argsvar2) = Expr.split_list (Expr.nb_tvar e2) a2 in
      if (List.for_all2 (fun x y -> Expr.equal x y)
@@ -774,6 +780,7 @@ let mknode_trans sym (e1, g1) (e2, g2) =
       (r', r, a, b, c, d)
     | _, _ -> assert false
   in
+  Log.debug 6 "trans %a <-> %a" Print.pp_expr e1 Print.pp_expr e2;
   let (x, y, z, t) = if sym then (d, a, b, c) else (c, a, b, d) in
   let branches = [|
     [enot (eeq x y); enot (eapp (r', [x; y]))];
@@ -801,6 +808,7 @@ let mknode_transeq sym (e1, g1) (e2, g2) =
       Log.debug 0 "e2 : %a" Print.pp_expr e2;
       assert false
   in
+  Log.debug 6 "transeq %a <-> %a" Print.pp_expr e1 Print.pp_expr e2;
   let rsym = Eqrel.sym r' in
   let (x, y, z, t) =
     if sym then
@@ -847,7 +855,8 @@ let newnodes_match_trans st fm g _ =
     let fmg = (fm, g) in
     match fm with
     | Eapp (Evar("=",_) as seq, [Emeta _ ; Emeta _ ], _) ->
-      let nfmg = Index.find_neg "=" in
+       Log.debug 6 "match trans 1 %a" Print.pp_expr fm;
+       let nfmg = Index.find_neg "=" in
       let select a (b, c) =
         match a, b with
         | Eapp (s1, _, _), Enot (Eapp (s2, _, _), _) ->
@@ -886,6 +895,7 @@ let newnodes_match_trans st fm g _ =
     | Eapp (Evar("=",_), [e1; e2], _) ->
        begin
 	 try
+           Log.debug 6 "match trans 2 %a" Print.pp_expr fm;
 	   Index.add_trans fm;
 	   let h1 = Index.get_head e1 in
 	   let h2 = Index.get_head e2 in
@@ -915,6 +925,7 @@ let newnodes_match_trans st fm g _ =
     | Eapp (s, [e1; e2], _) when Eqrel.trans s ->
        begin
 	 try
+           Log.debug 6 "match trans 3 %a" Print.pp_expr fm;
 	   Index.add_trans fm;
 	   let h1 = Index.get_head e1 in
 	   let h2 = Index.get_head e2 in
@@ -950,6 +961,7 @@ let newnodes_match_trans st fm g _ =
     | Enot (Eapp (Evar(s',_) as s, [e1; e2], _), _) when Eqrel.trans s ->
        begin
 	 try
+           Log.debug 6 "match trans 4 %a" Print.pp_expr fm;
 	   Index.add_negtrans fm;
 	   let h1 = Index.get_head e1 in
 	   let h2 = Index.get_head e2 in
@@ -1009,10 +1021,12 @@ let newnodes_match_sym st fm g _ =
   let fmg = (fm, g) in
   match fm with
   | Enot (Eapp (Evar(s,_) as s', [a1; a2], _), _) when s <> "=" && Eqrel.sym s' ->
-    let do_match st pg = make_notequiv st true pg fmg in
+     Log.debug 6 "match sym %a" Print.pp_expr fm;
+     let do_match st pg = make_notequiv st true pg fmg in
     List.fold_left do_match st (Index.find_pos s), false
   | Eapp (Evar(s,_) as s', [a1; a2], _) when s <> "=" && Eqrel.sym s' ->
-    let do_match st pg = make_notequiv st true fmg pg in
+     Log.debug 6 "match sym %a" Print.pp_expr fm;
+     let do_match st pg = make_notequiv st true fmg pg in
     List.fold_left do_match st (Index.find_neg s), false
   | _ -> (st, false)
 ;;
@@ -1021,10 +1035,12 @@ let newnodes_match st fm g _ =
   let fmg = (fm, g) in
   match fm with
   | Enot (Eapp (Evar(s,_), _, _), _) when s <> "=" ->
+     Log.debug 6 "match %a" Print.pp_expr fm;
     let do_match st pg = make_notequiv st false pg fmg in
     List.fold_left do_match st (Index.find_pos s), true
   | Eapp (Evar(s,_), _, _) when s <> "=" ->
-    let do_match st pg = make_notequiv st false fmg pg in
+     Log.debug 6 "match %a" Print.pp_expr fm;
+     let do_match st pg = make_notequiv st false fmg pg in
     List.fold_left do_match st (Index.find_neg s), true
   | _ -> (st, false)
 ;;
@@ -1130,6 +1146,7 @@ let newnodes_match st fm g _ =
 let newnodes_preunif st fm g _ =
   match fm with
   | Enot (Eapp (Evar(s,_), _, _), _) ->
+     Log.debug 6 "preunif %a" Print.pp_expr fm;
     let do_match st (p, g2) =
       let f st1 (m, e) = fst (make_inst st1 m e (min g g2)) in
       List.fold_left f st (preunify p fm)
@@ -1144,6 +1161,7 @@ let newnodes_preunif st fm g _ =
       end;
     List.fold_left do_match st (Index.find_pos s), false
   | Eapp (Evar(s,_), _, _) ->
+     Log.debug 6 "preunif %a" Print.pp_expr fm;
     let do_match st (p, g2) =
       let f st1 (m, e) = fst (make_inst st1 m e (min g g2)) in
       List.fold_left f st (preunify p fm)

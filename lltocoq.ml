@@ -363,14 +363,17 @@ let p_rule oc r =
      poc "apply %s.\n" (getname (enot gg));
      poc "try rewrite <- %s_pnotp.\n" Namespace.dummy_prefix;
      poc "exact %s.\n" (getname ff);
-     let f a1 a2 =
+     let aux a1 a2 =
        let eq = eeq a1 a2 in
        let neq = enot eq in
        poc "cut (%a); [idtac | apply NNPP; zenon_intro %s].\n"
            p_expr eq (getname neq);
      in
-     List.iter2 f (List.rev args1) (List.rev args2);
-     poc "congruence.\n";
+     List.iter2 aux (List.rev args1) (List.rev args2);
+     if f <> "=" then
+       poc "(apply %s_proper || congruence).\n" f
+     else
+       poc "congruence.\n"
   | Rpnotp _ -> assert false
   | Rnoteq e ->
       poc "apply %s. apply refl_equal.\n" (getname (enot (eeq e e)));

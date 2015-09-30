@@ -20,84 +20,6 @@ let rec find_first_sym t =
     | _ -> ""
 ;;
 
-let b_axiom_to_rwrt_prop = [
-  "infix_eqeq_def";
-  "subset_def";
-  "subsetnoteq_def";
-  "empty1";
-  "mem_singleton";
-  "all_def";
-  "mem_union";
-  "mem_inter";
-  "mem_diff";
-  "mem_b_bool";
-  "mem_times";
-  "mem_power";
-  "mem_relation";
-  "mem_inverse";
-  "mem_dom";
-  "mem_ran";
-  "mem_semicolon";
-  "mem_id";
-  "mem_domain_restriction";
-  "mem_range_restriction";
-  "mem_domain_substraction";
-  "mem_range_substraction";
-  "mem_image";
-  "mem_overriding";
-  "mem_direct_product";
-  "mem_proj_op_1";
-  "mem_proj_op_2";
-  "mem_parallel_product";
-  "mem_partial_function_set";
-  "mem_total_function_set";
-  "mem_partial_injection_set";
-  "mem_total_injection_set";
-  "mem_partial_surjection_set";
-  "mem_total_surjection_set";
-  "mem_partial_bijection_set";
-  "mem_total_bijection_set";
-
-  "abs_le";
-  "abs_pos";
-  "is_empty_def";
-  "empty_def1";
-  "add_def1";
-  "remove_def1";
-  "mem_natural";
-  "mem_natural1";
-  "mem_nat";
-  "mem_nat1";
-  "mem_bounded_int";
-  "mem_interval";
-  "mem_non_empty_power";
-  "is_finite_subset";
-  "is_finite_subset_def";
-  "non_empty_finite_subsets";
-  "closure_def";
-  "closure1_def";
-  "generalized_union_def";
-  "seq_def";
-
-  "mem_integer";
-  "empty2";
-  "finite_subsets_def";
-  "non_empty_finite_subsets_def";
-];;
-
-let b_axiom_to_rwrt_term = [
-  "match_bool_True";
-  "match_bool_False";
-  "tuple2_proj_1_def";
-  "tuple2_proj_2_def";
-  "tuple2_inversion";
-  "semicolon_back1";
-  "power_1";
-  "seq_length_def";
-  "div_1";
-  "mod_1";
-];;
-
 (* new assoc and mem_assoc functions
    with the Expr.equal equality
    replacing =
@@ -122,10 +44,9 @@ exception Unif_failed;;
 
 let rec unif_aux l e1 e2 =
   match e1, e2 with
-
     | Evar (_, _), _ ->
       if  not(mem_assoc_expr e1 l) then (e1, e2)::l
-      else if (assoc_expr e1 l) = e2 then l
+      else if (Expr.equal (assoc_expr e1 l) e2) then l
       else raise Unif_failed
 
     | Eapp (f1, args1, _), Eapp (f2, args2, _) when (Expr.equal f1 f2)
@@ -411,6 +332,47 @@ let is_empty_list l =
   | _ -> false
 ;;
 
+let is_good_rwrt_term_aux body =
+  match body with
+  | Eapp (Evar ("=", _), [t1; t2], _)
+       when not (is_commut_term body)
+            && not (Expr.equal t1 t2) ->
+     begin
+       match t1, t2 with
+       | Eapp _, _ ->
+          test_fv (get_fv t1) (get_fv t2)
+       (*&& not (is_empty_list (get_fv t1))*)
+       | _, _ -> false
+     end
+  | _ -> false
+;;
+
+let rec is_good_rwrt_term body =
+  match body with
+  | Eall (_, pred, _) -> is_good_rwrt_term pred
+  | _ -> is_good_rwrt_term_aux body
+;;
+
+let rec is_good_rwrt_prop_aux body =
+  if is_literal_noteq body
+  then true
+  else
+    begin
+      match body with
+      | Eequiv (e1, e2, _) ->
+	 is_literal_noteq e1
+	 && test_fv (get_fv e1) (get_fv e2)
+      (* && not (is_empty_list (get_fv e1))*)
+      | _ -> false
+    end
+;;
+
+let rec is_good_rwrt_prop body =
+  match body with
+  | Eall (_, pred, _) -> is_good_rwrt_prop pred
+  | _ -> is_good_rwrt_prop_aux body
+;;
+
 let is_heuri_rwrt_term_aux body =
   match body with
   | Eapp (Evar ("=", _), [t1; t2], _)
@@ -432,7 +394,7 @@ let rec is_heuri_rwrt_term body =
   | _ -> is_heuri_rwrt_term_aux body
 ;;
 
-let rec is_equiv_prop body =
+let rec is_heuri_rwrt_prop_aux body =
   if is_literal_noteq body
   then true
   else
@@ -446,16 +408,10 @@ let rec is_equiv_prop body =
     end
 ;;
 
-(*let rec is_conj_prop body =
-  match body with
-  | Eand (e1, e2, _) -> is_conj_prop e1 && is_conj_prop e2
-  | _ -> is_equiv_prop body
-;;*)
-
 let rec is_heuri_rwrt_prop body =
   match body with
   | Eall (_, pred, _) -> is_heuri_rwrt_prop pred
-  | _ -> is_equiv_prop body
+  | _ -> is_heuri_rwrt_prop_aux body
 ;;
 
 let split_to_prop_rule body =
@@ -529,32 +485,49 @@ let get_rwrt_from_def = function
   | DefRec _ -> assert false   (* This case has been filtered out in select_rwrt_rules_aux *)
 ;;
 
+exception Bad_Rewrite_Rule of string * expr;;
+
 let rec select_rwrt_rules_aux accu phrase =
-(*  Log.debug 4 "select phrase";
-  Log.debug 4 " >> %a" Print.pp_phrase phrase;*)
   match phrase with
+  | Rew (name, body, flag)
+       when (flag = 2) || (flag = 1)
+    ->
+     assert !Globals.modulo;
+     if is_good_rwrt_prop body
+     then
+       begin
+         Log.debug 1 "|- adding rewrite prop %s: %a" name Print.pp_expr body;
+         add_rwrt_prop name body;
+         Rew (name, body, 1) :: accu
+       end
+     else if is_good_rwrt_term body
+     then
+       begin
+         Log.debug 1 "|- adding rewrite term %s: %a" name Print.pp_expr body;
+         add_rwrt_term name body;
+         Rew (name, body, 0) :: accu
+       end
+     else raise (Bad_Rewrite_Rule (name, body))
   | Hyp (name, body, flag)
        when (flag = 2) || (flag = 1) (*|| (flag = 12) || (flag = 11) *)
     ->
-     begin
-       if !Globals.build_rwrt_sys_B
-	  && List.mem name b_axiom_to_rwrt_term
-       then (add_rwrt_term name body; (Rew (name, body, 0) :: accu))
-       else if !Globals.build_rwrt_sys_B
-	       && List.mem name b_axiom_to_rwrt_prop
-       then (add_rwrt_prop name body; (Rew (name, body, 1) :: accu))
-       else if !Globals.build_rwrt_sys
-	       && is_heuri_rwrt_prop body
-       then (add_rwrt_prop name body; (Rew (name, body, 1) :: accu))
-       else if !Globals.build_rwrt_sys
-	       && is_heuri_rwrt_term body
-       then (add_rwrt_term name body; (Rew (name, body, 0) :: accu))
-       else if !Globals.build_rwrt_sys_casc
-	       && is_heuri_rwrt_prop body
-       then (add_rwrt_prop name body; (Rew (name, body, 1) :: accu))
-
-       else phrase :: accu;
-     end
+     if !Globals.modulo_heuri
+	&& is_heuri_rwrt_prop body
+     then
+       begin
+         Log.debug 1 "|- adding rewrite prop %s: %a" name Print.pp_expr body;
+         add_rwrt_prop name body;
+         Rew (name, body, 1) :: accu
+       end
+     else if !Globals.modulo_heuri
+	     && is_heuri_rwrt_term body
+     then
+       begin
+         Log.debug 1 "|- adding rewrite term %s: %a" name Print.pp_expr body;
+         add_rwrt_term name body;
+         Rew (name, body, 0) :: accu
+       end
+     else phrase :: accu;
   | Def (DefRec _) ->
      (* Recursive definitions are not turned into rewrite-rules (yet) *)
      phrase :: accu
@@ -566,7 +539,7 @@ let rec select_rwrt_rules_aux accu phrase =
 ;;
 
 let select_rwrt_rules phrases =
-  Log.debug 2 "====================";
-  Log.debug 2 "Select Rewrite Rules";
+  Log.debug 1 "====================";
+  Log.debug 1 "Select Rewrite Rules";
   List.rev (List.fold_left select_rwrt_rules_aux [] phrases)
 ;;

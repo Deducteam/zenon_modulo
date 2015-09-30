@@ -210,6 +210,6 @@ let change_to_def predef body =
 
 type tpphrase =
   | Include of string * string list option
-  | Formula of string * string * expr
+  | Formula of string * string * expr * string option
   | Annotation of string
 ;;

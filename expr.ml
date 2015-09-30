@@ -6,6 +6,7 @@ open Namespace;;
 
 let ( =%= ) = ( = );;
 let ( = ) = ();;
+let ( <> ) = ();;
 
 type expr =
   | Evar of string * private_info
@@ -60,7 +61,7 @@ exception Ill_typed_substitution of (expr * expr) list;;
 let defs = ref ([] : (string * expr) list)
 let add_defs l =
     defs := l @ !defs
-let get_defs () = !defs
+let get_defs () = List.rev !defs
 
 (************************)
 (* small sets of formulas (represented as lists) *)
@@ -262,13 +263,14 @@ let priv_var s t =
   mkpriv 0 [s] 1 0 [] [] t
 ;;
 let rec priv_arrow args ret =
+  let l = ret :: args in
   let comb_skel accu e = combine (get_skel e) accu in
   let skel = combine k_app (List.fold_left comb_skel (get_hash ret) args) in
-  let fv = List.fold_left (fun a e -> str_union a (get_fv e)) [] args in
-  let sz = List.fold_left (fun a e -> a + get_size e) 1 args in
-  let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 args in
-  let metas = List.fold_left (fun a e -> union (get_metas e) a) [] args in
-  let submetas = List.fold_left (fun a e -> union (get_submetas e) a) [] args in
+  let fv = List.fold_left (fun a e -> str_union a (get_fv e)) [] l in
+  let sz = List.fold_left (fun a e -> a + get_size e) 1 l in
+  let taus = List.fold_left (fun a e -> max (get_taus e) a) 0 l in
+  let metas = List.fold_left (fun a e -> union (get_metas e) a) [] l in
+  let submetas = List.fold_left (fun a e -> union (get_submetas e) a) [] l in
   mkpriv skel fv sz taus metas submetas type_type
 ;;
 let priv_meta e =
@@ -635,7 +637,7 @@ let preunify_list l1 l2 =
 
 let occurs_as_meta e f = List.exists ((==) e) (get_metas f);;
 let size = get_size;;
-let has_metas e = get_metas e <> [];;
+let has_metas e = not (get_metas e =%= []);;
 let count_metas e = List.length (get_metas e);;
 
 let cursym = ref (Bytes.of_string var_prefix)
@@ -746,7 +748,7 @@ and substitute_unsafe map e =
           else
             tvar (get_name v) t
       in
-      if v <> nv then
+      if not (equal v nv) then
         f (nv, substitute_unsafe ((v, nv) :: map1) body)
       else
         f (v, substitute_unsafe map1 body)

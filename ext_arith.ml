@@ -399,18 +399,31 @@ let bounds_of_clin v expr bounds =
     let upp, strict_upp = translate_bound eupp (fun () -> Q.inf, false) in
     let l_bounds, low, strict_low = bound_of_expr false expr bounds in
     let h_bounds, high, strict_high = bound_of_expr true expr bounds in
-    if not strict_low && not strict_upp && Q.gt low upp then
-        l_bounds, greatereq v (const (Q.to_string low)), pop_option eupp
-    else if (strict_low || strict_inf) && Q.geq low upp then
-        l_bounds, (if strict_low then greater else greatereq) v (const (Q.to_string low)), pop_option eupp
-    else if not strict_high && not strict_inf && Q.lt high inf then
-        h_bounds, lesseq v (const (Q.to_string high)), pop_option einf
-    else if (strict_high || strict_inf) && Q.leq high inf then
-        h_bounds, (if strict_high then less else lesseq) v (const (Q.to_string high)), pop_option einf
-    else if (Q.gt inf upp) || ((strict_inf || strict_upp) && Q.geq inf upp) then
-        [], pop_option einf, pop_option eupp
-    else
-        assert false
+    Log.debug 15 "arith -- Var bounds : %s %s %a %s %s"
+            (Q.to_string inf) (if strict_inf then "<" else "<=") Print.pp_expr v
+            (if strict_upp then "<" else "<=") (Q.to_string upp);
+    Log.debug 15 "arith -- Deduced bounds : %s %s %a %s %s"
+            (Q.to_string low) (if strict_low then "<" else "<=") Print.pp_expr v
+            (if strict_high then "<" else "<=") (Q.to_string high);
+    begin match strict_inf, strict_upp with
+      | false, false      when Q.gt inf upp -> [], pop_option einf, pop_option eupp
+      | true, _ | _, true when Q.geq inf upp -> [], pop_option einf, pop_option eupp
+      | _ ->
+        begin match strict_low, strict_upp with
+          | false, false when Q.gt low upp (* low <= v && v <= upp && upp <  low *) -> l_bounds, greatereq v (const (Q.to_string low)), pop_option eupp
+          | true, false when Q.geq low upp (* low <  v && v <= upp && upp <= low *) -> l_bounds, greater   v (const (Q.to_string low)), pop_option eupp
+          | false, true when Q.geq low upp (* low <= v && v <  upp && upp <= low *) -> l_bounds, greatereq v (const (Q.to_string low)), pop_option eupp
+          | true, true when Q.geq low upp  (* low <  v && v <  upp && upp <= low *) -> l_bounds, greater   v (const (Q.to_string low)), pop_option eupp
+          | _ ->
+            begin match strict_inf, strict_high with
+              | false, false when Q.gt inf high -> h_bounds, lesseq v (const (Q.to_string high)), pop_option einf
+              | true, false when Q.geq inf high -> h_bounds, lesseq v (const (Q.to_string high)), pop_option einf
+              | false, true when Q.geq inf high -> h_bounds, less   v (const (Q.to_string high)), pop_option einf
+              | true, true when Q.geq inf high  -> h_bounds, less   v (const (Q.to_string high)), pop_option einf
+              | _ -> assert false
+            end
+        end
+    end
 
 let add_binding t x f (e, s, c) =
     let l1, l2 = List.partition (fun (y, _, _, _) -> equal x y) t.bindings in
