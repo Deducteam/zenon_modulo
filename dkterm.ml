@@ -610,11 +610,10 @@ let rec pr_list_var o l =
   match l with
   | [] -> ()
   | [Dkvar (v, t) as var] ->
-     fprintf o "%s : %a" (get_var_newname var) print_dk_type t
+     fprintf o "%s" (get_var_newname var)
   | (Dkvar (v, t) as var) :: tl ->
-     fprintf o "%s : %a, %a"
+     fprintf o "%s, %a"
 	     (get_var_newname var)
-	     print_dk_type t
 	     pr_list_var tl
   | _ -> assert false
 ;;
@@ -624,7 +623,7 @@ let print_line o line =
   | Dkdecl (v, _) when String.contains v '.' ->
      ()
   | Dkdecl (v, t) ->
-     fprintf o "%s : %a.\n\n" v print_dk_type t
+     fprintf o "def %s : %a.\n\n" v print_dk_type t
   | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' || s = "Is_true" ->
      ()
   | Dkrwrt (l, t1, t2) ->
@@ -633,7 +632,7 @@ let print_line o line =
 ;;
 
 let print_goal_type o name goal =
-  fprintf o "%s :\n %a\n -> %a.\n"
+  fprintf o "def %s :\n %a\n -> %a.\n"
 	  name print_dk_type goal print_dk_term mk_seq
 ;;
 
