@@ -208,9 +208,9 @@ and print_dk_term o t =
   | Dkequiv (t1, t2) ->
      fprintf o "zen.eqv\n (%a) (%a)" print_dk_term t1 print_dk_term t2
   | Dkforall (t1, t2) ->
-     fprintf o "zen.forall (%a)\n (%a)" print_dk_term t1 print_dk_term t2
+     fprintf o "zen.forall (%a)\n (%a)" print_dk_zentype t1 print_dk_term t2
   | Dkexists (t1, t2) ->
-     fprintf o "zen.exists (%a)\n (%a)" print_dk_term t1 print_dk_term t2
+     fprintf o "zen.exists (%a)\n (%a)" print_dk_zentype t1 print_dk_term t2
   | Dkforalltype (t) ->
      fprintf o "zen.foralltype\n (%a)" print_dk_term t
   | Dkexiststype (t) ->
@@ -219,7 +219,7 @@ and print_dk_term o t =
   | Dkfalse -> fprintf o "zen.False"
   | Dkequal (t1, t2, t3) ->
      fprintf o "zen.equal (%a)\n (%a)\n (%a)"
-	     print_dk_term t1
+	     print_dk_zentype t1
 	     print_dk_term t2
 	     print_dk_term t3
   | DkRfalse (pr) -> fprintf o "zen.Rfalse\n (%a)" print_dk_term pr
@@ -231,12 +231,12 @@ and print_dk_term o t =
 	     print_dk_term pr2
   | DkRnoteq (a, t, pr) ->
      fprintf o "zen.Rnoteq\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term a
+	     print_dk_zentype a
 	     print_dk_term t
 	     print_dk_term pr
   | DkReqsym (a, t, u, pr1, pr2) ->
      fprintf o "zen.Reqsym\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term a
+	     print_dk_zentype a
 	     print_dk_term t
 	     print_dk_term u
 	     print_dk_term pr1
@@ -306,27 +306,27 @@ and print_dk_term o t =
 	     print_dk_term pr3
   | DkRex (a, p, pr1, pr2) ->
      fprintf o "zen.Rex\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term a
+	     print_dk_zentype a
 	     print_dk_term p
 	     print_dk_term pr1
 	     print_dk_term pr2
   | DkRall (a, p, t, pr1, pr2) ->
      fprintf o "zen.Rall\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term a
+	     print_dk_zentype a
 	     print_dk_term p
 	     print_dk_term t
 	     print_dk_term pr1
 	     print_dk_term pr2
   | DkRnotex (a, p, t, pr1, pr2) ->
      fprintf o "zen.Rnotex\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term a
+	     print_dk_zentype a
 	     print_dk_term p
 	     print_dk_term t
 	     print_dk_term pr1
 	     print_dk_term pr2
   | DkRnotall (a, p, pr1, pr2) ->
      fprintf o "zen.Rnotall\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term a
+	     print_dk_zentype a
 	     print_dk_term p
 	     print_dk_term pr1
 	     print_dk_term pr2
@@ -338,13 +338,13 @@ and print_dk_term o t =
   | DkRalltype (p, a, pr1, pr2) ->
      fprintf o "zen.Ralltype\n (%a)\n (%a)\n (%a)\n (%a)\n"
 	     print_dk_term p
-	     print_dk_term a
+	     print_dk_zentype a
 	     print_dk_term pr1
 	     print_dk_term pr2
   | DkRnotextype (p, a, pr1, pr2) ->
      fprintf o "zen.Rnotextype\n (%a)\n (%a)\n (%a)\n (%a)\n"
 	     print_dk_term p
-	     print_dk_term a
+	     print_dk_zentype a
 	     print_dk_term pr1
 	     print_dk_term pr2
   | DkRnotalltype (p, pr1, pr2) ->
@@ -354,7 +354,7 @@ and print_dk_term o t =
 	     print_dk_term pr2
   | DkRsubst  (a, p, t1, t2, pr1, pr2, pr3) ->
      fprintf o "zen.Rsubst\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term a
+	     print_dk_zentype a
 	     print_dk_term p
 	     print_dk_term t1
 	     print_dk_term t2
@@ -363,7 +363,7 @@ and print_dk_term o t =
 	     print_dk_term pr3
   | DkRconglr (a, p, t1, t2, pr1, pr2, pr3) ->
      fprintf o "zen.Rconglr\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term a
+	     print_dk_zentype a
 	     print_dk_term p
 	     print_dk_term t1
 	     print_dk_term t2
@@ -372,7 +372,7 @@ and print_dk_term o t =
 	     print_dk_term pr3
   | DkRcongrl (a, p, t1, t2, pr1, pr2, pr3) ->
      fprintf o "zen.Rcongrl\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term a
+	     print_dk_zentype a
 	     print_dk_term p
 	     print_dk_term t1
 	     print_dk_term t2
