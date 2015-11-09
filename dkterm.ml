@@ -631,6 +631,11 @@ let print_line o line =
 	     pr_list_var l print_dk_term t1 print_dk_term t2
 ;;
 
+let print_goal_def o goal =
+  fprintf o "def GOAL : zen.prop := %a.\n(; GOAL Defined ;)"
+	  print_dk_term goal
+;;
+
 let print_goal_type o name goal =
   fprintf o "def %s :\n %a\n -> %a.\n"
 	  name print_dk_type goal print_dk_term mk_seq

@@ -1190,6 +1190,11 @@ let output oc phrases llp =
   let dkrules = List.map build_dkrwrt rules in
   let (name, goal) = List.split (select_goal phrases) in
   let dkgoal = trexpr_dkgoal goal in
+  let ngoal = match (List.hd goal) with
+    | Enot (ng, _) -> ng
+    | _ -> assert false
+  in
+  let dkngoal = translate_expr ngoal in
   let dkname = List.hd name in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
@@ -1201,6 +1206,8 @@ let output oc phrases llp =
   List.iter (print_line oc) dkctx;
   fprintf oc "\n";
   List.iter (print_line oc) dkrules;
+  fprintf oc "\n";
+  print_goal_def oc dkngoal;
   fprintf oc "\n";
   print_goal_type oc dkname dkgoal;
   fprintf oc "\n";
