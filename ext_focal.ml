@@ -718,7 +718,7 @@ let prod a b =
 let pair_ty =
   let a = newtvar type_type in
   let b = newtvar type_type in
-  eall (b, eall (a, earrow [a; b] (prod a b)))
+  eall (a, eall (b, earrow [a; b] (prod a b)))
 let dk_pair_ty =
   let a = newtvar type_type in
   let b = newtvar type_type in
@@ -727,12 +727,12 @@ let dk_pair_ty =
 let first_ty =
   let a = newtvar type_type in
   let b = newtvar type_type in
-  eall (b, eall (a, earrow [prod a b] a))
+  eall (a, eall (b, earrow [prod a b] a))
 
 let second_ty =
   let a = newtvar type_type in
   let b = newtvar type_type in
-  eall (b, eall (a, earrow [prod a b] b))
+  eall (a, eall (b, earrow [prod a b] b))
 
 let pair_var = tvar "basics.pair" pair_ty
 let dk_pair_var = tvar "dk_tuple.pair" dk_pair_ty
@@ -758,14 +758,14 @@ let predecl () =
      let tyb = newtvar type_type in
      let a = newtvar tya in
      let b = newtvar tyb in
-     eeq (first tyb tya (pair tyb tya a b)) a
+     eeq (first tya tyb (pair tya tyb a b)) a
     );
   Rewrite.add_rwrt_term "snd"
     (let tya = newtvar type_type in
      let tyb = newtvar type_type in
      let a = newtvar tya in
      let b = newtvar tyb in
-     eeq (second tyb tya (pair tyb tya a b)) b
+     eeq (second tya tyb (pair tya tyb a b)) b
     );
   Rewrite.add_rwrt_prop "basics._equal_"
     (let ty = newtvar type_type in
@@ -808,7 +808,7 @@ let predecl () =
      let a = newtvar tya in
      let b = newtvar tyb in
      eeq (dk_pair tya tyb a b)
-         (pair tyb tya a b));
+         (pair tya tyb a b));
   [
     ("Is_true", arr bool1 t_prop);
     ("basics.true", bool1);
