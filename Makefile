@@ -85,7 +85,7 @@ byt: zenon_modulo.byt
 bin: zenon_modulo.bin
 
 zenon_modulo.bin: $(BINOBJS)
-	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa bytes.cmxa $(BINONS)
+	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa bytes.cmxa $(BINOBJS)
 
 zenon_modulo.byt: $(BYTOBJS)
 	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_modulo.byt unix.cma bytes.cma $(BYTOBJS)
