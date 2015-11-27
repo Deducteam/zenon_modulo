@@ -8,7 +8,11 @@ include .config_var
 # Staging directory for package managers
 DESTDIR =
 
-CAMLFLAGS = -warn-error "$(WARN_ERROR)" -I $(shell ocamlfind query bytes)
+BYTES_LIB_DIR = $(shell ocamlfind query bytes)
+BYTES_CMA = $(shell basename $(wildcard $(BYTES_LIB_DIR)/*.cma))
+BYTES_CMXA = $(shell basename $(wildcard $(BYTES_LIB_DIR)/*.cmxa))
+
+CAMLFLAGS = -warn-error "$(WARN_ERROR)" -I $(BYTES_LIB_DIR)
 
 CAMLBINFLAGS = $(CAMLFLAGS) $(BIN_DEBUG_FLAGS)
 CAMLBYTFLAGS = $(CAMLFLAGS) $(BYT_DEBUG_FLAGS)
@@ -85,10 +89,10 @@ byt: zenon_modulo.byt
 bin: zenon_modulo.bin
 
 zenon_modulo.bin: $(BINOBJS)
-	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa bytes.cmxa $(BINOBJS)
+	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa $(BYTES_CMXA) $(BINOBJS)
 
 zenon_modulo.byt: $(BYTOBJS)
-	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_modulo.byt unix.cma bytes.cma $(BYTOBJS)
+	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_modulo.byt unix.cma $(BYTES_CMA) $(BYTOBJS)
 
 zenon_modulo: zenon_modulo.byt
 	if test -x zenon_modulo.bin; then \
