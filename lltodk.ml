@@ -1233,7 +1233,7 @@ let output ?filename oc phrases llp =
   []
 ;;
 
-let output_term oc phrases ppphrases llp =
+let output_term oc phrases llp =
   Log.debug 2 "=========== Generate Dedukti Term =============";
   (* register hypothesis in the context *)
   let _ = mk_prf_var_def phrases in

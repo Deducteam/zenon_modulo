@@ -467,7 +467,7 @@ let main () =
         let u = Lltodk.output ~filename:file stdout phrases (Lazy.force llp) in
         Watch.warn phrases_dep llp u;
     | Proof_dkterm ->
-       let u = Lltodk.output_term stdout phrases ppphrases (Lazy.force llp) in
+       let u = Lltodk.output_term stdout phrases (Lazy.force llp) in
        Watch.warn phrases_dep llp u;
     | Proof_isar ->
         let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in

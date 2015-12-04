@@ -12,7 +12,6 @@ val output :
 val output_term :
   out_channel ->
   Phrase.phrase list ->
-  Phrase.phrase list ->
   Llproof.proof ->
     string list
 ;;
