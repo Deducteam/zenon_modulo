@@ -1170,7 +1170,7 @@ let get_sigs_proof sigs llp =
   get_sigs_proof_aux sigs llp
 ;;
 
-let output oc phrases llp =
+let output ?filename oc phrases llp =
   Log.debug 2 "=========== Generate Dedukti Term =============";
   let sigs = Expr.get_defs () in
   Log.debug 13 " |- length Sigs = %i" (List.length sigs);
@@ -1198,8 +1198,26 @@ let output oc phrases llp =
   let dkname = List.hd name in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
+  let basename f =
+    let f = if String.contains f '/'
+            then let i = String.rindex f '/' + 1 in
+                 String.sub f i (String.length f - i)
+            else f
+    in
+    let f = if String.contains f '.'
+            then String.sub f 0 (String.rindex f '.')
+            else f
+    in
+    String.map (function
+                 | '0'..'9'
+                 | 'a'..'z'
+                 | 'A'..'Z' as c -> c
+                 | _ -> '_')
+               f
+  in
+  let filename = match filename with Some f -> basename f | None -> "tocheck" in
 
-  fprintf oc "#NAME tocheck";
+  fprintf oc "#NAME %s" filename;
   fprintf oc ".\n";
   List.iter (print_line oc) dksigs;
   fprintf oc "\n";

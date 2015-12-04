@@ -464,7 +464,7 @@ let main () =
         Coqterm.print stdout p;
         Watch.warn phrases_dep llp u;
     | Proof_dk ->
-        let u = Lltodk.output stdout phrases (Lazy.force llp) in
+        let u = Lltodk.output ~filename:file stdout phrases (Lazy.force llp) in
         Watch.warn phrases_dep llp u;
     | Proof_dkterm ->
        let u = Lltodk.output_term stdout phrases ppphrases (Lazy.force llp) in
