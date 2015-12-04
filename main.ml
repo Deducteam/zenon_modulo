@@ -164,10 +164,12 @@ let argspec = [
 			      opt_level := 0;
 			      Globals.output_dk := true),
         "              print the proof in Dk script format (force -rename)";
-  "-odkterm", Arg.Unit (fun () -> proof_level := Proof_dkterm;
-				  opt_level := 0;
-				  Globals.output_dk := true),
-            "          print the proof in DK term format";
+  "-odkterm", Arg.Unit (fun () -> namespace_flag := true;
+                              quiet_flag := true;
+			      proof_level := Proof_dkterm;
+			      opt_level := 0;
+			      Globals.output_dk := true),
+            "          print the proof in Dk term format (force -rename)";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
       "<n>             print the proof in high-level format up to depth <n>";
   "-oisar", Arg.Unit (fun () -> proof_level := Proof_isar),
