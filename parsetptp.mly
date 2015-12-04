@@ -10,9 +10,9 @@ open Phrase;;
 
 let ns pre s = (if !Globals.namespace_flag then pre else "") ^ s;;
 (* Renaming is now done during typechecking *)
-let ns_hyp s = ns "" s;; (* "H_" *)
-let ns_var s = ns "" s;; (* "v_" *)
-let ns_fun s = ns "" s;; (* "f_" *)
+let ns_hyp s = ns "H_" s;; (* "H_" *)
+let ns_var s = ns "v_" s;; (* "v_" *)
+let ns_fun s = ns "f_" s;; (* "f_" *)
 
 let rec mk_quant q vs body =
   match vs with
