@@ -218,6 +218,24 @@ def Rsubst : a : type ->
              proof (p t1) ->
              seq.
 
+def Rconglr : a : type ->
+              p : (term a -> prop) ->
+              t1 : term a ->
+              t2 : term a ->
+              (proof (p t2) -> seq) ->
+              proof (p t1) ->
+              proof (equal a t1 t2) ->
+              seq.
+
+def Rcongrl : a : type ->
+              p : (term a -> prop) ->
+              t1 : term a ->
+              t2 : term a ->
+              (proof (p t2) -> seq) ->
+              proof (p t1) ->
+              proof (equal a t2 t1) ->
+              seq.
+
 (; Proofs of these rules in the logic of Focalide ;)
 
 [] prop  --> dk_logic.Prop.
@@ -538,3 +556,9 @@ xmid       : p : prop ->
      => H3 : proof (p t1)
 	=> H1 (H4 : proof (equal a t1 t2)
                => H2 (H4 p H3)).
+
+[a,p,t1,t2,HN2,H1,He] Rconglr a p t1 t2 HN2 H1 He -->
+  HN2 (He p H1).
+
+[a,p,t1,t2,HN2,H1,He] Rcongrl a p t1 t2 HN2 H1 He -->
+  HN2 (dk_logic.equal_sym a t2 t1 He p H1).
