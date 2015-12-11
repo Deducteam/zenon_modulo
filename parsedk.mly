@@ -13,6 +13,9 @@ let mk_const_t s = mk_const s type_type;;
 (* Global list of type aliases *)
 let ty_aliases = ref [("dk_tuple.prod", mk_const_t "basics.prod")];;
 
+(* Needed for parsing number literals *)
+let type_nat = mk_const_t "dk_nat.nat";;
+
 exception Unknown_builtin of string;;
 exception Bad_arity of string * int;;
 
@@ -44,7 +47,7 @@ let rec mk_app l =
         raise Parse_error
 
 %}
-%token <string> ID QID
+%token <string> ID QID NUMBER
 %token COLON DOT DOUBLE_ARROW DEF
 %token TYPE TERM PROOF CCARR PROP
 %token LPAREN RPAREN EOF
@@ -127,6 +130,7 @@ qid:
         tvar_none $1 }
 term_simple:
 | qid { $1 }
+| NUMBER { Typer.declare_constant ($1, type_nat); mk_const $1 type_nat }
 | TRUE { etrue }
 | FALSE { efalse }
 | NOT term_simple { enot $2 }

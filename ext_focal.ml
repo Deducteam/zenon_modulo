@@ -751,6 +751,9 @@ let eq_ty =
 
 let bequal ty a b = eapp (tvar "basics.syntactic_equal" eq_ty, [ty; a; b])
 
+let type_nat = eapp (tvar "dk_nat.nat" type_type, [])
+let type_int = eapp (tvar "dk_int.int" type_type, [])
+
 let predecl () =
   (* Add rewrite-rules on pairs *)
   Rewrite.add_rwrt_term "fst"
@@ -837,6 +840,8 @@ let predecl () =
     ("basics.snd", second_ty);
     ("basics.pair", pair_ty);
     ("dk_tuple.pair", dk_pair_ty);
+
+    ("dk_int.from_nat", earrow [type_nat] type_int);
 
   ]
 ;;

@@ -11,6 +11,7 @@ let pos lexbuf = (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
 let id = (['_' '\'' '0'-'9' 'a'-'z' 'A'-'Z'])+
 let qid = id '.' id
 let space = [' ' '\t']
+let number = (['0'-'9'])+
 
 rule token = parse
 | space { token lexbuf } (* skip blanks *)
@@ -35,6 +36,7 @@ rule token = parse
 | "dk_logic.eP" { PROOF }
 | "dk_logic.ebP" { ISTRUE }
 | "dk_builtins.prop" { PROP }
+| number as n { NUMBER(n) }
 | id as id { ID(id) }
 | qid as qid { QID(qid) }
 | ":" { COLON }
