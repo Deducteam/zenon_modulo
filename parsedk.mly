@@ -117,7 +117,9 @@ proofheaders:
 qid:
 | QID
       { (* Qualified IDs cannot be variables *)
-        mk_const $1 type_none }
+        if List.mem_assoc $1 !ty_aliases then
+          List.assoc $1 !ty_aliases else
+          mk_const $1 type_none }
 | ID
       { (* Unqualified IDs can be either variables or
            constants. It would be hard to determine it here
