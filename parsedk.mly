@@ -26,6 +26,23 @@ let rec get_params e =
   | _ -> ([], e)
 ;;
 
+let rec mk_app l =
+  match l with
+  | [] -> assert false
+  | [e] -> e
+  | Elam (v, body, _) :: arg :: tail ->
+     mk_app (substitute_2nd [(v, arg)] body :: tail)
+  | head :: tail ->
+     match head with
+     | Evar _ ->
+        eapp (head, tail)
+     | Eapp (v, l, _) ->
+        eapp (v, l @ tail)
+     | e ->
+        Log.debug 15 "Parse Error: head is %a"
+                  Print.pp_expr head;
+        raise Parse_error
+
 %}
 %token <string> ID QID
 %token COLON DOT DOUBLE_ARROW DEF
@@ -128,6 +145,8 @@ term_simple:
 | ISTRUE term_simple {eapp (tvar "Is_true" (earrow [mk_const_t "basics.bool__t"] type_prop), [$2])}
 | EQUAL type_simple term_simple term_simple { eeq $3 $4 }
 | LPAREN term RPAREN { $2 }
+| ID COLON typ DOUBLE_ARROW term_simple
+     { elam (tvar $1 $3, $5) }
 terms:
 | term_simple { [$1] }
 | terms term_simple { $2 :: $1 }
@@ -136,19 +155,7 @@ term:
       (* The "applicatives" rules contains a list of
          arguments in reverse order.
          This list is not empty. *)
-  match List.rev $1 with
-  | [] -> assert false
-  | [e] -> e
-  | head :: tail ->
-     match head with
-                   | Evar _ ->
-                      eapp (head, tail)
-                   | Eapp (v, l, _) ->
-                      eapp (v, l @ tail)
-                   | e ->
-                      Log.debug 15 "Parse Error: head is %a"
-                                Print.pp_expr head;
-                      raise Parse_error
+      mk_app (List.rev $1)
 }
 
 type_qid:
