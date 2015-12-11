@@ -150,7 +150,7 @@ term_simple:
 | EQUAL type_simple term_simple term_simple { eeq $3 $4 }
 | LPAREN term RPAREN { $2 }
 | ID COLON typ DOUBLE_ARROW term_simple
-     { elam (tvar $1 $3, $5) }
+     { elam (tvar $1 type_none, $5) }
 terms:
 | term_simple { [$1] }
 | terms term_simple { $2 :: $1 }
