@@ -11,7 +11,7 @@ let mk_const s ty = eapp (tvar s ty, []);;
 let mk_const_t s = mk_const s type_type;;
 
 (* Global list of type aliases *)
-let ty_aliases = ref [("dk_tuple.prod", mk_const_t "basics.prod")];;
+let ty_aliases = ref [];;
 
 (* Needed for parsing number literals *)
 let type_nat = mk_const_t "dk_nat.nat";;
