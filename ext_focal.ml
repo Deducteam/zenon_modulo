@@ -752,7 +752,7 @@ let eq_ty =
 let bequal ty a b = eapp (tvar "basics.syntactic_equal" eq_ty, [ty; a; b])
 
 let type_nat = eapp (tvar "dk_nat.nat" type_type, [])
-let type_int = eapp (tvar "dk_int.int" type_type, [])
+let type_int = eapp (tvar "basics.int__t" type_type, [])
 
 let predecl () =
   (* Add rewrite-rules on pairs *)
