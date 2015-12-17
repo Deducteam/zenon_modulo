@@ -4,37 +4,37 @@ term : type -> Type.
 
 Term : Type.
 Prop: Type.
-prf: Prop -> Type.
+def prf: Prop -> Type.
 anyterm: Term.
 
 not: Prop -> Prop.
-notc: Prop -> Prop :=
+def notc: Prop -> Prop :=
   A:Prop => not (not (not (not (not A)))).
 True: Prop.
-Truec: Prop := not (not (True)).
+def Truec: Prop := not (not (True)).
 False: Prop.
-Falsec: Prop := not (not (False)).
+def Falsec: Prop := not (not (False)).
 and: Prop -> Prop -> Prop.
-andc: Prop -> Prop -> Prop :=
+def andc: Prop -> Prop -> Prop :=
   A:Prop => B:Prop => not (not (and (not (not A)) (not (not B)))).
 or: Prop -> Prop -> Prop.
-orc: Prop -> Prop -> Prop :=
+def orc: Prop -> Prop -> Prop :=
   A:Prop => B:Prop => not (not (or (not (not A)) (not (not B)))).
 imply: Prop -> Prop -> Prop.
-implyc: Prop -> Prop -> Prop :=
+def implyc: Prop -> Prop -> Prop :=
   A:Prop => B:Prop => not (not (imply (not (not A)) (not (not B)))).
 forall: (Term -> Prop) -> Prop.
-forallc: (Term -> Prop) -> Prop :=
+def forallc: (Term -> Prop) -> Prop :=
   P:(Term -> Prop) =>
   not (not (forall (x:Term => not (not (P x))))).
 exists: (Term -> Prop) -> Prop.
-existsc: (Term -> Prop) -> Prop :=
+def existsc: (Term -> Prop) -> Prop :=
   P:(Term -> Prop) =>
   not (not (exists (x:Term => not (not (P x))))).
 equal: Term -> Term -> Prop.
-equalc: Term -> Term -> Prop :=
+def equalc: Term -> Term -> Prop :=
   a:Term => b:Term => not (not (equal a b)).
-equiv: Prop -> Prop -> Prop :=
+def equiv: Prop -> Prop -> Prop :=
   A:Prop => B:Prop => and (imply A B) (imply B A).
 
 [] prf True --> P:Prop -> (prf P -> prf P)
