@@ -82,7 +82,7 @@ DKTS = $(DKPROPS:.p=.dkt)
 
 .PHONY: all byt bin coq
 
-all: byt bin zenon coq logic.dko classic.dko
+all: byt bin zenonide coq logic.dko classic.dko
 
 coq: $(COQOBJ)
 
@@ -92,27 +92,27 @@ logic.dko: logic.dk
 classic.dko: classic.dk
 	dkcheck -e $<
 
-byt: zenon.byt
+byt: zenonide.byt
 
-bin: zenon.bin
+bin: zenonide.bin
 
-zenon.bin: $(BINOBJS)
-	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon.bin $(BINOBJS)
+zenonide.bin: $(BINOBJS)
+	$(CAMLBIN) $(CAMLBINFLAGS) -o $@ $(BINOBJS)
 
-zenon.byt: $(BYTOBJS)
-	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon.byt $(BYTOBJS)
+zenonide.byt: $(BYTOBJS)
+	$(CAMLBYT) $(CAMLBYTFLAGS) -o $@ $(BYTOBJS)
 
-zenon: zenon.byt
-	if test -x zenon.bin; then \
-	  cp zenon.bin zenon; \
+zenonide: zenonide.byt
+	if test -x zenonide.bin; then \
+	  cp zenonide.bin $@; \
         else \
-	  cp zenon.byt zenon; \
+	  cp zenonide.byt $@; \
 	fi
 
 .PHONY: install
 install:
 	mkdir -p "$(DESTDIR)$(INSTALL_BIN_DIR)"
-	cp zenon "$(DESTDIR)$(INSTALL_BIN_DIR)/"
+	cp zenonide "$(DESTDIR)$(INSTALL_BIN_DIR)/"
 	mkdir -p "$(DESTDIR)$(INSTALL_LIB_DIR)"
 	cp $(COQSRC) "$(DESTDIR)$(INSTALL_LIB_DIR)/"
 	for i in $(COQOBJ); \
@@ -187,9 +187,9 @@ checksum.ml: $(IMPL:checksum.ml=)
 
 .PHONY: dist
 dist: $(ALLSRC)
-	mkdir -p dist/zenon
-	cp $(ALLSRC) dist/zenon
-	cd dist && tar cf - zenon | gzip >../zenon.tar.gz
+	mkdir -p dist/zenonide
+	cp $(ALLSRC) dist/zenonide
+	cd dist && tar cf - zenonide | gzip >../zenonide.tar.gz
 
 .PHONY: doc odoc docdir
 doc docdir:
@@ -206,8 +206,8 @@ clean:
 	rm -f parsecoq.ml parsecoq.mli lexcoq.ml
 	rm -f parsedk.ml parsedk.mli lexdk.ml
 	rm -f checksum.ml
-	rm -f zenon *.bin *.byt
-	rm -rf dist zenon.tar.gz
+	rm -f zenonide *.bin *.byt
+	rm -rf dist zenonide.tar.gz
 
 .PHONY: depend
 depend: $(IMPL) $(INTF) $(COQSRC)
@@ -235,7 +235,7 @@ $(DKTESTDIR)/.dummy: $(FOFDIR)/.dummy
 
 .PHONY: $(wildcard $(DKTESTDIR)/*.dkt)
 %.dkt: %.p all
-	@timeout 0.5 ./zenon $(CLASSICAL) -q -p0 -odedukti -itptp $< > $*.dk
+	@timeout 0.5 ./zenonide $(CLASSICAL) -q -p0 -odedukti -itptp $< > $*.dk
 	@timeout 0.5 dkcheck $*.dk || echo -e "\e[31mError $<\e[39m"
 
 # Calls another make in order to take into account the generated files
@@ -276,7 +276,7 @@ dodktestall: $(FOFDIR)/.dummy $(ALLDKCS)
 dkresults/%.dk: $(FOFDIR)/%.p all
 	@echo -n -e "file $< ; zenon_timeout $(ZENON_TIMEOUT)" >> $(STAT_FILE)
 	@{ /usr/bin/time --quiet -f " ; zenon_real_time %e ; zenon_exit_status %x" \
-		timeout $(ZENON_TIMEOUT) ./zenon $(CLASSICAL) -q -p0 -odedukti -itptp $< > $@; } \
+		timeout $(ZENON_TIMEOUT) ./zenonide $(CLASSICAL) -q -p0 -odedukti -itptp $< > $@; } \
 		|& { xargs echo -n >> $(STAT_FILE); }
 
 include .depend
