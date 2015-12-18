@@ -236,6 +236,13 @@ struct
       if !Globals.keepclassical = false
       then Lktolj.lktolj lkproof
       else lkproof in
+
+    (* Output a fake declaration if the proof is constructive (the proven formula is identical to the input one)/ *)
+    let (_, lkproofgoal, _) = lkproof in
+    let (_, proofgoal, _) = proof in
+    if Expr.equal lkproofgoal proofgoal then
+      Out.print_line oc (Out.mk_decl (Out.mk_var "Constructive_flag") Out.mk_termtype);
+
     let conc = Lkproof.scconc proof in
     let term = LjToDk.trproof (proof, conc, gamma) in
     let thm_name =
