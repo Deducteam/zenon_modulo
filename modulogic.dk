@@ -3,8 +3,10 @@
 (; Logic for Zenon Modulo ;)
 
 def prop  : Type.
-def proof : prop -> Type.
+alpha  : Type.
 def type  : Type.
+def proof : prop -> Type.
+def triangle : alpha -> prop.
 def term  : type -> Type.
 iota  : type.
 
@@ -25,7 +27,8 @@ def exists : a : type -> (term a -> prop) -> prop.
 def foralltype : (type -> prop) -> prop.
 def existstype : (type -> prop) -> prop.
 
-def equal      : a : type -> term a -> term a -> prop.
+def equal      : a : type -> term a -> term a -> alpha.
+def tequal (a : type) (t : term a) (u : term a) : prop := triangle (equal a t u).
 
 (; Definition of Proofs of Symbols ;)
 
@@ -49,15 +52,15 @@ def Raxiom : p : prop -> proof p -> proof (not p) -> seq.
 
 (; Rnoteq ;)
 
-def Rnoteq : a : type -> t : term a -> proof (not (equal a t t)) -> seq.
+def Rnoteq : a : type -> t : term a -> proof (not (tequal a t t)) -> seq.
 
 (; Reqsym ;)
 
 def Reqsym : a : type ->
              t : term a ->
              u : term a ->
-             proof (equal a t u) ->
-             proof (not (equal a u t)) ->
+             proof (tequal a t u) ->
+             proof (not (tequal a u t)) ->
              seq.
 
 (; Rcut ;)
@@ -213,7 +216,7 @@ def Rsubst : a : type ->
              p : (term a -> prop) ->
              t1 : term a ->
              t2 : term a ->
-             (proof (not (equal a t1 t2)) -> seq) ->
+             (proof (not (tequal a t1 t2)) -> seq) ->
              (proof (p t2) -> seq) ->
              proof (p t1) ->
              seq.
@@ -224,7 +227,7 @@ def Rconglr : a : type ->
               t2 : term a ->
               (proof (p t2) -> seq) ->
               proof (p t1) ->
-              proof (equal a t1 t2) ->
+              proof (tequal a t1 t2) ->
               seq.
 
 def Rcongrl : a : type ->
@@ -233,15 +236,15 @@ def Rcongrl : a : type ->
               t2 : term a ->
               (proof (p t2) -> seq) ->
               proof (p t1) ->
-              proof (equal a t2 t1) ->
+              proof (tequal a t2 t1) ->
               seq.
 
 (; Proofs of these rules in the logic of Focalide ;)
 
-[] prop  --> dk_logic.Prop.
-[] proof --> dk_logic.eP.
 [] type  --> cc.uT.
 [] term  --> cc.eT.
+[] prop  --> dk_logic.Prop.
+[] proof --> dk_logic.eP.
 
 [] True       --> dk_logic.True.
 [] False      --> dk_logic.False.
@@ -254,9 +257,45 @@ def Rcongrl : a : type ->
 [] exists     --> dk_logic.exists.
 [] foralltype --> dk_logic.forall_type.
 [] existstype --> dk_logic.exists_type.
-[] equal      --> dk_logic.equal.
-
 [] seq --> proof False.
+
+(; Equality cannot be mapped to an external definition because the
+   type alpha is static. So we need axioms for it ;)
+
+equal_refl : A : type -> t : term A -> proof (tequal A t t).
+
+equal_congruence : A : type ->
+                   t : term A ->
+                   u : term A ->
+                   P : (term A -> prop) ->
+                   proof (tequal A t u) ->
+                   proof (P t) ->
+                   proof (P u).
+
+def equal_sym (A : type) (t : term A) (u : term A) (H : proof (tequal A t u)) : proof (tequal A u t)
+:= equal_congruence A t u (x => tequal A x t) H (equal_refl A t).
+
+[a : type, t : term a] Rnoteq a t -->
+  H1 : proof (not (tequal a t t))
+  => H1 (equal_refl a t).
+
+[a : type, t : term a, u : term a] Reqsym a t u -->
+  H1 : proof (tequal a t u)
+  => H2 : proof (not (tequal a u t))
+     => H2 (equal_sym a t u H1).
+
+[a : type, p : term a -> prop, t1 : term a, t2 : term a] Rsubst a p t1 t2 -->
+  H1 : (proof (not (tequal a t1 t2)) -> proof False)
+  => H2 : (proof (p t2) -> proof False)
+     => H3 : proof (p t1)
+	=> H1 (H4 : proof (tequal a t1 t2)
+               => H2 (equal_congruence a t1 t2 p H4 H3)).
+
+[a,p,t1,t2,HN2,H1,He] Rconglr a p t1 t2 HN2 H1 He -->
+  HN2 (equal_congruence a t1 t2 p He H1).
+
+[a,p,t1,t2,HN2,H1,He] Rcongrl a p t1 t2 HN2 H1 He -->
+  Rconglr a p t1 t2 HN2 H1 (equal_sym a t2 t1 He).
 
 (; Law of eXcluded Middle ;)
 
@@ -418,23 +457,6 @@ xmid       : p : prop ->
   => CH : proof (not p)
      => CH H.
 
-[a : type, t : term a] Rnoteq a t -->
-  H1 : proof (not (equal a t t))
-  => H1 (z : (term a -> prop)
-	 => (H2 : proof (z t)
-	     => H2)).
-
-[a : type, t : term a, u : term a] Reqsym a t u -->
-  H1 : proof (equal a t u)
-  => H2 : proof (not (equal a u t))
-     => H2 (z : (term a -> prop)
-	    => H3 : proof (z u)
-	       => H1 (x : term a
-		      => (imp (z x) (z t)))
-		     (H4 : proof (z t)
-		      => H4)
-		     H3).
-
 [p : prop] Rcut p -->
   H1 : (proof p -> proof False)
   => H2 : (proof (not p) -> proof False)
@@ -549,16 +571,3 @@ xmid       : p : prop ->
   => H2 : proof (not (foralltype p))
      => H2 (a : type
 	    => nnpp (p a) (H1 a)).
-
-[a : type, p : term a -> prop, t1 : term a, t2 : term a] Rsubst a p t1 t2 -->
-  H1 : (proof (not (equal a t1 t2)) -> proof False)
-  => H2 : (proof (p t2) -> proof False)
-     => H3 : proof (p t1)
-	=> H1 (H4 : proof (equal a t1 t2)
-               => H2 (H4 p H3)).
-
-[a,p,t1,t2,HN2,H1,He] Rconglr a p t1 t2 HN2 H1 He -->
-  HN2 (He p H1).
-
-[a,p,t1,t2,HN2,H1,He] Rcongrl a p t1 t2 HN2 H1 He -->
-  HN2 (dk_logic.equal_sym a t2 t1 He p H1).

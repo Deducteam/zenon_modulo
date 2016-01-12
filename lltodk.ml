@@ -129,6 +129,28 @@ let rec translate_type e =
      mk_var (v, ty)
   | _ -> assert false
 
+and translate_app v' l =
+  match (v', l) with
+  | (Evar (v, _), []) ->
+     let ty = translate_type (get_type v') in
+     mk_app (v, ty, [])
+  | (Evar ("=", _), [e1; e2]) ->
+     let ty = translate_type (get_type e1) in
+     let e1' = translate_expr e1 in
+     let e2' = translate_expr e2 in
+     mk_equal (ty, e1', e2')
+  | (Evar (v, _), args)
+       when (List.mem_assoc v predefined_sym) ->
+     let v = fst (List.assoc v predefined_sym) in
+     let ty = translate_type (get_type v') in
+     let args' = List.map translate_expr args in
+     mk_app (v, ty, args')
+  | (Evar (v, _), args) ->
+     let ty = translate_type (get_type v') in
+     let args' = List.map translate_expr args in
+     mk_app (v, ty, args')
+  | (_, _) -> assert false
+
 and translate_expr e =
   match e with
   | Evar (v, _) as v' when Mltoll.is_meta v ->
@@ -138,24 +160,11 @@ and translate_expr e =
      let ty = translate_type (get_type v') in
      mk_var (v, ty)
   | Emeta _ -> assert false
-  | Eapp (Evar (v, _) as v', [], _) ->
-     let ty = translate_type (get_type v') in
-     mk_app (v, ty, [])
-  | Eapp (Evar ("=", _), [e1; e2], _) ->
-     let ty = translate_type (get_type e1) in
-     let e1' = translate_expr e1 in
-     let e2' = translate_expr e2 in
-     mk_equal (ty, e1', e2')
-  | Eapp (Evar (v, _) as v', args, _)
-       when (List.mem_assoc v predefined_sym) ->
-     let v = fst (List.assoc v predefined_sym) in
-     let ty = translate_type (get_type v') in
-     let args' = List.map translate_expr args in
-     mk_app (v, ty, args')
-  | Eapp (Evar (v, _) as v', args, _) ->
-     let ty = translate_type (get_type v') in
-     let args' = List.map translate_expr args in
-     mk_app (v, ty, args')
+  | Eapp (v, l, _) ->
+     let return = translate_app v l in
+     if Expr.equal (get_type e) type_prop then
+       mk_triangle return
+     else return
   | Enot (e, _) ->
      let e' = translate_expr e in
      mk_not (e')

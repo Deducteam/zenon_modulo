@@ -5,6 +5,7 @@ type dkterm =
   | Dktypetype                                  (* type type *)
   | Dktypeprop                                  (* type prop *)
   | Dktypeiota                                  (* type iota *)
+  | Dktriangle    of dkterm                     (* domain of triangle *)
   | Dkseq                                       (* type seq *)
   | Dkproof       of dkterm                     (* type proof of prop *)
 (*  | Dkterm        of dkterm *)                     (* type term of app *)
@@ -84,6 +85,8 @@ val mk_existstype       : dkterm -> dkterm
 val mk_true             : dkterm
 val mk_false            : dkterm
 val mk_equal            : dkterm * dkterm * dkterm -> dkterm
+val mk_triangle         : dkterm -> dkterm
+
 
 val mk_DkRfalse         : dkterm -> dkterm
 val mk_DkRnottrue       : dkterm -> dkterm

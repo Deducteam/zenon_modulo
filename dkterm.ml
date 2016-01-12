@@ -7,6 +7,7 @@ type dkterm =
   | Dktypetype                                  (* type type *)
   | Dktypeprop                                  (* type prop *)
   | Dktypeiota                                  (* type iota *)
+  | Dktriangle    of dkterm                     (* domain of triangle *)
   | Dkseq                                       (* type seq *)
   | Dkproof       of dkterm                     (* type proof of prop *)
 (*  | Dkterm        of dkterm                *)     (* type term of app *)
@@ -119,6 +120,7 @@ let mk_existstype (t)          = Dkexiststype t
 let mk_true                    = Dktrue
 let mk_false                   = Dkfalse
 let mk_equal      (t1, t2, t3) = Dkequal (t1, t2, t3)
+let mk_triangle t              = Dktriangle t
 
 let mk_DkRfalse        (pr)                      = DkRfalse (pr)
 let mk_DkRnottrue      (pr)                      = DkRnottrue (pr)
@@ -148,12 +150,15 @@ let mk_DkRconglr       (a, p, t1, t2, pr1, pr2, pr3)  = DkRconglr (a, p, t1, t2,
 let mk_DkRcongrl       (a, p, t1, t2, pr1, pr2, pr3)  = DkRcongrl (a, p, t1, t2, pr1, pr2, pr3)
 
 let mk_decl       (v, t)       = Dkdecl (v, t)
-let mk_rwrt       (l, t1, t2)  = Dkrwrt (l, t1, t2)
+let mk_rwrt       (l, t1, t2)  =
+  match (t1, t2) with
+  | (Dktriangle t1, Dktriangle t2)
+  | (t1, t2) -> Dkrwrt (l, t1, t2)
 
 let rec print_dk_type o t =
   match t with
   | Dktypetype -> fprintf o "zen.type"
-  | Dktypeprop -> fprintf o "zen.prop"
+  | Dktypeprop -> fprintf o "zen.alpha"
   | Dkarrow (l, r) ->
      begin
        List.iter (fun x -> fprintf o "%a -> " print_dk_type x) l;
@@ -174,7 +179,7 @@ and print_dk_zentype o t =
 
 and print_dk_cst o t =
   match t with
-  | "Is_true" -> fprintf o "dk_logic.ebP"
+  | "Is_true" -> fprintf o "focal.is_true"
   | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
   | s -> fprintf o "%s" s
 
@@ -197,6 +202,7 @@ and print_dk_term o t =
 (*       fprintf o "\n ";*)
      end
   | Dkseq -> fprintf o "zen.seq"
+  | Dktriangle (t) -> fprintf o "zen.triangle (%a)" print_dk_term t
   | Dknot (t) ->
      fprintf o "zen.not\n (%a)" print_dk_term t
   | Dkand (t1, t2) ->
