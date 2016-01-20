@@ -734,6 +734,16 @@ let second_ty =
   let b = newtvar type_type in
   eall (a, eall (b, earrow [prod a b] b))
 
+let match_pair_ty =
+  let a = newtvar type_type in
+  let b = newtvar type_type in
+  let r = newtvar type_type in
+  eall (a, eall (b, eall (r, earrow [prod a b; earrow [a; b] r; r] r)))
+
+let fail_type =
+  let a = newtvar type_type in
+  eall (a, a)
+
 (* Higher-order application, if its 3rd arg is a Lambda-abstraction,
    it automatically beta-reduces. *)
 let app_type =
@@ -745,6 +755,7 @@ let pair_var = tvar "basics.pair" pair_ty
 let dk_pair_var = tvar "dk_tuple.pair" dk_pair_ty
 let fst_var = tvar "basics.fst" first_ty
 let snd_var = tvar "basics.snd" second_ty
+let match_pair_var = tvar "dk_tuple.match__pair" match_pair_ty
 let app_var = tvar ".@" app_type
 
 let pair a b x y = eapp (pair_var, [a; b; x; y])
@@ -752,6 +763,7 @@ let dk_pair a b x y = eapp (dk_pair_var, [a; b; x; y])
 
 let first a b c = eapp (fst_var, [a; b; c])
 let second a b c = eapp (snd_var, [a; b; c])
+let match_pair a b r t f d = eapp (match_pair_var, [a; b; r; t; f; d])
 
 let ho_apply a b f x = eapp (app_var, [a; b; f; x])
 
@@ -822,6 +834,17 @@ let predecl () =
      let b = newtvar tyb in
      eeq (dk_pair tya tyb a b)
          (pair tya tyb a b));
+  Rewrite.add_rwrt_term "dk_tuple.match_pair"
+    (let tya = newtvar type_type in
+     let tyb = newtvar type_type in
+     let tyr = newtvar type_type in
+     let t = newtvar (prod tya tyb) in
+     let f = newtvar (earrow [tya; tyb] tyr) in
+     let d = newtvar tyr in
+     eeq (match_pair tya tyb tyr t f d)
+         (ho_apply tyb tyr
+                   (ho_apply tya (earrow [tyb] tyr) f (first tya tyb t))
+                   (second tya tyb t)));
   [
     ("Is_true", arr bool1 t_prop);
     ("basics.true", bool1);
@@ -850,6 +873,8 @@ let predecl () =
     ("basics.snd", second_ty);
     ("basics.pair", pair_ty);
     ("dk_tuple.pair", dk_pair_ty);
+    ("dk_tuple.match__pair", match_pair_ty);
+    ("dk_fail.fail", fail_type);
     (".@", app_type);
 
     ("dk_int.from_nat", earrow [type_nat] type_int);
