@@ -218,15 +218,15 @@ and xcheck_expr opts env ty e =
     | Etau (Evar _ as x, body, _) ->
        let newx = check_expr opts env x ty in
        etau (newx, check_expr opts (newx :: env) type_prop body)
-    | Elam (Evar _ as x, body, _) ->
+    | Elam (Evar (s, _), body, _) ->
        (
          let mk_arrow l ret =
            if l = [] then ret else earrow l ret
          in
          match ty with
          | Earrow (hd :: tl, ret, _) ->
-            let newx = check_expr opts env hd x in
-            elam (newx, check_expr opts (x :: env) (mk_arrow tl ret) body)
+            let x = tvar s hd in
+            elam (x, check_expr opts (x :: env) (mk_arrow tl ret) body)
          | _ -> raise (Invalid_argument "Typer.check_expr: arrow expected")
        )
     | _ -> assert false

@@ -734,16 +734,26 @@ let second_ty =
   let b = newtvar type_type in
   eall (a, eall (b, earrow [prod a b] b))
 
+(* Higher-order application, if its 3rd arg is a Lambda-abstraction,
+   it automatically beta-reduces. *)
+let app_type =
+  let a = newtvar type_type in
+  let b = newtvar type_type in
+  eall (a, eall (b, earrow [earrow [a] b; a] b))
+
 let pair_var = tvar "basics.pair" pair_ty
 let dk_pair_var = tvar "dk_tuple.pair" dk_pair_ty
 let fst_var = tvar "basics.fst" first_ty
 let snd_var = tvar "basics.snd" second_ty
+let app_var = tvar ".@" app_type
 
 let pair a b x y = eapp (pair_var, [a; b; x; y])
 let dk_pair a b x y = eapp (dk_pair_var, [a; b; x; y])
 
 let first a b c = eapp (fst_var, [a; b; c])
 let second a b c = eapp (snd_var, [a; b; c])
+
+let ho_apply a b f x = eapp (app_var, [a; b; f; x])
 
 let eq_ty =
   let ty = newtvar type_type in
@@ -840,6 +850,7 @@ let predecl () =
     ("basics.snd", second_ty);
     ("basics.pair", pair_ty);
     ("dk_tuple.pair", dk_pair_ty);
+    (".@", app_type);
 
     ("dk_int.from_nat", earrow [type_nat] type_int);
 

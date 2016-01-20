@@ -139,6 +139,8 @@ and translate_app v' l =
      let e1' = translate_expr e1 in
      let e2' = translate_expr e2 in
      mk_equal (ty, e1', e2')
+  | (Evar (".@", _), [_; _; f; a]) ->
+     mk_app ("", mk_typetype, [translate_expr f; translate_expr a])
   | (Evar (v, _), args)
        when (List.mem_assoc v predefined_sym) ->
      let v = fst (List.assoc v predefined_sym) in

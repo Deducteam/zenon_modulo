@@ -532,9 +532,9 @@ let tvar_type s = tvar s type_type;;
 let tvar_prop s = tvar s type_prop;;
 
 let emeta (e) = he_merge (Emeta (e, priv_meta e));;
-let earrow args ret =
+let rec earrow args ret =
   match ret with
-  | Earrow _ -> assert false
+  | Earrow (l, ret, _) -> earrow (args @ l) ret
   | _ -> begin match args with
     | [] -> ret
     | _ ->
@@ -720,6 +720,13 @@ and type_app s args =
         type_none
     else match inst_app [] s args with
     | Earrow(l, ret, _), args' ->
+            let rec take l acc = function
+              | 0 -> l, List.rev acc
+              | n -> match l with [] -> [], List.rev acc
+                               | a :: l -> take l (a :: acc) (n-1)
+            in
+            let (remaining, taken) = take l [] (List.length args') in
+            let (l, ret) = (taken, earrow remaining ret) in
             let l' = List.map get_type args' in
             begin try
                 let t, t' = find2 (fun t t' -> not (t == t')) l l' in
@@ -759,6 +766,18 @@ and substitute_unsafe map e =
   | Emeta _ -> e
   | Earrow(args, ret, _) ->
      earrow (List.map (substitute_unsafe map) args) (substitute_unsafe map ret)
+  (* Hack for Higher-order rewrite rules *)
+  | Eapp (Evar (".@", _) as v, [a; b; c; d], _) ->
+     begin
+       let (a', b', c', d') =
+         (substitute_unsafe map a, substitute_unsafe map b, substitute_unsafe map c, substitute_unsafe map d)
+       in
+       match c' with
+       | Elam (x, body, _) ->
+          Log.debug 5 "Higher-order beta-reduction during substitution";
+          substitute_unsafe [(x, d')] body
+       | _ -> eapp (v, [a'; b'; c'; d'])
+     end
   (* Equality symbol need to be re-generated with correct type,
      in case we have substituted a type argument *)
   | Eapp (Evar ("=", _) as s, ([a; b] as args), _) ->
