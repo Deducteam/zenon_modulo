@@ -767,6 +767,8 @@ let match_pair a b r t f d = eapp (match_pair_var, [a; b; r; t; f; d])
 
 let ho_apply a b f x = eapp (app_var, [a; b; f; x])
 
+let call_by_value_type = app_type;;
+
 let eq_ty =
   let ty = newtvar type_type in
   eall (ty, earrow [ty; ty] bool1)
@@ -877,6 +879,7 @@ let predecl () =
     ("dk_tuple.match__pair", match_pair_ty);
     ("dk_fail.fail", fail_type);
     (".@", app_type);
+    ("dk_builtins.call_by_value", call_by_value_type);
 
     ("dk_int.from_nat", earrow [type_nat] type_int);
 
