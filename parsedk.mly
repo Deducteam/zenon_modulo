@@ -205,6 +205,10 @@ term_simple:
 | LPAREN term RPAREN { $2 }
 | ID COLON typ DOUBLE_ARROW term_simple
      { elam (tvar $1 type_none, $5) }
+| CCARR type_simple type_simple
+        { match $3 with
+          | Earrow (tys, ty, _) -> earrow ($2 :: tys) ty
+          | ty -> earrow [$2] ty }
 terms:
 | term_simple { [$1] }
 | terms term_simple { $2 :: $1 }

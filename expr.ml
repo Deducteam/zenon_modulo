@@ -857,7 +857,10 @@ let rec substitute_2nd_unsafe map e =
   match e with
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
-  | Earrow _ -> assert false
+  | Earrow (l, ty, _) ->
+     earrow
+       (List.map (substitute_2nd_unsafe map) l)
+       (substitute_2nd_unsafe map ty)
   | Eapp (s, args, _) ->
      let acts = List.map (substitute_2nd_unsafe map) args in
      begin try

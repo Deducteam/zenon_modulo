@@ -224,7 +224,8 @@ and translate_expr e =
      let p' = translate_expr p in
      mk_lam (nv, p')
   | Elam _ -> assert false
-  | _ -> assert false
+  | Earrow (l, ty, _) ->
+     mk_arrow (List.map translate_expr l, translate_expr ty)
 ;;
 
 (*

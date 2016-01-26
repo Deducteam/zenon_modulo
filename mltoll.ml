@@ -107,7 +107,7 @@ let rec xtr_expr a =
   | Emeta (Eex(v, _, _) as e, _)
     -> tvar (make_meta_name e) (Expr.get_type v)
   | Emeta(_) -> assert false
-  | Earrow(args, ret, _) -> assert false
+  | Earrow(args, ret, _) -> earrow (List.map xtr_expr args) (xtr_expr ret)
 
   | Eapp (Evar("$scope",_), lam :: tau :: vals, _) -> tr_expr (apply lam tau)
   | Eapp (s, args, _) -> eapp (s, List.map tr_expr args)

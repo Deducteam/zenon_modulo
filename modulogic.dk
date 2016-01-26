@@ -8,6 +8,7 @@ def type  : Type.
 def proof : prop -> Type.
 def triangle : alpha -> prop.
 def term  : type -> Type.
+def arrow : type -> type -> type.
 iota  : type.
 
 (; Symbols ;)
@@ -243,6 +244,7 @@ def Rcongrl : a : type ->
 
 [] type  --> cc.uT.
 [] term  --> cc.eT.
+[] arrow --> cc.Arrow.
 [] prop  --> dk_logic.Prop.
 [] proof --> dk_logic.eP.
 

@@ -201,6 +201,10 @@ and print_dk_term o t =
        List.iter (fun x -> fprintf o " (%a)" print_dk_term x) l;
 (*       fprintf o "\n ";*)
      end
+  | Dkarrow ([], t) -> print_dk_term o t
+  | Dkarrow ((t1 :: l), t2) ->
+     fprintf o "zen.arrow (%a) (%a)"
+             print_dk_term t1 print_dk_term (Dkarrow (l, t2))
   | Dkseq -> fprintf o "zen.seq"
   | Dktriangle (t) -> fprintf o "zen.triangle (%a)" print_dk_term t
   | Dknot (t) ->

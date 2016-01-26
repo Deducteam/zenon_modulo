@@ -14,8 +14,6 @@ open Expr;;
 (* Exception raised when we meet a variable which is not present in the environment,
    i.e. which was not introduced by a binder. *)
 exception Scoping_error of string;;
-(* Exception raised when a function is applied to the bad number of arguments *)
-exception Arity_mismatch of expr * expr list;;
 
 (* Options to pass to the type checking and type inference functions *)
 type opts =
@@ -96,6 +94,16 @@ let rec apply f tys tyb args =
 ;;
 
 
+(* list_split l n = (l1, l2) <-> (length l1 = n /\ l = l1 @ l2)
+   invalid_argument iff n > length l *)
+let rec list_split l n =
+  match (l, n) with
+  | (l, 0) -> ([], l)
+  | ([], _) -> raise (Invalid_argument "list_split")
+  | (a :: l, n) ->
+     let (l1, l2) = list_split l (n-1) in
+     (a :: l1, l2)
+
 (* instantiate args ty substitutes prenex type variables in ty
    by type arguments at the beginning of the list of arguments args.
    Returns the type arguments, the remaining arguments, their expected types
@@ -108,17 +116,27 @@ let rec xinstantiate opts env accu args ty =
         arguments at type type_none leading to ill-typed substitutions *)
      let hd' = check_type opts env hd in
      xinstantiate opts env (hd' :: accu) tl (substitute_safe [v, hd'] ty)
-  | (Earrow (l, ret, _), args) -> (accu, args, l, ret)
+  | (Earrow (l, ret, _), args) ->
+     if List.length l > List.length args then
+       (* Partial application *)
+       let (l1, l2) = list_split l (List.length args) in
+       (accu, args, l1, earrow l2 ret)
+     else
+       (accu, args, l, ret)
   | (ty, []) -> (accu, [], [], ty)
   | (_, _ :: _) -> assert false  (* Should not occur because we have checked arity *)
 
 and instantiate opts env args ty =
-  if arity ty = List.length args then
-    let (reversed_ty_args, args, tys, ret) = xinstantiate opts env [] args ty in
-    assert (get_type ret == type_type);
-    (List.rev reversed_ty_args, args, tys, ret)
-  else
-    raise (Arity_mismatch (ty, args))
+  let (reversed_ty_args, args, tys, ret) = xinstantiate opts env [] args ty in
+  assert (get_type ret == type_type);
+  let ty_args = List.rev reversed_ty_args in
+  Log.debug 15 "Instantiating type arguments (%a) leads to the following type: [%a] -> %a"
+            (Print.pp_lst Print.pp_expr ", ") ty_args
+            (Print.pp_lst Print.pp_expr "; ") tys
+            Print.pp_expr ret;
+  Log.debug 15 "Remaining arguments: %a"
+            (Print.pp_lst Print.pp_expr_t ", ") args;
+  (ty_args, args, tys, ret)
 
 (* Main functions walking through expressions infering and checking types. *)
 (* This type-checking is bidirectionnal. *)
@@ -283,6 +301,10 @@ and xcheck_type opts env ty =
   | Eapp (Evar (f_sym, _), args, _) ->
      let tys = List.map (fun _ -> type_type) args in
      eapp (tvar f_sym (earrow tys type_type), List.map (check_type opts env) args)
+  | Earrow (l, ty, _) ->
+     let l' = List.map (check_type opts env) l in
+     let ty' = check_type opts env ty in
+     earrow l' ty'
   | ty -> Log.debug 15 "Unexpected type argument: %a"
                    Print.pp_expr ty;
          assert false

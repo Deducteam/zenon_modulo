@@ -932,7 +932,7 @@ let rec process_expr e =
   match e with
   | Evar _ -> e
   | Emeta _ -> e
-  | Earrow _ -> assert false
+  | Earrow _ -> e
   | Eapp (Evar(s,_) as vs, args, _) when is_prefix 0 "Is_true**" s ->
       let s1 = chop_prefix "Is_true**" s in
       let vssty = prop_to_bool_args args (get_type vs) in
