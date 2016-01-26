@@ -859,6 +859,10 @@ let rec substitute_expr map e =
 ;;
 *)
 
+
+(* Same as substitute but also replace function
+   symbols. Beta-reduction is performed when a function symbol is
+   replaced by a lambda abstraction. *)
 let rec substitute_2nd_unsafe map e =
   match e with
   | Evar (v, _) -> (try List.assq e map with Not_found -> e)
@@ -872,7 +876,8 @@ let rec substitute_2nd_unsafe map e =
      begin try
       let lam = List.assq s map in
       match lam, acts with
-      | Elam (v, body, _), [a] -> substitute [(v,a)] body
+      | Elam (v, body, _), [a] -> substitute_unsafe [(v,a)] body
+      | Elam (v, body, _), a :: l -> apply_2nd (substitute_unsafe [(v,a)] body) l
       | Evar (v, _), _ -> eapp (lam, acts)
       | Eapp (s1, args1, _), _ -> eapp (s1, args1 @ acts)
       | _ -> raise Higher_order
@@ -924,6 +929,12 @@ and substitute_2nd_safe map e =
     substitute_2nd_unsafe map e
   else
     raise (Ill_typed_substitution map)
+
+and apply_2nd f l =
+  match f, l with
+  | e, [] -> e
+  | Elam (v, body, _), a :: l -> apply_2nd (substitute_2nd_unsafe [(v, a)] body) l
+  | _ -> raise Higher_order
 
 let substitute_2nd = substitute_2nd_unsafe;;
 
