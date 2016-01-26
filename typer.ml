@@ -78,6 +78,24 @@ let rec xarity acc = function
 ;;
 let arity = xarity 0;;
 
+let app_type =
+  let a = newtvar type_type in
+  let b = newtvar type_type in
+  eall (a, eall (b, earrow [earrow [a] b; a] b));;
+
+let app_var = tvar ".@" app_type;;
+
+
+(* Higher-order application of (f : tys -> tyb) to args *)
+let rec apply f tys tyb args =
+  match (tys, args) with
+  | [tya], [a] -> eapp (app_var, [tya; tyb; f; a])
+  | tya :: tys, a :: args ->
+     apply (eapp (app_var, [tya; earrow tys tyb; f; a])) tys tyb args
+  | _ -> raise Not_found
+;;
+
+
 (* instantiate args ty substitutes prenex type variables in ty
    by type arguments at the beginning of the list of arguments args.
    Returns the type arguments, the remaining arguments, their expected types
@@ -120,6 +138,7 @@ and infer_expr opts env = function
      (* First lookup in the constant table *)
      (* Remark: If it fails, it looks at it on the symbol. *)
      let tyf = get_type (type_const opts f) in
+     Log.debug 15 "Infering application: %s : %a" f_sym Print.pp_expr tyf;
      if tyf == type_none
      then
        (* We have no way to find a return type,
@@ -127,8 +146,10 @@ and infer_expr opts env = function
           for scoping purpose *)
        eapp (f, List.map (infer_expr opts env) args)
      else
-       let (type_args, term_args, tys, ret_ty) = instantiate opts env args tyf in
-       eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr opts env) tys term_args)
+       begin
+         let (type_args, term_args, tys, ret_ty) = instantiate opts env args tyf in
+         eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr opts env) tys term_args)
+       end
   | Etau (Evar _ as x, body, _) ->
      etau (x, check_expr opts (x :: env) type_prop body)
   | Elam (Evar _ as x, body, _) ->
@@ -140,21 +161,27 @@ and xcheck_expr opts env ty e =
   else
     match e with
     | Evar (s, _) ->
+       Log.debug 15 "Looking for variable %s in context {%a}" s (Print.pp_lst Print.pp_expr_t ", ") env;
        (* Call inference because it checks for scoping *)
        let e' = infer_expr opts env e in
        let ret_ty = get_type e' in
        if ret_ty == ty then
          e'
        else
-         raise (Type_Mismatch (ret_ty, ty, "Typer.xcheck_expr"))
+         if ret_ty == type_none then
+           tvar s ty
+         else
+           raise (Type_Mismatch (ret_ty, ty, "Typer.xcheck_expr"))
     | Emeta (Eall (Evar (s, _), b, _), _) ->
        emeta (check_expr opts env type_prop (eall (tvar s ty, b)))
     | Eapp (Evar ("=", _) as eq, [e1; e2], _) ->
        (* Equality is the only symbol for which
           implicit polymorphism is allowed. *)
        (* First try to infer the type of e1 *)
+       Log.debug 15 "Infering equality type from first argument %a" Print.pp_expr e1;
        let e1' = infer_expr opts env e1 in
        let t1 = get_type e1' in
+       Log.debug 15 "Equality type infered: %a" Print.pp_expr t1;
        (* If this fails, try e2 *)
        if t1 == type_none then
          let e2' = infer_expr opts env e2 in
@@ -171,6 +198,16 @@ and xcheck_expr opts env ty e =
        else
          eeq e1' (check_expr opts env t1 e2)
     | Eapp (Evar (f_sym, _) as f, args, _) ->
+       (* If the function symbol appears as a variable in env, this is
+          an higher-order application *)
+       (try
+         match assoc f_sym env with
+         | Earrow (l, tyb, _) ->
+            let args' = List.map2 (check_expr opts env) l args in
+            Log.debug 15 "HO application : %s @ (%a)" f_sym (Print.pp_lst Print.pp_expr_t ",") args';
+            apply (infer_expr opts env f) l tyb args'
+         | _ -> raise Not_found
+       with Not_found -> (
        (* First lookup in the constant table *)
        (* Remark: If it fails, it looks at it on the symbol. *)
        let tyf = get_type (type_const opts f) in
@@ -191,7 +228,7 @@ and xcheck_expr opts env ty e =
           then
             eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr opts env) tys term_args)
           else
-            raise (Type_Mismatch (ret_ty, ty, "Typer.xcheck_expr")))
+            raise (Type_Mismatch (ret_ty, ty, "Typer.xcheck_expr")))))
     | Enot (e, _) ->
        assert (ty == type_prop);
        enot (check_expr opts env type_prop e)
@@ -211,6 +248,7 @@ and xcheck_expr opts env ty e =
     | Efalse -> assert (ty == type_prop); efalse
     | Eall (Evar _ as x, body, _) ->
        assert (ty == type_prop);
+       Log.debug 15 "Binding variable %a" Print.pp_expr_t x;
        eall (x, check_expr opts (x :: env) type_prop body)
     | Eex (Evar _ as x, body, _) ->
        assert (ty == type_prop);
@@ -241,8 +279,7 @@ and check_expr opts env ty e =
 and xcheck_type opts env ty =
   Log.debug 15 "xCheck %a : %a" Print.pp_expr ty Print.pp_expr type_type;
   match ty with
-  | Evar (s, _) ->               (* TODO: also scope type variables *)
-     eapp (tvar_type s, [])
+  | Evar (s, _) -> tvar_type s
   | Eapp (Evar (f_sym, _), args, _) ->
      let tys = List.map (fun _ -> type_type) args in
      eapp (tvar f_sym (earrow tys type_type), List.map (check_type opts env) args)

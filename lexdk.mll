@@ -17,6 +17,7 @@ rule token = parse
 | space { token lexbuf } (* skip blanks *)
 | '\n' { Lexing.new_line lexbuf; token lexbuf }
 | "(;" { comment (pos lexbuf) [] lexbuf }
+| "def" { DEFKW }
 | "cc.uT" { TYPE }
 | "cc.eT" { TERM }
 | "cc.eP" { PROOF }
@@ -41,6 +42,7 @@ rule token = parse
 | qid as qid { QID(qid) }
 | ":" { COLON }
 | "." { DOT }
+| "->" { ARROW }
 | "=>" { DOUBLE_ARROW }
 | ":=" { DEF }
 | "(" { LPAREN }

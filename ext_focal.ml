@@ -846,6 +846,7 @@ let predecl () =
                    (ho_apply tya (earrow [tyb] tyr) f (first tya tyb t))
                    (second tya tyb t)));
   [
+    ("basics.bool__t", type_type);
     ("Is_true", arr bool1 t_prop);
     ("basics.true", bool1);
     ("basics.false", bool1);

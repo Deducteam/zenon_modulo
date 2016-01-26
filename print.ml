@@ -866,7 +866,7 @@ let rec expr_type o ex =
     | Elam (Evar (v, _), e, _) ->
        expr_type o e
     | Etau _  -> ()
-    | _ -> assert false)
+    | _ -> ())
 ;;
 
 let pp_expr_type b e = expr_type (Buff b) e;;

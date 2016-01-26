@@ -46,12 +46,64 @@ let rec mk_app l =
                   Print.pp_expr head;
         raise Parse_error
 
+(* Transform free variables not occuring in vars into constants.  This
+   is needed because we can not distinguish variables and constants
+   when we see them deep inside terms but we can call this function on
+   terms which are known to be toplevel. *)
+let rec close_term vars = function
+  | e when Expr.equal e type_type -> type_type (* To avoid trying to type type *)
+  | e when Expr.equal e type_prop -> type_prop (* Because reconstructing type_prop leads to a non-convertible term *)
+  | Evar (s, _) as v ->
+     let ty = close_term vars (get_type v) in
+     let x = tvar s ty in
+     if List.mem s vars then x else eapp (x, [])
+  | Eapp (Evar (s, _) as f, l, _) ->
+     let ty = close_term vars (get_type f) in
+     let f' = tvar s ty in
+     eapp (f', List.map (close_term vars) l)
+  | Etrue | Efalse as e -> e
+  | Enot (e, _) -> enot (close_term vars e)
+  | Eand (a, b, _) -> eand (close_term vars a, close_term vars b)
+  | Eor (a, b, _) -> eor (close_term vars a, close_term vars b)
+  | Eimply (a, b, _) -> eimply (close_term vars a, close_term vars b)
+  | Eequiv (a, b, _) -> eequiv (close_term vars a, close_term vars b)
+  | Earrow (a, b, _) -> earrow (List.map (close_term vars) a) (close_term vars b)
+  | Elam (Evar (s, _) as v, b, _) ->
+     let ty = close_term vars (get_type v) in
+     let x = tvar s ty in
+     elam (x, close_term (s :: vars) b)
+  | Eall (Evar (s, _) as v, b, _) ->
+     let ty = close_term vars (get_type v) in
+     let x = tvar s ty in
+     eall (x, close_term (s :: vars) b)
+  | Eex (Evar (s, _) as v, b, _) ->
+     let ty = close_term vars (get_type v) in
+     let x = tvar s ty in
+     eex (x, close_term (s :: vars) b)
+  | Eapp _ -> assert false (* Application heads are function symbols *)
+  | Elam _
+  | Eall _
+  | Eex _ -> assert false (* Binders bind over variables *)
+  | Etau _
+  | Emeta _ -> assert false (* parser never produces a meta or a tau *)
+
+let rec close_params vars = function
+  | [] -> []
+  | (Evar (s, _) as v) :: l ->
+     tvar s (close_term vars (get_type v)) :: close_params (s :: vars) l
+  | _ -> assert false (* params are lists of variables *)
+
+let close_term vars e =
+  Log.debug 1 "Closing vars {%a} in %a" (Print.pp_lst (fun b -> Printf.bprintf b "%s") ", ") vars Print.pp_expr e;
+  let result = close_term vars e in
+  Log.debug 1 "Result: %a" Print.pp_expr result;
+  result
 %}
 %token <string> ID QID NUMBER
-%token COLON DOT DOUBLE_ARROW DEF
+%token COLON DOT DOUBLE_ARROW DEF ARROW
 %token TYPE TERM PROOF CCARR PROP
 %token LPAREN RPAREN EOF
-%token LBRACK COMMA RBRACK REW
+%token LBRACK COMMA RBRACK REW DEFKW
 %token TRUE FALSE NOT AND OR IMP EQV ALL EX ALL_TYPE EX_TYPE ISTRUE EQUAL
 
 %token MUSTUSE
@@ -81,7 +133,7 @@ file:
 | proof_head body ENDPROOF EOF   { $2 }
 
 body:
-| ID COLON PROOF term_simple DOT
+| ID COLON PROOF closed_term DOT
      { ($1,
         [Phrase.Hyp (Namespace.goal_name, Expr.enot $4, 0),
          false]) }
@@ -108,7 +160,7 @@ proofheaders:
            TODO: give it to the typer. *)
         Log.debug 15 "Registering alias %s := %a"
                   $2 Print.pp_expr $4;
-        ty_aliases := ($2, $4) :: !ty_aliases }
+        ty_aliases := ($2, close_term [] $4) :: !ty_aliases }
   | BEGIN_VAR ID COLON typ END_VAR proofheaders
       { () }
   | BEGIN_HYP ID COLON PROOF term_simple END_HYP proofheaders
@@ -121,10 +173,10 @@ qid:
           List.assoc $1 !ty_aliases else
           mk_const $1 type_none }
 | ID
-      { (* Unqualified IDs can be either variables or
-           constants. It would be hard to determine it here
-           so we parse them as variables and let the typer
-           do the necessary scoping (see Typer.ml) *)
+    { (* Unqualified IDs can be either variables or constants. It
+           would be hard to determine it here so we parse them as
+           variables and let the close_term function do the necessary
+           scoping *)
         (* Also unfold type aliases because types can be passed as arguments
            to polymorphic functions *)
      if List.mem_assoc $1 !ty_aliases then
@@ -162,13 +214,14 @@ term:
          arguments in reverse order.
          This list is not empty. *)
       mk_app (List.rev $1)
-}
+    }
+closed_term:
+| term { close_term [] $1 }
 
 type_qid:
-| ID { (* We don't support type variables in the input *)
-      if List.mem_assoc $1 !ty_aliases then
+| ID { if List.mem_assoc $1 !ty_aliases then
         List.assoc $1 !ty_aliases else
-        mk_const_t $1 }
+        tvar $1 type_type }
 | QID { if List.mem_assoc $1 !ty_aliases then
         List.assoc $1 !ty_aliases else
         mk_const_t $1 }
@@ -200,6 +253,15 @@ pre_typ:
 typ:
 | TERM type_simple { $2 }
 
+complex_type :
+| typ {$1}
+| TERM type_simple ARROW complex_type {match $4 with Earrow (tys, ty, _) -> earrow ($2 :: tys) ty | ty -> earrow [$2] ty}
+| LPAREN complex_type RPAREN ARROW complex_type {match $5 with Earrow (tys, ty, _) -> earrow ($2 :: tys) ty | ty -> earrow [$2] ty}
+| ID COLON TYPE ARROW complex_type {eall (tvar $1 type_type, $5)}
+
+closed_complex_type :
+| complex_type { close_term [] $1 }
+
 declared_or_defined_id:
 | ID { $1 }
 | QID { $1 }
@@ -207,30 +269,32 @@ declared_or_defined_id:
 hyp_def:
 | ID COLON TYPE DOT { Typer.declare_constant ($1, type_type); [] }
 | QID COLON TYPE DOT { Typer.declare_constant ($1, type_type); [] }
-| ID COLON PROOF term_simple DOT { [Phrase.Hyp ($1, $4, 1)] }
-| QID COLON PROOF term_simple DOT { [Phrase.Hyp ($1, $4, 1)] }
-| ID COLON TERM type_simple DOT { Typer.declare_constant ($1, $4); [] }
-| QID COLON TERM type_simple DOT { Typer.declare_constant ($1, $4); [] }
-| ID COLON typ DEF term DOT
+| ID COLON PROOF closed_term DOT { [Phrase.Hyp ($1, $4, 1)] }
+| QID COLON PROOF closed_term DOT { [Phrase.Hyp ($1, $4, 1)] }
+| ID COLON TERM type_simple DOT { Typer.declare_constant ($1, close_term [] $4); [] }
+| QID COLON TERM type_simple DOT { Typer.declare_constant ($1, close_term [] $4); [] }
+| DEFKW ID COLON closed_complex_type DOT { Typer.declare_constant ($2, $4); [] }
+| DEFKW QID COLON closed_complex_type DOT { Typer.declare_constant ($2, $4); [] }
+| ID COLON typ DEF closed_term DOT
      { (* Definition without argument.
           We don't add the rewrite rule now because the definition
           has not yet been scoped and typed. *)
        let (other_params, expr) = get_params $5 in
        [ Phrase.Def (DefReal ($1,
                               $1,
-                              $3,
+                              close_term [] $3,
                               other_params,
                               expr,
                               None)) ]
      }
-| QID COLON typ DEF term DOT
+| QID COLON typ DEF closed_term DOT
      { (* Definition without argument.
           We don't add the rewrite rule now because the definition
           has not yet been scoped and typed. *)
        let (other_params, expr) = get_params $5 in
        [ Phrase.Def (DefReal ($1,
                               $1,
-                              $3,
+                              close_term [] $3,
                               other_params,
                               expr,
                               None)) ]
@@ -238,33 +302,37 @@ hyp_def:
 | declared_or_defined_id compact_args COLON typ DEF term DOT
      { (* Definition with arguments *)
        let (other_params, expr) = get_params $6 in
-       let args_tys = List.map get_type $2 in
-       let ty = earrow args_tys $4 in
+       let closed_params = close_params [] ($2 @ other_params) in
+       let expr = close_term (List.map (function Evar (s, _) -> s | _ -> assert false) closed_params) expr in
+       let args_tys = List.map get_type (close_params [] $2) in
+       let ty = earrow args_tys (close_term [] $4) in
        [ Phrase.Def (DefReal ($1,
                               $1,
                               ty,
-                              $2 @ other_params,
+                              closed_params,
                               expr,
                               None)) ]
      }
 | RECURSIVE declared_or_defined_id compact_args COLON typ DEF term DOT
      { (* Recursive definition *)
        let (other_params, expr) = get_params $7 in
-       let args_tys = List.map get_type $3 in
-       let ty = earrow args_tys $5 in
+       let closed_params = close_params [] ($3 @ other_params) in
+       let expr = close_term (List.map (function Evar (s, _) -> s | _ -> assert false) closed_params) expr in
+       let args_tys = List.map get_type (close_params [] $3) in
+       let ty = earrow args_tys (close_term [] $5) in
        [ Phrase.Def (DefRec (None,
                              $2,
                              ty,
-                             $3 @ other_params,
+                             closed_params,
                              expr)) ]
      }
-| env term REW term_simple DOT
+| env term REW term DOT
          {                      (* Rewrite rule, assumed to be at term level *)
            let rec aux = function
              | [] -> eeq $2 $4
              | decl :: env -> eall (decl, aux env)
            in
-           let e = aux $1 in
+           let e = close_term [] (aux $1) in
            [ (* Phrase.Hyp ("rew", e, 1); *)
              Phrase.Rew ("rew", e, 0) ]
          }
@@ -280,8 +348,12 @@ compact_args:
          { (tvar $2 $4) :: $6 }
 
 env_decl:
-| ID COLON typ
-    { tvar $1 $3 }
+| ID COLON complex_type
+     { tvar $1 $3 }
+| ID COLON TYPE
+     { tvar $1 type_type }
+| ID
+    { tvar $1 type_none }
 env_decls:
 | env_decl { [$1] }
 | env_decl COMMA env_decls { $1 :: $3 }
