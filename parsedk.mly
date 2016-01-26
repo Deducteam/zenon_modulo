@@ -34,7 +34,7 @@ let rec mk_app l =
   | [] -> assert false
   | [e] -> e
   | Elam (v, body, _) :: arg :: tail ->
-     mk_app (substitute_2nd [(v, arg)] body :: tail)
+     mk_app (substitute_2nd_unsafe [(v, arg)] body :: tail)
   | head :: tail ->
      match head with
      | Evar _ ->
@@ -205,6 +205,8 @@ term_simple:
 | LPAREN term RPAREN { $2 }
 | ID COLON typ DOUBLE_ARROW term_simple
      { elam (tvar $1 type_none, $5) }
+| ID DEF term DOUBLE_ARROW term_simple
+     { substitute_2nd_unsafe [(tvar $1 type_none, $3)] $5 }
 | CCARR type_simple type_simple
         { match $3 with
           | Earrow (tys, ty, _) -> earrow ($2 :: tys) ty
