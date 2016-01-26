@@ -198,6 +198,12 @@ let get_type e =
        | Some ty -> ty
        | None -> assert false
 ;;
+(* Same but does not fail *)
+let get_type_opt e = (get_priv e).typ;;
+let same_type e1 e2 =
+  get_type_opt e1 =%= get_type_opt e2 ||
+    get_type_opt e1 == get_type_opt e2;;
+let same_type2 (e1, e2) = same_type e1 e2;;
 
 let get_meta_type = function
     | Eall (v, _, _) | Eex (v, _, _) -> get_type v
@@ -453,7 +459,7 @@ module HashedExpr = struct
     || m1 && m2 && equal_in_env [v1] [v2] f1 f2
   ;;
 
-  let equal e1 e2 = get_type e1 == get_type e2 &&
+  let equal e1 e2 = same_type e1 e2 &&
     match e1, e2 with
     | Evar (v1, _), Evar (v2, _) -> v1 =%= v2
     | Emeta (f1, _), Emeta (f2, _) -> f1 == f2
@@ -479,7 +485,7 @@ module HashedExpr = struct
     | Eex (v1, f1, _), Eex (v2, f2, _)
     | Etau (v1, f1, _), Etau (v2, f2, _)
     | Elam (v1, f1, _), Elam (v2, f2, _)
-      -> get_type v1 == get_type v2 && equal_in_env1 v1 v2 f1 f2
+      -> same_type v1 v2 && equal_in_env1 v1 v2 f1 f2
     | _, _ -> false
   ;;
 end;;
@@ -805,7 +811,7 @@ and substitute_unsafe map e =
   | Elam (v, f, _) -> aux elam map v f
 
 and substitute_safe map e =
-  if (List.for_all (fun (a, b) -> get_type a == get_type b) map)
+  if (List.for_all same_type2 map)
   then
     substitute_unsafe map e
   else
@@ -913,7 +919,7 @@ let rec substitute_2nd_unsafe map e =
         elam (v, substitute_2nd_unsafe map1 f)
 
 and substitute_2nd_safe map e =
-  if (List.for_all (fun (a, b) -> get_type a == get_type b) map)
+  if (List.for_all same_type2 map)
   then
     substitute_2nd_unsafe map e
   else
