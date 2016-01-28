@@ -94,16 +94,6 @@ let rec apply f tys tyb args =
 ;;
 
 
-(* list_split l n = (l1, l2) <-> (length l1 = n /\ l = l1 @ l2)
-   invalid_argument iff n > length l *)
-let rec list_split l n =
-  match (l, n) with
-  | (l, 0) -> ([], l)
-  | ([], _) -> raise (Invalid_argument "list_split")
-  | (a :: l, n) ->
-     let (l1, l2) = list_split l (n-1) in
-     (a :: l1, l2)
-
 (* instantiate args ty substitutes prenex type variables in ty
    by type arguments at the beginning of the list of arguments args.
    Returns the type arguments, the remaining arguments, their expected types
@@ -119,7 +109,7 @@ let rec xinstantiate opts env accu args ty =
   | (Earrow (l, ret, _), args) ->
      if List.length l > List.length args then
        (* Partial application *)
-       let (l1, l2) = list_split l (List.length args) in
+       let (l1, l2) = Misc.list_split l (List.length args) in
        (accu, args, l1, earrow l2 ret)
      else
        (accu, args, l, ret)

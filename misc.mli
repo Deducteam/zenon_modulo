@@ -1,4 +1,4 @@
-(*  Copyright 1997 INRIA  *)
+(* Copyright 1997 INRIA *)
 (*  $Id: misc.mli,v 1.22 2012-04-24 17:32:04 doligez Exp $  *)
 
 val index : int -> 'a -> 'a list -> int;;
@@ -40,3 +40,5 @@ val isdigit : char -> bool;;
 val debug : ('a, out_channel, unit) format -> 'a;;
 
 val base26 : int -> string;;
+
+val list_split : 'a list -> int -> ('a list * 'a list);;

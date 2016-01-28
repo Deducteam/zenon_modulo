@@ -173,3 +173,13 @@ let base_n s x =
 ;;
 
 let base26 x = base_n "abcdefghijklmnopqrstuvwxyz" x;;
+
+(* list_split l n = (l1, l2) <-> (length l1 = n /\ l = l1 @ l2)
+   invalid_argument iff n > length l *)
+let rec list_split l n =
+  match (l, n) with
+  | (l, 0) -> ([], l)
+  | ([], _) -> raise (Invalid_argument "list_split")
+  | (a :: l, n) ->
+     let (l1, l2) = list_split l (n-1) in
+     (a :: l1, l2)
