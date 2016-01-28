@@ -782,6 +782,8 @@ and substitute_unsafe map e =
        | Elam (x, body, _) ->
           Log.debug 5 "Higher-order beta-reduction during substitution";
           substitute_unsafe [(x, d')] body
+       | Eapp (c'', l, _) ->
+          eapp (c'', l @ [d'])
        | _ -> eapp (v, [a'; b'; c'; d'])
      end
   (* Equality symbol need to be re-generated with correct type,
@@ -871,6 +873,20 @@ let rec substitute_2nd_unsafe map e =
      earrow
        (List.map (substitute_2nd_unsafe map) l)
        (substitute_2nd_unsafe map ty)
+  (* Hack for Higher-order rewrite rules *)
+  | Eapp (Evar (".@", _) as v, [a; b; c; d], _) ->
+     begin
+       let (a', b', c', d') =
+         (substitute_2nd_unsafe map a, substitute_2nd_unsafe map b, substitute_2nd_unsafe map c, substitute_2nd_unsafe map d)
+       in
+       match c' with
+       | Elam (x, body, _) ->
+          Log.debug 5 "Higher-order beta-reduction during substitution";
+          substitute_2nd_unsafe [(x, d')] body
+       | Eapp (c'', l, _) ->
+          eapp (c'', l @ [d'])
+       | _ -> eapp (v, [a'; b'; c'; d'])
+     end
   | Eapp (s, args, _) ->
      let acts = List.map (substitute_2nd_unsafe map) args in
      begin try
