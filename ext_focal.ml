@@ -49,7 +49,7 @@ let add_formula e = ();;
 let remove_formula e = ();;
 
 let arity_warning s =
-  Error.warn (sprintf "defined symbol %s is used with wrong arity" s)
+  Log.debug 1 "defined symbol %s is used with wrong arity" s
 ;;
 
 let higher_order_warning s =
@@ -116,7 +116,17 @@ let newnodes_istrue e g =
          }; Stop ]
       | _ ->
          let aa = match args with None -> [] | Some l -> l in
-         let subst = List.map2 (fun x y -> (x,y)) params aa in
+         let (params1, params2) =
+           if List.length aa <= List.length params then
+             Misc.list_split params (List.length aa)
+           else
+             begin
+               Log.debug 15 "Not enough params: [%a]"
+                         (Print.pp_lst Print.pp_expr ", ") params;
+               (params, [])
+             end
+         in
+         let subst = List.map2 (fun x y -> (x,y)) params1 aa in
          let unfolded = ctx (substitute_2nd subst body) in
          [ Node {
            nconc = [e];
