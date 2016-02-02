@@ -788,6 +788,24 @@ let bequal ty a b = eapp (tvar "basics.syntactic_equal" eq_ty, [ty; a; b])
 let type_nat = eapp (tvar "dk_nat.nat" type_type, [])
 let type_int = eapp (tvar "basics.int__t" type_type, [])
 
+let list_ty = earrow [type_type] type_type
+let type_list a = eapp (tvar "basics.list__t" list_ty, [a])
+
+let nil_ty = let a = newtvar type_type in
+             eall (a, type_list a)
+let cons_ty = let a = newtvar type_type in
+              eall (a, earrow [a; type_list a] (type_list a))
+let match_nil_ty = let a = newtvar type_type in
+                   let b = newtvar type_type in
+                   eall (a, eall (b, earrow [type_list a; b; b] b))
+let match_cons_ty = let a = newtvar type_type in
+                    let b = newtvar type_type in
+                    eall (a, eall (b, earrow [type_list a; (earrow [a; type_list a] b); b] b))
+let match_nil tya tyr l p d = eapp (tvar "basics.match__nil" match_nil_ty, [tya; tyr; l; p; d])
+let match_cons tya tyr l p d = eapp (tvar "basics.match__cons" match_cons_ty, [tya; tyr; l; p; d])
+let nil tya = eapp (tvar "nil" nil_ty, [tya])
+let cons tya a l = eapp (tvar "cons" cons_ty, [tya; a; l])
+
 let predecl () =
   (* Add rewrite-rules on pairs *)
   Rewrite.add_rwrt_term "fst"
@@ -857,6 +875,41 @@ let predecl () =
          (ho_apply tyb tyr
                    (ho_apply tya (earrow [tyb] tyr) f (first tya tyb t))
                    (second tya tyb t)));
+  Rewrite.add_rwrt_term "match_nil_nil"
+    (let tya = newtvar type_type in
+     let tyr = newtvar type_type in
+     let p = newtvar tyr in
+     let d = newtvar tyr in
+     eeq (match_nil tya tyr (nil tya) p d) p
+    );
+  Rewrite.add_rwrt_term "match_nil_cons"
+    (let tya = newtvar type_type in
+     let tyr = newtvar type_type in
+     let p = newtvar tyr in
+     let d = newtvar tyr in
+     let a = newtvar tya in
+     let l = newtvar (type_list tya) in
+     eeq (match_nil tya tyr (cons tya a l) p d) d
+    );
+  Rewrite.add_rwrt_term "match_cons_nil"
+    (let tya = newtvar type_type in
+     let tyr = newtvar type_type in
+     let p = newtvar (earrow [tya; type_list tya] tyr) in
+     let d = newtvar tyr in
+     eeq (match_cons tya tyr (nil tya) p d) d
+    );
+  Rewrite.add_rwrt_term "match_cons_cons"
+    (let tya = newtvar type_type in
+     let tyr = newtvar type_type in
+     let p = newtvar (earrow [tya; type_list tya] tyr) in
+     let d = newtvar tyr in
+     let a = newtvar tya in
+     let l = newtvar (type_list tya) in
+     eeq (match_cons tya tyr (cons tya a l) p d)
+         (ho_apply (type_list tya) tyr
+                   (ho_apply tya (earrow [type_list tya] tyr)
+                             p a) l)
+    );
   [
     ("basics.bool__t", type_type);
     ("Is_true", arr bool1 t_prop);
@@ -893,6 +946,11 @@ let predecl () =
 
     ("dk_int.from_nat", earrow [type_nat] type_int);
 
+    ("basics.list__t", list_ty);
+    ("nil", nil_ty);
+    ("cons", cons_ty);
+    ("basics.match__nil", match_nil_ty);
+    ("basics.match__cons", match_cons_ty);
   ]
 ;;
 
