@@ -107,7 +107,6 @@ let close_term vars e =
 %token TRUE FALSE NOT AND OR IMP EQV ALL EX ALL_TYPE EX_TYPE ISTRUE EQUAL
 
 %token MUSTUSE
-%token RECURSIVE
 %token BEGINPROOF
 %token BEGIN_TYPEALIAS
 %token BEGIN_TY
@@ -318,19 +317,6 @@ hyp_def:
                               closed_params,
                               expr,
                               None)) ]
-     }
-| RECURSIVE declared_or_defined_id compact_args COLON typ DEF term DOT
-     { (* Recursive definition *)
-       let (other_params, expr) = get_params $7 in
-       let closed_params = close_params [] ($3 @ other_params) in
-       let expr = close_term (List.map (function Evar (s, _) -> s | _ -> assert false) closed_params) expr in
-       let args_tys = List.map get_type (close_params [] $3) in
-       let ty = earrow args_tys (close_term [] $5) in
-       [ Phrase.Def (DefRec (None,
-                             $2,
-                             ty,
-                             closed_params,
-                             expr)) ]
      }
 | env term REW term DOT
          {                      (* Rewrite rule, assumed to be at term level *)

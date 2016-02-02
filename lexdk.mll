@@ -53,7 +53,6 @@ rule token = parse
 | "-->" { REW }
 
 | "(;_MUST_USE_;)"        { MUSTUSE }
-| "%recursive"            { RECURSIVE }
 
 | "%%begin-auto-proof"                      { BEGINPROOF }
 | "%%type:"                                 { BEGIN_TY }
