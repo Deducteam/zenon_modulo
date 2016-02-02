@@ -276,8 +276,8 @@ hyp_def:
 | QID COLON TYPE DOT { Typer.declare_constant ($1, type_type); [] }
 | ID COLON PROOF closed_term DOT { [Phrase.Hyp ($1, $4, 1)] }
 | QID COLON PROOF closed_term DOT { [Phrase.Hyp ($1, $4, 1)] }
-| ID COLON TERM type_simple DOT { Typer.declare_constant ($1, close_term [] $4); [] }
-| QID COLON TERM type_simple DOT { Typer.declare_constant ($1, close_term [] $4); [] }
+| ID COLON closed_complex_type DOT { Typer.declare_constant ($1, $3); [] }
+| QID COLON closed_complex_type DOT { Typer.declare_constant ($1, $3); [] }
 | DEFKW ID COLON closed_complex_type DOT { Typer.declare_constant ($2, $4); [] }
 | DEFKW QID COLON closed_complex_type DOT { Typer.declare_constant ($2, $4); [] }
 | DEFKW ID COLON typ DEF closed_term DOT
