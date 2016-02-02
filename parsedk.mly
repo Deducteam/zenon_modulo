@@ -281,39 +281,39 @@ hyp_def:
 | QID COLON TERM type_simple DOT { Typer.declare_constant ($1, close_term [] $4); [] }
 | DEFKW ID COLON closed_complex_type DOT { Typer.declare_constant ($2, $4); [] }
 | DEFKW QID COLON closed_complex_type DOT { Typer.declare_constant ($2, $4); [] }
-| ID COLON typ DEF closed_term DOT
+| DEFKW ID COLON typ DEF closed_term DOT
      { (* Definition without argument.
           We don't add the rewrite rule now because the definition
           has not yet been scoped and typed. *)
-       let (other_params, expr) = get_params $5 in
-       [ Phrase.Def (DefReal ($1,
-                              $1,
-                              close_term [] $3,
-                              other_params,
-                              expr,
-                              None)) ]
-     }
-| QID COLON typ DEF closed_term DOT
-     { (* Definition without argument.
-          We don't add the rewrite rule now because the definition
-          has not yet been scoped and typed. *)
-       let (other_params, expr) = get_params $5 in
-       [ Phrase.Def (DefReal ($1,
-                              $1,
-                              close_term [] $3,
-                              other_params,
-                              expr,
-                              None)) ]
-     }
-| declared_or_defined_id compact_args COLON typ DEF term DOT
-     { (* Definition with arguments *)
        let (other_params, expr) = get_params $6 in
-       let closed_params = close_params [] ($2 @ other_params) in
+       [ Phrase.Def (DefReal ($2,
+                              $2,
+                              close_term [] $4,
+                              other_params,
+                              expr,
+                              None)) ]
+     }
+| DEFKW QID COLON typ DEF closed_term DOT
+     { (* Definition without argument.
+          We don't add the rewrite rule now because the definition
+          has not yet been scoped and typed. *)
+       let (other_params, expr) = get_params $6 in
+       [ Phrase.Def (DefReal ($2,
+                              $2,
+                              close_term [] $4,
+                              other_params,
+                              expr,
+                              None)) ]
+     }
+| DEFKW declared_or_defined_id compact_args COLON typ DEF term DOT
+     { (* Definition with arguments *)
+       let (other_params, expr) = get_params $7 in
+       let closed_params = close_params [] ($3 @ other_params) in
        let expr = close_term (List.map (function Evar (s, _) -> s | _ -> assert false) closed_params) expr in
-       let args_tys = List.map get_type (close_params [] $2) in
-       let ty = earrow args_tys (close_term [] $4) in
-       [ Phrase.Def (DefReal ($1,
-                              $1,
+       let args_tys = List.map get_type (close_params [] $3) in
+       let ty = earrow args_tys (close_term [] $5) in
+       [ Phrase.Def (DefReal ($2,
+                              $2,
                               ty,
                               closed_params,
                               expr,
