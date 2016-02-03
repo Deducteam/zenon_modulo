@@ -241,7 +241,10 @@ pre_typ:
 | typs { match List.rev $1 with
          | [] -> assert false
          | [ ty ] -> ty
-         | (Eapp (Evar (head, _), [], _)) :: tail ->
+         | (Eapp (Evar (head, _), [], _)) :: tail
+         (* Scoping has not yet occured so variable at head should be
+            seen as a type constructor. *)
+         | (Evar (head, _)) :: tail ->
             let tys = List.map (fun _ -> type_type) tail in
             eapp (tvar head (earrow tys type_type), tail)
          | head :: tail ->
