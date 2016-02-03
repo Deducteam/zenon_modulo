@@ -267,13 +267,17 @@ complex_type :
 closed_complex_type :
 | complex_type { close_term [] $1 }
 
+kind :
+| TYPE { type_type }
+| ID COLON TYPE ARROW kind { earrow [type_type] $5 }
+
 declared_or_defined_id:
 | ID { $1 }
 | QID { $1 }
 
 hyp_def:
-| ID COLON TYPE DOT { Typer.declare_constant ($1, type_type); [] }
-| QID COLON TYPE DOT { Typer.declare_constant ($1, type_type); [] }
+| ID COLON kind DOT { Typer.declare_constant ($1, $3); [] }
+| QID COLON kind DOT { Typer.declare_constant ($1, $3); [] }
 | ID COLON PROOF closed_term DOT { [Phrase.Hyp ($1, $4, 1)] }
 | QID COLON PROOF closed_term DOT { [Phrase.Hyp ($1, $4, 1)] }
 | ID COLON closed_complex_type DOT { Typer.declare_constant ($1, $3); [] }
