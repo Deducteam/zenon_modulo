@@ -911,6 +911,12 @@ let predecl () =
                              p a) l)
     );
   [
+    ("dk_nat.nat", type_type);
+    ("basics.int__t", type_type);
+    ("basics.char__t", type_type);
+    ("basics.string__t", type_type);
+    ("basics.float__t", type_type);
+
     ("basics.bool__t", type_type);
     ("Is_true", arr bool1 t_prop);
     ("basics.true", bool1);
