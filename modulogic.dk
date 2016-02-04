@@ -31,29 +31,34 @@ def existstype : (type -> prop) -> prop.
 def equal      : a : type -> term a -> term a -> alpha.
 def tequal (a : type) (t : term a) (u : term a) : prop := triangle (equal a t u).
 
-def classic : prop -> prop := p : prop => not (not p).
+def classic (p : prop) : prop := not (not p).
+def antineg : dk_logic.Prop -> dk_logic.Prop.
+[p : dk_logic.Prop] antineg (dk_logic.imp p
+			       (dk_logic.forall dk_logic.prop (q => q))) --> p.
 
-def triangle_c : alpha -> prop := a : alpha => classic (triangle a).
+def triangle_c : alpha -> prop.
+[a : alpha] triangle_c a --> classic (triangle a).
 def True_c  : prop := classic True.
 def False_c : prop := classic False.
 
-def not_c : prop -> prop := p : prop => classic (not p).
-def and_c : prop -> prop -> prop := p : prop => q : prop => classic (and p q).
-def or_c  : prop -> prop -> prop := p : prop => q : prop => classic (or p q).
-def imp_c : prop -> prop -> prop := p : prop => q : prop => classic (imp p q).
-def eqv_c : prop -> prop -> prop := p : prop => q : prop => classic (eqv p q).
+def not_c (p : prop) : prop := classic (not p).
+def and_c (p : prop) (q : prop) : prop := classic (and p q).
+def or_c  (p : prop) (q : prop) : prop := classic (or p q).
+def imp_c (p : prop) (q : prop) : prop := classic (imp p q).
+def eqv_c (p : prop) (q : prop) : prop := classic (eqv p q).
 
-def forall_c : a : type -> (term a -> prop) -> prop :=
-	       a : type => p : (term a -> prop) => classic (forall a p).
-def exists_c : a : type -> (term a -> prop) -> prop :=
-	       a : type => p : (term a -> prop) => classic (exists a p).
+def forall_c (a : type) (p : (term a -> prop)) : prop :=
+	       classic (forall a p).
+def exists_c (a : type) (p : (term a -> prop)) : prop :=
+	       classic (exists a p).
 
-def foralltype_c : (type -> prop) -> prop :=
-		   p : (type -> prop) => classic (foralltype p).
-def existstype_c : (type -> prop) -> prop :=
-		   p : (type -> prop) => classic (existstype p).
+def foralltype_c (p : (type -> prop)) : prop :=
+		   classic (foralltype p).
+def existstype_c (p : (type -> prop)) : prop :=
+		   classic (existstype p).
 
-def tequal_c (a : type) (t : term a) (u : term a) : prop := triangle_c (equal a t u).
+def tequal_c (a : type) (t : term a) (u : term a) : prop :=
+      triangle_c (equal a t u).
 
 (; Definition of Proofs of Symbols ;)
 
