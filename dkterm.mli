@@ -1,11 +1,13 @@
 (* AST corresponding to a Dedukti output *)
 type var = string
 
-type dkterm =
+type dkterm = private
   | Dktypetype                                  (* type type *)
   | Dktypeprop                                  (* type prop *)
   | Dktypeiota                                  (* type iota *)
   | Dktriangle    of dkterm                     (* domain of triangle *)
+  | Dktriangle_n  of dkterm                     (* same as Dktriangle but without the leading double negation *)
+  | Dkantineg     of dkterm                     (* Inverse of negation *)
   | Dkseq                                       (* type seq *)
   | Dkproof       of dkterm                     (* type proof of prop *)
 (*  | Dkterm        of dkterm *)                     (* type term of app *)

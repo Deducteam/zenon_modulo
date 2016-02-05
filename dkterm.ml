@@ -8,6 +8,8 @@ type dkterm =
   | Dktypeprop                                  (* type prop *)
   | Dktypeiota                                  (* type iota *)
   | Dktriangle    of dkterm                     (* domain of triangle *)
+  | Dktriangle_n  of dkterm                     (* same as Dktriangle but without the leading double negation *)
+  | Dkantineg     of dkterm                     (* Inverse of negation *)
   | Dkseq                                       (* type seq *)
   | Dkproof       of dkterm                     (* type proof of prop *)
 (*  | Dkterm        of dkterm                *)     (* type term of app *)
@@ -148,11 +150,13 @@ let mk_DkRnotalltype   (p, pr1, pr2)             = DkRnotalltype (p, pr1, pr2)
 let mk_DkRsubst        (a, p, t1, t2, pr1, pr2, pr3)  = DkRsubst (a, p, t1, t2, pr1, pr2, pr3)
 let mk_DkRconglr       (a, p, t1, t2, pr1, pr2, pr3)  = DkRconglr (a, p, t1, t2, pr1, pr2, pr3)
 let mk_DkRcongrl       (a, p, t1, t2, pr1, pr2, pr3)  = DkRcongrl (a, p, t1, t2, pr1, pr2, pr3)
+let mk_antineg         (t)                       = Dkantineg (t)
 
 let mk_decl       (v, t)       = Dkdecl (v, t)
 let mk_rwrt       (l, t1, t2)  =
   match (t1, t2) with
-  | (Dktriangle t1, Dktriangle t2)
+  (* For rules on atoms, simplify by double negation to avoid a critical pair. *)
+  | (Dktriangle t1, t2) -> Dkrwrt (l, Dktriangle_n t1, mk_antineg(mk_antineg t2))
   | (t1, t2) -> Dkrwrt (l, t1, t2)
 
 let rec print_dk_type o t =
@@ -207,6 +211,8 @@ and print_dk_term o t =
              print_dk_term t1 print_dk_term (Dkarrow (l, t2))
   | Dkseq -> fprintf o "zen.seq"
   | Dktriangle (t) -> fprintf o "zen.triangle_c (%a)" print_dk_term t
+  | Dktriangle_n (t) -> fprintf o "zen.triangle (%a)" print_dk_term t
+  | Dkantineg (t) -> fprintf o "zen.antineg (%a)" print_dk_term t
   | Dknot (t) ->
      fprintf o "zen.not_c\n (%a)" print_dk_term t
   | Dkand (t1, t2) ->
@@ -390,214 +396,7 @@ and print_dk_term o t =
 	     print_dk_term pr2
 	     print_dk_term pr3
   | _ -> assert false
-		
-and print_dk_term_left_rwrt o t =
-  match t with
-  | Dkvar (v, _) as var ->
-     fprintf o "%s" (get_var_newname var)
-  | Dklam (Dkvar (v, t1) as var, t2) ->
-     fprintf o "%s : (%a)\n => %a"
-	     (get_var_newname var)
-	     print_dk_type t1 print_dk_term t2
-  | Dklam (Dkapp (v, t1, []), t2) ->
-     fprintf o "%s : (%a)\n => %a"
-	     v print_dk_type t1 print_dk_term t2
-  | Dklam _ -> assert false
-  | Dkapp (v, _, l) ->
-     begin
-       print_dk_cst o v;
-       List.iter (fun x -> fprintf o " (%a)" print_dk_term x) l;
-(*       fprintf o "\n ";*)
-     end
-  | Dkarrow ([], t) -> print_dk_term o t
-  | Dkarrow ((t1 :: l), t2) ->
-     fprintf o "zen.arrow (%a) (%a)"
-             print_dk_term t1 print_dk_term (Dkarrow (l, t2))
-  | Dkseq -> fprintf o "zen.seq"
-  | Dktriangle (t) -> fprintf o "zen.triangle (%a)" print_dk_term t
-  | Dknot (t) ->
-     fprintf o "zen.not_c\n (%a)" print_dk_term t
-  | Dkand (t1, t2) ->
-     fprintf o "zen.and_c\n (%a) (%a)" print_dk_term t1 print_dk_term t2
-  | Dkor (t1, t2) ->
-     fprintf o "zen.or_c\n (%a) (%a)" print_dk_term t1 print_dk_term t2
-  | Dkimply (t1, t2) ->
-     fprintf o "zen.imp_c\n (%a) (%a)" print_dk_term t1 print_dk_term t2
-  | Dkequiv (t1, t2) ->
-     fprintf o "zen.eqv_c\n (%a) (%a)" print_dk_term t1 print_dk_term t2
-  | Dkforall (t1, t2) ->
-     fprintf o "zen.forall_c (%a)\n (%a)" print_dk_zentype t1 print_dk_term t2
-  | Dkexists (t1, t2) ->
-     fprintf o "zen.exists_c (%a)\n (%a)" print_dk_zentype t1 print_dk_term t2
-  | Dkforalltype (t) ->
-     fprintf o "zen.foralltype_c\n (%a)" print_dk_term t
-  | Dkexiststype (t) ->
-     fprintf o "zen.existstype_c\n (%a)" print_dk_term t
-  | Dktrue -> fprintf o "zen.True_c"
-  | Dkfalse -> fprintf o "zen.False_c"
-  | Dkequal (t1, t2, t3) ->
-     fprintf o "zen.equal (%a)\n (%a)\n (%a)"
-	     print_dk_zentype t1
-	     print_dk_term t2
-	     print_dk_term t3
-  | DkRfalse (pr) -> fprintf o "zen.Rfalse\n (%a)" print_dk_term pr
-  | DkRnottrue (pr) -> fprintf o "zen.Rnottrue\n (%a)" print_dk_term pr
-  | DkRaxiom (p, pr1, pr2) ->
-     fprintf o "zen.Raxiom\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRnoteq (a, t, pr) ->
-     fprintf o "zen.Rnoteq\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_zentype a
-	     print_dk_term t
-	     print_dk_term pr
-  | DkReqsym (a, t, u, pr1, pr2) ->
-     fprintf o "zen.Reqsym\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_zentype a
-	     print_dk_term t
-	     print_dk_term u
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRcut (p, pr1, pr2) ->
-     fprintf o "zen.Rcut\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRnotnot (p, pr1, pr2) ->
-     fprintf o "zen.Rnotnot\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRand (p, q, pr1, pr2) ->
-     fprintf o "zen.Rand\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term q
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRor (p, q, pr1, pr2, pr3) ->
-     fprintf o "zen.Ror\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term q
-	     print_dk_term pr1
-	     print_dk_term pr2
-	     print_dk_term pr3
-  | DkRimply (p, q, pr1, pr2, pr3) ->
-     fprintf o "zen.Rimply\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term q
-	     print_dk_term pr1
-	     print_dk_term pr2
-	     print_dk_term pr3
-  | DkRequiv (p, q, pr1, pr2, pr3) ->
-     fprintf o "zen.Requiv\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term q
-	     print_dk_term pr1
-	     print_dk_term pr2
-	     print_dk_term pr3
-  | DkRnotand (p, q, pr1, pr2, pr3) ->
-     fprintf o "zen.Rnotand\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term q
-	     print_dk_term pr1
-	     print_dk_term pr2
-	     print_dk_term pr3
-  | DkRnotor (p, q, pr1, pr2) ->
-     fprintf o "zen.Rnotor\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term q
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRnotimply (p, q, pr1, pr2) ->
-     fprintf o "zen.Rnotimply\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term q
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRnotequiv (p, q, pr1, pr2, pr3) ->
-     fprintf o "zen.Rnotequiv\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term q
-	     print_dk_term pr1
-	     print_dk_term pr2
-	     print_dk_term pr3
-  | DkRex (a, p, pr1, pr2) ->
-     fprintf o "zen.Rex\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_zentype a
-	     print_dk_term p
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRall (a, p, t, pr1, pr2) ->
-     fprintf o "zen.Rall\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_zentype a
-	     print_dk_term p
-	     print_dk_term t
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRnotex (a, p, t, pr1, pr2) ->
-     fprintf o "zen.Rnotex\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_zentype a
-	     print_dk_term p
-	     print_dk_term t
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRnotall (a, p, pr1, pr2) ->
-     fprintf o "zen.Rnotall\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_zentype a
-	     print_dk_term p
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRextype (p, pr1, pr2) ->
-     fprintf o "zen.Rextype\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRalltype (p, a, pr1, pr2) ->
-     fprintf o "zen.Ralltype\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_zentype a
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRnotextype (p, a, pr1, pr2) ->
-     fprintf o "zen.Rnotextype\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_zentype a
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRnotalltype (p, pr1, pr2) ->
-     fprintf o "zen.Rnotalltype\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_term p
-	     print_dk_term pr1
-	     print_dk_term pr2
-  | DkRsubst  (a, p, t1, t2, pr1, pr2, pr3) ->
-     fprintf o "zen.Rsubst\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_zentype a
-	     print_dk_term p
-	     print_dk_term t1
-	     print_dk_term t2
-	     print_dk_term pr1
-	     print_dk_term pr2
-	     print_dk_term pr3
-  | DkRconglr (a, p, t1, t2, pr1, pr2, pr3) ->
-     fprintf o "zen.Rconglr\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_zentype a
-	     print_dk_term p
-	     print_dk_term t1
-	     print_dk_term t2
-	     print_dk_term pr1
-	     print_dk_term pr2
-	     print_dk_term pr3
-  | DkRcongrl (a, p, t1, t2, pr1, pr2, pr3) ->
-     fprintf o "zen.Rcongrl\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n (%a)\n"
-	     print_dk_zentype a
-	     print_dk_term p
-	     print_dk_term t1
-	     print_dk_term t2
-	     print_dk_term pr1
-	     print_dk_term pr2
-	     print_dk_term pr3
-  | _ -> assert false
+
 ;;
 
   
@@ -848,13 +647,8 @@ let print_line o line =
   | Dkrwrt (l, t1, t2) ->
      fprintf o "[%a]\n %a \n --> %a.\n\n"
 	     pr_list_var l
-	     print_dk_term_left_rwrt t1
-	     print_dk_term
-	     (mk_app ("zen.antineg",
-		      mk_typeprop,
-		      [mk_app ("zen.antineg",
-			       mk_typeprop,
-			       [t2])]))
+	     print_dk_term t1
+	     print_dk_term t2
 ;;
 
 let print_goal_def o goal =
