@@ -112,7 +112,7 @@ install:
 	  do [ ! -f $$i ] || cp $$i "$(DESTDIR)$(INSTALL_LIB_DIR)/"; \
 	done
 	cp $(DKSRC) "$(DESTDIR)$(INSTALL_LIB_DIR)/"
-	for i in $(DKOBJ); \
+	for i in $(wildcard *.dko); \
 	  do [ ! -f $$i ] || cp $$i "$(DESTDIR)$(INSTALL_LIB_DIR)/"; \
 	done
 
