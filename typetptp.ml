@@ -105,7 +105,53 @@ let tff_app f args env =
   with Not_found ->
     raise (Type_error (Printf.sprintf "Unknown variable : %s" f))
 
-let default_env = empty_env
+let default_env =
+  let unary t t' = earrow [t] t' in
+  let binary t t' t'' = earrow [t; t'] t'' in
+  let pred t = unary t type_prop in
+  let pred2 t = binary t t type_prop in
+
+  let int_id = unary Arith.type_int Arith.type_int in
+  let rat_id = unary Arith.type_rat Arith.type_rat in
+  let real_id = unary Arith.type_real Arith.type_real in
+  let int_id_2 = binary Arith.type_int Arith.type_int Arith.type_int in
+  let rat_id_2 = binary Arith.type_rat Arith.type_rat Arith.type_rat in
+  let real_id_2 = binary Arith.type_real Arith.type_real Arith.type_real in
+  let int_pred = pred Arith.type_int in
+  let rat_pred = pred Arith.type_rat in
+  let real_pred = pred Arith.type_real in
+  let int_pred_2 = pred2 Arith.type_int in
+  let rat_pred_2 = pred2 Arith.type_rat in
+  let real_pred_2 = pred2 Arith.type_real in
+
+  let tff_builtin = [
+    "$less",        [int_pred_2; rat_pred_2; real_pred_2];
+    "$lesseq",      [int_pred_2; rat_pred_2; real_pred_2];
+    "$greater",     [int_pred_2; rat_pred_2; real_pred_2];
+    "$greatereq",   [int_pred_2; rat_pred_2; real_pred_2];
+    "$uminus",      [int_id; rat_id; real_id];
+    "$sum",         [int_id_2; rat_id_2; real_id_2];
+    "$difference",  [int_id_2; rat_id_2; real_id_2];
+    "$product",     [int_id_2; rat_id_2; real_id_2];
+    "$quotient",     [rat_id_2; real_id_2];
+    "$quotient_e",   [int_id_2; rat_id_2; real_id_2];
+    "$quotient_t",   [int_id_2; rat_id_2; real_id_2];
+    "$quotient_f",   [int_id_2; rat_id_2; real_id_2];
+    "$remainder_e",  [int_id_2; rat_id_2; real_id_2];
+    "$remainder_t",  [int_id_2; rat_id_2; real_id_2];
+    "$remainder_f",  [int_id_2; rat_id_2; real_id_2];
+    "$floor",       [int_id; rat_id; real_id];
+    "$ceiling",     [int_id; rat_id; real_id];
+    "$truncate",    [int_id; rat_id; real_id];
+    "$round",       [int_id; rat_id; real_id];
+    "$is_int",      [int_pred; rat_pred; real_pred];
+    "$is_rat",      [int_pred; rat_pred; real_pred];
+    "$to_int",      [unary Arith.type_int Arith.type_int; unary Arith.type_rat Arith.type_int; unary Arith.type_real Arith.type_int];
+    "$to_rat",      [unary Arith.type_int Arith.type_rat; unary Arith.type_rat Arith.type_rat; unary Arith.type_real Arith.type_rat];
+    "$to_real",     [unary Arith.type_int Arith.type_real; unary Arith.type_rat Arith.type_real; unary Arith.type_real Arith.type_real];
+  ] in
+  let tff_base = List.fold_left (fun acc (s, t) -> M.add s t acc) M.empty tff_builtin in
+  { empty_env with tff = tff_base }
 
 let var_name s =
   if !Globals.namespace_flag then
@@ -136,6 +182,9 @@ let rec type_tff_app env expected e =
   match e with
   (* Type typechecking *)
   | _ when e == type_type || e == type_prop || e == type_tff_i -> e, env
+  | Eapp(Evar("$int", _), [], _) -> Arith.type_int, env
+  | Eapp(Evar("$rat", _), [], _) -> Arith.type_rat, env
+  | Eapp(Evar("$real", _), [], _) -> Arith.type_real, env
   (* Application typechecking *)
   | Eapp(Evar("=", _), [a; b], _) ->
     let a', env' = type_tff_term env a in

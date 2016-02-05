@@ -31,7 +31,7 @@ SOURCES = log.ml version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
 	  watch.ml eqrel.ml \
 	  rewrite.ml typer.ml \
 	  step.ml node.ml extension.ml mltoll.ml \
-	  CCVector.ml printBox.ml \
+	  CCVector.ml printBox.ml simplex.ml arith.ml \
           parsezen.mly lexzen.mll \
 	  parsetptp.mly lextptp.mll typetptp.ml \
 	  parsecoq.mly lexcoq.mll parsedk.mly lexdk.mll tptp.ml \
@@ -39,10 +39,10 @@ SOURCES = log.ml version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
 	  dkterm.ml lltodk.ml \
           enum.ml isar_case.ml lltoisar.ml \
           ext_focal.ml ext_tla.ml ext_recfun.ml \
-          ext_equiv.ml ext_induct.ml \
+          ext_equiv.ml ext_induct.ml ext_arith.ml \
           prove.ml checksum.dummy versionnum.ml main.ml zenon.ml
 
-COQSRC = zenon.v zenon_coqbool.v zenon_equiv.v zenon_induct.v zenon_focal.v
+COQSRC = zenon.v zenon_coqbool.v zenon_equiv.v zenon_induct.v zenon_focal.v zenon_arith.v zenon_arith_reals.v
 
 DKSRC = cc.dk dk_bool.dk dk_logic.dk dk_tuple.dk basics_minimal.dk modulogic.dk zenon_focal.dk
 
@@ -89,10 +89,10 @@ byt: zenon_modulo.byt
 bin: zenon_modulo.bin
 
 zenon_modulo.bin: $(BINOBJS)
-	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa $(BYTES_CMXA) $(BINOBJS)
+	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa zarith.cmxa $(BYTES_CMXA) $(BINOBJS)
 
 zenon_modulo.byt: $(BYTOBJS)
-	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_modulo.byt unix.cma $(BYTES_CMA) $(BYTOBJS)
+	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_modulo.byt unix.cma zarith.cma $(BYTES_CMA) $(BYTOBJS)
 
 zenon_modulo: zenon_modulo.byt
 	if test -x zenon_modulo.bin; then \
@@ -199,7 +199,7 @@ dist: $(ALLSRC)
 	rm -rf dist/zenon_modulo
 	mkdir -p dist/zenon_modulo
 	cp -r $(ALLSRC) dist/zenon_modulo
-	cd dist && tar cf - zenon_modulo | gzip >../zenon_modulo_focalide_$(VERSION).tar.gz
+	cd dist && tar cf - zenon_modulo | gzip >../zenon_modulo_$(VERSION).tar.gz
 
 .PHONY: doc odoc docdir
 doc docdir:

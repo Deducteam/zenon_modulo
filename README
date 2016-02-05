@@ -8,6 +8,7 @@ For license information, see LICENSE
 ----------------------------------------
 
 Contact: Pierre Halmagrand <pierre.halmagrand@inria.fr>
+	 Guillaume Bury <guillaume.bury@inria.fr>
          Raphael Cauderlier <raphael.cauderlier@inria.fr>
 
 ----------------------------------------
@@ -16,6 +17,9 @@ Prerequisites:
   - OCaml 4.02.1 (with ocamlopt)
   - Coq 8.0.x
   - Dedukti 2.3
+  - zarith 1.3
+  - ImageMagick (optional)
+  - Ghostscript (optional)
 
 ----------------------------------------
 
@@ -59,7 +63,8 @@ Remarks:
   (with B set theory express in B_modulo.why):
   >> activate the '-b-rwrt' flag to build the rewrite system
   >> activate the '-rwrt' flag to transform more axioms into rewrite rules
-  >> activate the '-odk' flag to generate a proof certificate for Dedukti
+  >> activate the '-x arith' flag to use the arithmetic extension
+  >> activate the '-odk' flag to generate a proof certificate for dedukti
   >> activate the '-om' flag to print a proof
 
 - To use Zenon Modulo with Dedukti files for FoCaLiZe project
@@ -77,8 +82,9 @@ $ dkcheck -e cc.dk dk_bool.dk dk_logic.dk dk_tuple.dk basics_minimal.dk modulogi
 
 1/ BWare with TFF1 files
 
-Some TFF1 input files are given as examples into ./examples repository.
-They are set properties coming from the B-Book.
+Some TFF1 input files are given as examples into ./examples repository
+Four of them are set properties coming from the B-Book, and the last one
+is a Proof Obligation coming from the BWare benchmark.
 
 To run and test Zenon Modulo:
 
