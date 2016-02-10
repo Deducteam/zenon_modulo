@@ -305,13 +305,13 @@ and ctrexpr_neg e =
   | Eand (e1, e2, _) ->
      eand (ctrexpr_neg e1, ctrexpr_neg e2)
   | Eor (e1, e2, _) ->
-     enot (enot (eor (ctrexpr_neg e1, ctrexpr_neg e2)))
+     eor (ctrexpr_neg e1, ctrexpr_neg e2)
   | Eimply (e1, e2, _) ->
      eimply (ctrexpr_pos e1, ctrexpr_neg e2)
   | Eall (e1, s, e2, _) ->
      eall (e1, s, ctrexpr_neg e2)
   | Eex (e1, s, e2, _) ->
-     enot (enot (eex (e1, s, ctrexpr_neg e2)))
+     eex (e1, s, ctrexpr_neg e2)
   | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
 
 						   
@@ -455,9 +455,7 @@ let xlltolkrule distincts rule hyps gamma =
      scland (cp, cq, proof)
   | Rconnect (Or, p, q), [proof1; proof2] ->
      let cp, cq = ctrexpr_neg p, ctrexpr_neg q in
-     sclnot (enot (eor (cp, cq)),
-	     scrnot (eor (cp, cq),
-		     sclor (cp, cq, proof1, proof2)))
+     sclor (cp, cq, proof1, proof2)
   | Rconnect (Imply, p, q), [proof1; proof2] ->
      let cp, cq = ctrexpr_pos p, ctrexpr_neg q in
      sclimply (cp, cq,
@@ -497,9 +495,7 @@ let xlltolkrule distincts rule hyps gamma =
      assert false
   | Rex (Eex(x, ty, p, _) as ep, v), [proof] ->
      let cp = ctrexpr_neg p in
-     sclnot (enot (eex (x, ty, cp)),
-	     scrnot (eex (x, ty, cp),
-		     sclex (eex (x, ty, cp), v, proof)))
+     sclex (eex (x, ty, cp), v, proof)
   | Rall (Eall(x, _, p, _) as ap, t), [proof] ->
      let cap = ctrexpr_neg ap in
      let cpt = substitute [(x, t)] (ctrexpr_neg p) in
@@ -570,15 +566,14 @@ let xlltolkrule distincts rule hyps gamma =
      let z = new_var () in
      let cp = ctrexpr_pos p in
      let cpz = substitute [(x, z)] cp in
-     sccut (enot (enot (eex (x, t, enot cp))),
-	    scrnot (enot (eex (x, t, enot cp)),
-		    sclnot (eall (x, t, cp),
-			    scrall (eall (x, t, cp), z,
-				    rmnegation cpz
-					       (sclnot (eex (x, t, enot cp),
-							screx (eex (x, t, enot cp), z,
-							       scaxiom (enot cpz, gamma))))))),
-	    sclweak (enot (eall (x, t, cp)), proof))
+     sclnot (eall (x, t, cp),
+	     sccut (enot (eex (x, t, enot cp)),
+		    scrnot (eex (x, t, enot cp), proof),
+		    scrall (eall (x, t, cp), z,
+			    rmnegation cpz
+				       (sclnot (eex (x, t, enot cp),
+						screx (eex (x, t, enot cp), z,
+						       scaxiom (enot cpz, gamma)))))))
   | Rextension ("", "zenon_stringequal", [s1; s2], [c], []), [] ->
      let v1 = eapp ("$string", [s1]) in
      let v2 = eapp ("$string", [s2]) in
