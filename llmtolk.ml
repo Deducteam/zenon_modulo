@@ -190,115 +190,6 @@ let rec clean f prf =
     rm f g, c, rule
   | _ -> applytohyps (clean f) prf
 
-(* and useful e proof = *)
-(*   let g, c, rule = proof in *)
-(*   match rule with *)
-(*   | SCeqsym (a, b) -> *)
-(*     equal e (eapp ("=", [a; b])) && not (List.mem e (rm e g)) *)
-(*   | SCeqref (a) -> false *)
-(*   | SCtrue -> false *)
-(*   | SCaxiom (a) -> equal e a && not (List.mem e (rm e g)) *)
-(*   | SCfalse -> equal e efalse && not (List.mem e (rm e g)) *)
-(*   | SCeqprop (Eapp (p, ts, _) as f1, Eapp (_, us, _)) -> *)
-(*     let x = equal e f1 in *)
-(*     List.fold_left2 *)
-(*       (fun x t u -> (x || equal e (eapp ("=", [t; u])))) *)
-(*       x ts us *)
-(*   | SCeqprop _ -> assert false *)
-(*   | SCeqfunc (Eapp (p, ts, _), Eapp (_, us, _)) -> *)
-(*     List.fold_left2 *)
-(*       (fun x t u -> (x || equal e (eapp ("=", [t; u])))) *)
-(*       false ts us *)
-(*   | SCeqfunc _ -> assert false *)
-(*   | SClcontr (f, _) *)
-(*       when (equal e f && not (List.mem e (rm e g))) -> true *)
-(*   | SClor (a, b, _, _) *)
-(*       when (equal e (eor (a, b)) *)
-(* 	    && not (List.mem e (rm e g))) -> true *)
-(*   | SCland (a, b, _) *)
-(*       when (equal e (eand (a, b)) *)
-(* 	    && not (List.mem e (rm e g))) -> true *)
-(*   | SClex (f, _, _) *)
-(*       when (equal e f && not (List.mem e (rm e g))) -> true *)
-(*   | SClall (f, _, _) *)
-(*       when (equal e f && not (List.mem e (rm e g))) -> true *)
-(*   | SClnot (f, _) *)
-(*       when (equal e (enot f) && not (List.mem e (rm e g))) -> true *)
-(*   | SClimply (a, b, _, _) *)
-(*       when (equal e (eimply (a, b)) *)
-(* 	    && not (List.mem e (rm e g))) -> true *)
-(*   | SClcontr _ | SClor _ | SCland _ | SClex _ *)
-(*   | SClall _ | SClnot _ | SClimply _ | SCcut _ *)
-(*   | SCrimply _ | SCrnot _ | SCrex _ | SCrall _ *)
-(*   | SCrand _ | SCrorr _ | SCrorl _ | SCrweak _ | SCcnot _ *)
-(*     -> List.exists (useful e) (hypsofrule rule) *)
-(*   | SCext _ -> true (\* à corriger ? *\) *)
-
-(* let rec lefttoright e proof = *)
-(*   let g, c, rule = proof in *)
-(*   let ne = enot e in *)
-(*   assert (List.mem ne g); *)
-(*   if not (useful ne proof) *)
-(*   then scrweak (e, clean ne proof) *)
-(*   else *)
-(*     match e with *)
-(*     | Enot (f, _) -> *)
-(*        optimize (scrnot (f, rmdblnot f proof)) *)
-(*     | _ -> *)
-(*        assert (equal c efalse); *)
-(*        assert (ingamma ne proof); *)
-(*        match rule with *)
-(*        | SClnot (f, prf) *)
-(* 	    when (equal f e) -> prf *)
-(*        | SClcontr (f, _) *)
-(* 	    when (equal ne f) -> sccnot (e, proof) *)
-(*        | SClimply (a, b, prf1, prf2) *)
-(* 	    when (not (useful ne prf1)) -> *)
-(* 	  sclimply (a, b, clean ne prf1, lefttoright e prf2) *)
-(*        | SCcut (a, prf1, prf2) *)
-(* 	    when (not (useful ne prf1)) -> *)
-(* 	  sccut (a, clean ne prf1, lefttoright e prf2) *)
-(*        | SClnot _ | SCcut _ | SClimply _ *)
-(*        | SCext _ -> *)
-(* 	  sccnot (e, proof) *)
-(*        | SCaxiom _ | SCfalse -> *)
-(* 		      scfalse (rm efalse (rm ne g), e) *)
-(*        | SClcontr _ | SClor _ | SCland _ | SClex _ | SClall _ *)
-(* 						     -> applytohyps (lefttoright e) proof *)
-(*        | SCrex _ | SCrall _ | SCrand _ | SCrorr _ | SCrorl _ *)
-(*        | SCrimply _ | SCrnot _ | SCeqfunc _ | SCeqprop _ *)
-(*        | SCeqsym _ | SCeqref _ | SCtrue | SCcnot _ | SCrweak _ *)
-(* 						     -> assert false *)
-
-(* and righttoleft e proof = *)
-(*   let g, c, rule = proof in *)
-(*   let ne = enot e in *)
-(*   match rule with *)
-(*   | SCcnot (f, prf) -> prf *)
-(*   | SClnot _ -> assert false *)
-(*   | SClimply (f1, f2, prf1, prf2) -> *)
-(*     sclimply (f1, f2, xaddhyp ne prf1, righttoleft e prf2) *)
-(*   | SCcut (f, prf1, prf2) -> *)
-(*     sccut (f, xaddhyp ne prf1, righttoleft e prf2) *)
-(*   | SCland _ | SClor _ | SClall _ | SClex _ *)
-(*     -> applytohyps (righttoleft e) proof *)
-(*   | SCaxiom _ | SCfalse | SCtrue | SCeqref _ | SCeqsym _ *)
-(*   | SCeqprop _ | SCeqfunc _ | SCrweak _ *)
-(*     -> sclnot (e, proof) *)
-(*   | SCrand _ | SCrorl _ | SCrorr _ *)
-(*   | SCrimply _ | SCrnot _ | SCrall _ | SCrex _ | SClcontr _ *)
-(*   | SCext _ *)
-(*     -> sclnot (e, proof) *)
-
-(* and optimize proof = *)
-(*   let g, c, rule = proof in *)
-(*   match rule with *)
-(*   | SCcnot (e, prf) -> *)
-(*     lefttoright e prf *)
-(*   | SClnot (e, prf) -> *)
-(*     righttoleft e prf *)
-(*   | _ -> applytohyps optimize proof *)
-
 let rec xrmcongruence s x t a b =
   let eq =
     if s
@@ -525,8 +416,7 @@ let xlltolkrule distincts rule hyps gamma =
      let cp = ctrexpr p in
      sclnot (cp, scaxiom (cp, gamma))
   | Rcut (p), [proof1; proof2] ->
-     let cp = ctrexpr p in
-     sccut (enot cp, scrnot (cp, proof1), proof2)	   
+     assert false
   | Rnoteq (a), [] ->
      sclnot (enot (enot (eapp ("=", [a; a]))),
 	     scrnot (enot (eapp ("=", [a; a])),
@@ -801,9 +691,7 @@ let rec lltolkrule distincts proof gamma =
       "\n\nlltolkrule: LLproof: (%a),\n"
       (fun oc -> Print.llproof (Print.Chan oc))
       [{name="mytho"; params = []; proof = proof}];
-
     Lkproof.p_debug "Gamma = " gamma;
-
     if newlist = [] then
       Printf.eprintf "No remaining formula to prove."
     else

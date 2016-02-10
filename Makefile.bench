@@ -1,9 +1,9 @@
-ZENON_TIMEOUT = 20
+ZENON_TIMEOUT = 1
 DK_TIMEOUT = 5000
 STAT_FILE = statistics_$(ZENON_TIMEOUT)
 
 TPTP = ./tptp
-FOFDIR = $(TPTP)/FOFSELECTION_5
+FOFDIR = $(TPTP)/REMAINING
 ALLDKPROPS = $(wildcard $(FOFDIR)/*.p)
 ALLDKCS = $(subst $(FOFDIR),dkresults,$(ALLDKPROPS:.p=.dkc))
 ALLDKS = $(subst $(FOFDIR),dkresults,$(ALLDKPROPS:.p=.dk))
