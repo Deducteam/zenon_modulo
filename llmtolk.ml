@@ -273,33 +273,48 @@ let rec rmcongruence s x e a b =
 	  (substitute [(y, z)] e0) a b))
     | Etau _ | Elam _ | Emeta _ | Eequiv _ ->
     assert false
-
-let rec ctrexpr e =
+		      
+let rec ctrexpr_pos e =
   match e with
   | Evar _
   | Eapp _ -> enot (enot e) (* e MUST BE ALWAYS A PROPOSITION *)
   | Etrue
   | Efalse -> e
   | Enot (e, _) ->
-     enot (ctrexpr e)
+     enot (ctrexpr_neg e)
   | Eand (e1, e2, _) ->
-     eand (ctrexpr e1, ctrexpr e2)
+     eand (ctrexpr_pos e1, ctrexpr_pos e2)
   | Eor (e1, e2, _) ->
-     enot (enot (eor (ctrexpr e1, ctrexpr e2)))
+     enot (enot (eor (ctrexpr_pos e1, ctrexpr_pos e2)))
   | Eimply (e1, e2, _) ->
-     eimply (ctrexpr e1, ctrexpr e2)
+     eimply (ctrexpr_neg e1, ctrexpr_pos e2)
   | Eall (e1, s, e2, _) ->
-     eall (e1, s, ctrexpr e2)
+     eall (e1, s, ctrexpr_pos e2)
   | Eex (e1, s, e2, _) ->
-     enot (enot (eex (e1, s, ctrexpr e2)))
-  | Eequiv (e1, e2, _) ->
-     ctrexpr (eand (eimply (e1, e2), eimply (e2, e1)))
-  | Etau _ -> assert false                    (* Should have been unfolded *)
-  | Elam (e1, s, e2, _) ->
-     assert false
-  (* Dk.mk_lam (trexpr e1) (Dk.mk_var s) (trexpr e2) *)
-  | Emeta _ -> assert false                   (* Meta are forbidden earlier *)
-		      
+     enot (enot (eex (e1, s, ctrexpr_pos e2)))
+  | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
+
+and ctrexpr_neg e =
+  match e with
+  | Evar _
+  | Eapp _ -> e (* e MUST BE ALWAYS A PROPOSITION *)
+  | Etrue
+  | Efalse -> e
+  | Enot (e, _) ->
+     enot (ctrexpr_pos e)
+  | Eand (e1, e2, _) ->
+     eand (ctrexpr_neg e1, ctrexpr_neg e2)
+  | Eor (e1, e2, _) ->
+     enot (enot (eor (ctrexpr_neg e1, ctrexpr_neg e2)))
+  | Eimply (e1, e2, _) ->
+     eimply (ctrexpr_pos e1, ctrexpr_neg e2)
+  | Eall (e1, s, e2, _) ->
+     eall (e1, s, ctrexpr_neg e2)
+  | Eex (e1, s, e2, _) ->
+     enot (enot (eex (e1, s, ctrexpr_neg e2)))
+  | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
+
+						   
 (* e MUST BE A TRANSLATION OF A PROPOSITION *)
 let rec rmdblnegation e =
   match e with
@@ -413,8 +428,15 @@ let xlltolkrule distincts rule hyps gamma =
   | Rnottrue, [] ->
      sclnot (etrue, sctrue (gamma))
   | Raxiom (p), [] ->
-     let cp = ctrexpr p in
-     sclnot (cp, scaxiom (cp, gamma))
+     begin
+       match p with
+       | Evar _
+       | Eapp _ ->
+	  sclnot (enot (enot p),
+		  scrnot (enot p,
+			  sclnot (p, scaxiom (p, gamma))))
+       | _ -> assert false
+     end
   | Rcut (p), [proof1; proof2] ->
      assert false
   | Rnoteq (a), [] ->
@@ -422,44 +444,29 @@ let xlltolkrule distincts rule hyps gamma =
 	     scrnot (enot (eapp ("=", [a; a])),
 		     sclnot (eapp ("=", [a; a]), sceqref (a, gamma))));
   | Reqsym (a, b), [] ->
-     sclnot (enot (eapp ("=", [a; b])),
-	     scrnot (eapp ("=", [a; b]),
-		     sclnot (enot (enot (eapp ("=", [b; a]))),
-			     scrnot (enot (eapp ("=", [b; a])),
-				     sclnot (eapp ("=", [b; a]), sceqsym (a, b, gamma))))))
+     sclnot (enot (enot (eapp ("=", [b; a]))),
+	     scrnot (enot (eapp ("=", [b; a])),
+		     sclnot (eapp ("=", [b; a]), sceqsym (a, b, gamma))))
   | Rnotnot (p), [proof] ->
-     let cp = ctrexpr p in
+     let cp = ctrexpr_neg p in
      sclnot (enot (cp), scrnot (cp, proof))
   | Rconnect (And, p, q), [proof] ->
-     let cp, cq = ctrexpr p, ctrexpr q in
+     let cp, cq = ctrexpr_neg p, ctrexpr_neg q in
      scland (cp, cq, proof)
   | Rconnect (Or, p, q), [proof1; proof2] ->
-     let cp, cq = ctrexpr p, ctrexpr q in
+     let cp, cq = ctrexpr_neg p, ctrexpr_neg q in
      sclnot (enot (eor (cp, cq)),
 	     scrnot (eor (cp, cq),
 		     sclor (cp, cq, proof1, proof2)))
   | Rconnect (Imply, p, q), [proof1; proof2] ->
-     let cp, cq = ctrexpr p, ctrexpr q in
+     let cp, cq = ctrexpr_pos p, ctrexpr_neg q in
      sclimply (cp, cq,
 	       rmnegation cp proof1,
 	       proof2)
   | Rconnect (Equiv, p, q), [proof1; proof2] ->
-     let cp, cq = ctrexpr p, ctrexpr q in
-     (* assert (ingamma (enot q) proof1); *)
-     (* assert (ingamma (enot p) (sclimply ( *)
-     (* 				   q, p, *)
-     (* 				   lefttoright q proof1, *)
-     (* 				   righttoleft p (scaxiom (p, gamma))))); *)
-     scland (eimply (cp, cq), eimply (cq, cp),
-	     sclimply (cp, cq,
-		       rmnegation cp (sclimply (cq, cp,
-						rmnegation cq proof1,
-						sclnot (cp, scaxiom (cp, gamma)))),
-		       sclimply (cq, cp,
-				 scaxiom (cq, gamma),
-				 proof2)))
+     assert false
   | Rnotconnect (And, p, q), [proof1; proof2] ->
-     let cp, cq = ctrexpr p, ctrexpr q in
+     let cp, cq = ctrexpr_pos p, ctrexpr_pos q in
      (* assert (ingamma (enot p) proof1); *)
      (* assert (ingamma (enot q) proof2); *)
      sclnot (eand (cp, cq),
@@ -467,55 +474,47 @@ let xlltolkrule distincts rule hyps gamma =
 		     rmnegation cp proof1,
 		     rmnegation cq proof2))
   | Rnotconnect (Or, p, q), [proof] ->
-     let cp, cq = ctrexpr p, ctrexpr q in
+     let cp, cq = ctrexpr_pos p, ctrexpr_pos q in
      sclnot (enot (enot (eor (cp, cq))),
 	     scrnot (enot (eor (cp, cq)),
 		     sccut (enot cp,
 			    scrnot (cp,
 				    sclnot (eor (cp, cq),
 					    scrorl (cp, cq,
-						     scaxiom (cp, gamma)))),
+						    scaxiom (cp, gamma)))),
 			    sccut (enot cq,
 				   scrnot (cq,
-					  sclnot (eor (cp, cq),
-						  scrorr(cp, cq,
-							 scaxiom (cq, enot cp :: gamma)))),
+					   sclnot (eor (cp, cq),
+						   scrorr(cp, cq,
+							  scaxiom (cq, enot cp :: gamma)))),
 				   sclweak (enot (eor (cp, cq)), proof)))))	    
   | Rnotconnect (Imply, p, q), [proof] ->
-     let cp, cq = ctrexpr p, ctrexpr q in
+     let cp, cq = ctrexpr_neg p, ctrexpr_pos q in
      sclnot (eimply (cp, cq),
 	     scrimply (cp, cq,
 		       rmnegation cq proof))
   | Rnotconnect (Equiv, p, q), [proof1; proof2] ->
-     let cp, cq = ctrexpr p, ctrexpr q in
-     sclnot (eand (eimply (cp, cq),
-      		   eimply (cq, cp)),
-	     scrand (eimply (cp, cq),
-      		     eimply (cq, cp),
-		     scrimply (cp, cq,
-			       rmnegation cq proof2),
-		     scrimply (cq, cp,
-			       rmnegation cp proof1)))
+     assert false
   | Rex (Eex(x, ty, p, _) as ep, v), [proof] ->
-     let cp = ctrexpr p in
+     let cp = ctrexpr_neg p in
      sclnot (enot (eex (x, ty, cp)),
 	     scrnot (eex (x, ty, cp),
 		     sclex (eex (x, ty, cp), v, proof)))
   | Rall (Eall(x, _, p, _) as ap, t), [proof] ->
-     let cap = ctrexpr ap in
-     let cpt = substitute [(x, t)] (ctrexpr p) in
+     let cap = ctrexpr_neg ap in
+     let cpt = substitute [(x, t)] (ctrexpr_neg p) in
      sclall (cap, t, proof)	     
   | Rnotex (Eex(x, ty, p, _) as ep, t), [proof] ->
-     let cp = ctrexpr p in
-     let cpt = substitute [(x, t)] (ctrexpr p) in
+     let cp = ctrexpr_pos p in
+     let cpt = substitute [(x, t)] (ctrexpr_pos p) in
      sclnot (enot (enot (eex (x, ty, cp))),
 	     scrnot (enot (eex (x, ty, cp)),
 		     sclnot (eex (x, ty, cp),
 			     screx (eex (x, ty, cp), t,
 				    rmnegation cpt proof))))
   | Rnotall (Eall(x, _, p, _) as ap, v), [proof] ->
-     let cap = ctrexpr ap in
-     let cpv = substitute [(x, v)] (ctrexpr p) in
+     let cap = ctrexpr_pos ap in
+     let cpv = substitute [(x, v)] (ctrexpr_pos p) in
      sclnot (cap,
 	     scrall (cap, v,
 		     rmnegation cpv proof))
@@ -534,10 +533,8 @@ let xlltolkrule distincts rule hyps gamma =
 				       scrnot (eq, prf))),
 		       wprf))
   	 (e1 :: enot e2 :: eqs, prf) eqs proofs in
-     sclnot (enot e1,
-	     scrnot (e1,
-		     sclnot (enot (enot e2),
-			     scrnot (enot e2, proof))))
+     sclnot (enot (enot e2),
+	     scrnot (enot e2, proof))
   | Rnotequal (Eapp (_, ts, _) as e1,
   	       (Eapp (_, us, _) as e2)), proofs ->
      let feq = eapp ("=", [e1; e2]) in
@@ -550,32 +547,28 @@ let xlltolkrule distincts rule hyps gamma =
 	  let wprf = List.fold_left (fun prf e -> sclweak (e, prf)) prfneq hyps in
 	  hyps, sccut (enot (enot (enot eq)),
 		       scrnot (enot (enot eq),
-			      sclnot (enot eq,
-				      scrnot (eq, prf))),
+			       sclnot (enot eq,
+				       scrnot (eq, prf))),
 		       wprf))
   	 (enot feq :: eqs, prf) eqs proofs in
      sclnot (enot (enot feq),
 	     scrnot (enot feq, proof))
   | RcongruenceLR (Elam (x, _, e, _) as p, a, b), [proof] ->
-     let cpa, cpb, ce = ctrexpr (apply p a), ctrexpr (apply p b), ctrexpr e in
-     sclnot (enot (eapp ("=", [a; b])),
-	     scrnot (eapp ("=", [a; b]),
-		     sccut (cpb,
-  			    List.fold_left (fun prf e -> sclweak (e, prf))
-					   (rmcongruence true x ce a b) gamma,
-  			    sclweak (cpa, sclweak (eapp ("=", [a; b]), proof)))))
+     let cpa, cpb, ce = ctrexpr_neg (apply p a), ctrexpr_neg (apply p b), ctrexpr_neg e in
+     sccut (cpb,
+  	    List.fold_left (fun prf e -> sclweak (e, prf))
+			   (rmcongruence true x ce a b) gamma,
+  	    sclweak (cpa, sclweak (eapp ("=", [a; b]), proof)))
   | RcongruenceRL (Elam (x, _, e, _) as p, a, b), [proof] ->
-     let cpa, cpb, ce = ctrexpr (apply p a), ctrexpr (apply p b), ctrexpr e in     
-     sclnot (enot (eapp ("=", [b; a])),
-	     scrnot (eapp ("=", [b; a]),
-		     sccut (cpb,
-  			    List.fold_left (fun prf e -> sclweak (e, prf))
-					   (rmcongruence false x ce a b) gamma,
-  			    sclweak (cpa, sclweak (eapp ("=", [b; a]), proof)))))
+     let cpa, cpb, ce = ctrexpr_neg (apply p a), ctrexpr_neg (apply p b), ctrexpr_neg e in     
+     sccut (cpb,
+  	    List.fold_left (fun prf e -> sclweak (e, prf))
+			   (rmcongruence false x ce a b) gamma,
+  	    sclweak (cpa, sclweak (eapp ("=", [b; a]), proof)))
   | Rextension (
   	"", "zenon_notallex", [Elam (x, t, p, _)], [ap], [[ep]]), [proof] ->
      let z = new_var () in
-     let cp = ctrexpr p in
+     let cp = ctrexpr_pos p in
      let cpz = substitute [(x, z)] cp in
      sccut (enot (enot (eex (x, t, enot cp))),
 	    scrnot (enot (eex (x, t, enot cp)),
@@ -595,55 +588,31 @@ let xlltolkrule distincts rule hyps gamma =
      let c21 = eapp ("=", [v2; v1]) in
      if n1 < n2
      then
-       sclnot (enot c12,
-	       scrnot (c12,
-		       sclnot (enot (enot c12),
-			       scrnot (enot c12,
-				       sclnot (c12,
-					       scaxiom (c12, rm (enot(enot(enot c12))) gamma))))))
+       sclnot (enot (enot c12),
+	       scrnot (enot c12,
+		       sclnot (c12,
+			       scaxiom (c12, rm (enot(enot(enot c12))) gamma))))
      else
-       sclnot (enot c12,
-	       scrnot (c12,
-		       sclnot (enot (enot c21),
-			       scrnot (enot c21,
-				       sclnot (c21,
-					       sceqsym (v1, v2, rm (enot(enot(enot c21))) gamma))))))
+       sclnot (enot (enot c21),
+	       scrnot (enot c21,
+		       sclnot (c21,
+			       sceqsym (v1, v2, rm (enot(enot(enot c21))) gamma))))
   | Rextension (
   	"", "zenon_stringdiffll", [e1; v1; e2; v2],
   	[c1; c2], [[h]]), [proof] ->
-     sclnot (enot c1,
-	     scrnot (c1,
-		     sclnot (enot c2,
-			     scrnot (c2,
-				     deduce_inequality e1 e2 v1 v2 c1 c2 true true
-						       gamma proof distincts))))
+     deduce_inequality e1 e2 v1 v2 c1 c2 true true gamma proof distincts
   | Rextension (
   	"", "zenon_stringdifflr", [e1; v1; e2; v2],
   	[c1; c2], [[h]]), [proof] ->
-     sclnot (enot c1,
-	     scrnot (c1,
-		     sclnot (enot c2,
-			     scrnot (c2,
-				     deduce_inequality e1 e2 v1 v2 c1 c2 true false
-						       gamma proof distincts))))
+     deduce_inequality e1 e2 v1 v2 c1 c2 true false gamma proof distincts
   | Rextension (
   	"", "zenon_stringdiffrl", [e1; v1; e2; v2],
   	[c1; c2], [[h]]), [proof] ->
-     sclnot (enot c1,
-	     scrnot (c1,
-		     sclnot (enot c2,
-			     scrnot (c2,
-				     deduce_inequality e1 e2 v1 v2 c1 c2 false true
-						       gamma proof distincts))))
+     deduce_inequality e1 e2 v1 v2 c1 c2 false true gamma proof distincts
   | Rextension (
   	"", "zenon_stringdiffrr", [e1; v1; e2; v2],
   	[c1; c2], [[h]]), [proof] ->
-     sclnot (enot c1,
-	     scrnot (c1,
-		     sclnot (enot c2,
-			     scrnot (c2,
-				     deduce_inequality e1 e2 v1 v2 c1 c2 false false
-						       gamma proof distincts))))
+     deduce_inequality e1 e2 v1 v2 c1 c2 false false gamma proof distincts
   | Rextension (ext, name, args, cons, hyps), proofs ->
      assert false
   (* scext(ext, name, args, cons, hyps, proofs) *)
@@ -672,19 +641,19 @@ let rec lltolkrule distincts proof gamma =
   let hyps = List.map2 addhyp remainders prehyps in (* result with classical connectives *)
   let preproof =
     xlltolkrule distincts proof.rule hyps
-		(maincontr@(List.map ctrexpr list))
+		(maincontr@(List.map ctrexpr_neg list))
 		(* (maincontr@list) *)
   in
   (* Lkproof.p_debug_proof "coucou" preproof;   *)
   (* Now try to contract requested contrs *)
-  let cconclist = List.map ctrexpr conclist in
+  let cconclist = List.map ctrexpr_neg conclist in
   let (newlist, newproof) =
   List.fold_left
     (fun (cs, prf) c ->
       if List.mem c cconclist
       then cs, sclcontr (c, prf)
       else c :: cs, prf)
-    (List.map ctrexpr newcontr, preproof) maincontr in
+    (List.map ctrexpr_neg newcontr, preproof) maincontr in
   if !Globals.debug_flag then (
     (* Display them *)
     Printf.eprintf
@@ -718,12 +687,12 @@ let rec lltolk env proof goal righthandside contextoutput =
        let l, lkproof = lltolkrule env.distincts proof env.hypotheses in
        check_empty_remaining_proofs l; lkproof in
   (* Lkproof.p_debug_proof "coucou" lkproof; *)
-  let cgoal = ctrexpr goal in
+  let cgoal = ctrexpr_pos goal in
   let lkproof2 = rmnegation cgoal lkproof in
   let _, lkproof3 =
     List.fold_left
       (fun (conc, rule) stmt ->
        eimply (stmt, conc),
        scrimply (stmt, conc, rule))
-      (cgoal, lkproof2) (List.map ctrexpr env.hypotheses)
+      (cgoal, lkproof2) (List.map ctrexpr_neg env.hypotheses)
   in lkproof3
