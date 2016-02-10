@@ -80,9 +80,9 @@ DKAXIOMDIR = $(DKTESTDIR)/Axioms
 DKPROPS = $(wildcard $(DKTESTDIR)/*.p)
 DKTS = $(DKPROPS:.p=.dkt)
 
-.PHONY: all byt bin coq
+.PHONY: all byt bin
 
-all: byt bin zenon coq logic.dko classic.dko
+all: byt bin zenon logic.dko classic.dko
 
 coq: $(COQOBJ)
 

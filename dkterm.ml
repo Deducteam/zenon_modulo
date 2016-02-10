@@ -25,19 +25,7 @@ type term =
   | Dktrue
   | Dkfalse
   | Dkeq
-  | Dknotc
-  | Dkandc
-  | Dkorc
-  | Dkimplyc
-  | DkforallcTerm
-  | Dkforallc
-  | DkexistscTerm
-  | Dkexistsc
-  | Dktruec
-  | Dkfalsec
-  | Dkeqc
   | Dkequiv
-  | Dkequivc
   | Dkterm
   | Dknnpp
 
@@ -80,27 +68,6 @@ let mk_exists x s p =
 let mk_true = Dktrue
 let mk_false = Dkfalse
 let mk_eq t1 t2 = mk_app3 Dkeq t1 t2
-let mk_notc term = mk_app2 Dknotc term
-let mk_andc p q = mk_app3 Dkandc p q
-let mk_orc p q = mk_app3 Dkorc p q
-let mk_implyc p q = mk_app3 Dkimplyc p q
-let mk_forallc x s p =
-    if s = "zenon_U" then
-    mk_app2 DkforallcTerm (mk_lam x Dktermtype p)
-  else
-    let ty = mk_var s in
-    mk_app3 Dkforallc ty (mk_lam x (mk_term ty) p)
-let mk_existsc x s p =
-    if s = "zenon_U" then
-    mk_app2 DkexistscTerm (mk_lam x Dktermtype p)
-  else
-    let ty = mk_var s in
-    mk_app3 Dkexistsc ty (mk_lam x (mk_term ty) p)
-let mk_truec = Dktruec
-let mk_falsec = Dkfalsec
-let mk_eqc t1 t2 = mk_app3 Dkeqc t1 t2
-let mk_equiv p q = mk_app3 Dkequiv p q
-let mk_equivc p q = mk_app3 Dkequivc p q
 
 let mk_decl t term = Dkdecl (t, term)
 let mk_deftype t termtype term = Dkdeftype (t, termtype, term)
@@ -138,19 +105,7 @@ let rec print_term out term =
   | Dktrue -> fprintf out "logic.True"
   | Dkfalse -> fprintf out "logic.False"
   | Dkeq -> fprintf out "logic.equal"
-  | Dknotc -> fprintf out "logic.noc"
-  | Dkandc -> fprintf out "logic.andc"
-  | Dkorc -> fprintf out "logic.orc"
-  | Dkimplyc -> fprintf out "logic.implyc"
-  | Dkforallc -> fprintf out "dk_logic.forallc"
-  | DkforallcTerm -> fprintf out "logic.forallc"
-  | Dkexistsc -> fprintf out "dk_logic.existsc"
-  | DkexistscTerm -> fprintf out "logic.existsc"
-  | Dktruec -> fprintf out "logic.Truec"
-  | Dkfalsec -> fprintf out "logic.Falsec"
-  | Dkeqc -> fprintf out "logic.equalc"
   | Dkequiv -> fprintf out "logic.equiv"
-  | Dkequiv -> fprintf out "logic.equivc"
   | Dkterm -> fprintf out "logic.term"
   | Dknnpp -> fprintf out "classic.nnpp"
 
@@ -197,7 +152,7 @@ let print_line out line =
       print_term t
       print_term term
   | Dkdeftype (t, typeterm, term) ->
-    fprintf out "%a %a: %a:= %a.\n"
+    fprintf out "def %a %a: %a:= %a.\n"
       print_term t
       print_var_decls !(Expr.var_declarations)
       print_term typeterm

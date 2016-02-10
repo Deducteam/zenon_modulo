@@ -4,7 +4,7 @@ term : type -> Type.
 
 Term : Type.
 Prop: Type.
-prf: Prop -> Type.
+def prf: Prop -> Type.
 anyterm: Term.
 
 not: Prop -> Prop.
@@ -12,17 +12,17 @@ True: Prop.
 False: Prop.
 and: Prop -> Prop -> Prop.
 or: Prop -> Prop -> Prop.
-orc: Prop -> Prop -> Prop :=
+def orc: Prop -> Prop -> Prop :=
   A:Prop => B:Prop => not (not (or A B)).
 imply: Prop -> Prop -> Prop.
-implyc: Prop -> Prop -> Prop :=
+def implyc: Prop -> Prop -> Prop :=
   A:Prop => B:Prop => imply A (not (not B)).
 forall: (Term -> Prop) -> Prop.
-forallc: (Term -> Prop) -> Prop :=
+def forallc: (Term -> Prop) -> Prop :=
   P:(Term -> Prop) =>
   forall (x:Term => not (not (P x))).
 exists: (Term -> Prop) -> Prop.
-existsc: (Term -> Prop) -> Prop :=
+def existsc: (Term -> Prop) -> Prop :=
   P:(Term -> Prop) =>
   not (not (exists (x:Term => P x))).
 equal: Term -> Term -> Prop.

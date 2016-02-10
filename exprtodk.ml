@@ -34,14 +34,6 @@ struct
     (* Formulae *)
     (* We first fold the definitions of logical equivalence
        and classical connectors: *)
-    | Enot (Enot (Eor (e1, e2, _), _), _) ->
-       Dk.mk_orc (trexpr e1) (trexpr e2)
-    | Eimply (e1, Enot (Enot (e2, _), _), _) ->
-       Dk.mk_implyc (trexpr e1) (trexpr e2)		    
-    | Eall (e1, s, Enot (Enot (e2, _), _), _) ->
-       Dk.mk_forallc (trexpr e1) s (trexpr e2)
-    | Enot (Enot (Eex (e1, s, e2, _), _), _) ->
-       Dk.mk_existsc (trexpr e1) s (trexpr e2)
     (* | Eand (Eimply (e1, e2, _), Eimply (e3, e4, _), _) *)
     (*     when (equal e3 e2 && equal e4 e1) -> Dk.mk_equiv (trexpr e1) (trexpr e2) *)
     (* Terms *)

@@ -4,16 +4,6 @@
 
 - problèmes pour obtenir |- |A| à partir de ~|A| |- : la coupure et la contraction
   RESOLU PAR BAR INDUCTION
-  // - 0) on peut faire |- T =>c A à la place (solution retenue pour l'instant)
-  // - 1) solution partielle : transmettre dans lltolkrule que l'on souhaite |- A à la place de ~A|- (12 cas en tout)
-  //   	     	       	 + dans une deuxième étape, faire remonter weak suffisamment dans la lkproof
-  // 			 ! problème : il reste le cas des coupures venant des llproof
-  // - 2)0) solution totale : éliminer les coupures dans les llproof :
-  //   => rejétée car très compliquée à cause des règles portant sur l'égalité
-  // - 2) solution totale : éliminer les coupures dans les lkproof :
-  //   => gérer les axiomes de l'égalité de manière à popuvoir le faire ; complexité potentiellement très grande
-  // - 3) solution alternative : choisir la traduction de Gilles à la place
-  //   => attention, on a vu que dedukti ne savait pas les vérifier rapidement
 
 - gestion des axiomes et hypothèses:
   - axiomes de l'égalité:

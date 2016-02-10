@@ -26,16 +26,6 @@ val mk_exists : term -> string -> term -> term
 val mk_true : term
 val mk_false : term
 val mk_eq : term -> term -> term
-val mk_notc : term -> term
-val mk_andc : term -> term -> term
-val mk_orc : term -> term -> term
-val mk_implyc : term -> term -> term
-val mk_forallc : term -> string -> term -> term
-val mk_existsc : term -> string -> term -> term
-val mk_truec : term
-val mk_falsec : term
-val mk_eqc : term -> term -> term
-val mk_equiv : term -> term -> term
 val mk_term : term -> term
 val mk_nnpp : term -> term
 
