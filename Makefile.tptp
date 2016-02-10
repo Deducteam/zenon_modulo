@@ -5,12 +5,15 @@ TPTPVERSION = v6.1.0
 TPTPARCHIVE = TPTP-$(TPTPVERSION).tgz
 TPTP2T=$(TPTP)/Scripts/tptp2T
 FOFDIR=$(TPTP)/FOF
+FOFSELECTIONDIR=$(TPTP)/FOFSELECTION
 FOFCOUNTERDIR=$(TPTP)/FOFCOUNTER
 FOF=$(shell if test -d $(FOFDIR); then ls $(FOFDIR)/*; fi)
 FOFZ=$(FOF:%.p=%.z)
+SELECTEDFOF=$(subst $(FOFDIR),$(FOFSELECTIONDIR),$(FOF))
 ZENON=./zenon -I $(TPTP) -itptp -onone -max-time 30s
 RESULT=$(TPTP)/results.tptp
 DOM=$(shell ls $(TPTP)/Problems)
+ZENON_TIMEOUT=1
 
 all: bench result
 
@@ -25,6 +28,17 @@ $(TPTP)/.dummy: $(TPTPARCHIVE)
 	touch $(TPTP)/.dummy
 
 bench: $(FOFZ)
+
+fofselection: $(FOFSELECTIONDIR)/.dummy $(SELECTEDFOF)
+
+$(FOFSELECTIONDIR)/.dummy: $(TPTP)/.dummy
+	rm -rf $(FOFSELECTIONDIR)
+	mkdir $(FOFSELECTIONDIR)
+	touch $(FOFSELECTIONDIR)/.dummy
+
+$(FOFSELECTIONDIR)/%.p:$(FOFDIR)/%.p
+	timeout $(ZENON_TIMEOUT) zenon -itptp -ol $< > /dev/null \
+	 && cp $< $@ || true
 
 result:
 	@rm $(RESULT); touch $(RESULT); \

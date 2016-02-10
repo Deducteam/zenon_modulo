@@ -6,6 +6,7 @@ type lkrule =
 | SCeqsym of Expr.expr * Expr.expr
 | SCeqprop of Expr.expr * Expr.expr
 | SCeqfunc of Expr.expr * Expr.expr
+| SClweak of Expr.expr * lkproof
 | SCrweak of Expr.expr * lkproof
 | SClcontr of Expr.expr * lkproof
 | SCcut of Expr.expr * lkproof * lkproof
@@ -36,6 +37,7 @@ val sceqref : Expr.expr * Expr.expr list -> lkproof;;
 val sceqsym : Expr.expr * Expr.expr * Expr.expr list -> lkproof;;
 val sceqprop : Expr.expr * Expr.expr * Expr.expr list -> lkproof;;
 val sceqfunc : Expr.expr * Expr.expr * Expr.expr list -> lkproof;;
+val sclweak : Expr.expr * lkproof -> lkproof;;
 val scrweak : Expr.expr * lkproof -> lkproof;;
 val sclcontr : Expr.expr * lkproof -> lkproof;;
 val sccut : Expr.expr * lkproof * lkproof -> lkproof;;

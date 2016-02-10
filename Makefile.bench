@@ -1,0 +1,33 @@
+ZENON_TIMEOUT = 20
+DK_TIMEOUT = 5000
+STAT_FILE = statistics_$(ZENON_TIMEOUT)
+
+TPTP = ./tptp
+FOFDIR = $(TPTP)/FOFSELECTION_5
+ALLDKPROPS = $(wildcard $(FOFDIR)/*.p)
+ALLDKCS = $(subst $(FOFDIR),dkresults,$(ALLDKPROPS:.p=.dkc))
+ALLDKS = $(subst $(FOFDIR),dkresults,$(ALLDKPROPS:.p=.dk))
+
+.PHONY: dkbench
+dkbench:
+	rm -f $(STAT_FILE)
+	rm -rf dkresults
+	mkdir dkresults
+	make -f Makefile.bench dodkbench
+
+.PHONY: dodkbench
+dodkbench: $(ALLDKCS)
+
+.PHONY: $(wildcard dkresults/*.dkc)
+%.dkc: %.dk
+	@echo -n " ; dkcheck_timeout $(DK_TIMEOUT)" >> $(STAT_FILE)
+	@/usr/bin/time --quiet -f " ; dkcheck_real_time %e ; dkcheck_exit_status %x" \
+		-a -o $(STAT_FILE) \
+		timeout $(DK_TIMEOUT) dkcheck $< || true
+
+.SECONDARY: $(wildcard dkresults/*.dk)
+dkresults/%.dk: $(FOFDIR)/%.p
+	echo -n -e "file $< ; zenon_timeout $(ZENON_TIMEOUT)" >> $(STAT_FILE)
+	{ /usr/bin/time --quiet -f " ; zenon_real_time %e ; zenon_exit_status %x" \
+		timeout $(ZENON_TIMEOUT) ./zenon -q -p0 -odedukti -itptp $< > $@; } \
+		|& { xargs echo -n >> $(STAT_FILE); }

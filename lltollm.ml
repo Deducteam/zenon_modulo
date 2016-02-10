@@ -10,7 +10,7 @@ let new_tau =
     let n = !r in
     incr r;
     evar (sprintf "tau%d" n)
-
+	 
 let rec lltollm_expr defs e =
   match e with
   | Evar (v, _) when Hashtbl.mem defs v ->
@@ -50,7 +50,8 @@ let rec lltollm_expr defs e =
       z
   | Elam (x, s, e, _) ->
     elam (x, s, lltollm_expr defs e)
-  | Emeta (x, _) -> assert false
+  | Emeta (x, _) ->
+     assert false
 (* /!\ Raised by a lot of files in SYN (SYN048+1.p, SYN049+1.p, SYN315+1.p, SYN318+1.p, ...) *)
 
 let lltollm_rule defs rule =
@@ -74,7 +75,7 @@ let lltollm_rule defs rule =
   | Rdefinition (name, sym, args, body, recarg, c, h) ->
     assert false
   | Rextension (ext, name, args, cons, hyps) ->
-    Rextension (
+     Rextension (
       ext, name, List.map (lltollm_expr defs) args,
       List.map (lltollm_expr defs) cons, List.map (List.map (lltollm_expr defs)) hyps)
   | Rlemma (name, args) ->
@@ -89,9 +90,10 @@ let rec lltollm_proof definitions lemmas proof =
   | Rlemma (name, args) ->
     lltollm_proof definitions lemmas (Hashtbl.find lemmas name)
   | Rdefinition (name, sym, args, body, recarg, c, h) ->
-    begin match proof.hyps with
-    | [hyp] -> lltollm_proof definitions lemmas hyp
-    | _ -> assert false end
+     assert false
+    (* begin match proof.hyps with *)
+    (* | [hyp] -> lltollm_proof definitions lemmas hyp *)
+    (* | _ -> assert false end *)
   | _ ->
     {conc = List.map (lltollm_expr definitions) proof.conc;
      hyps = List.map (lltollm_proof definitions lemmas) proof.hyps;

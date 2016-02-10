@@ -14,8 +14,10 @@ type term =
   | Dkanyterm
   | Dknot
   | Dkand
+      
   | Dkor
   | Dkimply
+      
   | DkforallTerm
   | Dkforall
   | DkexistsTerm
@@ -35,6 +37,7 @@ type term =
   | Dkfalsec
   | Dkeqc
   | Dkequiv
+  | Dkequivc
   | Dkterm
   | Dknnpp
 
@@ -97,6 +100,7 @@ let mk_truec = Dktruec
 let mk_falsec = Dkfalsec
 let mk_eqc t1 t2 = mk_app3 Dkeqc t1 t2
 let mk_equiv p q = mk_app3 Dkequiv p q
+let mk_equivc p q = mk_app3 Dkequivc p q
 
 let mk_decl t term = Dkdecl (t, term)
 let mk_deftype t termtype term = Dkdeftype (t, termtype, term)
@@ -146,6 +150,7 @@ let rec print_term out term =
   | Dkfalsec -> fprintf out "logic.Falsec"
   | Dkeqc -> fprintf out "logic.equalc"
   | Dkequiv -> fprintf out "logic.equiv"
+  | Dkequiv -> fprintf out "logic.equivc"
   | Dkterm -> fprintf out "logic.term"
   | Dknnpp -> fprintf out "classic.nnpp"
 

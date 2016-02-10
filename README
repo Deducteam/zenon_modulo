@@ -1,0 +1,69 @@
+- A<=>B est considéré comme du sucre syntaxique pour A=>B^B=>A, il n'apparait pas dans les preuves
+
+- lorsque la preuve est non imprimable en ll/ml/coq, elle est rejetée
+
+- problèmes pour obtenir |- |A| à partir de ~|A| |- : la coupure et la contraction
+  RESOLU PAR BAR INDUCTION
+  // - 0) on peut faire |- T =>c A à la place (solution retenue pour l'instant)
+  // - 1) solution partielle : transmettre dans lltolkrule que l'on souhaite |- A à la place de ~A|- (12 cas en tout)
+  //   	     	       	 + dans une deuxième étape, faire remonter weak suffisamment dans la lkproof
+  // 			 ! problème : il reste le cas des coupures venant des llproof
+  // - 2)0) solution totale : éliminer les coupures dans les llproof :
+  //   => rejétée car très compliquée à cause des règles portant sur l'égalité
+  // - 2) solution totale : éliminer les coupures dans les lkproof :
+  //   => gérer les axiomes de l'égalité de manière à popuvoir le faire ; complexité potentiellement très grande
+  // - 3) solution alternative : choisir la traduction de Gilles à la place
+  //   => attention, on a vu que dedukti ne savait pas les vérifier rapidement
+
+- gestion des axiomes et hypothèses:
+  - axiomes de l'égalité:
+    - si ces règles deviennent des règles sans prémices supplémentaires (a=b|-b=a, ec) (solution retenue pour l'instant),
+      - s'il s'agit de règles par symboles, coupure non éliminable (exemple: prouver a=b|-f(f(a))=f(f(b)))
+      - s'il s'agit de règles par contextes, coupure très probablement non éliminable de manière simple (exemple: prouver la transitivité dans avec tous les différents sens)
+      	=> compatible 0), 1) et 3) seulement
+    - si ces règles deviennent des hypothèses mises dans le contexte (ou avec l'implication intuitionniste):
+        => compatible 0), 1), 2) et 3)
+    - si ces règles deviennent des règles avec prémices (excepté la reflexivité), donc dédoublées droite et gauche ?, coupure peut-être éliminable mais l'aglorithme serait très compliqué
+        => rejeté car c'est a priori compliqué
+    - si ces règles deviennent des hypothèses transformées en hypothèses "classiques":
+      	=> rejeté car la théorie est a priori trop affaiblie
+  - axiomes sur les chaines de caractères:
+    - si ces règles deviennent des règles sans prémices supplémentaires (a=b |-, etc), coupure éliminable
+      	=> compatible 0), 1), 2) et 3)
+    - si ces règles deviennent des hypothèses mises dans le contexte (ou avec l'implication intuitionniste):
+      	=> compatible 0), 1), 2) et 3)
+    - si ces règles deviennent des hypothèses transformées en hypothèses "classiques" (solution retenue pour l'instant)
+        => compatible 0), 1), 2) et 3), attention à adapter le cas 3) car la négation n'est pas traduite par elle-même
+
+- questions de bench:
+  - on compare avec zenon pur ? quels timeout(s) ?
+  - on compte quoi ? nombre de succès-echec + temps de calcul ?
+
+bench du 03/05/2015:
+- 6528 formules
+- 1 s de timeout pour zenonide
+- temps total en succès: 125.68 (moyenne 0.107)
+- 1170 prouvées par zenonide (parmi 1313 pour lesquelles zenonide termine, la différence étant des erreurs dues a priori au Zenon original)
+- 120s de timout pour dkcheck
+- temps total en succès: 270.57 (moyenne 0.23)
+- 1170 vérifiées par dedukti (100% de réussite)
+
+commandes pratiques :
+
+pour tester test.p:
+     make && ./zenon -q -p0 -odedukti -itptp test.p | tee >(dkcheck -stdin)
+
+pour le bench:
+     make && make -f Makefile.bench dkbench
+
+pour regarder s'il reste des erreurs (attention modifier zenon error et dkcheck_exit_status):
+     grep -v "zenon_exit_status 124" statistics_0.05 | grep -v "lltollm.ml, line 54" | grep -v "Zenon error" | grep -v "dkcheck_exit_status 0"
+
+pour le temps aggrégé de dkcheck (attention modifier zenon error et dkcheck_exit_status):
+     grep -v "zenon_exit_status 124" bench_du_03_05_2015 | grep -v "lltollm.ml, line 54" | grep -v "Zenon error" | cut -d ';' -f 6 | cut -d ' ' -f 3 | paste -s -d + | bc
+
+pour une moyenne:
+     echo "x / y" | bc
+
+pour sélectionner :
+     for f in `cat statistics_2 | grep -v "zenon_exit_status 0.*dkcheck_exit_status 0" | cut -d ';' -f 1 | cut -d ' ' -f 2`; do cp $f tptp/REMAINING ; done;

@@ -15,8 +15,8 @@ CAMLFLAGS = -annot -warn-error "$(WARN_ERROR)"
 CAMLBINFLAGS = $(CAMLFLAGS) $(BIN_DEBUG_FLAGS)
 CAMLBYTFLAGS = $(CAMLFLAGS) $(BYT_DEBUG_FLAGS)
 
-ZENON_TIMEOUT = 0.1
-DK_TIMEOUT = 0.1
+ZENON_TIMEOUT = 0.05
+DK_TIMEOUT = 0.05
 STAT_FILE = statistics_$(ZENON_TIMEOUT)
 
 
@@ -270,7 +270,8 @@ dodktestall: $(FOFDIR)/.dummy $(ALLDKCS)
 	@echo -n " ; dkcheck_timeout $(DK_TIMEOUT)" >> $(STAT_FILE)
 	@/usr/bin/time --quiet -f " ; dkcheck_real_time %e ; dkcheck_exit_status %x" \
 		-a -o $(STAT_FILE) \
-		timeout $(DK_TIMEOUT) dkcheck -q $< || true
+		timeout $(DK_TIMEOUT) dkcheck $< || true
+# dkcheck -q missing
 
 .SECONDARY: $(wildcard dkresults/*.dk)
 dkresults/%.dk: $(FOFDIR)/%.p all

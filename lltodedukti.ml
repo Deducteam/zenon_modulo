@@ -117,13 +117,16 @@ struct
     let xget_definitions definitions p = match p with
     | Phrase.Hyp (name, e, _) -> ()
     | Phrase.Def (DefReal (_, sym, params, body, None)) ->
-      Hashtbl.add definitions sym (params, body)
+       assert false
+       (* Hashtbl.add definitions sym (params, body) *)
     | Phrase.Def (DefReal (_, sym, params, body, Some _)) -> assert false
     | Phrase.Def (DefPseudo (_, _, _, _)) -> assert false
     | Phrase.Def (DefRec (_, _, _, _)) -> assert false
     | Phrase.Sig _ -> assert false
 
-    | Phrase.Inductive _ -> ()      (* TODO: to implement *)
+    | Phrase.Inductive _ ->
+       assert false
+       (* ()      (\* TODO: to implement *\) *)
     in
 
     let definitions = (Hashtbl.create 97 : (string, Expr.expr list * Expr.expr) Hashtbl.t) in
@@ -140,12 +143,16 @@ struct
       match p with
       | Phrase.Hyp (name, e, _) when name = goal_name -> hyps
       | Phrase.Hyp (name, e, _) -> (Some name, e) :: hyps
-      | Phrase.Def (DefReal (_, sym, params, body, None)) -> hyps
+      | Phrase.Def (DefReal (_, sym, params, body, None)) ->
+	 assert false
+	 (* hyps *)
       | Phrase.Def (DefReal (_, sym, params, body, Some _)) -> assert false
       | Phrase.Def (DefPseudo (_, _, _, _)) -> assert false
       | Phrase.Def (DefRec (_, _, _, _)) -> assert false
       | Phrase.Sig _ -> assert false
-      | Phrase.Inductive _ -> hyps      (* TODO: to implement *) in
+      | Phrase.Inductive _ ->
+	 assert false
+	 (* hyps      (\* TODO: to implement *\)  *)in
     let hyps = List.fold_left xget_env [] phrases in
     let distincts = get_distincts phrases in 
     let rec get_distinctshyps distincts = 
@@ -161,19 +168,22 @@ struct
     | Phrase.Hyp (name, Enot (e, _), _) :: _ when name = goal_name -> e, true
     | Phrase.Hyp (name, _, _) :: _ when name = goal_name -> assert false
     | _ :: t -> get_goal t
-    | [] -> efalse, false
+    | [] ->
+       assert false
+       (* efalse, false *)
 
   (* *** CONTEXT PRINTING FUNCTIONS *** *)
 
   let print_prelude oc name =
-    let buf = Buffer.create (2*String.length name) in
-    String.iter
-      (fun c -> match c with
-      | 'a'..'z' | 'A'..'Z' | '0'..'9' -> Buffer.add_char buf c
-      | '_' -> Buffer.add_string buf "__"
-      | _ -> Buffer.add_string buf ("_"^(string_of_int (int_of_char c)))) name;
-    Buffer.add_string buf "todk";
-    let prelude = Out.mk_prelude (Buffer.contents buf) in
+    (* let buf = Buffer.create (2*String.length name) in *)
+    (* String.iter *)
+    (*   (fun c -> match c with *)
+    (*   | 'a'..'z' | 'A'..'Z' | '0'..'9' -> Buffer.add_char buf c *)
+    (*   | '_' -> Buffer.add_string buf "__" *)
+    (*   | _ -> Buffer.add_string buf ("_"^(string_of_int (int_of_char c)))) name; *)
+    (* Buffer.add_string buf "todk"; *)
+    (* let prelude = Out.mk_prelude (Buffer.contents buf) in *)
+    let prelude = Out.mk_prelude (TrExpr.tr_string name) in
     Out.print_line oc prelude
 
   let print_declarations oc freevars =
@@ -233,15 +243,17 @@ struct
     in
     let lkproof = Llmtolk.lltolk newenv newproof newgoal righthandside contextoutput in
     let proof = 
-      if !Globals.keepclassical = false
-      then Lktolj.lktolj lkproof
-      else lkproof in
+      (* if !Globals.keepclassical = false *)
+      (* then Lktolj.lktolj lkproof *)
+      (* else lkproof *)
+      lkproof
+    in
     let conc = Lkproof.scconc proof in
     let term = LjToDk.trproof (proof, conc, gamma) in
     let thm_name =
       if thm.name = ""
       then "conjecture_proof"
-      else thm.name
+      else TrExpr.tr_string thm.name
     in
     let rec line =
       Out.mk_deftype (Out.mk_var thm_name)

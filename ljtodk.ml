@@ -59,21 +59,44 @@ struct
          (Dk.mk_lam dkterm Dk.mk_termtype (trexpr (eapp ("=", [evar term; a]))))
          (trproof (Lkproof.sceqref (a, []), eapp ("=", [a; a]), gamma))
     | Lkproof.SCcut (e, lkrule1, lkrule2) ->
-       trproof
-         (lkrule2, goal,
-          (e, trproof (lkrule1, e, gamma)) :: gamma)
+       let var = new_hypo () in
+       let dkvar = Dk.mk_var var in
+       Dk.mk_app2
+	 (Dk.mk_lam dkvar
+		    (Dk.mk_prf (trexpr e))
+		    (trproof (lkrule2, goal, (e, dkvar) :: gamma)))
+	 (trproof (lkrule1, e, gamma))
+       (* trproof *)
+       (*   (lkrule2, goal, *)
+       (*    (e, trproof (lkrule1, e, gamma)) :: gamma) *)
     | Lkproof.SCland (e1, e2, lkrule) ->
        let var1 = new_hypo () in
        let dkvar1 = Dk.mk_var var1 in
        let var2 = new_hypo () in
        let dkvar2 = Dk.mk_var var2 in
+       (* Dk.mk_app3  *)
+       (* 	 (Dk.mk_lam dkvar1 *)
+       (* 		    (Dk.mk_prf (trexpr e1)) *)
+       (* 		    (Dk.mk_lam dkvar2 *)
+       (* 			       (Dk.mk_prf (trexpr e2)) *)
+       (* 			       (trproof (lkrule, goal, (e1, dkvar1) :: (e2, dkvar2) :: gamma)))) *)
+       (* 	 (Dk.mk_app3 (trhyp (eand (e1, e2))) *)
+       (* 		     (trexpr e1) *)
+       (* 		     (Dk.mk_lam dkvar1 *)
+       (* 				(Dk.mk_prf (trexpr e1)) *)
+       (* 				(Dk.mk_lam dkvar2 (Dk.mk_prf (trexpr e2)) dkvar1))) *)
+       (* 	 (Dk.mk_app3 (trhyp (eand (e1, e2))) *)
+       (* 		     (trexpr e2) *)
+       (* 		     (Dk.mk_lam dkvar1 *)
+       (* 				(Dk.mk_prf (trexpr e1)) *)
+       (* 				(Dk.mk_lam dkvar2 (Dk.mk_prf (trexpr e2)) dkvar2)))	  *)
        Dk.mk_app3 (trhyp (eand (e1, e2)))
          (trexpr goal)
          (Dk.mk_lam dkvar1
-	    (Dk.mk_prf (trexpr e1))
-	    (Dk.mk_lam dkvar2
-	       (Dk.mk_prf (trexpr e2))
-	       (trproof (lkrule, goal, (e1, dkvar1) :: (e2, dkvar2) :: gamma))))
+       	    (Dk.mk_prf (trexpr e1))
+       	    (Dk.mk_lam dkvar2
+       	       (Dk.mk_prf (trexpr e2))
+       	       (trproof (lkrule, goal, (e1, dkvar1) :: (e2, dkvar2) :: gamma))))
     | Lkproof.SClor (e1, e2, lkrule1, lkrule2) ->
        let var1 = new_hypo () in
        let dkvar1 = Dk.mk_var var1 in
@@ -88,16 +111,31 @@ struct
 	    (Dk.mk_prf (trexpr e2))
 	    (trproof (lkrule2, goal, (e2, (Dk.mk_var var2)) :: gamma))]
     | Lkproof.SClimply (e1, e2, lkrule1, lkrule2) ->
-       let traux =
-         Dk.mk_app2 (trhyp (eimply (e1, e2))) (trproof (lkrule1, e1, gamma)) in
-       trproof (lkrule2, goal, (e2, traux) :: gamma)
+       let var = new_hypo () in
+       let dkvar = Dk.mk_var var in
+       Dk.mk_app2
+	 (Dk.mk_lam dkvar
+		    (Dk.mk_prf (trexpr e2))
+		    (trproof (lkrule2, goal, (e2, dkvar) :: gamma)))
+	 (Dk.mk_app2 (trhyp (eimply (e1, e2))) (trproof (lkrule1, e1, gamma)))
+       (* let traux = *)
+       (*   Dk.mk_app2 (trhyp (eimply (e1, e2))) (trproof (lkrule1, e1, gamma)) in *)
+       (* trproof (lkrule2, goal, (e2, traux) :: gamma) *)
     | Lkproof.SClnot (e, lkrule) ->
        Dk.mk_app2 (trhyp (enot e)) (trproof (lkrule, e, gamma))
     | Lkproof.SClall (Eall (x, ty, p, _) as ap, t, lkrule) ->
-       let traux =
-         Dk.mk_app2 (trhyp ap) (trexpr t) in
-       trproof
-         (lkrule, goal, (substitute [(x, t)] p, traux) :: gamma)
+       let pt = substitute [(x, t)] p in
+       let var = new_hypo () in
+       let dkvar = Dk.mk_var var in
+       Dk.mk_app2
+	 (Dk.mk_lam dkvar
+		    (Dk.mk_prf (trexpr pt))
+		    (trproof (lkrule, goal, (pt, dkvar) :: gamma)))
+	 (Dk.mk_app2 (trhyp ap) (trexpr t))
+       (* let traux = *)
+       (*   Dk.mk_app2 (trhyp ap) (trexpr t) in *)
+       (* trproof *)
+       (*   (lkrule, goal, (substitute [(x, t)] p, traux) :: gamma) *)
     | Lkproof.SClex (Eex (x, s, p, _) as ep, v, lkrule) ->
        let ty =
          if s = "zenon_U"
@@ -184,14 +222,15 @@ struct
 	       (Dk.mk_arrow (Dk.mk_prf (trexpr p)) (Dk.mk_prf dkprop)))
 	    (Dk.mk_app3 dkvar (trexpr t) (trproof (lkrule, substitute [(x, t)] p, gamma))))
     | Lkproof.SCcnot (e, lkrule) ->
-       if !Globals.keepclassical = false then assert false;
-       let var = new_hypo () in
-       let dkvar = Dk.mk_var var in
-       Dk.mk_app2
-	 (Dk.mk_nnpp (trexpr e))
-	 (Dk.mk_lam 
-	    dkvar (Dk.mk_prf (Dk.mk_not (trexpr e))) 
-	    (trproof (lkrule, efalse, (enot e, dkvar) :: gamma)))
+       assert false
+       (* 	      if !Globals.keepclassical = false then assert false; *)
+       (* let var = new_hypo () in *)
+       (* let dkvar = Dk.mk_var var in *)
+       (* Dk.mk_app2 *)
+       (* 	 (Dk.mk_nnpp (trexpr e)) *)
+       (* 	 (Dk.mk_lam  *)
+       (* 	    dkvar (Dk.mk_prf (Dk.mk_not (trexpr e)))  *)
+       (* 	    (trproof (lkrule, efalse, (enot e, dkvar) :: gamma))) *)
     | Lkproof.SClcontr (e, lkrule) ->
        trproof (lkrule, goal, gamma)
     | Lkproof.SCrweak (e, lkrule) ->
@@ -229,7 +268,7 @@ struct
        in
        itereq ([], ts, us)
     | Lkproof.SCext (ext, name, args, [conc], [[hyp]], [proof]) ->
-       let ext = if ext = "" then "focal" else ext in
+       (* let ext = if ext = "" then "focal" else ext in *)
        assert (goal = efalse);
        (* Create a fresh variable for hypothesis *)
        let var = new_hypo () in
@@ -241,6 +280,8 @@ struct
                         (Dk.mk_prf (trexpr hyp))
                         (trproof (proof, efalse, (hyp, dkvar) :: gamma)) ; trhyp conc]
          )
+    | Lkproof.SClweak (e, lkrule) ->
+       trproof (lkrule, goal, gamma)
     | _ -> assert false
 
 end

@@ -9,6 +9,7 @@ type lkrule =
 | SCeqsym of expr * expr
 | SCeqprop of expr * expr
 | SCeqfunc of expr * expr
+| SClweak of expr * lkproof
 | SCrweak of expr * lkproof
 | SClcontr of expr * lkproof
 | SCcut of expr * lkproof * lkproof
@@ -85,6 +86,9 @@ let scrweak (e, proof) =
   let g, c, rule = proof in
   assert (equal c efalse);
   g, e, SCrweak (e, proof)
+let sclweak (e, proof) =
+  let g, c, rule = proof in
+  e :: g, c, SClweak (e, proof)
 let sclcontr (e, proof) =
   let g, c, rule = proof in
   assert (List.mem e g);
@@ -188,6 +192,7 @@ let hypsofrule lkrule =
   | SCeqsym (e1, e2) -> []
   | SCeqprop (e1, e2) -> []
   | SCeqfunc (e1, e2) -> []
+  | SClweak (e, proof) -> [proof]
   | SCrweak (e, proof) -> [proof]
   | SClcontr (e, proof) -> [proof]
   | SCcut (e, proof1, proof2) -> [proof1; proof2]
@@ -217,6 +222,7 @@ let applytohyps f lkproof =
   | SCeqsym (e1, e2) -> g, c, SCeqsym (e1, e2)
   | SCeqprop (e1, e2) -> g, c, SCeqprop (e1, e2)
   | SCeqfunc (e1, e2) -> g, c, SCeqfunc (e1, e2)
+  | SClweak (e, proof) -> sclweak (e, f proof)
   | SCrweak (e, proof) -> scrweak (e, f proof)
   | SClcontr (e, proof) -> sclcontr (e, f proof)
   | SCcut (e, proof1, proof2) ->
