@@ -49,6 +49,8 @@ pour le bench:
 pour regarder s'il reste des erreurs (attention modifier zenon error et dkcheck_exit_status):
      grep -v "zenon_exit_status 124" statistics_0.05 | grep -v "lltollm.ml, line 54" | grep -v "Zenon error" | grep -v "dkcheck_exit_status 0"
 
+ou mieux : cat statistics_1 | wc -l && cat statistics_1 | grep -v "exit_status 0.*exit_status 0"
+
 pour le temps aggrégé de dkcheck (attention modifier zenon error et dkcheck_exit_status):
      grep -v "zenon_exit_status 124" bench_du_03_05_2015 | grep -v "lltollm.ml, line 54" | grep -v "Zenon error" | cut -d ';' -f 6 | cut -d ' ' -f 3 | paste -s -d + | bc
 

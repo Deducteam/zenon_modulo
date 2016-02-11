@@ -3,13 +3,6 @@ open Expr
 open Printf
 
 let new_terms = ref []
-
-let new_tau =
-  let r = ref 0 in
-  fun () ->
-    let n = !r in
-    incr r;
-    evar (sprintf "tau%d" n)
 	 
 let rec lltollm_expr defs e =
   match e with
@@ -45,7 +38,7 @@ let rec lltollm_expr defs e =
     then
       List.assoc tau !new_terms
     else
-      let z = new_tau () in
+      let z = Llmtolk.new_tau () in
       new_terms := (tau, z) :: !new_terms;
       z
   | Elam (x, s, e, _) ->
@@ -95,7 +88,7 @@ let rec unfold_axiom e =
   | Efalse ->
      assert false (* to be implemented later *)
   | Eall (e1, s, e2, _) ->
-     let z = new_tau () in
+     let z = Llmtolk.new_tau () in
      {conc = [e; enot e];
       hyps =
 	[{conc = [e; enot (substitute [(e1, z)] e2)];
@@ -103,7 +96,7 @@ let rec unfold_axiom e =
 	  rule = Rall (e, z)}];
       rule = Rnotall (e, z)}
   | Eex (e1, s, e2, _) ->
-     let z = new_tau () in
+     let z = Llmtolk.new_tau () in
      {conc = [e; enot e];
       hyps =
 	[{conc = [enot e; (substitute [(e1, z)] e2)];
