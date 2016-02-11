@@ -624,7 +624,7 @@ let print_line o line =
   | Dkdecl (v, _) when String.contains v '.' ->
      ()
   | Dkdecl (v, t) ->
-     fprintf o "%s : %a.\n\n" v print_dk_type t
+     fprintf o "def %s : %a.\n\n" v print_dk_type t
   | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' || s = "Is_true" ->
      ()
   | Dkrwrt (l, t1, t2) ->
@@ -633,7 +633,7 @@ let print_line o line =
 ;;
 
 let print_goal_type o name goal =
-  fprintf o "%s :\n %a\n -> %a.\n"
+  fprintf o "def %s :\n %a\n -> %a.\n"
 	  name print_dk_type goal print_dk_term mk_seq
 ;;
 

@@ -3,15 +3,16 @@
 (; Impredicative prop ;)
 
 prop : cc.uT.
-Prop : Type := cc.eT prop.
-ebP : cc.eT dk_bool.bool -> Prop.
+Prop : Type.
+[] cc.eT prop --> Prop.
+def ebP : cc.eT dk_bool.bool -> Prop.
 
 imp : Prop -> Prop -> Prop.
 forall_type : (cc.uT -> Prop) -> Prop.
 forall : A : cc.uT -> (cc.eT A -> Prop) -> Prop.
 
-eeP : Prop -> cc.uT.
-eP : Prop -> Type
+def eeP : Prop -> cc.uT.
+def eP : Prop -> Type
    := f : Prop => cc.eT (eeP f).
 [ f1 : Prop, f2 : Prop ]
     eeP (imp f1 f2)
@@ -27,112 +28,115 @@ eP : Prop -> Type
       -->
     cc.PiT (x : cc.uT => eeP (f x)).
 
-True : Prop := forall prop (P : Prop => imp P P).
-False : Prop := forall prop (P : Prop => P).
-not (f : Prop) : Prop := imp f False.
-and (A : Prop) (B : Prop) : Prop :=
+def True : Prop := forall prop (P : Prop => imp P P).
+def False : Prop := forall prop (P : Prop => P).
+def not (f : Prop) : Prop := imp f False.
+def and (A : Prop) (B : Prop) : Prop :=
   forall prop (P : Prop => imp (imp A (imp B P)) P).
-or  (A : Prop) (B : Prop) : Prop :=
+def or  (A : Prop) (B : Prop) : Prop :=
   forall prop (P : Prop => imp (imp A P) (imp (imp B P) P)).
-eqv (A : Prop) (B : Prop) : Prop :=
+def eqv (A : Prop) (B : Prop) : Prop :=
   and (imp A B) (imp B A).
 
-exists (A : cc.uT) (f : cc.eT A -> Prop) : Prop :=
+def exists (A : cc.uT) (f : cc.eT A -> Prop) : Prop :=
   forall prop (P : Prop => imp (forall A (x : cc.eT A => imp (f x) P)) P).
-forallc (A : cc.uT) (f : cc.eT A -> Prop) : Prop :=
+def forallc (A : cc.uT) (f : cc.eT A -> Prop) : Prop :=
   not (not (forall A (x : cc.eT A => not (not (f x))))).
-existsc (A : cc.uT) (f : cc.eT A -> Prop) : Prop :=
+def existsc (A : cc.uT) (f : cc.eT A -> Prop) : Prop :=
   not (not (exists A (x : cc.eT A => not (not (f x))))).
 
-exists_type (f : cc.uT -> Prop) : Prop
+def exists_type (f : cc.uT -> Prop) : Prop
 := forall prop (z : Prop =>
                 (imp (forall_type (a : cc.uT =>
                                    imp (f a) z))
                      z)).
 
 
-TrueT : Type := eP True.
-FalseT : Type := eP False.
+def TrueT : Type := eP True.
+def FalseT : Type := eP False.
 I : TrueT.
 False_elim : A : cc.uT -> FalseT -> cc.eT A.
 
-Istrue : dk_bool.Bool -> Type.
+def Istrue : dk_bool.Bool -> Type.
 [ b : dk_bool.Bool ] Istrue b --> eP (ebP b).
 
-and_intro : f1 : Prop ->
-            f2 : Prop ->
-            eP f1 ->
-            eP f2 ->
-            eP (and f1 f2).
-and_elim1 : f1 : Prop ->
-            f2 : Prop ->
-            eP (and f1 f2) ->
-            eP f1.
-and_elim2 : f1 : Prop ->
-            f2 : Prop ->
-            eP (and f1 f2) ->
-            eP f2.
+def and_intro (f1 : Prop)
+              (f2 : Prop)
+              (H1 : eP f1)
+              (H2 : eP f2)
+              : eP (and f1 f2)
+    := f3 : Prop =>
+       H3 : (eP f1 -> eP f2 -> eP f3) =>
+       H3 H1 H2.
 
-or_intro1 : f1 : Prop ->
-            f2 : Prop ->
-            eP f1 ->
-            eP (or f1 f2).
+def and_elim1 (f1 : Prop)
+              (f2 : Prop)
+              (H3 : eP (and f1 f2))
+              : eP f1
+    := H3 f1 (H1 : eP f1 => H2 : eP f2 => H1).
 
-or_intro2 : f1 : Prop ->
-            f2 : Prop ->
-            eP f2 ->
-            eP (or f1 f2).
+def and_elim2 (f1 : Prop)
+              (f2 : Prop)
+              (H3 : eP (and f1 f2))
+              : eP f2
+    := H3 f2 (H1 : eP f1 => H2 : eP f2 => H2).
 
-or_elim : f1 : Prop ->
-          f2 : Prop ->
-          f3 : Prop ->
-          eP (or f1 f2) ->
-          eP (imp f1 f3) ->
-          eP (imp f2 f3) ->
-          eP f3.
+def or_intro1 (f1 : Prop)
+              (f2 : Prop)
+              (H1 : eP f1)
+              : eP (or f1 f2)
+    := f3 : Prop =>
+       H13 : (eP f1 -> eP f3) =>
+       H23 : (eP f2 -> eP f3) =>
+       H13 H1.
 
-(; cut elimination ;)
-[f1 : Prop, f2 : Prop,
- H1 : eP f1, H2 : eP f2]
-    and_elim1 f1 f2 (and_intro f1 f2 H1 H2) --> H1.
-[f1 : Prop, f2 : Prop,
- H1 : eP f1, H2 : eP f2]
-    and_elim2 f1 f2 (and_intro f1 f2 H1 H2) --> H2.
+def or_intro2 (f1 : Prop)
+              (f2 : Prop)
+              (H2 : eP f2)
+              : eP (or f1 f2)
+    := f3 : Prop =>
+       H13 : (eP f1 -> eP f3) =>
+       H23 : (eP f2 -> eP f3) =>
+       H23 H2.
 
-[ f1 : Prop, f2 : Prop, f3 : Prop,
-  H1 : eP f1, H13 : eP (imp f1 f3),
-  H23 : eP (imp f2 f3) ]
-    or_elim f1 f2 f3 (or_intro1 f1 f2 H1) H13 H23 --> H13 H1
-[ f1 : Prop, f2 : Prop, f3 : Prop,
-  H2 : eP f2, H13 : eP (imp f1 f3),
-  H23 : eP (imp f2 f3) ]
-    or_elim f1 f2 f3 (or_intro2 f1 f2 H2) H13 H23 --> H23 H2.
+def or_elim (f1 : Prop)
+            (f2 : Prop)
+            (f3 : Prop)
+            (H3 : eP (or f1 f2))
+            (H13 : eP (imp f1 f3))
+            (H23 : eP (imp f2 f3))
+            : eP f3
+    := H3 f3 H13 H23.
 
-eqv_intro := f1 : Prop =>
-             f2 : Prop =>
-             and_intro (imp f1 f2) (imp f2 f1).
-eqv_elim1 := f1 : Prop =>
-             f2 : Prop =>
-             and_elim1 (imp f1 f2) (imp f2 f1).
-eqv_elim2 := f1 : Prop =>
-             f2 : Prop =>
-             and_elim2 (imp f1 f2) (imp f2 f1).
+def eqv_intro := f1 : Prop =>
+                 f2 : Prop =>
+                 and_intro (imp f1 f2) (imp f2 f1).
+def eqv_elim1 := f1 : Prop =>
+                 f2 : Prop =>
+                 and_elim1 (imp f1 f2) (imp f2 f1).
+def eqv_elim2 := f1 : Prop =>
+                 f2 : Prop =>
+                 and_elim2 (imp f1 f2) (imp f2 f1).
+
+[] ebP dk_bool.true --> True
+[] ebP dk_bool.false --> False.
 
 (; equality ;)
-equal : A : cc.uT -> x : cc.eT A -> y : cc.eT A -> Prop
+def equal : A : cc.uT -> x : cc.eT A -> y : cc.eT A -> Prop
       := A : cc.uT => x : cc.eT A => y : cc.eT A =>
                                      forall (cc.Arrow A prop)
                                             (H : (cc.eT A -> Prop) =>
                                              imp (H x) (H y)).
 
-equalc (A : cc.uT) (x : cc.eT A) (y : cc.eT A) : Prop :=
+def equalc (A : cc.uT) (x : cc.eT A) (y : cc.eT A) : Prop :=
   not (not (equal A x y)).
 
-refl : A : cc.uT -> x : cc.eT A -> eP (equal A x x)
+def refl : A : cc.uT -> x : cc.eT A -> eP (equal A x x)
      := A : cc.uT => x : cc.eT A =>
                      H : (cc.eT A -> Prop) =>
                      px : eP (H x) => px.
-equal_ind : A : cc.uT ->
+
+def equal_ind : A : cc.uT ->
             H : (cc.eT A -> Prop) ->
             x : cc.eT A ->
             y : cc.eT A ->
@@ -147,7 +151,7 @@ equal_ind : A : cc.uT ->
             eq: eP (equal A x y) =>
             eq P.
 
-equal_sym : A : cc.uT ->
+def equal_sym : A : cc.uT ->
             x : cc.eT A ->
             y : cc.eT A ->
             eP (equal A x y) ->
@@ -165,7 +169,7 @@ equal_sym : A : cc.uT ->
                 eq
                 (refl A x).
 
-equal_congr :
+def equal_congr :
   A : cc.uT ->
   B : cc.uT ->
   f : (cc.eT A -> cc.eT B) ->
@@ -181,8 +185,3 @@ equal_congr :
     y : cc.eT A =>
     H : eP (equal A x y) =>
     equal_ind A (z : cc.eT A => equal B (f x) (f z)) x y H (refl B (f x)).
-
-
-
-[] ebP dk_bool.true --> True
-[] ebP dk_bool.false --> False.

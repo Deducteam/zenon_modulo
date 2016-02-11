@@ -2,7 +2,7 @@
 
 prod : cc.uT -> cc.uT -> cc.uT.
 Prod : cc.uT -> cc.uT -> Type.
-[ A : cc.uT, B : cc.uT ] Prod A B --> cc.eT (prod A B).
+[A, B] cc.eT (prod A B) --> Prod A B.
 
 pair : A : cc.uT ->
        B : cc.uT ->
@@ -10,48 +10,22 @@ pair : A : cc.uT ->
        cc.eT B ->
        Prod A B.
 
-fst : A : cc.uT -> B : cc.uT -> Prod A B -> cc.eT A.
-snd : A : cc.uT -> B : cc.uT -> Prod A B -> cc.eT B.
+def fst : A : cc.uT -> B : cc.uT -> Prod A B -> cc.eT A.
+def snd : A : cc.uT -> B : cc.uT -> Prod A B -> cc.eT B.
 
-[A : cc.uT, B : cc.uT, a : cc.eT A, b : cc.eT B]
-    fst A B (pair A B a b) --> a.
-[A : cc.uT, B : cc.uT, a : cc.eT A, b : cc.eT B]
-    snd A B (pair A B a b) --> b.
+[a]
+    fst _ _ (pair _ _ a _) --> a.
+[b]
+    snd _ _ (pair _ _ _ b) --> b.
 
-match__pair : A : cc.uT ->
-              B : cc.uT ->
-              C : cc.uT ->
-              Prod A B ->
-              (cc.eT A -> cc.eT B -> cc.eT C) ->
-              cc.eT C ->
-              cc.eT C.
+def match__pair : A : cc.uT ->
+                  B : cc.uT ->
+                  C : cc.uT ->
+                  Prod A B ->
+                  (cc.eT A -> cc.eT B -> cc.eT C) ->
+                  cc.eT C ->
+                  cc.eT C.
 
-[ A : cc.uT, B : cc.uT, C : cc.uT,
-  a : cc.eT A, b : cc.eT B,
-  f : cc.eT A -> cc.eT B -> cc.eT C,
-  g : cc.eT C ]
-    match__pair A B C (pair A B a b) f g --> f a b.
+[f, a, b]
+    match__pair _ _ _ (pair _ _ a b) f _ --> f a b.
 
-dprod : A : cc.uT -> (cc.eT A -> cc.uT) -> cc.uT.
-Dprod : A : cc.uT -> (cc.eT A -> cc.uT) -> Type.
-[ A : cc.uT, B : cc.eT A -> cc.uT ] Dprod A B --> cc.eT (dprod A B).
-
-dpair : A : cc.uT ->
-       B : (cc.eT A -> cc.uT) ->
-       a : cc.eT A ->
-       cc.eT (B a) ->
-       Dprod A B.
-
-dfst : A : cc.uT ->
-       B : (cc.eT A -> cc.uT) ->
-       Dprod A B ->
-       cc.eT A.
-dsnd : A : cc.uT ->
-       B : (cc.eT A -> cc.uT) ->
-       t : Dprod A B ->
-       cc.eT (B (dfst A B t)).
-
-[A : cc.uT, B : (cc.eT A -> cc.uT), a : cc.eT A, b : cc.eT (B a)]
-    dfst A B (dpair A B a b) --> a.
-[A : cc.uT, B : (cc.eT A -> cc.uT), a : cc.eT A, b : cc.eT (B a)]
-    dsnd A B (dpair A B a b) --> b.
