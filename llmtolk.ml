@@ -146,40 +146,6 @@ let rec hypstoadd rule =
     assert false
   | _ -> assert false (* no more Rdefinition after use_defs *)
 
-let rec xrmdblnot e proof =
-  let g, c, rule = proof in
-  match rule with
-  | SCaxiom (Enot (f, _)) ->
-    assert (equal f e);
-    sclnot (f, scaxiom (f, rm (enot f) g))
-  | SCeqprop _ | SCeqfunc _ | SCtrue | SCeqref _ | SCeqsym _
-  | SCrimply _ | SCrand _ | SCrorl _ | SCrorr _
-  | SCrall _ | SCrex _ -> assert false
-  | SCfalse -> scfalse (e :: (rm efalse g), efalse)
-  | SClnot (f, prf) -> addhyp [e] prf
-  | SCrnot (f, prf) -> assert (equal f e); prf
-  | _ -> assert false
-
-let rec rmdblnot e proof =
-  let g, c, rule = proof in
-  match rule with
-  | SClnot (Enot (f, _), prf) when equal f e ->
-    xrmdblnot e prf
-  | SCaxiom (Enot (Enot (f, _), _)) when equal f e ->
-    scrnot (
-      enot e, sclnot (e, scaxiom (e, rm (enot (enot e)) g)))
-  | SCaxiom (f) -> scaxiom (f, e :: (rm f (rm (enot (enot e)) g)))
-  | SCfalse -> scfalse (e :: rm (enot (enot e)) g, c)
-  | SCtrue -> sctrue (e :: rm (enot (enot e)) g)
-  | SCeqref (a) -> sceqref (a, e :: rm (enot (enot e)) g)
-  | SCeqsym (a, b) -> sceqsym (a, b, e :: rm (enot (enot e)) g)
-  | SCeqprop (a, b) -> sceqprop (a, b, e :: rm (enot (enot e)) g)
-  | SCeqfunc (a, b) -> sceqfunc (a, b, e :: rm (enot (enot e)) g)
-  | SClcontr (Enot (Enot (f, _), _), prf) when equal f e ->
-    sclcontr (f, rmdblnot e (rmdblnot e prf))
-  | SCcut (_, prf1, prf2) -> applytohyps (rmdblnot e) proof
-  | _ -> applytohyps (rmdblnot e) proof
-
 let rec clean f prf =
   let g, c, rule = prf in
   match rule with
@@ -334,77 +300,6 @@ and ctrexpr_chi e =
      eex (e1, s, ctrexpr_chi e2)
   | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
 
-						   
-(* (\* e MUST BE A TRANSLATION OF A PROPOSITION *\) *)
-(* let rec rmdblnegation e = *)
-(*   match e with *)
-(*   | Etrue -> sctrue ([enot (enot etrue)]) *)
-(*   | Efalse -> *)
-(*      sclnot (enot efalse, *)
-(* 	     scrnot (efalse, scfalse ([], efalse))) *)
-(*   | Eand (e1, e2, _) -> *)
-(*      scrand (e1, e2, *)
-(* 	     sccut (enot (enot e1), *)
-(* 		    scrnot (enot e1, *)
-(* 			    sclnot (enot e, *)
-(* 				    scrnot (e, *)
-(* 					    scland (e1, e2, sclnot (e1, scaxiom (e1, [e2])))))), *)
-(* 		    sclweak (enot (enot e), rmdblnegation e1)), *)
-(* 	     sccut (enot (enot e2), *)
-(* 		    scrnot (enot e2, *)
-(* 			    sclnot (enot e, *)
-(* 				    scrnot (e, *)
-(* 					    scland (e1, e2, sclnot (e2, scaxiom (e2, [e1])))))), *)
-(* 		    sclweak (enot (enot e), rmdblnegation e2))) *)
-(*   | Eimply (e1, e2, _) -> *)
-(*      scrimply (e1, e2, *)
-(* 	       sccut (enot (enot e2), *)
-(* 		      scrnot (enot e2, *)
-(* 			      sclnot (enot e, *)
-(* 				      scrnot (e, *)
-(* 					      sclnot (e2, *)
-(* 						      sclimply (e1, e2, *)
-(* 								scaxiom (e1, []), *)
-(* 								scaxiom (e2, [e1])))))), *)
-(* 		      sclweak (enot (enot e), sclweak (e1, rmdblnegation e2)))) *)
-(*   | Eall (x, ty, p, _) -> *)
-(*      let z = new_var () in *)
-(*      let pz = substitute [(x, z)] p in *)
-(*      scrall (e, z, *)
-(* 	     sccut (enot (enot pz), *)
-(* 		    scrnot (enot pz, *)
-(* 			    sclnot (enot e, *)
-(* 				    scrnot (e, *)
-(* 					    sclnot (pz, *)
-(* 						    sclall (e, z, scaxiom (pz, [])))))), *)
-(* 		    sclweak (enot (enot e), rmdblnegation pz))) *)
-(*   | Enot (e', _) -> *)
-(*      scrnot (e', *)
-(* 	     sclnot (enot (enot e'), *)
-(* 		     scrnot (enot e', *)
-(* 			     sclnot (e', scaxiom (e', []))))) *)
-(*   | Eequiv (e1, e2, _) -> *)
-(*      assert false    (\* Should have been unfolded earlier *\) *)
-(*   | Etau _ -> assert false                    (\* Should have been unfolded *\) *)
-(*   | Elam (e1, s, e2, _) -> *)
-(*      assert false *)
-(*   (\* Dk.mk_lam (trexpr e1) (Dk.mk_var s) (trexpr e2) *\) *)
-(*   | Emeta _ -> assert false                   (\* Meta are forbidden earlier *\)			     *)
-(*   | Evar _ *)
-(*   | Eapp _ *)
-(*   | Eor _ *)
-(*   | Eex _ -> assert false *)
-
-(* let rmnegation e proof = *)
-(*   (\* p_debug "e" [e]; *\) *)
-(*   (\* p_debug_proof "proof" proof; *\) *)
-(*   let g, c, rule = proof in *)
-(*   let gamma = rm (enot e) g in *)
-(*   let prf = *)
-(*     List.fold_left (fun prf h -> sclweak (h, prf)) (rmdblnegation e) gamma in *)
-(*   sccut (enot (enot e), *)
-(* 	 scrnot (enot e, proof), *)
-(* 	 prf) *)
 
 let new_tau =
   let r = ref 0 in
@@ -413,99 +308,136 @@ let new_tau =
     incr r;
     evar (sprintf "tau%d" n)
 
+						   
+(* not not p |-  ---->  |- not p *)
+let kleene_left_not p proof =
+  let g, c, rule = proof in
+  assert (equal c efalse);
+  assert (List.mem (enot (enot p)) g);
+  let gamma = rm (enot (enot p)) g in
+  scrnot (p,
+	  sccut (enot (enot p),
+		 scrnot (enot p,
+			 sclnot (p,
+				 scaxiom (p, gamma))),
+		 sclweak (p, proof)))
+
+(* not false |-  ---->  |- false *)
+let kleene_left_false proof =
+  let g, c, rule = proof in
+  assert (equal c efalse);
+  assert (List.mem (enot efalse) g);
+  let gamma = rm (enot efalse) g in
+  sccut (enot efalse,
+	 scrnot (efalse, scfalse (gamma, efalse)),
+	 proof)
+
+(* not true |-  ---->  |- true *)
+let kleene_left_true proof =
+  let g, c, rule = proof in
+  assert (equal c efalse);
+  assert (List.mem (enot etrue) g);
+  let gamma = rm (enot etrue) g in
+  sccut (enot (enot etrue),
+	 scrnot (enot etrue, proof),
+	 sclweak (enot (enot etrue), sctrue (gamma)))
+
+(* not (p and q) |-  ---->  not p |- *)
+let kleene_left_and_l p q proof =
+  let g, c, rule = proof in
+  assert (equal c efalse);
+  assert (List.mem (enot (eand (p, q))) g);
+  let gamma = rm (enot (eand (p, q))) g in
+  sccut (enot (eand (p, q)),
+	 (scrnot (eand (p, q),
+		  sclnot (p,
+			  scland (p, q,
+				  (scaxiom (p, q :: gamma)))))),
+	 sclweak (enot p, proof))
+
+(* not (p and q) |-  ---->  not q |- *)
+let kleene_left_and_r p q proof =
+  let g, c, rule = proof in
+  assert (equal c efalse);
+  assert (List.mem (enot (eand (p, q))) g);
+  let gamma = rm (enot (eand (p, q))) g in
+  sccut (enot (eand (p, q)),
+	 (scrnot (eand (p, q),
+		  sclnot (q,
+			  scland (p, q,
+				  (scaxiom (q, p :: gamma)))))),
+	 sclweak (enot q, proof))
+
+	
+(* not (p imply q) |-  ---->  p, not q |- *)
+let kleene_left_imply p q proof =
+  let g, c, rule = proof in
+  assert (equal c efalse);
+  assert (List.mem (enot (eimply (p, q))) g);
+  let gamma = rm (enot (eimply (p, q))) g in
+  sccut (enot (eimply (p, q)),
+	  scrnot (eimply (p, q),
+		  sclnot (q,
+			  sclimply (p, q,
+				    scaxiom (p, gamma),
+				    scaxiom (q, p :: gamma)))),
+	  sclweak (p, (sclweak (enot q, proof))))
+
+(* not (forall x p(x)) |-  ---->  not p(z) |- *)
+let kleene_left_forall ap z proof =
+  let x, p =
+    match ap with
+    | Eall (x, _, p, _) -> (x, p)
+    | _ -> assert false in
+  let pz = substitute [(x, z)] p in
+  let g, c, rule = proof in
+  assert (equal c efalse);
+  assert (List.mem (enot ap) g);
+  let gamma = rm (enot ap) g in
+  sccut (enot ap,
+	 scrnot (ap,
+		 sclnot (pz,
+			 sclall (ap, z, scaxiom (pz, gamma)))),
+	 sclweak (enot pz, proof))
+  
+	
 let rec not_phi_to_phi e proof =
   let g, c, rule = proof in
   let gamma = rm (enot (ctrexpr_phi e)) g in
   match e with
   | Evar _
   | Eapp _ ->
-     let e = enot e in
-     scrnot (e,
-	     sccut (enot (enot e),
-		    scrnot (enot e,
-			    sclnot (e,
-				    scaxiom (e, gamma))),
-		    sclweak (e, proof)))
+     kleene_left_not (enot e) proof
   | Efalse ->
-     sccut (enot efalse,
-	    scrnot (efalse, scfalse (gamma, efalse)),
-	    proof)
+     kleene_left_false proof
   | Etrue ->
-     sccut (enot (enot etrue),
-	    scrnot (enot etrue, proof),
-	    sclweak (enot (enot etrue), sctrue (gamma)))     
+     kleene_left_true proof
   | Enot (e, _) ->
-     let e = ctrexpr_chi e in
-     scrnot (e,
-	     sccut (enot (enot e),
-		    scrnot (enot e,
-			    sclnot (e,
-				    scaxiom (e, gamma))),
-		    sclweak (e, proof)))
+     kleene_left_not (ctrexpr_chi e) proof
   | Eand (e1, e2, _) ->
      let ce1 = ctrexpr_phi e1 in
      let ce2 = ctrexpr_phi e2 in
      let ce = eand (ce1, ce2) in
      scrand (ce1, ce2,
-	     not_phi_to_phi
-	       e1
-	       (sccut (enot ce,
-		       (scrnot (ce,
-				sclnot (ce1,
-					scland (ce1, ce2,
-						(scaxiom (ce1, ce2 :: gamma)))))),
-		       sclweak (enot ce1, proof))),
-	     not_phi_to_phi
-	       e2
-	       (sccut (enot ce,
-		       (scrnot (ce,
-				sclnot (ce2,
-					scland (ce1, ce2,
-						(scaxiom (ce2, ce1 :: gamma)))))),
-		       sclweak (enot ce2, proof))))
+	     not_phi_to_phi e1 (kleene_left_and_l ce1 ce2 proof),
+	     not_phi_to_phi e2 (kleene_left_and_r ce1 ce2 proof))
   | Eor (e1, e2, _) ->
-     let e = enot (ctrexpr_psi e) in
-     scrnot (e,
-	     sccut (enot (enot e),
-		    scrnot (enot e,
-			    sclnot (e,
-				    scaxiom (e, gamma))),
-		    sclweak (e, proof)))
+     kleene_left_not (enot (ctrexpr_psi e)) proof
   | Eimply (e1, e2, _) ->
      let ce1 = ctrexpr_chi e1 in
      let ce2 = ctrexpr_phi e2 in
      let ce = ctrexpr_phi e in
      scrimply (ce1, ce2,
-	       not_phi_to_phi
-		 e2
-		 (sccut (enot ce,
-			 scrnot (ce,
-				 sclnot (ce2,
-					 sclimply (ce1, ce2,
-						   scaxiom (ce1, gamma),
-						   scaxiom (ce2, ce1 :: gamma)))),
-			 sclweak (ce1, (sclweak (enot ce2, proof))))))
+	       not_phi_to_phi e2 (kleene_left_imply ce1 ce2 proof))
   | Eall (e1, s, e2, _) ->
      let z = new_tau () in
      let ez = substitute [(e1, z)] e2 in
      scrall (ctrexpr_phi e, z,
 	     not_phi_to_phi
 	       ez
-	       (let e = ctrexpr_phi e in
-		let ez = ctrexpr_phi ez in
-		sccut (enot e,
-		       scrnot (e,
-			       sclnot (ez,
-				      sclall (e, z, scaxiom (ez, gamma)))),
-		       sclweak (enot ez, proof))))
+	       (kleene_left_forall (ctrexpr_phi e) z proof))
   | Eex (e1, s, e2, _) ->
-     let e = enot (ctrexpr_psi e) in
-     scrnot (e,
-	     sccut (enot (enot e),
-		    scrnot (enot e,
-			    sclnot (e,
-				    scaxiom (e, gamma))),
-		    sclweak (e, proof)))
+     kleene_left_not (enot (ctrexpr_psi e)) proof
   | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
 
 let rec not_psi_to_phi e proof =
@@ -516,73 +448,29 @@ let rec not_psi_to_phi e proof =
   | Eapp _ ->
      scrnot (enot e, proof)
   | Efalse ->
-     sccut (enot efalse,
-	    scrnot (efalse, scfalse (gamma, efalse)),
-	    proof)
+     kleene_left_false proof
   | Etrue ->
-     sccut (enot (enot etrue),
-	    scrnot (enot etrue, proof),
-	    sclweak (enot (enot etrue), sctrue (gamma)))     
+     kleene_left_true proof
   | Enot (e, _) ->
-     let e = ctrexpr_chi e in
-     scrnot (e,
-	     sccut (enot (enot e),
-		    scrnot (enot e,
-			    sclnot (e,
-				    scaxiom (e, gamma))),
-		    sclweak (e, proof)))
+     kleene_left_not (ctrexpr_chi e) proof
   | Eand (e1, e2, _) ->
      let ce1 = ctrexpr_psi e1 in
      let ce2 = ctrexpr_psi e2 in
      let ce = eand (ce1, ce2) in
      scrand (ctrexpr_phi e1, ctrexpr_phi e2,
-	     not_psi_to_phi
-	       e1
-	       (sccut (enot ce,
-		       (scrnot (ce,
-				sclnot (ce1,
-					scland (ce1, ce2,
-						(scaxiom (ce1,
-							  ce2 :: gamma)))))),
-		       sclweak (enot (ce1), proof))),
-	     not_psi_to_phi
-	       e2
-	       (sccut (enot ce,
-		       (scrnot (ce,
-				sclnot (ce2,
-					scland (ce1, ce2,
-						(scaxiom (ce2,
-							  ce1 :: gamma)))))),
-		       sclweak (enot (ce2), proof))))
+	     not_psi_to_phi e1 (kleene_left_and_l ce1 ce2 proof),
+	     not_psi_to_phi e2 (kleene_left_and_r ce1 ce2 proof))
   | Eor (e1, e2, _) ->
      scrnot (enot (ctrexpr_psi e), proof)     
   | Eimply (e1, e2, _) ->
      let ce = ctrexpr_psi e in
      scrimply (ctrexpr_chi e1, ctrexpr_phi e2,
-	       not_psi_to_phi
-		 e2
-		 (let e1 = ctrexpr_chi e1 in
-		  let e2 = ctrexpr_psi e2 in
-		  sccut (enot ce,
-			 scrnot (ce,
-				 sclnot (e2,
-					 sclimply (e1, e2,
-						   scaxiom (e1, gamma),
-						   scaxiom (e2, e1 :: gamma)))),
-			 sclweak (e1, (sclweak (enot e2, proof))))))
+	       not_psi_to_phi e2 (kleene_left_imply (ctrexpr_chi e1) (ctrexpr_psi e2) proof))
   | Eall (e1, s, e2, _) ->
      let z = new_tau () in
      let ez = substitute [(e1, z)] e2 in
      scrall (ctrexpr_phi e, z,
-	     not_phi_to_phi
-	       ez
-	       (let e = ctrexpr_phi e in
-		let ez = ctrexpr_phi ez in
-		sccut (enot e,
-		       scrnot (e,
-			       sclnot (ez,
-				      sclall (e, z, scaxiom (ez, gamma)))),
-		       sclweak (enot ez, proof))))
+	     not_phi_to_phi ez (kleene_left_forall (ctrexpr_phi e) z proof))
   | Eex (e1, s, e2, _) ->
      scrnot (enot (ctrexpr_psi e), proof)
   | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
