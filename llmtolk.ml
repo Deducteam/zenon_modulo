@@ -341,31 +341,31 @@ let kleene_left_true proof =
 	 scrnot (enot etrue, proof),
 	 sclweak (enot (enot etrue), sctrue (gamma)))
 
-(* not (p and q) |-  ---->  not p |- *)
-let kleene_left_and_l p q proof =
-  let g, c, rule = proof in
-  assert (equal c efalse);
-  assert (List.mem (enot (eand (p, q))) g);
-  let gamma = rm (enot (eand (p, q))) g in
-  sccut (enot (eand (p, q)),
-	 (scrnot (eand (p, q),
-		  sclnot (p,
-			  scland (p, q,
-				  (scaxiom (p, q :: gamma)))))),
-	 sclweak (enot p, proof))
+(* (\* not (p and q) |-  ---->  not p |- *\) *)
+(* let kleene_left_and_l p q proof = *)
+(*   let g, c, rule = proof in *)
+(*   assert (equal c efalse); *)
+(*   assert (List.mem (enot (eand (p, q))) g); *)
+(*   let gamma = rm (enot (eand (p, q))) g in *)
+(*   sccut (enot (eand (p, q)), *)
+(* 	 (scrnot (eand (p, q), *)
+(* 		  sclnot (p, *)
+(* 			  scland (p, q, *)
+(* 				  (scaxiom (p, q :: gamma)))))), *)
+(* 	 sclweak (enot p, proof)) *)
 
-(* not (p and q) |-  ---->  not q |- *)
-let kleene_left_and_r p q proof =
-  let g, c, rule = proof in
-  assert (equal c efalse);
-  assert (List.mem (enot (eand (p, q))) g);
-  let gamma = rm (enot (eand (p, q))) g in
-  sccut (enot (eand (p, q)),
-	 (scrnot (eand (p, q),
-		  sclnot (q,
-			  scland (p, q,
-				  (scaxiom (q, p :: gamma)))))),
-	 sclweak (enot q, proof))
+(* (\* not (p and q) |-  ---->  not q |- *\) *)
+(* let kleene_left_and_r p q proof = *)
+(*   let g, c, rule = proof in *)
+(*   assert (equal c efalse); *)
+(*   assert (List.mem (enot (eand (p, q))) g); *)
+(*   let gamma = rm (enot (eand (p, q))) g in *)
+(*   sccut (enot (eand (p, q)), *)
+(* 	 (scrnot (eand (p, q), *)
+(* 		  sclnot (q, *)
+(* 			  scland (p, q, *)
+(* 				  (scaxiom (q, p :: gamma)))))), *)
+(* 	 sclweak (enot q, proof)) *)
 
 	
 (* not (p imply q) |-  ---->  p, not q |- *)
@@ -417,6 +417,9 @@ let rec not_phi_to_phi e proof =
      let ce1 = ctrexpr_phi e1 in
      let ce2 = ctrexpr_phi e2 in
      let ce = eand (ce1, ce2) in
+     (* scrand (ce1, ce2, *)
+     (*         not_psi_to_phi e1 (kleene_left_and_l ce1 ce2 proof), *)
+     (*         not_psi_to_phi e2 (kleene_left_and_r ce1 ce2 proof)) *)
      sccut (enot (enot ce),
 	    scrnot (enot ce,
 		    proof),
@@ -471,6 +474,9 @@ let rec not_psi_to_phi e proof =
      let ce1 = ctrexpr_psi e1 in
      let ce2 = ctrexpr_psi e2 in
      let ce = eand (ce1, ce2) in
+     (* scrand (ctrexpr_phi e1, ctrexpr_phi e2, *)
+     (*         not_psi_to_phi e1 (kleene_left_and_l ce1 ce2 proof), *)
+     (*         not_psi_to_phi e2 (kleene_left_and_r ce1 ce2 proof)) *)
      sccut (enot (enot ce),
 	    scrnot (enot ce,
 		    proof),
