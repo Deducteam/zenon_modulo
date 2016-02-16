@@ -9,8 +9,7 @@ type lkrule =
 | SCeqsym of expr * expr
 | SCeqprop of expr * expr
 | SCeqfunc of expr * expr
-| SClweak of expr list * lkproof
-| SCrweak of expr * lkproof
+| SCweak of expr list * expr option * lkproof
 | SClcontr of expr * lkproof
 | SCcut of expr * lkproof * lkproof
 | SCland of expr * expr * lkproof
@@ -64,41 +63,53 @@ let rec rm a list =
   | x :: list -> x :: (rm a list)
   | [] -> assert false
 		 
-let sclweak (w, proof) =
+let scweak (w, o, proof) =
   let g, c, rule = proof in
-  match w with
-  | [] -> proof
-  | _ ->
-     match rule with
-     | SClweak (l, prf) ->
-	w @ g, c, SClweak (w@l, prf)
-     | _ -> w @ g, c, SClweak (w, proof)
+  match w, o with
+  | [], None -> proof
+  | _, None ->
+     begin
+       match rule with
+       | SCweak (l, r, prf) ->
+	  w @ g, c, SCweak (w @ l, r, prf)
+       | _ -> w @ g, c, SCweak (w, None, proof)
+     end
+  | _, Some e ->
+     assert (not (equal e efalse));
+     assert (equal c efalse);
+     begin
+       match rule with
+       | SCweak (l, None, prf) ->
+	  w @ g, e, SCweak (w@l, o, prf)
+       | _ -> w @ g, e, SCweak (w, o, proof)
+     end
+
 let scaxiom (e, g) =
-  sclweak (g, ([e], e, SCaxiom e))
+  scweak (g, None, ([e], e, SCaxiom e))
 let scfalse (g, e) =
-  sclweak (g, ([efalse], e, SCfalse))
+  if equal e efalse
+  then 
+    scweak (g, None, ([efalse], efalse, SCfalse))
+  else
+    scweak (g, Some e, ([efalse], efalse, SCfalse))
 let sctrue (g) =
-  sclweak (g, ([], etrue, SCtrue))
+  scweak (g, None, ([], etrue, SCtrue))
 let sceqref (a, g) =
-  sclweak (g, ([], eapp ("=", [a; a]), SCeqref (a)))
+  scweak (g, None, ([], eapp ("=", [a; a]), SCeqref (a)))
 let sceqsym (a, b, g) =
-  sclweak (g, ([eapp ("=", [a; b])], eapp ("=", [b; a]), SCeqsym (a, b)))
+  scweak (g, None, ([eapp ("=", [a; b])], eapp ("=", [b; a]), SCeqsym (a, b)))
 let sceqprop (e1, e2, g) =
   match e1, e2 with
   | Eapp (p, ts, _), Eapp (q, us, _) when p = q ->
-    sclweak (g, (e1 :: List.map2 (fun t u -> eapp ("=", [t; u])) ts us, e2,
+    scweak (g, None, (e1 :: List.map2 (fun t u -> eapp ("=", [t; u])) ts us, e2,
 		 SCeqprop (e1, e2)))
   | _, _ -> assert false
 let sceqfunc (e1, e2, g) =
   match e1, e2 with
   | Eapp (p, ts, _), Eapp (q, us, _) when p = q ->
-    sclweak (g, (List.map2 (fun t u -> eapp ("=", [t; u])) ts us,
+    scweak (g, None, (List.map2 (fun t u -> eapp ("=", [t; u])) ts us,
 		 eapp ("=", [e1; e2]), SCeqfunc (e1, e2)))
   | _, _ -> assert false
-let scrweak (e, proof) =
-  let g, c, rule = proof in
-  assert (equal c efalse);
-  g, e, SCrweak (e, proof)
 let sclcontr (e, proof) =
   let g, c, rule = proof in
   assert (List.mem e g);
@@ -202,8 +213,7 @@ let hypsofrule lkrule =
   | SCeqsym (e1, e2) -> []
   | SCeqprop (e1, e2) -> []
   | SCeqfunc (e1, e2) -> []
-  | SClweak (e, proof) -> [proof]
-  | SCrweak (e, proof) -> [proof]
+  | SCweak (l, o, proof) -> [proof]
   | SClcontr (e, proof) -> [proof]
   | SCcut (e, proof1, proof2) -> [proof1; proof2]
   | SCland (e1, e2, proof) -> [proof]
@@ -232,8 +242,7 @@ let applytohyps f lkproof =
   | SCeqsym (e1, e2) -> g, c, SCeqsym (e1, e2)
   | SCeqprop (e1, e2) -> g, c, SCeqprop (e1, e2)
   | SCeqfunc (e1, e2) -> g, c, SCeqfunc (e1, e2)
-  | SClweak (e, proof) -> sclweak (e, f proof)
-  | SCrweak (e, proof) -> scrweak (e, f proof)
+  | SCweak (l, o, proof) -> scweak (l, o, f proof)
   | SClcontr (e, proof) -> sclcontr (e, f proof)
   | SCcut (e, proof1, proof2) ->
     sccut (e, f proof1, f proof2)

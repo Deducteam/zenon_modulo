@@ -39,7 +39,7 @@ let sceqpropbis (e1, e2, proofs, gamma) =
 	(fun (l, prf) eq proof ->
 	  assert (List.mem eq l);
 	  let hyps = rm eq l in
-	  hyps, sccut (eq, sclweak (hyps, proof), prf))
+	  hyps, sccut (eq, scweak (hyps, None, proof), prf))
 	(e1 :: eqs, prf) eqs proofs in
     proof
   | _, _ -> assert false
@@ -54,7 +54,7 @@ let sceqfuncbis (e1, e2, proofs, gamma) =
 	(fun (l, prf) eq proof ->
 	  assert (List.mem eq l);
 	  let hyps = rm eq l in
-	  hyps, sccut (eq, sclweak (hyps, proof), prf))
+	  hyps, sccut (eq, scweak (hyps, None, proof), prf))
 	(eqs, prf) eqs proofs in
     proof
   | _, _ -> assert false
@@ -165,8 +165,8 @@ let rec rmcongruence s x e a b =
       substitute [(x, a)] e1, substitute [(x, a)] e2,
       scrand (
 	substitute [(x, b)] e1, substitute [(x, b)] e2,
-	sclweak ([substitute [(x, b)] e2], rmcongruence s x e1 a b),
-	sclweak ([substitute [(x, b)] e1], rmcongruence s x e2 a b)))
+	scweak ([substitute [(x, b)] e2], None, rmcongruence s x e1 a b),
+	scweak ([substitute [(x, b)] e1], None, rmcongruence s x e2 a b)))
   | Eor (e1, e2, _) ->
     sclor (
       substitute [(x, a)] e1, substitute [(x, a)] e2,
@@ -182,7 +182,7 @@ let rec rmcongruence s x e a b =
       sclimply (
 	substitute [(x, a)] e1, substitute [(x, a)] e2,
 	rmcongruence (not s) x e1 b a,
-	sclweak ([substitute [(x, b)] e1], rmcongruence s x e2 a b)))
+	scweak ([substitute [(x, b)] e1], None, rmcongruence s x e2 a b)))
   | Enot (e0, _) ->
     scrnot (
       substitute [(x, b)] e0,
@@ -295,7 +295,7 @@ let kleene_not_not p proof =
 		    scrnot (enot p,
 			    sclnot (p,
 				    scaxiom (p, gamma))),
-		    sclweak ([p], proof)))
+		    scweak ([p], None, proof)))
 
 (* not false |-  ---->  |- false *)
 let kleene_not_false proof =
@@ -323,7 +323,7 @@ let kleene_not_true proof =
   | _ ->
      sccut (enot (enot etrue),
 	    scrnot (enot etrue, proof),
-	    sclweak ([enot (enot etrue)], sctrue (gamma)))
+	    scweak ([enot (enot etrue)], None, sctrue (gamma)))
 
 (* not (p and q) |-  ---->  (not p |-, not q |-) *)
 let kleene_not_and p q proof =
@@ -362,7 +362,7 @@ let kleene_not_imply p q proof =
 				 sclimply (p, q,
 					   scaxiom (p, gamma),
 					   scaxiom (q, p :: gamma)))),
-		 sclweak ([p; enot q], proof))
+		 scweak ([p; enot q], None, proof))
      end
   | _ ->
      sccut (enot (eimply (p, q)),
@@ -371,7 +371,7 @@ let kleene_not_imply p q proof =
 			    sclimply (p, q,
 				      scaxiom (p, gamma),
 				      scaxiom (q, p :: gamma)))),
-	    sclweak ([p; enot q], proof))
+	    scweak ([p; enot q], None, proof))
 
 (* not (forall x p(x)) |-  ---->  not p(z) |- *)
 let kleene_not_forall ap proof =
@@ -464,7 +464,7 @@ let rec not_phi_to_phi e proof =
 			    scrnot (ce,
 				    sclnot (cez,
 					    sclall (ce, z, scaxiom (cez, gamma)))),
-			    sclweak ([enot cez], proof))))
+			    scweak ([enot cez], None, proof))))
      end
   | Eex (e1, s, e2, _) ->
      kleene_not_not (enot (ctrexpr_psi e)) proof
@@ -538,7 +538,7 @@ let rec not_psi_to_phi e proof =
 			    scrnot (ce,
 				    sclnot (cez,
 					    sclall (ce, z, scaxiom (cez, gamma)))),
-			    sclweak ([enot cez], proof))))
+			    scweak ([enot cez], None, proof))))
      end
   | Eex (e1, s, e2, _) ->
      scrnot (enot (ctrexpr_psi e), proof)
@@ -594,8 +594,8 @@ let derive_imply p q proof1 proof2 =
             scrnot (p,
                     sclimply (p, q,
 			      scaxiom (p, gamma),
-			      sclweak ([p], proof2))),
-            sclweak ([eimply (p, q)], proof1))
+			      scweak ([p], None, proof2))),
+            scweak ([eimply (p, q)], None, proof1))
 	     
 let derive_not_and p q proof1 proof2 =
   let g1, c1, rule1 = proof1 in
@@ -622,8 +622,8 @@ let derive_not_and p q proof1 proof2 =
 						scrand (p, q,
 							scaxiom (p, q :: gamma),
 							scaxiom (q, p :: gamma)))),
-				sclweak ([p; enot (eand (p, q))], proof2))),
-		 sclweak ([enot (eand (p, q))], proof1))
+				scweak ([p; enot (eand (p, q))], None, proof2))),
+		 scweak ([enot (eand (p, q))], None, proof1))
      end
   | _ ->
      sccut (enot p,
@@ -634,8 +634,8 @@ let derive_not_and p q proof1 proof2 =
 					   scrand (p, q,
 						   scaxiom (p, q :: gamma),
 						   scaxiom (q, p :: gamma)))),
-			   sclweak ([p; enot (eand (p, q))], proof2))),
-	    sclweak ([enot (eand (p, q))], proof1))
+			   scweak ([p; enot (eand (p, q))], None, proof2))),
+	    scweak ([enot (eand (p, q))], None, proof1))
 	
 let derive_not_or p q proof =
   let g, c, rule = proof in
@@ -653,7 +653,7 @@ let derive_not_or p q proof =
 			sclnot (eor (p, q),
 				scrorr(p, q,
 				       scaxiom (q, enot p :: gamma)))),
-		sclweak ([enot (eor (p, q))], proof)))
+		scweak ([enot (eor (p, q))], None, proof)))
 
 let derive_not_imply p q proof =
   let g, c, rule = proof in
@@ -671,7 +671,7 @@ let derive_not_imply p q proof =
 		    sclnot (eimply (p, q),
 			    scrimply (p, q, scaxiom (q, p :: gamma)))),
 	    sclnot (eimply (p, q),
-		    scrimply (p, q, scrweak (q, proof))))
+		    scrimply (p, q, scweak ([], Some q, proof))))
 
 let derive_not_ex ep t proof =
   let x, p =
@@ -693,7 +693,7 @@ let derive_not_ex ep t proof =
 		    sclnot (ep,
 			    screx (ep, t,
 				   scaxiom (pt, gamma)))),
-	    sclweak ([enot ep], proof))
+	    scweak ([enot ep], None, proof))
 
 (* let rec check_constructive_aux p proof = *)
 (*   let g, c, rule = proof in *)
@@ -869,7 +869,7 @@ let xlltolkrule distincts rule hyps gamma =
        List.fold_left2
   	 (fun (l, prf) eq prfneq ->
   	  let hyps = rm eq l in
-	  let wprf = sclweak (hyps, prfneq) in
+	  let wprf = scweak (hyps, None, prfneq) in
   	  hyps, sccut (enot eq,
 		       scrnot (eq, prf),
 		       wprf))
@@ -884,7 +884,7 @@ let xlltolkrule distincts rule hyps gamma =
        List.fold_left2
   	 (fun (l, prf) eq prfneq ->
   	  let hyps = rm eq l in
-	  let wprf = sclweak (hyps, prfneq) in
+	  let wprf = scweak (hyps, None, prfneq) in
 	  hyps, sccut (enot eq,
 		       scrnot (eq, prf),
 		       wprf))
@@ -893,13 +893,13 @@ let xlltolkrule distincts rule hyps gamma =
   | RcongruenceLR (Elam (x, _, e, _) as p, a, b), [proof] ->
      let cpa, cpb, ce = ctrexpr_chi (apply p a), ctrexpr_chi (apply p b), ctrexpr_chi e in
      sccut (cpb,
-  	    sclweak (gamma, rmcongruence true x ce a b),
-  	    sclweak ([cpa; eapp ("=", [a; b])], proof))
+  	    scweak (gamma, None, rmcongruence true x ce a b),
+  	    scweak ([cpa; eapp ("=", [a; b])], None, proof))
   | RcongruenceRL (Elam (x, _, e, _) as p, a, b), [proof] ->
      let cpa, cpb, ce = ctrexpr_chi (apply p a), ctrexpr_chi (apply p b), ctrexpr_chi e in     
      sccut (cpb,
-  	    sclweak (gamma, rmcongruence false x ce a b),
-  	    sclweak ([cpa; eapp ("=", [b; a])], proof))
+  	    scweak (gamma, None, rmcongruence false x ce a b),
+  	    scweak ([cpa; eapp ("=", [b; a])], None, proof))
   | Rextension (
   	"", "zenon_notallex", [Elam (x, t, p, _)], [ap], [[ep]]), [proof] ->
      assert false;
@@ -956,7 +956,7 @@ let rec lltolkrule distincts proof gamma =
       (List.map (List.rev_append list) hypslist) in
   let contrs, prehyps = List.split contrshyps in (* result with classical connectives *)
   let maincontr, remainders = union contrs in (* result with classical connectives *)
-  let hyps = List.map2 (fun list proof -> sclweak (list, proof)) remainders prehyps in
+  let hyps = List.map2 (fun list proof -> scweak (list, None, proof)) remainders prehyps in
   (* result with classical connectives *)
   let preproof =
     xlltolkrule distincts proof.rule hyps

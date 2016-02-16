@@ -233,8 +233,12 @@ struct
        (* 	    (trproof (lkrule, efalse, (enot e, dkvar) :: gamma))) *)
     | Lkproof.SClcontr (e, lkrule) ->
        trproof (lkrule, goal, gamma)
-    | Lkproof.SCrweak (e, lkrule) ->
-       Dk.mk_app2 (trproof (lkrule, efalse, gamma)) (trexpr e)
+    | Lkproof.SCweak (_, o, lkrule) ->
+       begin
+	 match o with
+	 | None -> trproof (lkrule, goal, gamma)
+	 | Some e -> Dk.mk_app2 (trproof (lkrule, efalse, gamma)) (trexpr e)
+       end
     | Lkproof.SCeqfunc (Eapp (p, ts, _), Eapp (_, us, _)) ->
        let pred = new_prop () in
        let dkpred = Dk.mk_var pred in
@@ -280,8 +284,6 @@ struct
                         (Dk.mk_prf (trexpr hyp))
                         (trproof (proof, efalse, (hyp, dkvar) :: gamma)) ; trhyp conc]
          )
-    | Lkproof.SClweak (e, lkrule) ->
-       trproof (lkrule, goal, gamma)
     | _ -> assert false
 
 end
