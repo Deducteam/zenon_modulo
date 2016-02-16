@@ -57,5 +57,5 @@ pour le temps aggrégé de dkcheck (attention modifier zenon error et dkcheck_ex
 pour une moyenne:
      echo "x / y" | bc
 
-pour sélectionner :
+pour sélectionner : 
      for f in `cat statistics_2 | grep -v "zenon_exit_status 0.*dkcheck_exit_status 0" | cut -d ';' -f 1 | cut -d ' ' -f 2`; do cp $f tptp/REMAINING ; done;
