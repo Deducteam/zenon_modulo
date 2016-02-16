@@ -38,7 +38,14 @@ bench du 03/05/2015:
 - temps total en succès: 270.57 (moyenne 0.23)
 - 1170 vérifiées par dedukti (100% de réussite)
 
+temps avant changement de weakening sur 818 (REMAINING):
+      avant : 22.96
+      après : 22.52
+      
 commandes pratiques :
+
+pour le temps de zenon :
+     cat statistics_1 | cut -d ';' -f 3 | cut -d ' ' -f 3 | paste -s -d + | bc
 
 pour tester test.p:
      make && ./zenon -q -p0 -odedukti -itptp test.p | tee >(dkcheck -stdin)
