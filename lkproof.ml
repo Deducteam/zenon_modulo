@@ -9,7 +9,7 @@ type lkrule =
 | SCeqsym of expr * expr
 | SCeqprop of expr * expr
 | SCeqfunc of expr * expr
-| SClweak of expr * lkproof
+| SClweak of expr list * lkproof
 | SCrweak of expr * lkproof
 | SClcontr of expr * lkproof
 | SCcut of expr * lkproof * lkproof
@@ -86,9 +86,11 @@ let scrweak (e, proof) =
   let g, c, rule = proof in
   assert (equal c efalse);
   g, e, SCrweak (e, proof)
-let sclweak (e, proof) =
+let sclweak (w, proof) =
   let g, c, rule = proof in
-  e :: g, c, SClweak (e, proof)
+  match rule with
+  | SClweak (l, prf) -> w @ g, c, SClweak (w @ l, proof)
+  | _ -> w @ g, c, SClweak (w, proof)
 let sclcontr (e, proof) =
   let g, c, rule = proof in
   assert (List.mem e g);
