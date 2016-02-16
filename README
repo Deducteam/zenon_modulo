@@ -2,6 +2,9 @@
 
 - lorsque la preuve est non imprimable en ll/ml/coq, elle est rejetée
 
+- problèmes pour obtenir |- |A| à partir de ~|A| |- : la coupure et la contraction
+  RESOLU PAR BAR INDUCTION
+
 - gestion des axiomes et hypothèses:
   - axiomes de l'égalité:
     - si ces règles deviennent des règles sans prémices supplémentaires (a=b|-b=a, ec) (solution retenue pour l'instant),
