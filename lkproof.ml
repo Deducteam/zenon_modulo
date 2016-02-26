@@ -114,7 +114,15 @@ let sclcontr (e, proof) =
   let g, c, rule = proof in
   assert (List.mem e g);
   assert (List.mem e (rm e g));
-  rm e g, c, SClcontr (e, proof)
+  (* match rule with *)
+  (* | SCweak (l, o, prf) -> *)
+  (*    if List.mem e l *)
+  (*    then *)
+  (*      begin *)
+  (*      end *)
+  (*    else  *)
+  (* | _ -> *)
+     rm e g, c, SClcontr (e, proof)
 let sccut (e, proof1, proof2) =
   let (g1, c1, rule1) = proof1 in
   let (g2, c2, rule2) = proof2 in

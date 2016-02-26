@@ -23,10 +23,11 @@ let rec union lists =
       then
 	if List.mem x remainder
 	then main, (rm x remainder) :: remainders
-	else main, remainder :: remainders
+	else (assert false;main, remainder :: remainders)
       else
-	x :: main,
-	remainder :: (List.map (fun xs -> x :: xs) remainders)
+	(assert (not (List.mem x remainder));
+	 x :: main,
+	remainder :: (List.map (fun xs -> x :: xs) remainders))
     | _ -> assert false
 
 let sceqpropbis (e1, e2, proofs, gamma) =
@@ -951,19 +952,17 @@ let rec lltolkrule distincts proof gamma =
       else
 	e :: cs, es)
       ([], gamma) conclist in
-  let contrshyps = 		(* result with classical connectives *)
+  let contrshyps =
     List.map2 (lltolkrule distincts) proof.hyps
       (List.map (List.rev_append list) hypslist) in
-  let contrs, prehyps = List.split contrshyps in (* result with classical connectives *)
-  let maincontr, remainders = union contrs in (* result with classical connectives *)
+  let contrs, prehyps = List.split contrshyps in
+  let maincontr, remainders = union contrs in
   let hyps = List.map2 (fun list proof -> scweak (list, None, proof)) remainders prehyps in
-  (* result with classical connectives *)
   let preproof =
     xlltolkrule distincts proof.rule hyps
 		(maincontr@(List.map ctrexpr_chi list))
 		(* (maincontr@list) *)
   in
-  (* Lkproof.p_debug_proof "coucou" preproof;   *)
   (* Now try to contract requested contrs *)
   let cconclist = List.map ctrexpr_chi conclist in
   let (newlist, newproof) =
@@ -973,20 +972,67 @@ let rec lltolkrule distincts proof gamma =
       then cs, sclcontr (c, prf)
       else c :: cs, prf)
     (List.map ctrexpr_chi newcontr, preproof) maincontr in
-  if !Globals.debug_flag then (
-    (* Display them *)
-    Printf.eprintf
-      "\n\nlltolkrule: LLproof: (%a),\n"
-      (fun oc -> Print.llproof (Print.Chan oc))
-      [{name="mytho"; params = []; proof = proof}];
-    Lkproof.p_debug "Gamma = " gamma;
-    if newlist = [] then
-      Printf.eprintf "No remaining formula to prove."
-    else
-      Lkproof.p_debug "Remaining formulae to prove:" newlist;
-    (* Lkproof.p_debug "\nNew proof:" newproof; *)
-    Printf.eprintf "lltolkrule: DONE\n\n");
+  (* if !Globals.debug_flag then ( *)
+  (*   (\* Display them *\) *)
+  (*   Printf.eprintf *)
+  (*     "\n\nlltolkrule: LLproof: (%a),\n" *)
+  (*     (fun oc -> Print.llproof (Print.Chan oc)) *)
+  (*     [{name="mytho"; params = []; proof = proof}]; *)
+  (*   Lkproof.p_debug "Gamma = " gamma; *)
+  (*   if newlist = [] then *)
+  (*     Printf.eprintf "No remaining formula to prove." *)
+  (*   else *)
+  (*     Lkproof.p_debug "Remaining formulae to prove:" newlist; *)
+  (*   (\* Lkproof.p_debug "\nNew proof:" newproof; *\) *)
+  (*   Printf.eprintf "lltolkrule: DONE\n\n"); *)
   (newlist, newproof)
+		
+(* merge [l_i] = Merge [l_i], [Merge[l_i]\l_j]_j*)
+(* length (snd(merge l)) = length l *)
+let rec merge lists =
+  match lists with
+  | [] -> [], []
+  | [list] -> list, [[]]
+  | [] :: lists ->
+    let main, remainders = merge lists in
+    main, main :: remainders
+  | (x :: l) :: lists ->
+    let main, remainders = merge (l :: lists) in
+    match remainders with
+    | remainder :: remainders ->
+      if List.mem x remainder
+      then
+	main, (rm x remainder) :: remainders
+      else
+	x :: main, remainder :: (List.map (fun xs -> x :: xs) remainders)
+    | _ -> assert false
+
+let rec lltolkcheck proof =
+  let hypslist, conclist = hypstoadd proof.rule in
+  (* list = gamma - (conclist inter gamma) *)
+  (* newcontr = conclist - (conclist inter gamma) *)
+  (* newcontr : list of things to be contracted later *)
+  let pregammalist = List.map lltolkcheck proof.hyps in
+  let gammalist =
+    List.map2
+      (fun g h ->
+       List.fold_left
+	 (fun g hyp ->
+	  if List.mem hyp g
+	  then rm hyp g
+	  else g)
+	 g h)
+      pregammalist hypslist in
+  let gamma, _ = merge gammalist in
+  conclist@gamma
+
+
+let rec lltolkcheckbis proof e =
+  if List.for_all (fun prf -> lltolkcheckbis prf e) proof.hyps 
+  then true
+  else
+    let hypslist, conclist = hypstoadd proof.rule in
+    List.mem e conclist
 
 (* Check that the list of remaining formulae to prove l is empty.
    Print it otherwise *)
@@ -995,16 +1041,33 @@ let check_empty_remaining_proofs l =
     Lkproof.p_debug "Error while translating from LL to LK, : " l;
     assert false
   )
+			  
 
 let rec lltolk env proof goal righthandside contextoutput =
-  let lkproof = match righthandside with
-    | true ->
-       let l, lkproof = lltolkrule env.distincts proof (enot goal :: env.hypotheses) in
-       check_empty_remaining_proofs l; (* maincontr subset conclist subset gamma *) lkproof
-    | false ->
-       (* does not happen ? *)
-       let l, lkproof = lltolkrule env.distincts proof env.hypotheses in
-       check_empty_remaining_proofs l; lkproof in
+  assert righthandside;
+  let l, lkproof = lltolkrule env.distincts proof (enot goal :: env.hypotheses) in
+  check_empty_remaining_proofs l;
+  
+  (* let pregamma = lltolkcheck proof in *)
+  (* let contrs = *)
+  (*   List.fold_left *)
+  (*     (fun g hyp -> *)
+  (*      if List.mem hyp g *)
+  (*      then rm hyp g *)
+  (*      else g) pregamma (enot goal :: env.hypotheses) in *)
+  (* List.iter (fun e -> assert (lltolkcheckbis proof e)) contrs;  *)
+  (* let gamma = *)
+  (*   List.fold_left *)
+  (*     (fun g hyp -> *)
+  (*      rm hyp g) l (enot goal :: contrs) in *)  
+  (* assert (List.for_all *)
+  (* 	    (fun e -> *)
+  (* 	     match e with *)
+  (* 	     | Eall _ -> true *)
+  (* 	     | Enot (Eex _, _) -> true *)
+  (* 	     | _ -> Lkproof.p_debug "" [e]; false) *)
+  (* 	    contrs); *)
+  
   let lkproof2 = not_psi_to_phi goal lkproof in
   let _, lkproof3 =
     List.fold_left
@@ -1013,3 +1076,219 @@ let rec lltolk env proof goal righthandside contextoutput =
        scrimply (stmt, conc, rule))
       (ctrexpr_phi goal, lkproof2) (List.map ctrexpr_chi env.hypotheses)
   in lkproof3
+
+
+let rec check_first_order_right p =
+  match p with
+  | Evar _ | Eapp _
+  | Etrue ->
+     ()
+  | Efalse ->
+     ()
+  | Enot (e, _) ->
+     assert false
+  | Eand (e1, e2, _) ->
+     check_first_order_right e1;
+     check_first_order_right e2
+  | Eor (e1, e2, _) ->
+     check_first_order_right e1;
+     check_first_order_right e2
+  | Eimply (e1, e2, _) ->
+     assert false
+  | Eall (e1, s, e2, _) ->
+     check_first_order_right e2
+  | Eex (e1, s, e2, _) ->
+     check_first_order_right e2     
+  | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
+
+let rec check_first_order_left p =
+  match p with
+  | Evar _ | Eapp _
+  | Etrue ->
+     ()
+  | Efalse ->
+     ()
+  | Enot (e, _) ->
+     check_first_order_right e
+  | Eand (e1, e2, _) ->
+     check_first_order_left e1;
+     check_first_order_left e2
+  | Eor (e1, e2, _) ->
+     assert false
+  | Eimply (e1, e2, _) ->
+     check_first_order_right e1;
+     check_first_order_left e2
+  | Eall (e1, s, e2, _) ->
+     check_first_order_left e2
+  | Eex (e1, s, e2, _) ->
+     check_first_order_left e2
+  | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
+						   
+let rec check_constructive_right_aux p =
+  check_first_order_right p
+
+let rec check_constructive_left_aux p =
+  check_first_order_left p
+						   
+let rec check_constructive_left p =
+  match p with
+  | Evar _ | Eapp _
+  | Etrue ->
+     check_constructive_left_aux p;
+  | Efalse ->
+     check_constructive_left_aux p;
+  | Enot (e, _) ->
+     check_constructive_left_aux p;
+  | Eand (e1, e2, _) ->
+     check_constructive_left e1;
+     check_constructive_left e2
+  | Eor (e1, e2, _) ->
+     check_constructive_left e1;
+     check_constructive_left e2
+  | Eimply (e1, e2, _) ->
+     check_constructive_left_aux p
+  | Eall (e1, s, e2, _) ->
+     check_constructive_left_aux p
+  | Eex (e1, s, e2, _) ->
+     check_constructive_left e2
+  | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
+						   
+let rec check_constructive_right p =
+  match p with
+  | Evar _ | Eapp _
+  | Etrue ->
+     check_constructive_right_aux p
+  | Efalse ->
+     check_constructive_right_aux p
+  | Enot (e, _) ->
+     check_constructive_left e
+  | Eand (e1, e2, _) ->
+     check_constructive_right e1;
+     check_constructive_right e2
+  | Eor (e1, e2, _) ->
+     check_constructive_right_aux p
+  | Eimply (e1, e2, _) ->
+     check_constructive_left e1;
+     check_constructive_right e2
+  | Eall (e1, s, e2, _) ->
+     check_constructive_right e2
+  | Eex (e1, s, e2, _) ->
+     check_constructive_right_aux p
+  | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
+
+       
+(* let rec check_phi e = *)
+(*   match e with *)
+(*   | Evar _ *)
+(*   | Eapp _ -> *)
+(*      assert false *)
+(*   | Etrue *)
+(*   | Efalse -> *)
+(*      () *)
+(*   | Enot (e, _) -> *)
+(*      check_chi e *)
+(*   | Eand (e1, e2, _) -> *)
+(*      check_phi e1; check_phi e2 *)
+(*   | Eor (e1, e2, _) -> *)
+(*      assert false *)
+(*   | Eimply (e1, e2, _) -> *)
+(*      check_chi e1; check_phi e2 *)
+(*   | Eall (e1, s, e2, _) -> *)
+(*      check_phi e2 *)
+(*   | Eex (e1, s, e2, _) -> *)
+(*      assert false *)
+(*   | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false *)
+						   
+(* and check_psi e = *)
+(*   match e with *)
+(*   | Evar _ *)
+(*   | Eapp _ -> *)
+(*      () *)
+(*   | Etrue *)
+(*   | Efalse -> *)
+(*      () *)
+(*   | Enot (e, _) -> *)
+(*      check_chi e *)
+(*   | Eand (e1, e2, _) -> *)
+(*      check_psi e1; check_psi e2 *)
+(*   | Eor (e1, e2, _) -> *)
+(*      check_psi e1; check_psi e2 *)
+(*   | Eimply (e1, e2, _) -> *)
+(*      check_chi e1; check_psi e2 *)
+(*   | Eall (e1, s, e2, _) -> *)
+(*      check_phi e2 *)
+(*   | Eex (e1, s, e2, _) -> *)
+(*      check_psi e2 *)
+(*   | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false *)
+						   
+(* and check_chi e = *)
+(*   match e with *)
+(*   | Evar _ *)
+(*   | Eapp _ -> *)
+(*      () *)
+(*   | Etrue *)
+(*   | Efalse -> *)
+(*      () *)
+(*   | Enot (e, _) -> *)
+(*      check_psi e *)
+(*   | Eand (e1, e2, _) -> *)
+(*      check_chi e1; check_chi e2 *)
+(*   | Eor (e1, e2, _) -> *)
+(*      check_chi e1; check_chi e2 *)
+(*   | Eimply (e1, e2, _) -> *)
+(*      check_psi e1; check_chi e2 *)
+(*   | Eall (e1, s, e2, _) -> *)
+(*      check_chi e2 *)
+(*   | Eex (e1, s, e2, _) -> *)
+(*      check_chi e2 *)
+(*   | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false *)
+       
+
+(* let rec check_no_generalizer_right p = *)
+(*   match p with *)
+(*   | Evar _ | Eapp _ *)
+(*   | Etrue -> *)
+(*      () *)
+(*   | Efalse -> *)
+(*      () *)
+(*   | Enot (e, _) -> *)
+(*      check_no_generalizer_left e *)
+(*   | Eand (e1, e2, _) -> *)
+(*      check_no_generalizer_right e1; *)
+(*      check_no_generalizer_right e2 *)
+(*   | Eor (e1, e2, _) -> *)
+(*      check_no_generalizer_right e1; *)
+(*      check_no_generalizer_right e2 *)
+(*   | Eimply (e1, e2, _) -> *)
+(*      check_no_generalizer_left e1; *)
+(*      check_no_generalizer_right e2 *)
+(*   | Eall (e1, s, e2, _) -> *)
+(*      (\* Lkproof.p_debug "" [p]; *\) *)
+(*      assert false *)
+(*   | Eex (e1, s, e2, _) -> *)
+(*      check_no_generalizer_right e2      *)
+(*   | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false *)
+
+(* and check_no_generalizer_left p = *)
+(*   match p with *)
+(*   | Evar _ | Eapp _ *)
+(*   | Etrue -> *)
+(*      () *)
+(*   | Efalse -> *)
+(*      () *)
+(*   | Enot (e, _) -> *)
+(*      check_no_generalizer_right e *)
+(*   | Eand (e1, e2, _) -> *)
+(*      check_no_generalizer_left e1; *)
+(*      check_no_generalizer_left e2 *)
+(*   | Eor (e1, e2, _) -> *)
+(*      check_no_generalizer_left e1; *)
+(*      check_no_generalizer_left e2 *)
+(*   | Eimply (e1, e2, _) -> *)
+(*      check_no_generalizer_right e1; *)
+(*      check_no_generalizer_left e2 *)
+(*   | Eall (e1, s, e2, _) -> *)
+(*      check_no_generalizer_left e2 *)
+(*   | Eex (e1, s, e2, _) -> *)
+(*      assert false *)
+(*   | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false *)
