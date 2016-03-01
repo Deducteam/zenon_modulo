@@ -839,9 +839,10 @@ let mk_tuple l =
 ;;
 
 let rec to_llproof p =
-  if p.mlrefc < 0 then
-    get_lemma p
-  else begin
+  (* if p.mlrefc < 0 then *)
+  (*   get_lemma p *)
+  (* else *)
+    begin
     let (result, extras) =
       if is_derived p.mlrule
       then translate_derived p
@@ -855,12 +856,16 @@ let rec to_llproof p =
         } in
         (nn, extras)
     in
-    if p.mlrefc > 1 then begin
-      make_lemma result extras p;
-      get_lemma p
-    end else begin
+    (* if p.mlrefc > 1 *)
+    (* then *)
+    (*   begin *)
+    (*   make_lemma result extras p; *)
+    (*   get_lemma p *)
+    (*   end *)
+    (* else *)
+      begin
       (result, extras)
-    end
+      end
   end
 
 and get_sub l =

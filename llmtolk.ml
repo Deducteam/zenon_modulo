@@ -6,29 +6,29 @@ open Printf
 type env = {hypotheses : Expr.expr list; 
 	    distincts : (Expr.expr * int) list;}
 
-(* union [l_i] = Union [l_i], [Union[l_i]\l_j]_j*)
-(* length (snd(union l)) = length l *)
-let rec union lists =
-  match lists with
-  | [] -> [], []
-  | [list] -> list, [[]]
-  | [] :: lists ->
-    let main, remainders = union lists in
-    main, main :: remainders
-  | (x :: l) :: lists ->
-    let main, remainders = union (l :: lists) in
-    match remainders with
-    | remainder :: remainders ->
-      if List.mem x main
-      then
-	if List.mem x remainder
-	then main, (rm x remainder) :: remainders
-	else (assert false;main, remainder :: remainders)
-      else
-	(assert (not (List.mem x remainder));
-	 x :: main,
-	remainder :: (List.map (fun xs -> x :: xs) remainders))
-    | _ -> assert false
+(* (\* union [l_i] = Union [l_i], [Union[l_i]\l_j]_j*\) *)
+(* (\* length (snd(union l)) = length l *\) *)
+(* let rec union lists = *)
+(*   match lists with *)
+(*   | [] -> [], [] *)
+(*   | [list] -> list, [[]] *)
+(*   | [] :: lists -> *)
+(*     let main, remainders = union lists in *)
+(*     main, main :: remainders *)
+(*   | (x :: l) :: lists -> *)
+(*     let main, remainders = union (l :: lists) in *)
+(*     match remainders with *)
+(*     | remainder :: remainders -> *)
+(*       if List.mem x main *)
+(*       then *)
+(* 	if List.mem x remainder *)
+(* 	then main, (rm x remainder) :: remainders *)
+(* 	else (assert false;main, remainder :: remainders) *)
+(*       else *)
+(* 	(assert (not (List.mem x remainder)); *)
+(* 	 x :: main, *)
+(* 	remainder :: (List.map (fun xs -> x :: xs) remainders)) *)
+(*     | _ -> assert false *)
 
 let sceqpropbis (e1, e2, proofs, gamma) =
   match e1, e2 with
@@ -544,39 +544,6 @@ let rec not_psi_to_phi e proof =
   | Eex (e1, s, e2, _) ->
      scrnot (enot (ctrexpr_psi e), proof)
   | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
-						   
-let rec deduce_inequality e1 e2 v1 v2 c1 c2 b1 b2 gamma proof distincts =
-  assert false
-  (* let n1 = List.assoc v1 distincts in *)
-  (* let n2 = List.assoc v2 distincts in *)
-  (* let eq = eapp ("=", [e1; e2]) in *)
-  (* let b3 = n1 < n2 in *)
-  (* let ax = *)
-  (*   if b3 *)
-  (*   then eapp ("=", [v1; v2]) *)
-  (*   else eapp ("=", [v2; v1]) in *)
-  (* let rec f b1 b2 b3 = *)
-  (*   match b1, b2, b3 with *)
-  (*   | true, true, true -> sceqprop (eq, ax, []) *)
-  (*   | _, _, false -> *)
-  (*     sccut ( *)
-  (* 	eapp ("=", [v1; v2]), *)
-  (* 	f b1 b2 true, sceqsym (v1, v2, [c1; c2; eq])) *)
-  (*   | _, false, _ -> *)
-  (*     sccut ( *)
-  (* 	eapp ("=", [e2; v2]), *)
-  (* 	sceqsym (v2, e2, [c1; eq]), sclweak (c2, f b1 true b3)) *)
-  (*   | false, _, _ -> *)
-  (*     sccut ( *)
-  (* 	eapp ("=", [e1; v1]), *)
-  (* 	sceqsym (v1, e1, [c2; eq]), sclweak (c1, f true b2 b3)) *)
-  (* in *)
-  (* sccut ( *)
-  (*     enot eq, *)
-  (*     List.fold_left (fun prf e -> sclweak (e, prf)) *)
-  (* 		     (scrnot (eq, sclnot (ax, f b1 b2 b3))) *)
-  (* 		     (rm (enot ax) gamma), *)
-  (*     sclweak (c1, sclweak (c2, proof))) *)
 
 let derive_imply p q proof1 proof2 =
   let g1, c1, rule1 = proof1 in
@@ -904,34 +871,6 @@ let xlltolkrule distincts rule hyps gamma =
   | Rextension (
   	"", "zenon_notallex", [Elam (x, t, p, _)], [ap], [[ep]]), [proof] ->
      assert false;
-  | Rextension ("", "zenon_stringequal", [s1; s2], [c], []), [] ->
-     let v1 = eapp ("$string", [s1]) in
-     let v2 = eapp ("$string", [s2]) in
-     let n1 = List.assoc v1 distincts in
-     let n2 = List.assoc v2 distincts in
-     let c12 = eapp ("=", [v1; v2]) in
-     let c21 = eapp ("=", [v2; v1]) in
-     if n1 < n2
-     then
-       sclnot (c12, scaxiom (c12, rm (enot c12) gamma))
-     else
-       sclnot (c21, sceqsym (v1, v2, rm (enot c21) gamma))
-  | Rextension (
-  	"", "zenon_stringdiffll", [e1; v1; e2; v2],
-  	[c1; c2], [[h]]), [proof] ->
-     deduce_inequality e1 e2 v1 v2 c1 c2 true true gamma proof distincts
-  | Rextension (
-  	"", "zenon_stringdifflr", [e1; v1; e2; v2],
-  	[c1; c2], [[h]]), [proof] ->
-     deduce_inequality e1 e2 v1 v2 c1 c2 true false gamma proof distincts
-  | Rextension (
-  	"", "zenon_stringdiffrl", [e1; v1; e2; v2],
-  	[c1; c2], [[h]]), [proof] ->
-     deduce_inequality e1 e2 v1 v2 c1 c2 false true gamma proof distincts
-  | Rextension (
-  	"", "zenon_stringdiffrr", [e1; v1; e2; v2],
-  	[c1; c2], [[h]]), [proof] ->
-     deduce_inequality e1 e2 v1 v2 c1 c2 false false gamma proof distincts
   | Rextension (ext, name, args, cons, hyps), proofs ->
      assert false
   (* scext(ext, name, args, cons, hyps, proofs) *)
@@ -939,54 +878,6 @@ let xlltolkrule distincts rule hyps gamma =
   | Rdefinition _, _ -> assert false (* no definition after use_defs *)
   | _ -> assert false
 
-let rec lltolkrule distincts proof gamma =
-  let hypslist, conclist = hypstoadd proof.rule in
-  (* list = gamma - (conclist inter gamma) *)
-  (* newcontr = conclist - (conclist inter gamma) *)
-  (* newcontr : list of things to be contracted later *)
-  let newcontr, list =
-    List.fold_left (fun (cs, es) e ->
-      if (List.mem e es)
-      then
-	cs, rm e es
-      else
-	e :: cs, es)
-      ([], gamma) conclist in
-  let contrshyps =
-    List.map2 (lltolkrule distincts) proof.hyps
-      (List.map (List.rev_append list) hypslist) in
-  let contrs, prehyps = List.split contrshyps in
-  let maincontr, remainders = union contrs in
-  let hyps = List.map2 (fun list proof -> scweak (list, None, proof)) remainders prehyps in
-  let preproof =
-    xlltolkrule distincts proof.rule hyps
-		(maincontr@(List.map ctrexpr_chi list))
-		(* (maincontr@list) *)
-  in
-  (* Now try to contract requested contrs *)
-  let cconclist = List.map ctrexpr_chi conclist in
-  let (newlist, newproof) =
-  List.fold_left
-    (fun (cs, prf) c ->
-      if List.mem c cconclist
-      then cs, sclcontr (c, prf)
-      else c :: cs, prf)
-    (List.map ctrexpr_chi newcontr, preproof) maincontr in
-  (* if !Globals.debug_flag then ( *)
-  (*   (\* Display them *\) *)
-  (*   Printf.eprintf *)
-  (*     "\n\nlltolkrule: LLproof: (%a),\n" *)
-  (*     (fun oc -> Print.llproof (Print.Chan oc)) *)
-  (*     [{name="mytho"; params = []; proof = proof}]; *)
-  (*   Lkproof.p_debug "Gamma = " gamma; *)
-  (*   if newlist = [] then *)
-  (*     Printf.eprintf "No remaining formula to prove." *)
-  (*   else *)
-  (*     Lkproof.p_debug "Remaining formulae to prove:" newlist; *)
-  (*   (\* Lkproof.p_debug "\nNew proof:" newproof; *\) *)
-  (*   Printf.eprintf "lltolkrule: DONE\n\n"); *)
-  (newlist, newproof)
-		
 (* merge [l_i] = Merge [l_i], [Merge[l_i]\l_j]_j*)
 (* length (snd(merge l)) = length l *)
 let rec merge lists =
@@ -1006,6 +897,37 @@ let rec merge lists =
       else
 	x :: main, remainder :: (List.map (fun xs -> x :: xs) remainders)
     | _ -> assert false
+
+		
+let rec lltolkrule distincts proof =
+  let hypslist, conclist = hypstoadd proof.rule in
+  let prelist = List.map (lltolkrule distincts) proof.hyps in
+  (* Soit inter_i = prelist_i inter hypslist_i *)
+  (* Soit hypslist_i = missing_i, inter_i *)
+  (* Soit prelist_i = gamma_i, inter_i *)
+  (* On affaiblit par missing_i pour prouver *)
+  (*    prelist_i, missing_i = gamma_i, hypslist_i *)
+  let gammalist, premises =
+    List.split
+      (List.map2
+	 (fun (pregamma, premise) hyps ->
+	  List.fold_left
+	    (fun (gamma, premise) hyp ->
+	     if List.mem hyp gamma
+	     then (rm hyp gamma, premise)
+	     else (gamma, scweak ([hyp], None, premise)))
+	    (pregamma, premise) hyps)
+	 prelist (List.map (List.map ctrexpr_chi) hypslist)) in
+  (* Soit gamma = gamma_i, remaining_i *)
+  let gamma, remaininglist = merge gammalist in
+  let premises =
+    List.map2
+      (fun premise remaining ->
+       scweak (remaining, None, premise))
+      premises remaininglist in
+  List.map ctrexpr_chi conclist@gamma,
+  xlltolkrule distincts proof.rule premises gamma
+		
 
 let rec lltolkcheck proof =
   let hypslist, conclist = hypstoadd proof.rule in
@@ -1045,21 +967,19 @@ let check_empty_remaining_proofs l =
 
 let rec lltolk env proof goal righthandside contextoutput =
   assert righthandside;
-  let l, lkproof = lltolkrule env.distincts proof (enot goal :: env.hypotheses) in
-  check_empty_remaining_proofs l;
-  
-  (* let pregamma = lltolkcheck proof in *)
-  (* let contrs = *)
-  (*   List.fold_left *)
-  (*     (fun g hyp -> *)
-  (*      if List.mem hyp g *)
-  (*      then rm hyp g *)
-  (*      else g) pregamma (enot goal :: env.hypotheses) in *)
+  let pregamma, lkproof = lltolkrule env.distincts proof in
+  let contrs =
+    List.fold_left
+      (fun g hyp ->
+       if List.mem hyp g
+       then rm hyp g
+       else g) pregamma (List.map ctrexpr_chi (enot goal :: env.hypotheses)) in
   (* List.iter (fun e -> assert (lltolkcheckbis proof e)) contrs;  *)
-  (* let gamma = *)
-  (*   List.fold_left *)
-  (*     (fun g hyp -> *)
-  (*      rm hyp g) l (enot goal :: contrs) in *)  
+  assert (contrs = []);
+  let gamma, lkproof =
+    if List.mem (ctrexpr_chi (enot goal)) pregamma
+    then rm (ctrexpr_chi (enot goal)) pregamma, lkproof
+    else pregamma, scweak ([ctrexpr_chi (enot goal)], None, lkproof) in
   (* assert (List.for_all *)
   (* 	    (fun e -> *)
   (* 	     match e with *)
@@ -1067,17 +987,21 @@ let rec lltolk env proof goal righthandside contextoutput =
   (* 	     | Enot (Eex _, _) -> true *)
   (* 	     | _ -> Lkproof.p_debug "" [e]; false) *)
   (* 	    contrs); *)
-  
   let lkproof2 = not_psi_to_phi goal lkproof in
   let _, lkproof3 =
     List.fold_left
       (fun (conc, rule) stmt ->
        eimply (stmt, conc),
        scrimply (stmt, conc, rule))
-      (ctrexpr_phi goal, lkproof2) (List.map ctrexpr_chi env.hypotheses)
+      (ctrexpr_phi goal, lkproof2) gamma
   in lkproof3
 
 
+       
+(* FIN *)       
+
+
+       
 let rec check_first_order_right p =
   match p with
   | Evar _ | Eapp _
