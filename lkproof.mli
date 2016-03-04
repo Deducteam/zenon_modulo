@@ -1,69 +1,57 @@
-type lkrule = private
+type lkproof = private
 | SCaxiom of Expr.expr
+| SCweak of Expr.expr list * Expr.expr list * lkproof
+| SClcontr of Expr.expr * lkproof
+| SCrcontr of Expr.expr * lkproof
 | SCfalse
 | SCtrue
-| SCeqref of Expr.expr
-| SCeqsym of Expr.expr * Expr.expr
-| SCeqprop of Expr.expr * Expr.expr
-| SCeqfunc of Expr.expr * Expr.expr
-| SCweak of Expr.expr list * Expr.expr option * lkproof
-| SClcontr of Expr.expr * lkproof
-| SCcut of Expr.expr * lkproof * lkproof
-| SCland of Expr.expr * Expr.expr * lkproof
-| SClor of Expr.expr * Expr.expr * lkproof * lkproof
-| SClimply of Expr.expr * Expr.expr * lkproof * lkproof
 | SClnot of Expr.expr * lkproof
-| SClall of Expr.expr * Expr.expr * lkproof
-| SClex of Expr.expr * Expr.expr * lkproof
-| SCrand of Expr.expr * Expr.expr * lkproof * lkproof
-| SCrorl of Expr.expr * Expr.expr * lkproof
-| SCrorr of Expr.expr * Expr.expr * lkproof
-| SCrimply of Expr.expr * Expr.expr * lkproof
 | SCrnot of Expr.expr * lkproof
+| SClimply of Expr.expr * Expr.expr * lkproof * lkproof
+| SCrimply of Expr.expr * Expr.expr * lkproof
+| SCland of Expr.expr * Expr.expr * lkproof
+| SCrand of Expr.expr * Expr.expr * lkproof * lkproof
+| SClor of Expr.expr * Expr.expr * lkproof * lkproof
+| SCror of Expr.expr * Expr.expr * lkproof
+| SClall of Expr.expr * Expr.expr * lkproof
 | SCrall of Expr.expr * Expr.expr * lkproof
+| SClex of Expr.expr * Expr.expr * lkproof
 | SCrex of Expr.expr * Expr.expr * lkproof
-| SCcnot of Expr.expr * lkproof
-| SCext of string * string * Expr.expr list * Expr.expr list * Expr.expr list list * lkproof list
-
-and lkproof = 
-    Expr.expr list * Expr.expr * lkrule
 ;;
 
-val scaxiom : Expr.expr * Expr.expr list -> lkproof;;
-val scfalse : Expr.expr list * Expr.expr -> lkproof;;
-val sctrue : Expr.expr list -> lkproof;;
-val sceqref : Expr.expr * Expr.expr list -> lkproof;;
-val sceqsym : Expr.expr * Expr.expr * Expr.expr list -> lkproof;;
-val sceqprop : Expr.expr * Expr.expr * Expr.expr list -> lkproof;;
-val sceqfunc : Expr.expr * Expr.expr * Expr.expr list -> lkproof;;
-val scweak : Expr.expr list * Expr.expr option * lkproof -> lkproof;;
-val sclcontr : Expr.expr * lkproof -> lkproof;;
-val sccut : Expr.expr * lkproof * lkproof -> lkproof;;
-val scland : Expr.expr * Expr.expr * lkproof -> lkproof;;
-val sclor :
-  Expr.expr * Expr.expr * lkproof * lkproof -> lkproof;;
-val sclimply :
-  Expr.expr * Expr.expr * lkproof * lkproof -> lkproof;;
-val sclnot : Expr.expr * lkproof -> lkproof;;
-val sclall : Expr.expr * Expr.expr * lkproof -> lkproof;;
-val sclex : Expr.expr * Expr.expr * lkproof -> lkproof;;
-val scrand :
-  Expr.expr * Expr.expr * lkproof * lkproof -> lkproof;;
-val scrorl : Expr.expr * Expr.expr * lkproof -> lkproof;;
-val scrorr : Expr.expr * Expr.expr * lkproof -> lkproof;;
-val scrimply : Expr.expr * Expr.expr * lkproof -> lkproof;;
-val scrnot  : Expr.expr * lkproof -> lkproof;;
-val scrall : Expr.expr * Expr.expr * lkproof -> lkproof;;
-val screx : Expr.expr * Expr.expr * lkproof -> lkproof;;
-val sccnot : Expr.expr * lkproof -> lkproof;;
-val scext : string * string * Expr.expr list * Expr.expr list * Expr.expr list list * lkproof list -> lkproof;;
+type typed_lkproof = private
+  Expr.expr list * Expr.expr list * lkproof
+;;
 
-val scconc : lkproof -> Expr.expr;;
+val lkproof : typed_lkproof -> lkproof;;  
+val sequent : typed_lkproof -> Expr.expr list * Expr.expr list;;
+val scaxiom : Expr.expr -> typed_lkproof;;
+val scfalse : typed_lkproof;;
+val sctrue : typed_lkproof;;
+val sclcontr : Expr.expr * typed_lkproof -> typed_lkproof;;
+val scrcontr : Expr.expr * typed_lkproof -> typed_lkproof;;
+val scweak : Expr.expr list * Expr.expr list * typed_lkproof -> typed_lkproof;;
+val scland : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;;
+val sclor : Expr.expr * Expr.expr * typed_lkproof * typed_lkproof -> typed_lkproof;;
+val sclimply : Expr.expr * Expr.expr * typed_lkproof * typed_lkproof -> typed_lkproof;;
+val sclnot : Expr.expr * typed_lkproof -> typed_lkproof;;
+val scrand : Expr.expr * Expr.expr * typed_lkproof * typed_lkproof -> typed_lkproof;;
+val scror : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;;
+val scrimply : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;;
+val scrnot  : Expr.expr * typed_lkproof -> typed_lkproof;;
+(* val sclall : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;; *)
+(* val sclex : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;; *)
+val scrall : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;;
+val screx : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;;
 
-val p_debug : string -> Expr.expr list -> unit;;
-val p_debug_proof : string -> Expr.expr list * Expr.expr * 'a -> unit;;
-val ingamma : Expr.expr -> lkproof -> bool;;
-val rm : Expr.expr -> Expr.expr list -> Expr.expr list;;
-val applytohyps : (lkproof -> lkproof) -> lkproof -> lkproof;;
-val hypsofrule : lkrule -> lkproof list;;
+(* val sclcontr : Expr.expr * lkproof -> lkproof;; *)
+(* val scrcontr : Expr.expr * lkproof -> lkproof;; *)
+(* val sceqsym : Expr.expr * Expr.expr * Expr.expr list -> lkproof;; *)
+(* val sceqprop : Expr.expr * Expr.expr * Expr.expr list -> lkproof;; *)
+(* val sceqfunc : Expr.expr * Expr.expr * Expr.expr list -> lkproof;; *)
+
 val new_var : unit -> Expr.expr;;
+val print : lkproof -> unit;;
+val premises : typed_lkproof -> typed_lkproof list;;
+val applytopremises :
+  (typed_lkproof -> typed_lkproof) -> typed_lkproof -> typed_lkproof;;

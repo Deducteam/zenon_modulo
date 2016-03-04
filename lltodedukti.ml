@@ -205,6 +205,14 @@ struct
       Out.print_line oc line in
     Hashtbl.iter xprint_definitions definitions
 
+  let print_theory oc hyps =
+    List.iter
+      (fun (def, name) ->
+       let rec line =
+	 Out.mk_decl name (Out.mk_prf (trexpr def)) in
+       Out.print_line oc line)
+      hyps
+		 
   (* *** MAIN OUTPUT FUNCTION *** *)
 
   let output oc phrases ppphrases llp filename contextoutput =
@@ -225,31 +233,30 @@ struct
     let env = { Llmtolk.hypotheses = List.map snd hyps;
                 Llmtolk.distincts = distincts } in
     let goal, righthandside = get_goal phrases in
+    assert righthandside;
+    assert (distincts = []);
     let newgoal, newproof, newenv = 
       Lltollm.lltollm_expr definitions goal, 
       Lltollm.lltollm_proof definitions lemmas thm.proof,
       Lltollm.lltollm_env definitions env in
     let gamma =
-      if contextoutput
-      then []
-      else
-        List.fold_left
-          (fun l -> function
+      List.fold_left
+        (fun l -> function
                | (Some name, expr) ->
-                  (Lltollm.lltollm_expr definitions expr, Out.mk_var name) :: l
+                  (Lktolj.ctrexpr_neg (Lltollm.lltollm_expr definitions expr),
+		   Out.mk_var (sprintf "hypothesis_%s" name)) :: l
                | _ -> l)
-          []
-          hyps
+        []
+        hyps
     in
-    let lkproof = Llmtolk.lltolk newenv newproof newgoal righthandside contextoutput in
-    let proof = 
-      (* if !Globals.keepclassical = false *)
-      (* then Lktolj.lktolj lkproof *)
-      (* else lkproof *)
-      lkproof
-    in
-    let conc = Lkproof.scconc proof in
-    let term = LjToDk.trproof (proof, conc, gamma) in
+    if contextoutput
+    then print_theory oc gamma;
+    let lkproof = Llmtolk.llmtolk newenv newproof newgoal contextoutput in
+    let ljproof = Lktolj.lktolj lkproof newgoal in
+    let term = LjToDk.trproof
+		 (ljproof,
+		  Lktolj.ctrexpr_pos newgoal,
+		  gamma) in
     let thm_name =
       if thm.name = ""
       then "conjecture_proof"
@@ -257,7 +264,7 @@ struct
     in
     let rec line =
       Out.mk_deftype (Out.mk_var thm_name)
-        (Out.mk_prf (trexpr conc)) term in
+        (Out.mk_prf (trexpr (Lktolj.ctrexpr_pos newgoal))) term in
     if contextoutput
     then
       Out.print_line oc line

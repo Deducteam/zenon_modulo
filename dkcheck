@@ -1,0 +1,3 @@
+#NAME test.
+P: logic.Prop.
+def pel55 : logic.prf (logic.imply P (logic.not (logic.not P))):= H0: (logic.prf P) => (H1: (logic.prf (logic.not P)) => ((H2: (logic.prf (logic.not (logic.not (logic.not P)))) => ((H4: (logic.prf (logic.not (logic.imply P (logic.not (logic.not P))))) => (H2 (H7: (logic.prf (logic.not P)) => (H7 H0)))) (H5: (logic.prf (logic.imply P (logic.not (logic.not P)))) => (H2 ((H6: (logic.prf (logic.not (logic.not P))) => H6) (H5 H0)))))) (H3: (logic.prf (logic.not (logic.not P))) => (H3 H1)))).
