@@ -305,11 +305,20 @@ let xllmtolkrule distincts rule hyps gamma delta =
      scrimply (p, q, proof)
   | Rnotconnect (Equiv, p, q), [proof1; proof2] ->
      assert false
-  (* | Rex (Eex(x, ty, p, _) as ep, v), [proof] -> *)
-  (*    sclex (eex (x, ty, p), v, proof) *)
-  (* | Rall (Eall(x, _, p, _) as ap, t), [proof] -> *)
-  (*    let pt = substitute [(x, t)] p in *)
-  (*    sclall (cap, t, proof) *)
+  | Rex (Eex(x, ty, p, _) as ep, v), [proof] ->
+     let pv = substitute [(x, v)] p in
+     let proof =
+       match pv with
+       | Enot (pv, _) -> sclnot (pv, proof)
+       | _ -> proof in
+     sclex (ep, v, proof)
+  | Rall (Eall(x, _, p, _) as ap, t), [proof] ->
+     let pt = substitute [(x, t)] p in
+     let proof =
+       match pt with
+       | Enot (pt, _) -> sclnot (pt, proof)
+       | _ -> proof in
+     sclall (ap, t, proof)
   | Rnotex (Eex(x, ty, p, _) as ep, t), [proof] ->
      screx (ep, t, proof)
   | Rnotall (ap, v), [proof] ->

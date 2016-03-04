@@ -215,6 +215,14 @@ struct
 		 
   (* *** MAIN OUTPUT FUNCTION *** *)
 
+  let new_name =
+    let r = ref 0 in
+    fun () ->
+      let n = !r in
+      incr r; n
+
+  let new_hypothesis () = sprintf "T%d" (new_name ())
+      
   let output oc phrases ppphrases llp filename contextoutput =
     let thm, lemmas =
       match List.rev llp with
@@ -244,7 +252,7 @@ struct
         (fun l -> function
                | (Some name, expr) ->
                   (Lktolj.ctrexpr_neg (Lltollm.lltollm_expr definitions expr),
-		   Out.mk_var (sprintf "hypothesis_%s" name)) :: l
+		   Out.mk_var (new_hypothesis ())) :: l
                | _ -> l)
         []
         hyps

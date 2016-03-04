@@ -39,13 +39,11 @@ val scrand : Expr.expr * Expr.expr * typed_lkproof * typed_lkproof -> typed_lkpr
 val scror : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;;
 val scrimply : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;;
 val scrnot  : Expr.expr * typed_lkproof -> typed_lkproof;;
-(* val sclall : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;; *)
-(* val sclex : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;; *)
+val sclall : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;;
+val sclex : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;;
 val scrall : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;;
 val screx : Expr.expr * Expr.expr * typed_lkproof -> typed_lkproof;;
 
-(* val sclcontr : Expr.expr * lkproof -> lkproof;; *)
-(* val scrcontr : Expr.expr * lkproof -> lkproof;; *)
 (* val sceqsym : Expr.expr * Expr.expr * Expr.expr list -> lkproof;; *)
 (* val sceqprop : Expr.expr * Expr.expr * Expr.expr list -> lkproof;; *)
 (* val sceqfunc : Expr.expr * Expr.expr * Expr.expr list -> lkproof;; *)

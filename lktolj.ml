@@ -185,7 +185,9 @@ and xlktolj proof =
 					   scrorr(p, q,
 						  scaxiom q))),
 			   xlktolj proof))))
-  (* | Lkproof.SClall of expr * expr * lkproof *)
+  | Lkproof.SClall (ap, t, proof) ->
+     let ap = ctrexpr_neg ap in
+     sclall (ap, t, xlktolj proof)
   | Lkproof.SCrall (Eall (x, ty, p, _) as ap, v, proof) ->
      let ap = ctrexpr_pos ap in
      let p = ctrexpr_pos p in
@@ -193,7 +195,9 @@ and xlktolj proof =
      sclnot (ap,
 	     scrall (ap, v,
 		    lktolj_aux pv (xlktolj proof)))
-  (* | Lkproof.SClex of expr * expr * lkproof *)
+  | Lkproof.SClex (ep, v, proof) ->
+     let ep = ctrexpr_neg ep in
+     sclex (ep, v, xlktolj proof)
   | Lkproof.SCrex (Eex (x, ty, p, _), t, proof) ->
      let p = ctrexpr_pos p in
      let ep = eex (x, ty, p) in
