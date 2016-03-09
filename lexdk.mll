@@ -36,7 +36,7 @@ rule token = parse
 | "dk_logic.exists_type" { EX_TYPE }
 | "dk_logic.eP" { PROOF }
 | "dk_logic.ebP" { ISTRUE }
-| "dk_builtins.prop" { PROP }
+| "dk_logic.Prop" { PROP }
 | number as n { NUMBER(n) }
 | id as id { ID(id) }
 | qid as qid { QID(qid) }

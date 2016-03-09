@@ -232,7 +232,6 @@ type_qid:
         mk_const_t $1 }
 type_simple:
 | type_qid { $1 }
-| PROP { type_prop }
 | LPAREN pre_typ RPAREN { $2 }
 typs:
 | type_simple { [$1] }
@@ -260,6 +259,7 @@ pre_typ:
 
 typ:
 | TERM type_simple { $2 }
+| PROP { type_prop }
 
 complex_type :
 | typ {$1}
@@ -337,13 +337,13 @@ hyp_def:
          }
 
 compact_args:
-| LPAREN ID COLON typ RPAREN
+| LPAREN ID COLON complex_type RPAREN
          {
            (* Arguments of definitions.
               These variables must be typed now
               because they are bound now. *)
            [tvar $2 $4] }
-| LPAREN ID COLON typ RPAREN compact_args
+| LPAREN ID COLON complex_type RPAREN compact_args
          { (tvar $2 $4) :: $6 }
 
 env_decl:
