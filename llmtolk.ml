@@ -511,6 +511,10 @@ let rec contract_left hyp typed_proof =
        else
 	 applytopremises (contract_left hyp) typed_proof
 
+let rec reduce proof =
+  reduce_flag := true;
+  applytopremises reduce proof
+			 
 let rec llmtolk env proof goal contextoutput =
   let precontext, preproof =
     llmtolkrule env.distincts proof in
@@ -541,7 +545,7 @@ let rec llmtolk env proof goal contextoutput =
        | _ -> contract_left hyp typed_proof)
       proof contr in
   (* print (lkproof proof); *)
-  proof
+  reduce proof
        
 (* FIN *)
        

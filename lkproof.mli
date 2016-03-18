@@ -23,6 +23,8 @@ type typed_lkproof = private
   Expr.expr list * Expr.expr list * lkproof
 ;;
 
+val reduce_flag : bool ref;;
+  
 val lkproof : typed_lkproof -> lkproof;;  
 val sequent : typed_lkproof -> Expr.expr list * Expr.expr list;;
 val scaxiom : Expr.expr -> typed_lkproof;;

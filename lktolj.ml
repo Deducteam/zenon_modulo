@@ -192,7 +192,7 @@ and lktolj1 proof =
      begin
        match right with
        | [] -> lktolj1 proof
-       | [e] -> lktolj2 proof
+       | [e] -> scrweak(e, lktolj2 proof)
        | _ -> assert false
      end
   | Lkproof.SCfalse, [] ->
@@ -202,7 +202,7 @@ and lktolj1 proof =
   | Lkproof.SClnot (p, _), [proof] ->
      constructive_fail ()
   | Lkproof.SCrnot (p, _), [proof] ->
-     lktolj2 proof
+     scrnot (p, lktolj2 proof)
   | Lkproof.SClimply (p, q, _, _), [proof1; proof2] ->
      begin
        match Lkproof.lkproof proof1 with
@@ -264,14 +264,16 @@ and lktolj2 proof =
   | Lkproof.SCtrue, [] ->
      assert false
   | Lkproof.SClnot (p, _), [proof] ->
-     constructive_fail ()
+     (* LJ pur -> lktolj1, LJG -> lktolj2 *)
+     sclnot (p, lktolj1 proof) (* LJ pur *)
   (*    sccut (eimply (p, goal), *)
   (* 	    scrimply (p, goal, scrweak (goal, sclnot (p, scaxiom (p)))), *)
   (* 	    lktolj2 proof goal) *)
   | Lkproof.SCrnot (p, _), [proof] ->
      assert false
   | Lkproof.SClimply (p, q, _, _), [proof1; proof2] ->
-     constructive_fail ()
+     (* LJ pur -> lktolj1, LJG -> lktolj2 *)
+     sclimply (p, q, lktolj1 proof1, lktolj2 proof2) (* LJ pur *)
   (*    sccut (eimply (p, goal), *)
   (* 	    scrimply (p, goal, sclimply (p, q, scaxiom (p), lktolj2 proof2 goal)), *)
   (* 	    lktolj2 proof1 goal) *)

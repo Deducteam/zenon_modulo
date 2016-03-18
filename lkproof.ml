@@ -24,6 +24,8 @@ type lkproof =
 type typed_lkproof = Expr.expr list * Expr.expr list * lkproof
 ;;
 
+let reduce_flag = ref false
+  
 let lkproof (gamma, delta, proof) = proof
 let sequent (gamma, delta, proof) = (gamma, delta)
   
@@ -158,21 +160,23 @@ let rec merge contexts =
 	 ([], deltas) delta in
      maingamma, maindelta, List.combine restgamma restdelta
 
-(* abandonné car empèche de retrouver les contractions des llproofs, cf SYN357+1.p *)
-(* let rec reduce_weakenings typed_proofs contexts hypotheses = *)
-(*   match typed_proofs, contexts, hypotheses with *)
-(*   | [], [], [] -> None *)
-(*   | typed_proof :: typed_proofs, *)
-(*     (wgamma, wdelta) :: contexts, *)
-(*     (hgamma, hdelta) :: hypotheses -> *)
-(*      if included hgamma wgamma && included hdelta wdelta *)
-(*      then *)
-(*        let wgamma = List.fold_left (fun list e -> rm e list) wgamma hgamma in *)
-(*        let wdelta = List.fold_left (fun list e -> rm e list) wdelta hdelta in *)
-(*        Some (scweak (wgamma, wdelta, typed_proof)) *)
-(*      else *)
-(*        reduce_weakenings typed_proofs contexts hypotheses *)
-(*   | _, _, _ -> assert false *)
+let rec reduce_weakenings typed_proofs contexts hypotheses =
+  if (not !reduce_flag)
+  then None
+  else 
+    match typed_proofs, contexts, hypotheses with
+    | [], [], [] -> None
+    | typed_proof :: typed_proofs,
+      (wgamma, wdelta) :: contexts,
+      (hgamma, hdelta) :: hypotheses ->
+       if included hgamma wgamma && included hdelta wdelta
+       then
+	 let wgamma = List.fold_left (fun list e -> rm e list) wgamma hgamma in
+	 let wdelta = List.fold_left (fun list e -> rm e list) wdelta hdelta in
+	 Some (scweak (wgamma, wdelta, typed_proof))
+       else
+	 reduce_weakenings typed_proofs contexts hypotheses
+    | _, _, _ -> assert false
 
 let remove_weakenings typed_proofs =
   List.split
@@ -219,20 +223,24 @@ let add_weakenings typed_proofs hypotheses (gammaconc, deltaconc) applyrule =
   (* let [(_, _, result)] = typed_proofs in *)
   (* print result; *)
   let contexts, typed_proofs = remove_weakenings typed_proofs in
-  let contexts, typed_proofs = List.split (premises_weakening typed_proofs contexts hypotheses) in
-  let wgamma, wdelta, rest = merge contexts in
-  let premises =
-    (List.map2
-       (fun typed_proof (wgamma, wdelta) ->
-	scweak (wgamma, wdelta, typed_proof))
-       typed_proofs rest) in
-  let pgamma, pdelta, _ = List.hd premises in
-  let hgamma, hdelta = List.hd hypotheses in
-  let ngamma = gammaconc @ List.fold_left (fun list e -> rm e list) pgamma hgamma in
-  let ndelta = deltaconc @ List.fold_left (fun list e -> rm e list) pdelta hdelta in
-  (* let (_, _, result) = scweak (wgamma, wdelta, (ngamma, ndelta, applyrule premises)) in *)
-  (* print result; *)
-  scweak (wgamma, wdelta, (ngamma, ndelta, applyrule premises))
+  match reduce_weakenings typed_proofs contexts hypotheses with
+  | Some (proof) ->
+     scweak (gammaconc, deltaconc, proof)
+  | None ->
+     let contexts, typed_proofs = List.split (premises_weakening typed_proofs contexts hypotheses) in
+     let wgamma, wdelta, rest = merge contexts in
+     let premises =
+       (List.map2
+	  (fun typed_proof (wgamma, wdelta) ->
+	   scweak (wgamma, wdelta, typed_proof))
+	  typed_proofs rest) in
+     let pgamma, pdelta, _ = List.hd premises in
+     let hgamma, hdelta = List.hd hypotheses in
+     let ngamma = gammaconc @ List.fold_left (fun list e -> rm e list) pgamma hgamma in
+     let ndelta = deltaconc @ List.fold_left (fun list e -> rm e list) pdelta hdelta in
+     (* let (_, _, result) = scweak (wgamma, wdelta, (ngamma, ndelta, applyrule premises)) in *)
+     (* print result; *)
+     scweak (wgamma, wdelta, (ngamma, ndelta, applyrule premises))
 	    
 let scaxiom e =
   [e], [e], SCaxiom e
