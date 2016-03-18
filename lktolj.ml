@@ -179,6 +179,7 @@ let rec rm a list =
 
 (* une formule, pas de delta *)		 
 and lktolj1 proof =  
+  let (gamma, [goal]) = Lkproof.sequent proof in
   match Lkproof.lkproof proof, Lkproof.premises proof with
   | Lkproof.SCaxiom p, [] ->
      let () =
@@ -204,11 +205,12 @@ and lktolj1 proof =
      lktolj2 proof
   | Lkproof.SClimply (p, q, _, _), [proof1; proof2] ->
      begin
-       match proof1 with
-       (* | SCweak (left, right, proof) when (List.memq goal right) -> *)
-       (* 	  sclimply (p, q, *)
-       (* 		    lktolj1 (Lkproof.scweak (left, rm goal right, proof)), *)
-       (* 		    lktolj1 proof2) *)
+       match Lkproof.lkproof proof1 with
+       | SCweak (left, right, _) when (List.memq goal right) ->
+       	  let [proof] = Lkproof.premises proof1 in
+	    sclimply (p, q,
+       		    lktolj1 (Lkproof.scweak (left, rm goal right, proof)),
+       		    lktolj1 proof2)
        | _ -> constructive_fail ()
      end
   | Lkproof.SCrimply (p, q, _), [proof] ->
@@ -220,7 +222,18 @@ and lktolj1 proof =
   | Lkproof.SClor (p, q, _, _), [proof1; proof2] ->
      sclor (p, q, lktolj1 proof1, lktolj1 proof2)
   | Lkproof.SCror (p, q, _), [proof] ->
-     constructive_fail ()
+     begin
+       match Lkproof.lkproof proof with
+       | SCweak (left, right, _) when (List.memq p right) ->
+       	  let [proof] = Lkproof.premises proof in
+	  scrorr (p, q,
+       		  lktolj1 (Lkproof.scweak (left, rm p right, proof)))
+       | SCweak (left, right, _) when (List.memq q right) ->
+       	  let [proof] = Lkproof.premises proof in
+	  scrorl (p, q,
+       		  lktolj1 (Lkproof.scweak (left, rm q right, proof)))
+       | _ -> constructive_fail ()
+     end
   | Lkproof.SClall (ap, t, _), [proof] ->
      sclall (ap, t, lktolj1 proof)
   | Lkproof.SCrall (Eall (x, _, p, _) as ap, v, _), [proof] ->
