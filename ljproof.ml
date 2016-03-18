@@ -139,6 +139,10 @@ let rec print proof =
      eprintf "\n";
      print proof2;
      eprintf ")"
+  | SCrweak (p, proof) ->
+     eprintf "Rweak (%a \n" printexpr p;
+     print proof;
+     eprintf ")"
   (* | SClcontr (e, proof) -> *)
   (* | SCrcontr of expr * lkproof *)
   (* | SClall of expr * expr * lkproof *)

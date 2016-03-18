@@ -540,7 +540,8 @@ let rec llmtolk env proof goal contextoutput =
        | Enot (hyp, _) -> contract_right hyp typed_proof
        | _ -> contract_left hyp typed_proof)
       proof contr in
-  lkproof proof
+  (* print (lkproof proof); *)
+  proof
        
 (* FIN *)
        

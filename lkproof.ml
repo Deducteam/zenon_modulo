@@ -216,6 +216,8 @@ let rec premises_weakening typed_proofs contexts hypotheses =
   | _, _, _ -> assert false
 
 let add_weakenings typed_proofs hypotheses (gammaconc, deltaconc) applyrule =
+  (* let [(_, _, result)] = typed_proofs in *)
+  (* print result; *)
   let contexts, typed_proofs = remove_weakenings typed_proofs in
   let contexts, typed_proofs = List.split (premises_weakening typed_proofs contexts hypotheses) in
   let wgamma, wdelta, rest = merge contexts in
@@ -228,6 +230,8 @@ let add_weakenings typed_proofs hypotheses (gammaconc, deltaconc) applyrule =
   let hgamma, hdelta = List.hd hypotheses in
   let ngamma = gammaconc @ List.fold_left (fun list e -> rm e list) pgamma hgamma in
   let ndelta = deltaconc @ List.fold_left (fun list e -> rm e list) pdelta hdelta in
+  (* let (_, _, result) = scweak (wgamma, wdelta, (ngamma, ndelta, applyrule premises)) in *)
+  (* print result; *)
   scweak (wgamma, wdelta, (ngamma, ndelta, applyrule premises))
 	    
 let scaxiom e =
@@ -391,8 +395,7 @@ let conclusion proof =
   | SClall (e, t, proof) -> [e], []
   | SCrall (e, v, proof) -> [], [e]
   | SClex (e, v, proof) -> [e], []
-  | SCrex (e, t, proof) -> [], [e]
-		
+  | SCrex (e, t, proof) -> [], [e]		
 
 let premises (gamma, delta, proof) =
   let (cgamma, cdelta) = conclusion proof in

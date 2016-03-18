@@ -8,218 +8,316 @@ let rec rm a list =
   | x :: list -> x :: (rm a list)
   | [] -> assert false
 
-let rec ctrexpr_pos e =
-  match e with
-  | Evar _
-  | Eapp _ -> enot (enot e) (* e MUST BE ALWAYS A PROPOSITION *)
-  | Etrue
-  | Efalse -> e
-  | Enot (e, _) ->
-     enot (ctrexpr_neg e)
-  | Eand (e1, e2, _) ->
-     eand (ctrexpr_pos e1, ctrexpr_pos e2)
-  | Eor (e1, e2, _) ->
-     enot (enot (eor (ctrexpr_pos e1, ctrexpr_pos e2)))
-  | Eimply (e1, e2, _) ->
-     eimply (ctrexpr_neg e1, ctrexpr_pos e2)
-  | Eall (e1, s, e2, _) ->
-     eall (e1, s, ctrexpr_pos e2)
-  | Eex (e1, s, e2, _) ->
-     enot (enot (eex (e1, s, ctrexpr_pos e2)))
-  | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
-						   						   
-and ctrexpr_neg e =
-  match e with
-  | Evar _
-  | Eapp _ -> e (* e MUST BE ALWAYS A PROPOSITION *)
-  | Etrue
-  | Efalse -> e
-  | Enot (e, _) ->
-     enot (ctrexpr_pos e)
-  | Eand (e1, e2, _) ->
-     eand (ctrexpr_neg e1, ctrexpr_neg e2)
-  | Eor (e1, e2, _) ->
-     eor (ctrexpr_neg e1, ctrexpr_neg e2)
-  | Eimply (e1, e2, _) ->
-     eimply (ctrexpr_pos e1, ctrexpr_neg e2)
-  | Eall (e1, s, e2, _) ->
-     eall (e1, s, ctrexpr_neg e2)
-  | Eex (e1, s, e2, _) ->
-     eex (e1, s, ctrexpr_neg e2)
-  | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
+(* let rec lktolj_aux e proof = *)
+(*   match e with *)
+(*   | Efalse -> *)
+(*      sccut (enot efalse, *)
+(* 	    scrnot (efalse, scfalse), *)
+(* 	    proof) *)
+(*   | Etrue -> *)
+(*      sctrue *)
+(*   | Enot (e, _) -> *)
+(*      scrnot (e, *)
+(* 	     sccut (enot (enot e), *)
+(* 		    scrnot (enot e, *)
+(* 			    sclnot (e, scaxiom e)), *)
+(* 		    proof)) *)
+(*   | Eand (e1, e2, _) -> *)
+(*      sccut (enot (enot e), *)
+(* 	    scrnot (enot e, *)
+(* 		    proof), *)
+(* 	    scrand (e1, e2, *)
+(* 		    lktolj_aux *)
+(* 		      e1 *)
+(* 		      (sclnot (enot e, *)
+(* 			       scrnot (e, *)
+(* 				       scland (e1, e2, *)
+(* 					       sclnot (e1, scaxiom e1))))), *)
+(* 		    lktolj_aux *)
+(* 		      e2 *)
+(* 		      (sclnot (enot e, *)
+(* 			       scrnot (e, *)
+(* 				       scland (e1, e2, *)
+(* 					       sclnot (e2, scaxiom e2))))))) *)
+(*   | Eimply (e1, e2, _) -> *)
+(*      scrimply (e1, e2, *)
+(* 	       lktolj_aux *)
+(* 		 e2 *)
+(* 		 (sccut (enot (eimply (e1, e2)), *)
+(* 			 scrnot (eimply (e1, e2), *)
+(* 				 sclnot (e2, *)
+(* 					 sclimply (e1, e2, *)
+(* 						   scaxiom e1, *)
+(* 						   scaxiom e2))), *)
+(* 			 proof))) *)
+(*   | Eall (x, s, p, _) ->  *)
+(*      let z = Llmtolk.new_tau () in *)
+(*      let ez = substitute [(x, z)] p in *)
+(*      scrall (e, z, *)
+(*   	     lktolj_aux *)
+(*   	       ez *)
+(*   	       (sccut (enot e, *)
+(*   		       scrnot (e, *)
+(*   			       sclnot (ez, *)
+(*   				       sclall (e, z, scaxiom ez))), *)
+(*   		       proof))) *)
+(*   | Evar _ *)
+(*   | Eapp _ *)
+(*   | Eor _ *)
+(*   | Eex _ -> *)
+(*      assert false *)
+(*   | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false *)
 
-let rec lktolj_aux e proof =
-  match e with
-  | Efalse ->
-     sccut (enot efalse,
-	    scrnot (efalse, scfalse),
-	    proof)
-  | Etrue ->
-     sctrue
-  | Enot (e, _) ->
-     scrnot (e,
-	     sccut (enot (enot e),
-		    scrnot (enot e,
-			    sclnot (e, scaxiom e)),
-		    proof))
-  | Eand (e1, e2, _) ->
-     sccut (enot (enot e),
-	    scrnot (enot e,
-		    proof),
-	    scrand (e1, e2,
-		    lktolj_aux
-		      e1
-		      (sclnot (enot e,
-			       scrnot (e,
-				       scland (e1, e2,
-					       sclnot (e1, scaxiom e1))))),
-		    lktolj_aux
-		      e2
-		      (sclnot (enot e,
-			       scrnot (e,
-				       scland (e1, e2,
-					       sclnot (e2, scaxiom e2)))))))
-  | Eimply (e1, e2, _) ->
-     scrimply (e1, e2,
-	       lktolj_aux
-		 e2
-		 (sccut (enot (eimply (e1, e2)),
-			 scrnot (eimply (e1, e2),
-				 sclnot (e2,
-					 sclimply (e1, e2,
-						   scaxiom e1,
-						   scaxiom e2))),
-			 proof)))
-  | Eall (x, s, p, _) -> 
-     let z = Llmtolk.new_tau () in
-     let ez = substitute [(x, z)] p in
-     scrall (e, z,
-  	     lktolj_aux
-  	       ez
-  	       (sccut (enot e,
-  		       scrnot (e,
-  			       sclnot (ez,
-  				       sclall (e, z, scaxiom ez))),
-  		       proof)))
-  | Evar _
-  | Eapp _
-  | Eor _
-  | Eex _ ->
-     assert false
-  | Eequiv _ | Etau _ | Elam _ | Emeta _ -> assert false
+let constructive_fail () =
+  assert false
+	 
+let rec rm a list =
+  match list with
+  | x :: list when equal x a -> list
+  | x :: list -> x :: (rm a list)
+  | [] -> assert false
+  
+(* and lktolj1 proof goal = *)
+(*   match proof with *)
+(*   | Lkproof.SCaxiom p when equal p goal -> *)
+(*      scaxiom p, (fun [proof] -> proof) *)
+(*   | Lkproof.SCaxiom p -> *)
+(*      let () = *)
+(*        match p with *)
+(*        | Evar _ *)
+(*        | Eapp _ -> () *)
+(*        | _ -> assert false in *)
+(*      sclimply (p, goal, *)
+(*   	       scaxiom (p), *)
+(*   	       scaxiom (goal)) *)
+(*   | Lkproof.SCweak (left, right, proof) when List.memq goal right -> *)
+(*      constructive_fail () *)
+(*   | Lkproof.SCweak (left, right, proof) -> *)
+(*      lktolj1 proof goal *)
+(*   | Lkproof.SCfalse -> *)
+(*      scfalse *)
+(*   | Lkproof.SCtrue when equal goal etrue -> *)
+(*      sctrue *)
+(*   | Lkproof.SCtrue -> *)
+(*      sclimply (etrue, goal, *)
+(*   	       sctrue, *)
+(*   	       scaxiom (goal)) *)
+(*   | Lkproof.SClnot (p, proof) -> *)
+(*      sccut (eimply (p, goal), *)
+(*   	    scrimply (p, goal, scrweak (goal, sclnot (p, scaxiom (p)))), *)
+(*   	    lktolj1 proof goal) *)
+(*   | Lkproof.SCrnot (p, proof) when equal goal (enot p) -> *)
+(*      constructive_fail () *)
+(*   | Lkproof.SCrnot (p, proof) -> *)
+(*      constructive_fail () *)
+(*   | Lkproof.SClimply (p, q, proof1, proof2) -> *)
+(*      sccut (eimply (p, goal), *)
+(*   	    scrimply (p, goal, sclimply (p, q, scaxiom (p), lktolj1 proof2 goal)), *)
+(*   	    lktolj1 proof1 goal) *)
+(*   | Lkproof.SCrimply (p, q, proof) when equal goal (eimply (p, q))-> *)
+(*      constructive_fail () *)
+(*   | Lkproof.SCrimply (p, q, proof) -> *)
+(*      constructive_fail () *)
+(*   | Lkproof.SCland (p, q, proof) -> *)
+(*      scland (p, q, lktolj1 proof goal) *)
+(*   | Lkproof.SCrand (p, q, proof1, proof2) when equal goal (eand (p, q)) -> *)
+(*      constructive_fail () *)
+(*   | Lkproof.SCrand (p, q, proof1, proof2) -> *)
+(*      sccut (eimply (p, goal), *)
+(*   	    scrimply (p, goal, *)
+(*   		      sccut (eimply (q, goal), *)
+(*   			     scrimply (q, goal, *)
+(*   				       sclimply (eand (p, q), goal, *)
+(*   						 (scrand (p, q, scaxiom p, scaxiom q)), *)
+(*   						 (scaxiom goal))), *)
+(*   			     lktolj1 proof2 goal)), *)
+(*   	    lktolj1 proof1 goal) *)
+(*   | Lkproof.SClor (p, q, proof1, proof2) -> *)
+(*      sclor (p, q, lktolj1 proof1 goal, lktolj1 proof2 goal) *)
+(*   | Lkproof.SCror (p, q, proof) when equal goal (eor (p, q)) -> *)
+(*      constructive_fail () *)
+(*   | Lkproof.SCror (p, q, proof) -> *)
+(*      sccut (eimply (p, goal), *)
+(*      	    scrimply (p, goal, *)
+(*      		      sclimply (eor (p, q), goal, *)
+(*      				scrorl (p, q, scaxiom p), *)
+(*      				scaxiom goal)), *)
+(*      	    sccut (eimply (q, goal), *)
+(*      		   scrimply (q, goal, *)
+(*      			     sclimply (eor (p, q), goal, *)
+(*      				       scrorr (p, q, scaxiom q), *)
+(*      				       scaxiom goal)), *)
+(*      		   lktolj1 proof goal)) *)
+(*   | Lkproof.SClall (ap, t, proof) -> *)
+(*      sclall (ap, t, lktolj1 proof goal) *)
+(*   | Lkproof.SCrall (Eall (x, ty, p, _) as ap, v, proof) when equal goal ap -> *)
+(*      let pv = substitute [(x, v)] p in *)
+(*      constructive_fail () *)
+(*   | Lkproof.SCrall (Eall (x, ty, p, _) as ap, v, proof) -> *)
+(*      constructive_fail () *)
+(*   | Lkproof.SClex (ep, v, proof) -> *)
+(*      sclex (ep, v, lktolj1 proof goal) *)
+(*   | Lkproof.SCrex (Eex (x, ty, p, _) as ep, t, proof) when equal goal ep -> *)
+(*      constructive_fail () *)
+(*   | Lkproof.SCrex (Eex (x, ty, p, _) as ep, t, proof) -> *)
+(*      let pt = substitute [(x, t)] p in *)
+(*      sccut (eimply (pt, goal), *)
+(*   	    scrimply (pt, goal, *)
+(*   		      sclimply (ep, goal, *)
+(*   				screx (ep, t, scaxiom pt), *)
+(*   				scaxiom goal)), *)
+(*   	    lktolj1 proof goal) *)
+(*   | Lkproof.SClcontr (e, proof) -> *)
+(*      sclcontr (e, lktolj1 proof goal) *)
+(*   | Lkproof.SCrcontr (e, proof) when equal goal e -> *)
+(*      constructive_fail () *)
+(*   | Lkproof.SCrcontr (e, proof) -> *)
+(*      constructive_fail () *)
+(*   (\* sclcontr (eimply (e, goal), lktolj1 proof goal) *\) *)
+(*   | _ -> *)
+(*      assert false *)
 
-and xlktolj proof =
-  match proof with
-  | Lkproof.SCaxiom p ->
+(* une formule, pas de delta *)		 
+and lktolj1 proof =  
+  match Lkproof.lkproof proof, Lkproof.premises proof with
+  | Lkproof.SCaxiom p, [] ->
      let () =
        match p with
        | Evar _
        | Eapp _ -> ()
        | _ -> assert false in
-     sclnot (enot (enot p),
-	     scrnot (enot p,
-		     sclnot (p, scaxiom p)))
-  | Lkproof.SCweak (left, right, proof) ->
-     xlktolj proof
-  | Lkproof.SCfalse -> scfalse
-  | Lkproof.SCtrue -> sclnot (etrue, sctrue)
-  | Lkproof.SClnot (p, proof) ->
-     xlktolj proof
-  | Lkproof.SCrnot (p, proof) ->
-     let p = ctrexpr_neg p in
-     sclnot (enot p,
-	    scrnot (p, xlktolj proof))
-  | Lkproof.SClimply (p, q, proof1, proof2) ->
-     let p = ctrexpr_pos p in
-     let q = ctrexpr_neg q in
-     sccut (enot p,
-            scrnot (p,
-                    sclimply (p, q,
-			      scaxiom p,
-			      xlktolj proof2)),
-            xlktolj proof1)
-  | Lkproof.SCrimply (p, q, proof) ->
-     let p = ctrexpr_neg p in
-     let q = ctrexpr_pos q in
-     sccut (enot q,
-	    scrnot (q,
-		    sclnot (eimply (p, q),
-			    scrimply (p, q, scaxiom q))),
-	    sclnot (eimply (p, q),
-		    scrimply (p, q,
-			      scrweak (q, xlktolj proof))))
-  | Lkproof.SCland (p, q, proof) ->
-     let p = ctrexpr_neg p in
-     let q = ctrexpr_neg q in
-     scland (p, q, xlktolj proof)
-  | Lkproof.SCrand (p, q, proof1, proof2) ->
-     let p = ctrexpr_pos p in
-     let q = ctrexpr_pos q in
-     sccut (enot p,
-	    scrnot (p,
-		    sccut (enot q,
-			   scrnot (q,
-				   sclnot (eand (p, q),
-					   scrand (p, q,
-						   scaxiom p,
-						   scaxiom q))),
-			   xlktolj proof2)),
-	    xlktolj proof1)    
-  | Lkproof.SClor (p, q, proof1, proof2) ->
-     let p = ctrexpr_neg p in
-     let q = ctrexpr_neg q in
-     sclor (p, q, xlktolj proof1, xlktolj proof2)
-  | Lkproof.SCror (p, q, proof) ->
-     let p = ctrexpr_pos p in
-     let q = ctrexpr_pos q in
-     sclnot (enot (enot (eor (p, q))),
-	 scrnot (enot (eor (p, q)),
-	     sccut (enot p,
-		    scrnot (p,
-			    sclnot (eor (p, q),
-				    scrorl (p, q,
-					    scaxiom p))),
-		    sccut (enot q,
-			   scrnot (q,
-				   sclnot (eor (p, q),
-					   scrorr(p, q,
-						  scaxiom q))),
-			   xlktolj proof))))
-  | Lkproof.SClall (ap, t, proof) ->
-     let ap = ctrexpr_neg ap in
-     sclall (ap, t, xlktolj proof)
-  | Lkproof.SCrall (Eall (x, ty, p, _) as ap, v, proof) ->
-     let ap = ctrexpr_pos ap in
-     let p = ctrexpr_pos p in
+     scaxiom (p)
+  | Lkproof.SCweak (left, right, _), [proof] ->
+     begin
+       match right with
+       | [] -> lktolj1 proof
+       | [e] -> lktolj2 proof
+       | _ -> assert false
+     end
+  | Lkproof.SCfalse, [] ->
+     assert false
+  | Lkproof.SCtrue, [] ->
+     sctrue
+  | Lkproof.SClnot (p, _), [proof] ->
+     constructive_fail ()
+  | Lkproof.SCrnot (p, _), [proof] ->
+     lktolj2 proof
+  | Lkproof.SClimply (p, q, _, _), [proof1; proof2] ->
+     begin
+       match proof1 with
+       (* | SCweak (left, right, proof) when (List.memq goal right) -> *)
+       (* 	  sclimply (p, q, *)
+       (* 		    lktolj1 (Lkproof.scweak (left, rm goal right, proof)), *)
+       (* 		    lktolj1 proof2) *)
+       | _ -> constructive_fail ()
+     end
+  | Lkproof.SCrimply (p, q, _), [proof] ->
+     scrimply (p, q, lktolj1 proof)
+  | Lkproof.SCland (p, q, _), [proof] ->
+     scland (p, q, lktolj1 proof)
+  | Lkproof.SCrand (p, q, _, _), [proof1; proof2] ->
+     scrand (p, q, lktolj1 proof1, lktolj1 proof2)
+  | Lkproof.SClor (p, q, _, _), [proof1; proof2] ->
+     sclor (p, q, lktolj1 proof1, lktolj1 proof2)
+  | Lkproof.SCror (p, q, _), [proof] ->
+     constructive_fail ()
+  | Lkproof.SClall (ap, t, _), [proof] ->
+     sclall (ap, t, lktolj1 proof)
+  | Lkproof.SCrall (Eall (x, _, p, _) as ap, v, _), [proof] ->
      let pv = substitute [(x, v)] p in
-     sclnot (ap,
-	     scrall (ap, v,
-		    lktolj_aux pv (xlktolj proof)))
-  | Lkproof.SClex (ep, v, proof) ->
-     let ep = ctrexpr_neg ep in
-     sclex (ep, v, xlktolj proof)
-  | Lkproof.SCrex (Eex (x, ty, p, _), t, proof) ->
-     let p = ctrexpr_pos p in
-     let ep = eex (x, ty, p) in
+     scrall (ap, v, lktolj1 proof)
+  | Lkproof.SClex (ep, v, _), [proof] ->
+     sclex (ep, v, lktolj1 proof)
+  | Lkproof.SCrex (Eex (x, _, p, _) as ep, t, _), [proof] ->
      let pt = substitute [(x, t)] p in
-     sclnot (enot (enot ep),
-	 scrnot (enot ep,
-		 sccut (enot pt,
-			scrnot (pt,
-				sclnot (ep,
-					screx (ep, t, scaxiom pt))),
-			xlktolj proof)))
-  | Lkproof.SClcontr (e, proof) ->
-     let e = ctrexpr_neg e in
-     sclcontr (e, xlktolj proof)
-  | Lkproof.SCrcontr (e, proof) ->
-     let e = ctrexpr_pos e in
-     sclcontr (enot e, xlktolj proof)
-  | _ -> assert false
+     screx (ep, t, lktolj1 proof)
+  | Lkproof.SClcontr (e, _), [proof] ->
+     sclcontr (e, lktolj1 proof)
+  | Lkproof.SCrcontr (e, _), [proof] ->
+     constructive_fail ()
+  | _, _ ->
+     assert false
+
+(* pas de formule, pas de delta *)
+and lktolj2 proof =
+  match Lkproof.lkproof proof, Lkproof.premises proof with
+  | Lkproof.SCaxiom p, [] ->
+     assert false
+  | Lkproof.SCweak (left, right, _), [proof] ->
+     assert (right = []);
+     lktolj2 proof
+  | Lkproof.SCfalse, [] ->
+     scfalse
+  | Lkproof.SCtrue, [] ->
+     assert false
+  | Lkproof.SClnot (p, _), [proof] ->
+     constructive_fail ()
+  (*    sccut (eimply (p, goal), *)
+  (* 	    scrimply (p, goal, scrweak (goal, sclnot (p, scaxiom (p)))), *)
+  (* 	    lktolj2 proof goal) *)
+  | Lkproof.SCrnot (p, _), [proof] ->
+     assert false
+  | Lkproof.SClimply (p, q, _, _), [proof1; proof2] ->
+     constructive_fail ()
+  (*    sccut (eimply (p, goal), *)
+  (* 	    scrimply (p, goal, sclimply (p, q, scaxiom (p), lktolj2 proof2 goal)), *)
+  (* 	    lktolj2 proof1 goal) *)
+  | Lkproof.SCrimply (p, q, _), [proof] ->
+     assert false
+  | Lkproof.SCland (p, q, _), [proof] ->
+     scland (p, q, lktolj2 proof)
+  | Lkproof.SCrand (p, q, _, _), [proof1; proof2] ->
+     assert false
+  | Lkproof.SClor (p, q, _, _), [proof1; proof2] ->
+     sclor (p, q, lktolj2 proof1, lktolj2 proof2)
+  | Lkproof.SCror (p, q, _), [proof] ->
+     assert false
+  | Lkproof.SClall (ap, t, _), [proof] ->
+     sclall (ap, t, lktolj2 proof)
+  | Lkproof.SCrall (Eall (x, _, p, _) as ap, v, _), [proof] ->
+     assert false
+  | Lkproof.SClex (ep, v, _), [proof] ->
+     sclex (ep, v, lktolj2 proof)
+  | Lkproof.SCrex (Eex (x, _, p, _) as ep, t, _), [proof] ->
+     assert false
+  | Lkproof.SClcontr (e, _), [proof] ->
+     sclcontr (e, lktolj2 proof)
+  | Lkproof.SCrcontr (e, _), [proof] ->
+     assert false
+  | _, _ ->
+     assert false
+
+			   
+(* let rec select_aux n l1 l2 = *)
+(*   if n = 0 *)
+(*   then l1, l2 *)
+(*   else *)
+(*     match l1 with *)
+(*     | e :: l2 -> select_aux (n-1) (e :: l1) l2 *)
+(*     | _ -> assert false *)
+(* let select n list = *)
+(*   let l1, l2 = select_aux n [] list in *)
+(*   List.rev_append l1 [], l2 *)
   
+(* let rec kleene goal = *)
+(*   match goal with *)
+(*   | Enot (e1, _) -> assert false *)
+(*   | Eimply (e1, e2, _) -> assert false *)
+(*   | Eand (e1, e2, _) -> *)
+(*      let subgoals1, n1, conclusion1 = kleene e1 in *)
+(*      let subgoals2, n2, conclusion2 = kleene e2 in *)
+(*      subgoals1 @ subgoals2, *)
+(*      n1 + n2, *)
+(*      (fun subgoals -> *)
+(*       let subgoals1, subgoals2 = select n1 subgoals in *)
+(*       Lkproof.scrand (e1, e2, conclusion1 subgoals1, conclusion2 subgoals2)) *)
+(*   | Eall (x, ty, e, _) -> assert false *)
+(*   | _ -> assert false *)
+		
 (* Gödel Gentzen positif*)
-let lktolj lkproof goal = 
-  (* Lkproof.print lkproof; *)
-  let ljproof = xlktolj lkproof in
-  (* print (lktolj_aux (ctrexpr_pos goal) ljproof); *)
-  lktolj_aux (ctrexpr_pos goal) ljproof
+let rec lktolj lkproof gamma goal =
+  (* let subgoals, _, conclusion = *)
+  (*   kleene goal in *)
+  (* assert false *)
+  (* print (lktolj2 lkproof goal); *)
+  lktolj1 lkproof
