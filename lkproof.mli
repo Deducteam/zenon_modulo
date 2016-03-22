@@ -55,3 +55,9 @@ val print : lkproof -> unit;;
 val premises : typed_lkproof -> typed_lkproof list;;
 val applytopremises :
   (typed_lkproof -> typed_lkproof) -> typed_lkproof -> typed_lkproof;;
+
+type reduction =
+  | Left of Expr.expr * Expr.expr list * Expr.expr list
+  | Right of Expr.expr * Expr.expr list * Expr.expr list
+    
+val reduce : typed_lkproof -> reduction list -> typed_lkproof;;

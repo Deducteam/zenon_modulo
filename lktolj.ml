@@ -314,23 +314,27 @@ and lktolj2 proof =
 (*   let l1, l2 = select_aux n [] list in *)
 (*   List.rev_append l1 [], l2 *)
   
-(* let rec kleene goal = *)
-(*   match goal with *)
-(*   | Enot (e1, _) -> assert false *)
-(*   | Eimply (e1, e2, _) -> assert false *)
-(*   | Eand (e1, e2, _) -> *)
-(*      let subgoals1, n1, conclusion1 = kleene e1 in *)
-(*      let subgoals2, n2, conclusion2 = kleene e2 in *)
-(*      subgoals1 @ subgoals2, *)
-(*      n1 + n2, *)
-(*      (fun subgoals -> *)
-(*       let subgoals1, subgoals2 = select n1 subgoals in *)
-(*       Lkproof.scrand (e1, e2, conclusion1 subgoals1, conclusion2 subgoals2)) *)
-(*   | Eall (x, ty, e, _) -> assert false *)
-(*   | _ -> assert false *)
+
+
+let rec kleene goal proof =
+  match goal with
+  | Enot (e, _) ->
+     Lkproof.scrnot (e, Lkproof.reduce proof [Lkproof.Right(e, [e],[])])
+  (* | Eimply (e1, e2, _) -> constructive_fail () *)
+  (* | Eand (e1, e2, _) -> constructive_fail () *)
+  (*    (\* let subgoals1, n1, conclusion1 = kleene e1 in *\) *)
+  (*    (\* let subgoals2, n2, conclusion2 = kleene e2 in *\) *)
+  (*    (\* subgoals1 @ subgoals2, *\) *)
+  (*    (\* n1 + n2, *\) *)
+  (*    (\* (fun subgoals -> *\) *)
+  (*    (\*  let subgoals1, subgoals2 = select n1 subgoals in *\) *)
+  (*    (\*  Lkproof.scrand (e1, e2, conclusion1 subgoals1, conclusion2 subgoals2)) *\) *)
+  (* | Eall (x, ty, e, _) -> constructive_fail () *)
+  | _ -> proof
 		
 (* Gödel Gentzen positif*)
 let rec lktolj lkproof gamma goal =
+  let lkproof = kleene goal lkproof in
   (* let subgoals, _, conclusion = *)
   (*   kleene goal in *)
   (* assert false *)

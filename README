@@ -53,6 +53,10 @@ pour tester test.p:
 pour le bench:
      make && make -f Makefile.bench dkbench
 
+
+cat statistics_1 | grep -v "line 370" | wc -l && cat statistics_1 | grep "exit_status 0.*exit_status 0" | wc -l && cat statistics_1 | grep -v "exit_status 0.*exit_status 0" | grep -v "line 370" | grep -v "line 72" | wc -l
+
+
 pour regarder s'il reste des erreurs (attention modifier zenon error et dkcheck_exit_status):
      grep -v "zenon_exit_status 124" statistics_0.05 | grep -v "lltollm.ml, line 54" | grep -v "Zenon error" | grep -v "dkcheck_exit_status 0"
 

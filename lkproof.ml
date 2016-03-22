@@ -160,6 +160,7 @@ let rec merge contexts =
 	 ([], deltas) delta in
      maingamma, maindelta, List.combine restgamma restdelta
 
+(* à ne pas faire avant de créer les contractions, cf SYN357+1.p *)
 let rec reduce_weakenings typed_proofs contexts hypotheses =
   if (not !reduce_flag)
   then None
@@ -438,4 +439,86 @@ let applytopremises application (gamma, delta, proof) =
   | SCrex (e, t, _), [proof] -> screx (e, t, application proof)
   | _ , _-> assert false
 
+(* les réductions sont ordonnées (cf cas weak) d'où un type pour réunir les réductions
+à gauche et à droite *)
+(* les réduits sont nécessaires (cf instanciations) *)
+type reduction =
+  | Left of expr * expr list * expr list
+  | Right of expr * expr list * expr list
 
+let remove_right p reds =
+  let rec remove_right_aux p reds aux =
+    match reds with
+    | [] -> None
+    | (Right (e, gamma, delta) as red) :: reds ->
+       if equal e p
+       then Some (aux, reds)
+       else remove_right_aux p reds (red :: aux)
+    | red :: reds ->
+       remove_right_aux p reds (red :: aux)
+  in
+  match remove_right_aux p reds [] with
+  | Some (l1, l2) -> Some (List.rev_append l1 l2)
+  | None -> None
+    
+let rec reduce (gamma, delta, proof) reductions =
+  match proof, premises (gamma, delta, proof) with
+  | SCaxiom p, [] ->
+     assert (reductions = []);
+     scaxiom p
+  | SCweak (left, right, _), [proof] ->
+     let revreductions, nleft, nright =
+       List.fold_left
+	 (fun (reds, left, right) reduction ->
+	  match reduction with
+	  | Left (e, rgamma, rdelta) ->
+	     if List.memq e left
+	     then (reds, rgamma @ (rm e left), rdelta @ right)
+	     else (reduction :: reds, left, right)
+	  | Right (e, rgamma, rdelta) ->
+	     if List.memq e right
+	     then (reds, rgamma @ left, rdelta @ (rm e right))
+	     else (reduction :: reds, left, right))
+	 ([], left, right) reductions in
+     scweak (nleft, nright, reduce proof (List.rev revreductions))
+  | SCfalse, [] ->
+     assert (reductions = []);
+     scfalse
+  | SCtrue, [] ->
+     assert (reductions = []);
+     sctrue
+  | SClnot (p, _), [proof] ->
+     sclnot (p, reduce proof reductions)
+  | SCrnot (p, _), [proof] ->
+     begin
+       match remove_right p reductions with
+       | Some (reductions) -> reduce proof reductions
+       | None -> scrnot (p, reduce proof reductions)
+     end
+  | SClimply (p, q, _, _), [proof1; proof2] ->
+     sclimply (p, q, reduce proof1 reductions, reduce proof2 reductions)
+  | SCrimply (p, q, _), [proof] ->
+     scrimply (p, q, reduce proof reductions)
+  | SCland (p, q, _), [proof] ->
+     scland (p, q, reduce proof reductions)
+  | SCrand (p, q, _, _), [proof1; proof2] ->
+     scrand (p, q, reduce proof1 reductions, reduce proof2 reductions)
+  | SClor (p, q, _, _), [proof1; proof2] ->
+     sclor (p, q, reduce proof1 reductions, reduce proof2 reductions)
+  | SCror (p, q, _), [proof] ->
+     scror (p, q, reduce proof reductions)
+  | SClcontr (e, _), [proof] ->
+     sclcontr (e, reduce proof reductions)
+  | SCrcontr (e, _), [proof] ->
+     scrcontr (e, reduce proof reductions)
+  | SClall (e, t, _), [proof] ->
+     sclall (e, t, reduce proof reductions)
+  | SCrall (e, v, _), [proof] ->
+     scrall (e, v, reduce proof reductions)
+  | SClex (e, v, _), [proof] ->
+     sclex (e, v, reduce proof reductions)
+  | SCrex (e, t, _), [proof] ->
+     screx (e, t, reduce proof reductions)
+  | _ , _-> assert false
+
+		   

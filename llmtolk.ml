@@ -6,6 +6,8 @@ open Printf
 type env = {hypotheses : Expr.expr list; 
 	    distincts : (Expr.expr * int) list;}
 
+let new_terms = ref []
+	 
 let p_debug s es =
   eprintf "%s |" s;
   List.iter
@@ -511,10 +513,164 @@ let rec contract_left hyp typed_proof =
        else
 	 applytopremises (contract_left hyp) typed_proof
 
+(* let rec candidates proof = *)
+(*   match lkproof proof, List.map candidates (premises proof) with *)
+(*   | _, [] -> *)
+(*      [] *)
+(*   | SClall (ap, t, _), [list] -> *)
+(*      if List.mem_assq ap list *)
+(*      then *)
+(*        let l = List.assq ap list in *)
+(*        let nl = if List.memq t l then l else t :: l in *)
+(*        (ap, nl) :: (List.remove_assq ap list) *)
+(*      else (ap, [t]) :: list *)
+(*   | SCrex (ep, t, _), [list] -> *)
+(*      if List.mem_assq ep list *)
+(*      then *)
+(*        let l = List.assq ep list in *)
+(*        let nl = if List.memq t l then l else t :: l in *)
+(*        (ep, nl) :: (List.remove_assq ep list) *)
+(*      else (ep, [t]) :: list *)
+(*   | SCrall (ap, (Evar (s, _) as v), _), [list] -> *)
+(*      List.map *)
+(*        (fun (e, l) -> *)
+(* 	(e, List.filter (fun t -> not (List.mem s (get_fv t))) l)) *)
+(*        list *)
+(*   | SClex (ep, (Evar (s, _) as v), _), [list] -> *)
+(*      List.map *)
+(*        (fun (e, l) -> *)
+(* 	(e, List.filter (fun t -> not (List.mem s (get_fv t))) l)) *)
+(*        list *)
+(*   | _, [list] -> *)
+(*      list *)
+(*   | _, [list1; list2] -> *)
+(*      List.fold_left *)
+(*        (fun list (e, l) -> *)
+(* 	if List.mem_assq e list *)
+(* 	then *)
+(* 	  let nl = *)
+(* 	    List.fold_left *)
+(* 	      (fun ts t -> if List.memq t ts then ts else t :: ts) *)
+(* 	      (List.assq e list) l in *)
+(* 	  (e, nl) :: (List.remove_assq e list) *)
+(* 	else (e, l) :: list) list1 list2 *)
+(*   | _, _ -> *)
+(*      assert false *)
+
+(* let rec substitute_proof x t proof = *)
+(*   let subst = substitute [(x, t)] in *)
+(*   match lkproof proof, List.map (substitute_proof x t) (premises proof) with *)
+(*   | SCaxiom p, [] -> *)
+(*      scaxiom (subst p) *)
+(*   | SCweak (left, right, _), [proof] -> *)
+(*      scweak (List.map subst left, List.map subst right, proof) *)
+(*   | SCfalse, [] -> *)
+(*      scfalse *)
+(*   | SCtrue, [] -> *)
+(*      sctrue *)
+(*   | SClnot (p, _), [proof] -> *)
+(*      sclnot (subst p, proof) *)
+(*   | SCrnot (p, _), [proof] -> *)
+(*      scrnot (subst p, proof) *)
+(*   | SClimply (p, q, _, _), [proof1; proof2] -> *)
+(*      sclimply (subst p, subst q, proof1, proof2) *)
+(*   | SCrimply (p, q, _), [proof] -> *)
+(*      scrimply (subst p, subst q, proof) *)
+(*   | SCland (p, q, _), [proof] -> *)
+(*      scland (subst p, subst q, proof) *)
+(*   | SCrand (p, q, _, _), [proof1; proof2] -> *)
+(*      scrand (subst p, subst q, proof1, proof2) *)
+(*   | SClor (p, q, _, _), [proof1; proof2] -> *)
+(*      sclor (subst p, subst q, proof1, proof2) *)
+(*   | SCror (p, q, _), [proof] -> *)
+(*      scror (subst p, subst q, proof) *)
+(*   | SClall (Eall (x, _, p, _) as ap, t, _), [proof] -> *)
+(*      sclall (subst ap, subst t, proof) *)
+(*   | SCrall (ap, (Evar (s, _) as v), _), [proof] -> *)
+(*      scrall (subst ap, subst v, proof) *)
+(*   | SClex (ep, (Evar (s, _) as v), _), [proof] -> *)
+(*      sclex (subst ep, subst v, proof) *)
+(*   | SCrex (Eex (x, _, p, _) as ep, t, _), [proof] -> *)
+(*      screx (subst ep, subst t, proof)        *)
+(*   | SClcontr (e, _), [proof] -> *)
+(*      sclcontr (subst e, proof) *)
+(*   | SCrcontr (e, _), [proof] -> *)
+(*      scrcontr (subst e, proof) *)
+(*   | _, _ -> *)
+(*      assert false *)
+	    
 let rec reduce proof =
-  reduce_flag := true;
-  applytopremises reduce proof
-			 
+  let (gamma, delta) = sequent proof in
+  match lkproof proof, premises proof with
+  | SCaxiom p, [] ->
+     scaxiom p
+  | SCweak (left, right, _), [proof] ->
+     scweak (left, right, reduce proof)
+  | SCfalse, [] ->
+     scfalse
+  | SCtrue, [] ->
+     sctrue
+  | SClnot (p, _), [proof] ->
+     sclnot (p, reduce proof)
+  | SCrnot (p, _), [proof] ->
+     scrnot (p, reduce proof)
+  | SClimply (p, q, _, _), [proof1; proof2] ->
+     sclimply (p, q, reduce proof1, reduce proof2)
+  | SCrimply (p, q, _), [proof] ->
+     scrimply (p, q, reduce proof)
+  | SCland (p, q, _), [proof] ->
+     scland (p, q, reduce proof)
+  | SCrand (p, q, _, _), [proof1; proof2] ->
+     scrand (p, q, reduce proof1, reduce proof2)
+  | SClor (p, q, _, _), [proof1; proof2] ->
+     sclor (p, q, reduce proof1, reduce proof2)
+  | SCror (p, q, _), [proof] ->
+     scror (p, q, reduce proof)
+  | SClall (Eall (x, _, p, _) as ap, (Evar (v, _) as t), _), [premise] ->
+     (* let list = candidates premise in *)
+     (* let ts = if List.mem_assq ap list then List.assq ap list else [] in *)
+     (* let ts = List.filter (fun e -> not (equal e t)) ts in *)
+     (* assert (List.for_all (fun e -> equal e (substitute [(t, etrue)] e)) (gamma@delta)); *)
+     (* if *)
+     (*   List.for_all (fun (tau, var) -> not (equal var t)) !new_terms *)
+     (*   && ts != [] *)
+     (*   && List.for_all (fun e -> equal e (substitute [(t, etrue)] e)) (gamma@delta) *)
+     (* then *)
+     (*   let _ = assert false in *)
+     (*   let nt = List.hd ts in *)
+     (*   reduce (substitute_proof t nt proof) *)
+     (* else *)
+       sclall (ap, t, reduce premise)       
+  | SClall (Eall (x, _, p, _) as ap, t, _), [proof] ->
+     sclall (ap, t, reduce proof)
+  | SCrall (ap, (Evar (s, _) as v), _), [proof] ->
+     scrall (ap, v, reduce proof)
+  | SClex (ep, (Evar (s, _) as v), _), [proof] ->
+     sclex (ep, v, reduce proof)
+  | SCrex (Eex (x, _, p, _) as ep, (Evar (v, _) as t), _), [premise] ->
+     (* let list = candidates premise in *)
+     (* let ts = if List.mem_assq ep list then List.assq ep list else [] in *)
+     (* let ts = List.filter (fun e -> not (equal e t)) ts in *)
+     (* assert (List.for_all (fun e -> equal e (substitute [(t, etrue)] e)) (gamma@delta)); *)
+     (* if *)
+     (*   List.for_all (fun (tau, var) -> not (equal var t)) !new_terms *)
+     (*   && ts != [] *)
+     (*   && List.for_all (fun e -> equal e (substitute [(t, etrue)] e)) (gamma@delta) *)
+     (* then        *)
+     (*   let _ = assert false in *)
+     (*   let nt = List.hd ts in *)
+     (*   reduce (substitute_proof t nt proof) *)
+     (* else *)
+       screx (ep, t, reduce premise)       
+  | SCrex (Eex (x, _, p, _) as ep, t, _), [proof] ->
+     screx (ep, t, reduce proof)       
+  | SClcontr (e, _), [proof] ->
+     sclcontr (e, reduce proof)
+  | SCrcontr (e, _), [proof] ->
+     scrcontr (e, reduce proof)
+  | _, _ ->
+     assert false
+
 let rec llmtolk env proof goal contextoutput =
   let precontext, preproof =
     llmtolkrule env.distincts proof in
@@ -545,8 +701,9 @@ let rec llmtolk env proof goal contextoutput =
        | _ -> contract_left hyp typed_proof)
       proof contr in
   (* print (lkproof proof); *)
+  reduce_flag := true;
   reduce proof
-       
+	 
 (* FIN *)
        
 let rec check_first_order_right p =

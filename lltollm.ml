@@ -2,8 +2,6 @@ open Llproof
 open Expr
 open Printf
 
-let new_terms = ref []
-	 
 let rec lltollm_expr defs e =
   match e with
   | Evar (v, _) when Hashtbl.mem defs v ->
@@ -34,12 +32,12 @@ let rec lltollm_expr defs e =
     eex (x, s, lltollm_expr defs e)
   | Etau (x, s, e, _) ->
     let tau = etau (x, s, e) in
-    if List.mem_assoc tau !new_terms
+    if List.mem_assoc tau !Llmtolk.new_terms
     then
-      List.assoc tau !new_terms
+      List.assoc tau !Llmtolk.new_terms
     else
       let z = Llmtolk.new_tau () in
-      new_terms := (tau, z) :: !new_terms;
+      Llmtolk.new_terms := (tau, z) :: !Llmtolk.new_terms;
       z
   | Elam (x, s, e, _) ->
     elam (x, s, lltollm_expr defs e)
