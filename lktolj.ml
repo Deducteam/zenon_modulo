@@ -317,9 +317,10 @@ and lktolj2 proof =
 
 
 let rec kleene goal proof =
+  (* Lkproof.print (Lkproof.lkproof proof); *)
   match goal with
   | Enot (e, _) ->
-     Lkproof.scrnot (e, Lkproof.reduce proof [Lkproof.Right(e, [e],[])])
+     Lkproof.scrnot (e, Lkproof.reduce proof [Lkproof.Right(enot e, [e],[])])
   (* | Eimply (e1, e2, _) -> constructive_fail () *)
   (* | Eand (e1, e2, _) -> constructive_fail () *)
   (*    (\* let subgoals1, n1, conclusion1 = kleene e1 in *\) *)

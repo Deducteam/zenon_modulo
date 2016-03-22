@@ -491,7 +491,7 @@ let rec reduce (gamma, delta, proof) reductions =
      sclnot (p, reduce proof reductions)
   | SCrnot (p, _), [proof] ->
      begin
-       match remove_right p reductions with
+       match remove_right (enot p) reductions with
        | Some (reductions) -> reduce proof reductions
        | None -> scrnot (p, reduce proof reductions)
      end
