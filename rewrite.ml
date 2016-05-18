@@ -169,8 +169,6 @@ let rec norm_term_aux rules t =
 
 let rec norm_term t =
   let rules = Hashtbl.find_all !Expr.tbl_term (find_first_sym t) in
-(*  let rules_sort = List.sort ordering rules in *)
-  (*let rules = List.sort (ordering_two t) rules in*)
   let new_t = norm_term_aux rules t in
   if not (Expr.equal t new_t)
   then
