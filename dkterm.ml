@@ -420,8 +420,6 @@ let print_proof o name proof =
 
 (* to manage dependances of symbols definitions *)
 
-
-
 type declaration =
   | Some of line       (* line is a Dkdecl here *)
   | None
