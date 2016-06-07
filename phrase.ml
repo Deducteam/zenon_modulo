@@ -208,8 +208,15 @@ let change_to_def predef body =
   end
 ;;
 
+type tpannot =
+  | File of string * string
+  | Infer of string * string * (tpannot list)
+  | Name of string
+;;
+
 type tpphrase =
   | Include of string * string list option
   | Formula of string * string * expr * string option
+  | Formula_clause of string * string * expr * tpannot option
   | Annotation of string
 ;;

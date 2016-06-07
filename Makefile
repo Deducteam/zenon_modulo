@@ -30,6 +30,7 @@ SOURCES = log.ml version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
 	  CCVector.ml printBox.ml simplex.ml arith.ml \
           parsezen.mly lexzen.mll \
 	  parsetptp.mly lextptp.mll typetptp.ml \
+	  parsetstp.mly lextstp.mll typetstp.ml \
 	  parsecoq.mly lexcoq.mll parsedk.mly lexdk.mll tptp.ml \
           coqterm.ml lltocoq.ml \
 	  dkterm.ml lltodk.ml \
@@ -146,6 +147,15 @@ parsetptp.ml: parsetptp.mly
 parsetptp.mli: parsetptp.ml
 	:
 
+lextstp.ml: lextstp.mll
+	$(CAMLLEX) -v lextstp.mll
+
+parsetstp.ml: parsetstp.mly
+	$(CAMLYACC) -v parsetstp.mly
+
+parsetstp.mli: parsetstp.ml
+	:
+
 lexsmtlib.ml: lexsmtlib.mll
 	$(CAMLLEX) lextptp.mll
 
@@ -208,6 +218,7 @@ clean:
 	rm -f *.cm* *.o *.vo *.dko *.annot *.output *.glob
 	rm -f parsezen.ml parsezen.mli lexzen.ml
 	rm -f parsetptp.ml parsetptp.mli lextptp.ml
+	rm -f parsetstp.ml parsetstp.mli lextstp.ml
 	rm -f parsecoq.ml parsecoq.mli lexcoq.ml
 	rm -f checksum.ml
 	rm -f zenon_modulo *.bin *.byt

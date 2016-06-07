@@ -30,12 +30,18 @@ val separate :
   string list -> phrase list -> definition list * (expr * int) list
 ;;
 
+type tpannot =
+  File of string * string
+  | Infer of string * string * (tpannot list)
+  | Name of string
+;;
+
 type tpphrase =
   | Include of string * string list option
   | Formula of string * string * expr * string option
+  | Formula_clause of string * string * expr * tpannot option
   | Annotation of string
 ;;
-
 val change_to_def : string list -> expr -> definition;;
 (** Turn a def-shaped formula into a (real) definition.
     Raise [Invalid_argument] if the argument is not def-shaped. *)

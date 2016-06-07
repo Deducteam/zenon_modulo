@@ -61,7 +61,7 @@ let add_annotation s =
     | Not_found -> ()
 ;;
 
-let tptp_to_coq s = try Hashtbl.find trans_table s with Not_found -> s;;
+let tstp_to_coq s = try Hashtbl.find trans_table s with Not_found -> s;;
 
 let rec make_annot_expr e =
   match e with
@@ -71,7 +71,7 @@ let rec make_annot_expr e =
                         [type_type; type_prop; type_iota; type_none]) -> e
   | Eapp (Evar("#", _), _, _) -> e
   | Eapp (Evar(s,_) as v, l, _) ->
-     let s = tptp_to_coq s in
+     let s = tstp_to_coq s in
      let l = List.map make_annot_expr l in
      eapp (tvar s (get_type v), l)
   | Eapp(_) -> assert false
@@ -108,13 +108,13 @@ let process_annotations forms =
        if List.mem name !eq_defs then
          make_definition name form (make_annot_expr body) kind
        else
-         Hyp (tptp_to_coq name, make_annot_expr body, kind)
+         Hyp (tstp_to_coq name, make_annot_expr body, kind)
     | Rew (name, body, kind) ->
        Log.debug 15 "Process Annotation '%a'" Print.pp_expr body;
        if List.mem name !eq_defs then
          make_definition name form (make_annot_expr body) kind
        else
-         Rew (tptp_to_coq name, make_annot_expr body, kind)
+         Rew (tstp_to_coq name, make_annot_expr body, kind)
     | Def _
     | Sig _
     | Inductive _
@@ -139,7 +139,7 @@ let rec translate_one dirs accu p =
   | Formula (_, "hypothesis", _, _) -> accu
   | Formula (_, ("lemma"|"theorem"), _, _) -> accu
   | Formula (name, "conjecture", body, None) ->
-     tptp_thm_name := name;
+     tstp_thm_name := name;
     Hyp (goal_name, enot (body), 0) :: accu
   | Formula (_, "negated_conjecture", _, _) -> accu
   | Formula (_, "plain", _, _) -> accu
@@ -160,7 +160,7 @@ let rec translate_one dirs accu p =
   | Formula (name, ("tff_lemma"|"tff_theorem"), body, None) ->
       Hyp (name, body, 11) :: accu
   | Formula (name, "tff_conjecture", body, None) ->
-      tptp_thm_name := name;
+      tstp_thm_name := name;
       Hyp (goal_name, enot (body), 10) :: accu
   | Formula (name, "tff_negated_conjecture", body, None) ->
       Hyp (name, body, 10) :: accu
@@ -195,7 +195,7 @@ and incl dir name accu =
     Lexing.pos_cnum = 0;
   };
   try
-    let tpphrases = Parsetptp.file Lextptp.token lexbuf in
+    let tpphrases = Parsetstp.file Lextstp.token lexbuf in
     close_in chan;
     xtranslate dir tpphrases accu;
   with
@@ -207,7 +207,7 @@ let translate dirs ps =
   let raw = List.rev (xtranslate dirs ps []) in
   let cooked = process_annotations raw in
   let name = if !annot_thm_name <> "" then !annot_thm_name
-             else if !tptp_thm_name <> "" then !tptp_thm_name
+             else if !tstp_thm_name <> "" then !tstp_thm_name
              else thm_default_name
   in
   (cooked, name)
