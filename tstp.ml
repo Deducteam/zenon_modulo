@@ -132,17 +132,28 @@ let rec translate_one dirs accu p =
       accu
   | Annotation s -> add_annotation s; accu
   | Formula (name, ("axiom" | "definition"), body, None) ->
+      Hyp (name, body, 2) :: accu
+  | Formula (_, "hypothesis", _, _) ->
+      accu
+  | Formula (_, ("lemma"|"theorem"), body, None) ->
+      accu
+  | Formula (name, "conjecture", body, None) ->
+      tptp_thm_name := name;
+      Hyp (goal_name, enot (body), 0) :: accu
+  | Formula (_, "negated_conjecture", _, _) ->
+      accu
+  | Formula_annot (name, ("axiom" | "definition"), body, None) ->
      Hyp (name, body, 2) :: accu
-  | Formula (name, ("axiom" | "definition"), body, Some (File(_,_))) ->
+  | Formula_annot (name, ("axiom" | "definition"), body, Some (File(_,_))) ->
      Hyp (name, body, 2) :: accu
-  | Formula (_, ("axiom" | "definition"), _, Some (Infer(_,_,_))) -> accu
-  | Formula (_, "hypothesis", _, _) -> accu
-  | Formula (_, ("lemma"|"theorem"), _, _) -> accu
+  | Formula_annot (_, ("axiom" | "definition"), _, Some (Infer(_,_,_))) -> accu
+  | Formula_annot (_, "hypothesis", _, _) -> accu
+  | Formula_annot (_, ("lemma"|"theorem"), _, _) -> accu
   | Formula (name, "conjecture", body, None) ->
      tstp_thm_name := name;
     Hyp (goal_name, enot (body), 0) :: accu
-  | Formula (_, "negated_conjecture", _, _) -> accu
-  | Formula (_, "plain", _, _) -> accu
+  | Formula_annot (_, "negated_conjecture", _, _) -> accu
+  | Formula_annot (_, "plain", _, _) -> accu
   | Clause (_,_,_,_) -> accu
   (* TFF formulas *)
   | Formula (name, "tff_type", body, None) ->

@@ -102,9 +102,9 @@ phrase:
   | INCLUDE OPEN LIDENT COMMA LBRACKET name_list RBRACKET CLOSE DOT
                                    { Phrase.Include ($3, Some ($6)) }
   | INPUT_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula optionnal CLOSE DOT
-                                   { Phrase.Formula_clause (ns_hyp $3, $5, $7, $8) }
+                                   { Phrase.Formula_annot  ($3, $5, $7, $8) }
   | INPUT_CLAUSE OPEN LIDENT COMMA LIDENT COMMA cnf_formula optionnal CLOSE DOT
-     { Phrase.Formula_clause (ns_hyp $3, $5, cnf_to_formula $7, $8) }
+      { Phrase.Formula_Clause ($3, $5, cnf_to_formula $7, $8) }
   | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula COMMA LIDENT CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, Some $9) }
   | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula CLOSE DOT
@@ -209,7 +209,7 @@ disjunction:
 optionnal:
   | /* mot vide */  { None }
   | COMMA FILE OPEN LIDENT COMMA LIDENT CLOSE
-      { Some (Phrase.File  ($4, $6) }
+      { Some (Phrase.File  ($4, $6)) }
   | COMMA infer { Some ($2) }
 ;
 
