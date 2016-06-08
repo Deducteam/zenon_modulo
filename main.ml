@@ -333,13 +333,13 @@ let parse_file f =
             try
               let tptp_env = Sys.getenv "TPTP" in
               let incpath = List.rev (tptp_env :: upup :: d :: !include_path) in
-              let (forms, name) = Tstp.translate incpath tpphrases in
-              let forms = Typetstp.typecheck forms in
+              let (forms, name) = Tptp.translate incpath tpphrases in
+              let forms = Typetptp.typecheck forms in
 	      (name, List.map (fun x -> (x, false)) forms)
             with Not_found ->
               let incpath = List.rev (upup :: d :: !include_path) in
-              let (forms, name) = Tstp.translate incpath tpphrases in
-              let forms = Typetstp.typecheck forms in
+              let (forms, name) = Tptp.translate incpath tpphrases in
+              let forms = Typetptp.typecheck forms in
 	      (name, List.map (fun x -> (x, false)) forms)
           end
       | I_focal ->

@@ -29,8 +29,7 @@ SOURCES = log.ml version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
 	  step.ml node.ml extension.ml mltoll.ml \
 	  CCVector.ml printBox.ml simplex.ml arith.ml \
           parsezen.mly lexzen.mll \
-	  parsetptp.mly lextptp.mll typetptp.ml \
-	  parsetstp.mly lextstp.mll typetstp.ml \
+	  parsetptp.mly lextptp.mll parsetstp.mly lextstp.mll typetptp.ml \
 	  parsecoq.mly lexcoq.mll parsedk.mly lexdk.mll tptp.ml \
           coqterm.ml lltocoq.ml \
 	  dkterm.ml lltodk.ml \
@@ -148,7 +147,7 @@ parsetptp.mli: parsetptp.ml
 	:
 
 lextstp.ml: lextstp.mll
-	$(CAMLLEX) -v lextstp.mll
+	$(CAMLLEX) lextstp.mll
 
 parsetstp.ml: parsetstp.mly
 	$(CAMLYACC) -v parsetstp.mly
