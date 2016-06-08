@@ -38,8 +38,8 @@ type tpannot =
 
 type tpphrase =
   | Include of string * string list option
-  | Formula of string * string * expr * string option
-  | Formula_clause of string * string * expr * tpannot option
+  | Formula of string * string * expr * (string option)
+  | Formula_annot of string * string * expr * (tpannot option)
   | Annotation of string
 ;;
 val change_to_def : string list -> expr -> definition;;

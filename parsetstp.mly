@@ -104,7 +104,7 @@ phrase:
   | INPUT_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula optionnal CLOSE DOT
                                    { Phrase.Formula_annot  ($3, $5, $7, $8) }
   | INPUT_CLAUSE OPEN LIDENT COMMA LIDENT COMMA cnf_formula optionnal CLOSE DOT
-      { Phrase.Formula_Clause ($3, $5, cnf_to_formula $7, $8) }
+      { Phrase.Formula_annot ($3, $5, cnf_to_formula $7, $8) }
   | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula COMMA LIDENT CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, Some $9) }
   | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula CLOSE DOT

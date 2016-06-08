@@ -12,7 +12,7 @@ let report_error lexbuf msg =
   exit 2;
 ;;
 
-(* Mapping from TPTP identifiers to coq expressions. *)
+(* Mapping from TSTP identifiers to coq expressions. *)
 let trans_table = Hashtbl.create 35;;
 
 (* Names of formula that have to be treated as (real) definitions. *)
@@ -21,8 +21,8 @@ let eq_defs = ref [];;
 (* Theorem name according to annotations. *)
 let annot_thm_name = ref "";;
 
-(* Theorem name according to TPTP syntax. *)
-let tptp_thm_name = ref "";;
+(* Theorem name according to TSTP syntax. *)
+let tstp_thm_name = ref "";;
 
 (* Names of formulas that should be omitted. *)
 let to_ignore = ref [];;
@@ -138,7 +138,7 @@ let rec translate_one dirs accu p =
   | Formula (_, ("lemma"|"theorem"), body, None) ->
       accu
   | Formula (name, "conjecture", body, None) ->
-      tptp_thm_name := name;
+      tstp_thm_name := name;
       Hyp (goal_name, enot (body), 0) :: accu
   | Formula (_, "negated_conjecture", _, _) ->
       accu
@@ -154,7 +154,7 @@ let rec translate_one dirs accu p =
     Hyp (goal_name, enot (body), 0) :: accu
   | Formula_annot (_, "negated_conjecture", _, _) -> accu
   | Formula_annot (_, "plain", _, _) -> accu
-  | Clause (_,_,_,_) -> accu
+
   (* TFF formulas *)
   | Formula (name, "tff_type", body, None) ->
       Hyp (name, body, 13) :: accu

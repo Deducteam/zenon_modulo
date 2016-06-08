@@ -216,8 +216,7 @@ type tpannot =
 
 type tpphrase =
   | Include of string * string list option
-  | Formula of string * string * expr * string option
-  | Formula_annot of string * string * expr * tpannot option
-  | Clause of string * string * expr * tpannot option
+  | Formula of string * string * expr * (string option)
+  | Formula_annot of string * string * expr * (tpannot option)
   | Annotation of string
 ;;
