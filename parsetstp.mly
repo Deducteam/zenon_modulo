@@ -52,7 +52,7 @@ let cnf_to_formula l =
 %token DOT
 %token FILE
 %token INFERENCE
-%token INTRODUCE
+%token INTRODUCED
 %token DEFINITION
 %token AXIOM_OF_CHOICE
 %token TAUTOLOGY
@@ -239,12 +239,11 @@ source_list:
 
 dag_source:
 | LIDENT { $1 }
-| INFERENCE OPEN LIDENT COMMA useful_info COMMA
-LBRACKET source_list RBRACKET CLOSE { "Inference" }
+| INFERENCE OPEN LIDENT COMMA useful_info COMMA LBRACKET source_list RBRACKET CLOSE { "Inference" }
 ;
 
 internal_source:
-| INTRODUCE OPEN intro_type optional_info CLOSE { "introduction type" }
+| INTRODUCED OPEN intro_type optional_info CLOSE { "introduction type" }
 ;
     
 intro_type:

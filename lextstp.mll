@@ -72,7 +72,7 @@ rule token = parse
   | "include"        { INCLUDE }
   | "inference"      { INFERENCE }
   | "theory"         { THEORY }
-  | "introduce"      { INTRODUCE }
+  | "introduced"     { INTRODUCED }
   | "definition"     { DEFINITION }
   | "axiom_of_choice" { AXIOM_OF_CHOICE }
   | "tautology"      { TAUTOLOGY }
