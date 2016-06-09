@@ -50,9 +50,18 @@ let cnf_to_formula l =
 %token EOF
 %token INCLUDE
 %token DOT
-%token INFERENCE
 %token FILE
-%token STATUS
+%token INFERENCE
+%token INTRODUCE
+%token DEFINITION
+%token AXIOM_OF_CHOICE
+%token TAUTOLOGY
+%token ASSUMPTION
+%token UNKNOWN
+%token AC
+%token EQUALITY
+%token THEORY
+%token CREATOR
 %token INPUT_CLAUSE
 %token INPUT_FORMULA
 %token INPUT_TFF_FORMULA
@@ -62,6 +71,7 @@ let cnf_to_formula l =
 %token STAR
 %token <string> LIDENT
 %token <string> UIDENT
+%token <string> ANYCHAR
 %token <string> STRING
 %token <string> INT
 %token <string> RAT
@@ -100,10 +110,12 @@ file:
 phrase:
   | INCLUDE OPEN LIDENT CLOSE DOT  { Phrase.Include ($3, None) }
   | INCLUDE OPEN LIDENT COMMA LBRACKET name_list RBRACKET CLOSE DOT
-                                   { Phrase.Include ($3, Some ($6)) }
-  | INPUT_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula optionnal CLOSE DOT
-                                   { Phrase.Formula_annot  ($3, $5, $7, $8) }
-  | INPUT_CLAUSE OPEN LIDENT COMMA LIDENT COMMA cnf_formula optionnal CLOSE DOT
+      { Phrase.Include ($3, Some ($6)) }
+  | INPUT_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula CLOSE DOT
+      { Phrase.Formula (ns_hyp $3, $5, $7, None) }
+  | INPUT_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula optional CLOSE DOT
+      { Phrase.Formula_annot (ns_hyp $3, $5, $7, $8) }
+  | INPUT_CLAUSE OPEN LIDENT COMMA LIDENT COMMA cnf_formula optional CLOSE DOT
       { Phrase.Formula_annot ($3, $5, cnf_to_formula $7, $8) }
   | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula COMMA LIDENT CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, Some $9) }
@@ -206,22 +218,88 @@ disjunction:
   | disjunction OR atom            { $3 :: $1 }
 ;
 
-optionnal:
-  | /* mot vide */  { None }
-  | COMMA FILE OPEN LIDENT COMMA LIDENT CLOSE
-      { Some (Phrase.File  ($4, $6)) }
-  | COMMA infer { Some ($2) }
+optional:
+| /* mot vide */ { None }
+| COMMA source optional_info { Some (Phrase.Option ($2)) }
+;
+    
+source:
+| dag_source { $1 }
+| internal_source { $1 }
+| external_source { $1 }
+| UNKNOWN { "" }
+| LBRACKET source_list RBRACKET { $2 }
 ;
 
-infer:
-  | INFERENCE OPEN LIDENT COMMA LBRACKET STATUS OPEN LIDENT CLOSE RBRACKET COMMA LBRACKET infer_list RBRACKET { Phrase.Infer ($3, $8, $13) }
-  | LIDENT { Phrase.Name ($1) }
+source_list:
+| /* mot vide */ { "" }
+| source { $1 }
+| source COMMA source_list { $1 }
 ;
 
-infer_list:
-  | /* mot vide */ { [] }
-  | infer COMMA infer_list { $1::$3 }
-  | infer { [$1] }
+dag_source:
+| LIDENT { $1 }
+| INFERENCE OPEN LIDENT COMMA useful_info COMMA
+LBRACKET source_list RBRACKET CLOSE { "Inference" }
+;
 
-      
+internal_source:
+| INTRODUCE OPEN intro_type optional_info CLOSE { "introduction type" }
+;
+    
+intro_type:
+| DEFINITION { "definition" }
+| AXIOM_OF_CHOICE { "axiom_of_choice" }
+| TAUTOLOGY { "tautology" }
+| ASSUMPTION { "assumption" }
+;
+    
+external_source:
+| file_source { $1 }
+| theory { $1 }
+| creator_source { $1 }
+;
+    
+file_source:
+| FILE OPEN LIDENT file_info CLOSE { $3 }
+;
+    
+file_info:
+| /*mot vide*/ { None }
+| COMMA LIDENT { Some ($2) }
+;
+    
+theory:
+| THEORY OPEN theory_name optional_info CLOSE { "Theory" }
+;
+    
+theory_name:
+| AC { None  }
+| EQUALITY { None }
+;
+    
+creator_source:
+| CREATOR OPEN LIDENT optional_info CLOSE { "Creator" } 
+;
+
+optional_info:
+| /*mot vide*/ { [] }
+| COMMA useful_info { [$2] }
+;
+    
+useful_info:
+| LBRACKET info_items RBRACKET { [$2] }
+;
+    
+info_items:
+| /*mot vide*/ { None }
+| info_item { Some ($1) }
+| info_item COMMA info_items { Some ($1) }
+;
+    
+info_item:
+| LIDENT { [$1] }
+| LIDENT OPEN info_items CLOSE { ["Info_item"]  }
+;
+    
 %%

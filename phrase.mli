@@ -31,9 +31,8 @@ val separate :
 ;;
 
 type tpannot =
-  File of string * string
-  | Infer of string * string * (tpannot list)
-  | Name of string
+  | File of string 
+  | Option of string
 ;;
 
 type tpphrase =

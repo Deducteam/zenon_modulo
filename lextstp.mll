@@ -1,3 +1,4 @@
+{ 
 Version.add "$Id: lextstp.mll,v 1.7 2012-04-24 17:32:04 doligez Exp $";;
 
 open Lexing;;
@@ -33,7 +34,8 @@ let stringchar = [^ '\000'-'\031' '\'' '\127'-'\255']
 let upperid = [ 'A' - 'Z' ]
 let lowerid = [ 'a' - 'z' ]
 let idchar = [ 'A' - 'Z' 'a' - 'z' '0' - '9' '_' ]
-
+let all_characters = [ '_' ]
+  
 rule token = parse
   | "#@" ([^ '\010']* as annot)
                      { ANNOT annot }
@@ -67,10 +69,19 @@ rule token = parse
   | "<~>"            { XOR }
   | "~|"             { NOR }
   | "~&"             { NAND }
-  | "include"        { INCLUDE }  
+  | "include"        { INCLUDE }
   | "inference"      { INFERENCE }
+  | "theory"         { THEORY }
+  | "introduce"      { INTRODUCE }
+  | "definition"     { DEFINITION }
+  | "axiom_of_choice" { AXIOM_OF_CHOICE }
+  | "tautology"      { TAUTOLOGY }
+  | "assumption"     { ASSUMPTION }
+  | "unknown"        { UNKNOWN }
+  | "ac"             { AC }
+  | "equality"       { EQUALITY }
   | "file"           { FILE }
-  | "status"         { STATUS }
+  | "creator"        { CREATOR }
   | "cnf"            { INPUT_CLAUSE }
   | "fof"            { INPUT_FORMULA }
   | "tff"            { INPUT_TFF_FORMULA }
@@ -82,7 +93,8 @@ rule token = parse
   | "\""             { double_quoted (Buffer.create 20) lexbuf }
   | upperid idchar * { UIDENT (Lexing.lexeme lexbuf) }
   | '$'? lowerid idchar * { LIDENT (Lexing.lexeme lexbuf) }
-
+  | all_characters * { ANYCHAR (Lexing.lexeme lexbuf) }
+      
   | ['+' '-']? ['0' - '9']+
         { INT (Lexing.lexeme lexbuf) }
   | ['+' '-']? ['0' - '9']+ '/' ['0' - '9']+
