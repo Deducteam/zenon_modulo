@@ -324,7 +324,7 @@ let parse_file f =
 	      (name, List.map (fun x -> (x, false)) forms)
           end
       | I_tstp ->
-          let tpphrases = Parsetstp.file Lextstp.token lexbuf in
+        let tpphrases = Parsetstp.file Lextstp.token lexbuf in
           closer ();
           let d = Filename.dirname f in
           let pp = Filename.parent_dir_name in

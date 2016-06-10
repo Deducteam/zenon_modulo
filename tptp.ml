@@ -127,30 +127,31 @@ let rec translate_one dirs accu p =
   match p with
   | Include (f, None) -> try_incl dirs f accu
   | Include (f, Some _) ->
-      (* FIXME change try_incl and incl to implement selective include *)
-      (* for the moment, we just ignore the include *)
-      accu
+     (* FIXME change try_incl and incl to implement selective include *)
+     (* for the moment, we just ignore the include *)
+     accu
   | Annotation s -> add_annotation s; accu
   | Formula (name, ("axiom" | "definition"), body, None) ->
-      Hyp (name, body, 2) :: accu
+     Hyp (name, body, 2) :: accu
   | Formula (_, "hypothesis", _, _) -> accu
   | Formula (_, ("lemma"|"theorem"), _, _) -> accu
   | Formula (name, "conjecture", body, None) ->
-      tptp_thm_name := name;
-      Hyp (goal_name, enot (body), 0) :: accu
+     tptp_thm_name := name;
+    Hyp (goal_name, enot (body), 0) :: accu
   | Formula (_, "negated_conjecture", _, _) -> accu
   | Formula_annot (name, ("axiom" | "definition"), body, Some (File(_))) ->
-     Hyp (name, body, 2) :: accu
+     Hyp (name, body, 2) :: accu 
   | Formula_annot (_, ("axiom" | "definition"), _, Some (Option(_))) -> accu
   | Formula_annot (name, "conjecture", body, Some (File(_))) ->
      tptp_thm_name := name;
-     Hyp (goal_name, enot (body), 0) :: accu
+    Hyp (goal_name, enot (body), 0) :: accu 
   | Formula_annot (name, "conjecture", body, Some (Option(_))) ->
      tptp_thm_name := name;
-     Hyp (goal_name, enot (body), 0) :: accu
+    Hyp (goal_name, enot (body), 0) :: accu
   | Formula_annot (_, "hypothesis", _, _) -> accu
   | Formula_annot (_, ("lemma"|"theorem"), _, _) -> accu
-  | Formula_annot (_ , "negated_conjecture", body, _) -> Hyp (goal_name, enot (body), 0) ::  accu
+  | Formula_annot (_ , "negated_conjecture", _, _) ->
+       accu
   | Formula_annot (_, "plain", _, _) ->  accu
   (* TFF formulas *)
   | Formula (name, "tff_type", body, None) ->

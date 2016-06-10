@@ -220,21 +220,21 @@ disjunction:
 
 optional:
 | /* mot vide */ { None }
-| COMMA source optional_info { Some (Phrase.Option ($2)) }
+| COMMA source optional_info { Some ($2) }
 ;
     
 source:
-| dag_source { $1 }
-| internal_source { $1 }
-| external_source { $1 }
-| UNKNOWN { "" }
-| LBRACKET source_list RBRACKET { $2 }
+| dag_source { Phrase.Option $1 }
+| internal_source { Phrase.Option $1 }
+| external_source { Phrase.File $1 }
+| UNKNOWN { Phrase.Option "unknown" }
+| LBRACKET source_list RBRACKET { Phrase.Option $2 }
 ;
 
 source_list:
 | /* mot vide */ { "" }
-| source { $1 }
-| source COMMA source_list { $1 }
+| source { "" }
+| source COMMA source_list { "" }
 ;
 
 dag_source:
