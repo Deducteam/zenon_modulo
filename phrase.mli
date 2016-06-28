@@ -2,6 +2,7 @@
 (*  $Id: phrase.mli,v 1.14 2012-04-24 17:32:04 doligez Exp $  *)
 
 open Expr;;
+open Hashtbl;;
 
 type inductive_arg =
   | Param of string
@@ -26,13 +27,17 @@ type zphrase =
   | Zinclude of string
 ;;
 
+val name_formula_tbl : (string,expr) Hashtbl.t
+
 val separate :
   string list -> phrase list -> definition list * (expr * int) list
 ;;
 
 type tpannot =
-  | File of string 
-  | Option of string
+  | File of string
+  | Inference of string * string*  (tpannot list)
+  | Name of string
+  | Other of string
 ;;
 
 type tpphrase =
