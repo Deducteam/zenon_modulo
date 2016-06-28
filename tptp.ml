@@ -65,7 +65,7 @@ let add_annotation s =
 let list_of_formula tpannot =
   match tpannot with
   | File (_) -> []
-  | Inference (_, _, list) ->
+  | Inference (_, "[status(thm)]", list) ->
      match list with
      | [] -> []
      | name_list::_ ->
@@ -191,12 +191,12 @@ let rec translate_one dirs accu p =
       Error.warn ("unknown formula kind: " ^ k);
       Hyp (name, body, 1) :: accu
 
-let rec phrase_list dirs accu p =
+let rec phrase_list accu p =
   match p with
-  | Include (_, _) -> []
-  | Annotation s -> []
-  | Formula (_, _, _, _) -> []
-  | Formula_annot (_, _, _, annot) -> list_of_formula annot
+  | Include (_, _) -> accu
+  | Annotation s -> accu
+  | Formula (_, _, _, _) -> accu
+  | Formula_annot (_, _, _, annot) -> (list_of_formula annot) :: accu
 	
 and xtranslate dirs ps accu =
   List.fold_left (translate_one dirs) accu ps
