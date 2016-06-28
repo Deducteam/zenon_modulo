@@ -53,10 +53,6 @@ let cnf_to_formula l =
 %token FILE
 %token INFERENCE
 %token INTRODUCED
-%token DEFINITION
-%token AXIOM_OF_CHOICE
-%token TAUTOLOGY
-%token ASSUMPTION
 %token UNKNOWN
 %token AC
 %token EQUALITY
@@ -243,16 +239,10 @@ dag_source:
 ;
 
 internal_source:
-| INTRODUCED OPEN intro_type optional_info CLOSE { "introduction type" }
+| INTRODUCED OPEN LIDENT optional_info CLOSE { $3 }
 ;
-    
-intro_type:
-| DEFINITION { "definition" }
-| AXIOM_OF_CHOICE { "axiom_of_choice" }
-| TAUTOLOGY { "tautology" }
-| ASSUMPTION { "assumption" }
-;
-    
+
+        
 external_source:
 | file_source { $1 }
 | theory { $1 }
