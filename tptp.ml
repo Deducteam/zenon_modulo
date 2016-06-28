@@ -2,10 +2,13 @@
 Version.add "$Id$";;
 
 open Printf;;
+open Hashtbl;;
 
 open Expr;;
 open Phrase;;
 open Namespace;;
+
+exception Not_a_theorem;;
 
 let report_error lexbuf msg =
   Error.errpos (Lexing.lexeme_start_p lexbuf) msg;
@@ -60,6 +63,19 @@ let add_annotation s =
     | End_of_file -> ()
     | Not_found -> ()
 ;;
+
+let list_of_formula tpannot =
+  match tpannot with
+  | File (_) -> raise Not_a_theorem
+  | Inference (_, "[status(thm)]", list) ->
+     match list with
+     | [] -> raise Not_a_theorem
+     | name_list::_ ->
+	match name_list with
+	| name1::next ->
+	   (Hashtbl.find Phrase.name_formula_tbl name1)::(List.map Hashtbl.find next)
+  | Name (_) -> raise Not_a_theorem
+  | Other (_) -> raise Not_a_theorem
 
 let tptp_to_coq s = try Hashtbl.find trans_table s with Not_found -> s;;
 
@@ -150,9 +166,8 @@ let rec translate_one dirs accu p =
     Hyp (goal_name, enot (body), 0) :: accu
   | Formula_annot (_, "hypothesis", _, _) -> accu
   | Formula_annot (_, ("lemma"|"theorem"), _, _) -> accu
-  | Formula_annot (_ , "negated_conjecture", _, _) ->
-       accu
-  | Formula_annot (_, "plain", _, _) ->  accu
+  | Formula_annot (_ , "negated_conjecture", _, _) -> accu
+  | Formula_annot (_, "plain", _, _) -> accu
   (* TFF formulas *)
   | Formula (name, "tff_type", body, None) ->
       Hyp (name, body, 13) :: accu
@@ -178,6 +193,13 @@ let rec translate_one dirs accu p =
       Error.warn ("unknown formula kind: " ^ k);
       Hyp (name, body, 1) :: accu
 
+let rec phrase_list accu p =
+  match p with
+  | Include (_, _) -> accu
+  | Annotation s -> accu
+  | Formula (_, _, _, _) -> accu
+  | Formula_annot (_, _, _, annot) -> (list_of_formula annot) :: accu
+	
 and xtranslate dirs ps accu =
   List.fold_left (translate_one dirs) accu ps
 
