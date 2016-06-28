@@ -8,6 +8,8 @@ open Expr;;
 open Phrase;;
 open Namespace;;
 
+exception Not_a_theorem;;
+
 let report_error lexbuf msg =
   Error.errpos (Lexing.lexeme_start_p lexbuf) msg;
   exit 2;
@@ -64,16 +66,16 @@ let add_annotation s =
 
 let list_of_formula tpannot =
   match tpannot with
-  | File (_) -> []
+  | File (_) -> raise Not_a_theorem
   | Inference (_, "[status(thm)]", list) ->
      match list with
-     | [] -> []
+     | [] -> raise Not_a_theorem
      | name_list::_ ->
 	match name_list with
 	| name1::next ->
 	   (Hashtbl.find Phrase.name_formula_tbl name1)::(List.map Hashtbl.find next)
-  | Name (_) -> []
-  | Other (_) -> []
+  | Name (_) -> raise Not_a_theorem
+  | Other (_) -> raise Not_a_theorem
 
 let tptp_to_coq s = try Hashtbl.find trans_table s with Not_found -> s;;
 
