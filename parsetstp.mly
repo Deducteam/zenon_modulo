@@ -239,8 +239,14 @@ dag_source:
 ;
 
 internal_source:
+<<<<<<< HEAD
 | INTRODUCED OPEN LIDENT optional_info CLOSE { "introduction type" }
 ;
+=======
+| INTRODUCED OPEN LIDENT optional_info CLOSE { $3 }
+;
+
+>>>>>>> 136a0cf9ebc5092b1535f15e6204125e1e89c273
         
 external_source:
 | file_source { $1 }
