@@ -73,10 +73,6 @@ rule token = parse
   | "inference"      { INFERENCE }
   | "theory"         { THEORY }
   | "introduced"     { INTRODUCED }
-  | "definition"     { DEFINITION }
-  | "axiom_of_choice" { AXIOM_OF_CHOICE }
-  | "tautology"      { TAUTOLOGY }
-  | "assumption"     { ASSUMPTION }
   | "unknown"        { UNKNOWN }
   | "ac"             { AC }
   | "equality"       { EQUALITY }

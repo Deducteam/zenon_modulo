@@ -53,10 +53,6 @@ let cnf_to_formula l =
 %token FILE
 %token INFERENCE
 %token INTRODUCED
-%token DEFINITION
-%token AXIOM_OF_CHOICE
-%token TAUTOLOGY
-%token ASSUMPTION
 %token UNKNOWN
 %token AC
 %token EQUALITY
@@ -112,11 +108,11 @@ phrase:
   | INCLUDE OPEN LIDENT COMMA LBRACKET name_list RBRACKET CLOSE DOT
       { Phrase.Include ($3, Some ($6)) }
   | INPUT_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula CLOSE DOT
-      { Phrase.Formula (ns_hyp $3, $5, $7, None) }
+      { Hasttbl.add Phrase.name_formula_tbl $3 $7; Phrase.Formula (ns_hyp $3, $5, $7, None) }
   | INPUT_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula optional CLOSE DOT
-      { Phrase.Formula_annot (ns_hyp $3, $5, $7, $8) }
+      { Hasttbl.add Phrase.name_formula_tbl $3 $7; Phrase.Formula_annot (ns_hyp $3, $5, $7, $8) }
   | INPUT_CLAUSE OPEN LIDENT COMMA LIDENT COMMA cnf_formula optional CLOSE DOT
-      { Phrase.Formula_annot ($3, $5, cnf_to_formula $7, $8) }
+      { Hasttbl.add Phrase.name_formula_tbl $3 $7; Phrase.Formula_annot ($3, $5, cnf_to_formula $7, $8) }
   | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula COMMA LIDENT CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, Some $9) }
   | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula CLOSE DOT
@@ -225,10 +221,10 @@ optional:
     
 source:
 | dag_source { Phrase.Option $1 }
-| internal_source { Phrase.Option $1 }
+| internal_source { Phrase.Other $1 }
 | external_source { Phrase.File $1 }
-| UNKNOWN { Phrase.Option "unknown" }
-| LBRACKET source_list RBRACKET { Phrase.Option $2 }
+| UNKNOWN { Phrase.Other "unknown" }
+| LBRACKET source_list RBRACKET { Phrase.Other $2 }
 ;
 
 source_list:
@@ -243,16 +239,9 @@ dag_source:
 ;
 
 internal_source:
-| INTRODUCED OPEN intro_type optional_info CLOSE { "introduction type" }
+| INTRODUCED OPEN LIDENT optional_info CLOSE { "introduction type" }
 ;
-    
-intro_type:
-| DEFINITION { "definition" }
-| AXIOM_OF_CHOICE { "axiom_of_choice" }
-| TAUTOLOGY { "tautology" }
-| ASSUMPTION { "assumption" }
-;
-    
+        
 external_source:
 | file_source { $1 }
 | theory { $1 }
