@@ -64,18 +64,25 @@ let add_annotation s =
     | Not_found -> ()
 ;;
 
-let list_of_formula tpannot =
+let rec list_of_formula tpannot =
   match tpannot with
   | File (_) -> raise Not_a_theorem
   | Inference (_, "[status(thm)]", list) ->
-     match list with
+    ( match list with
      | [] -> raise Not_a_theorem
-     | name_list::_ ->
-	match name_list with
-	| name1::next ->
-	   (Hashtbl.find Phrase.name_formula_tbl name1)::(List.map Hashtbl.find next)
+     | tpannot_1::_ ->
+	( match tpannot_1 with
+        | Name (name_list) ->
+        ( match name_list with
+           | [] -> raise Not_a_theorem
+           | name1::next ->
+             (Hashtbl.find Phrase.name_formula_tbl name1)::(List.map (Hashtbl.find Phrase.name_formula_tbl) next) )
+        | Inference (_, "[status(thm)]", _) -> list_of_formula tpannot_1
+        | File (_) -> raise Not_a_theorem
+        | Name (_) -> raise Not_a_theorem ) )
   | Name (_) -> raise Not_a_theorem
   | Other (_) -> raise Not_a_theorem
+;;
 
 let tptp_to_coq s = try Hashtbl.find trans_table s with Not_found -> s;;
 
@@ -141,7 +148,7 @@ let process_annotations forms =
 
 let rec translate_one dirs accu p =
   match p with
-  | Include (f, None) -> try_incl dirs f accu
+  | Include (f, None) -> accu
   | Include (f, Some _) ->
      (* FIXME change try_incl and incl to implement selective include *)
      (* for the moment, we just ignore the include *)
@@ -157,11 +164,11 @@ let rec translate_one dirs accu p =
   | Formula (_, "negated_conjecture", _, _) -> accu
   | Formula_annot (name, ("axiom" | "definition"), body, Some (File(_))) ->
      Hyp (name, body, 2) :: accu 
-  | Formula_annot (_, ("axiom" | "definition"), _, Some (Option(_))) -> accu
+  | Formula_annot (_, ("axiom" | "definition"), _, Some (Other(_))) -> accu
   | Formula_annot (name, "conjecture", body, Some (File(_))) ->
      tptp_thm_name := name;
     Hyp (goal_name, enot (body), 0) :: accu 
-  | Formula_annot (name, "conjecture", body, Some (Option(_))) ->
+  | Formula_annot (name, "conjecture", body, Some (Other(_))) ->
      tptp_thm_name := name;
     Hyp (goal_name, enot (body), 0) :: accu
   | Formula_annot (_, "hypothesis", _, _) -> accu
@@ -198,7 +205,9 @@ let rec phrase_list accu p =
   | Include (_, _) -> accu
   | Annotation s -> accu
   | Formula (_, _, _, _) -> accu
-  | Formula_annot (_, _, _, annot) -> (list_of_formula annot) :: accu
+  | Formula_annot (_, _, _, Some (Other(s))) ->
+  let tpannot = Other(s) in
+  (list_of_formula tpannot) :: accu
 	
 and xtranslate dirs ps accu =
   List.fold_left (translate_one dirs) accu ps
