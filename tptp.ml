@@ -64,20 +64,20 @@ let add_annotation s =
     | Not_found -> ()
 ;;
 
-let rec list_of_formula tpannot =
-  match tpannot with
+let rec list_of_formula annot =
+  match annot with
   | File (_) -> raise Not_a_theorem
   | Inference (_, "[status(thm)]", list) ->
     ( match list with
      | [] -> raise Not_a_theorem
-     | tpannot_1::_ ->
-	( match tpannot_1 with
+     | annot_1::_ ->
+	( match annot_1 with
         | Name (name_list) ->
         ( match name_list with
            | [] -> raise Not_a_theorem
            | name1::next ->
              (Hashtbl.find Phrase.name_formula_tbl name1)::(List.map (Hashtbl.find Phrase.name_formula_tbl) next) )
-        | Inference (_, "[status(thm)]", _) -> list_of_formula tpannot_1
+        | Inference (_, "[status(thm)]", _) -> list_of_formula annot_1
         | File (_) -> raise Not_a_theorem
         | Name (_) -> raise Not_a_theorem ) )
   | Name (_) -> raise Not_a_theorem
@@ -206,8 +206,8 @@ let rec phrase_list accu p =
   | Annotation s -> accu
   | Formula (_, _, _, _) -> accu
   | Formula_annot (_, _, _, Some (Other(s))) ->
-  let tpannot = Other(s) in
-  (list_of_formula tpannot) :: accu
+  let annot = Other(s) in
+  (list_of_formula annot) :: accu
 	
 and xtranslate dirs ps accu =
   List.fold_left (translate_one dirs) accu ps
