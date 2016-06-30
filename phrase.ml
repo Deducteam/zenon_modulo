@@ -11,6 +11,7 @@ type inductive_arg =
 
 type phrase =
   | Hyp of string * expr * int
+  | ListHyp of string (expr list) * int
   | Def of definition
   | Sig of string * string list * string
   | Inductive of
@@ -195,6 +196,11 @@ let rec xseparate predef deps multi defs hyps l =
       else
         xseparate predef (newdep :: deps) multi (d :: defs) hyps t
   | Hyp (_, e, p) :: t -> xseparate predef deps multi defs ((e, p) :: hyps) t
+  | ListHyp (_, dependencies, p) :: t ->
+     match dependencies with
+      | [] -> (List.rev defs, List.rev hyps)
+      | x::xs -> 
+        xseparate predef deps multi defs (x :: xs :: hyps) t
   | Sig _ :: t -> xseparate predef deps multi defs hyps t
   | Inductive _ :: t -> xseparate predef deps multi defs hyps t
   | Rew _ :: t -> xseparate predef deps multi defs hyps t
@@ -215,7 +221,7 @@ let change_to_def predef body =
 type tpannot =
   | File of string
   | Inference of string * string * (tpannot list)
-  | Name of string
+  | Name of (string list)
   | Other of string
 ;;
 

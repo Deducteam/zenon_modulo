@@ -11,6 +11,7 @@ type inductive_arg =
 
 type phrase =
   | Hyp of string * expr * int
+  | ListHyp of string * (expr list) * int
   | Def of definition
   | Sig of string * string list * string  (* sym, args, result *)
   | Inductive of
@@ -35,8 +36,8 @@ val separate :
 
 type tpannot =
   | File of string
-  | Inference of string * string*  (tpannot list)
-  | Name of string
+  | Inference of string * string * (tpannot list)
+  | Name of (string list)
   | Other of string
 ;;
 
