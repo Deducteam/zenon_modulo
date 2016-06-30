@@ -29,6 +29,10 @@ type zphrase =
 ;;
 
 val name_formula_tbl : (string,expr) Hashtbl.t
+;;
+
+val dependencies_tbl : (string,string) Hashtbl.t
+;;
 
 val separate :
   string list -> phrase list -> definition list * (expr * int) list

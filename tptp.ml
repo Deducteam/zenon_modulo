@@ -70,18 +70,38 @@ let rec list_of_formula annot =
   | Inference (_, "[status(thm)]", list) ->
     ( match list with
      | [] -> raise Not_a_theorem
-     | annot_1::_ ->
-	( match annot_1 with
+     | annot1::_ ->
+	( match annot1 with
         | Name (name_list) ->
-        ( match name_list with
+          ( match name_list with
            | [] -> raise Not_a_theorem
            | name1::next ->
-             (Hashtbl.find Phrase.name_formula_tbl name1)::(List.map (Hashtbl.find Phrase.name_formula_tbl) next) )
-        | Inference (_, "[status(thm)]", _) -> list_of_formula annot_1
+             (Hashtbl.find Phrase.name_formula_tbl name1) :: (List.map (Hashtbl.find Phrase.name_formula_tbl) next) )
+        | Inference (_, "[status(thm)]", _) -> list_of_formula annot1
         | File (_) -> raise Not_a_theorem
         | Name (_) -> raise Not_a_theorem ) )
   | Name (_) -> raise Not_a_theorem
   | Other (_) -> raise Not_a_theorem
+;;
+
+let rec list_of_name_formula annot = 
+   match annot with
+   | File (_) -> raise Not_a_theorem
+   | Inference (_, "[status(thm)], list) ->
+    (  match list with
+      | [] -> raise Not_a_theorem
+      | annot1::_ -> 
+        ( match annot1 with
+        | Name (name_list) ->
+            ( match name_list with
+	      | [] -> raise Not_a_theorem
+              | name1::next ->
+	      ( Hashtbl.find Phrase.dependencies_tbl name1) :: (List.map (Hashtbl.find Phrase.dependencies_tbl) next) )
+        | Inference  (_ "[status(thm)]", _) -> list_of_name_formula annot1
+        | File (_) -> raise Not_a_theorem
+        | Name (_) -> raise Not_a_theorem
+   | Name (_) -> raise Not_a_theorem
+   | Other (_) -> raise Not_a_theorem
 ;;
 
 let tptp_to_coq s = try Hashtbl.find trans_table s with Not_found -> s;;

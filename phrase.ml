@@ -30,8 +30,9 @@ type zphrase =
 
 exception Bad_arg;;
 
-let name_formula_tbl = Hashtbl.create 127
-;;
+let name_formula_tbl = Hashtbl.create 127;;
+
+let dependencies_tbl = Hashtbl.create 127;;
 
 let extract_args l =
   List.map (function Evar _ as v -> v | _ -> raise Bad_arg) l
