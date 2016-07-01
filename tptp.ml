@@ -87,7 +87,7 @@ let rec list_of_formula annot =
 let rec list_of_name_formula annot = 
    match annot with
    | File (_) -> raise Not_a_theorem
-   | Inference (_, "[status(thm)], list) ->
+   | Inference (_, "[status(thm)]", list) ->
     (  match list with
       | [] -> raise Not_a_theorem
       | annot1::_ -> 
@@ -222,22 +222,10 @@ let rec translate_one dirs accu p =
   | Formula (name, k, body, _) ->
       Error.warn ("unknown formula kind: " ^ k);
       Hyp (name, body, 1) :: accu
-;;
-      
-let rec phrase_list accu p =
-  match p with
-  | Include (_, _) -> accu
-  | Annotation s -> accu
-  | Formula (_, _, _, _) -> accu
-  | Formula_annot (_, _, formula_goal, Some (Inference (n, status, annot_list))) ->
-  let annot = Inference (n, status, annot_list) in
-  let link = enot (formula_goal) :: (list_of_formula annot) in
-  link :: accu 
-;;
-	
-and xtranslate dirs ps accu =
-  List.fold_left (translate_one dirs) accu ps
 
+and xtranslate dirs ps accu =
+      List.fold_left (translate_one dirs) accu ps
+      
 and try_incl dirs f accu =
   let rec loop = function
     | [] ->
@@ -268,6 +256,16 @@ and incl dir name accu =
   | Parsing.Parse_error -> report_error lexbuf "syntax error."
   | Error.Lex_error msg -> report_error lexbuf msg
 ;;
+
+let rec phrase_list_one accu p =
+   match p with
+   | Include (_, _) -> accu
+   | Annotation s -> accu
+   | Formula (_, _, _, _) -> accu
+   | Formula_annot (_, _, formula_goal, Some (Inference (n, status, annot_list))) ->
+   let annot = Inference (n, status, annot_list) in
+   let link = enot (formula_goal) :: (list_of_formula annot) in
+   link :: accu
 
 let translate dirs ps =
   let raw = List.rev (xtranslate dirs ps []) in

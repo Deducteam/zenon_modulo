@@ -321,7 +321,8 @@ let parse_file f =
               let incpath = List.rev (upup :: d :: !include_path) in
               let (forms, name) = Tptp.translate incpath tpphrases in
               let forms = Typetptp.typecheck forms in
-	      (name, List.map (fun x -> (x, false)) forms)
+	      let ret = (name, List.map (fun x -> (x, false)) forms) in
+	      ret :: []
           end
       | I_tstp ->
         let tpphrases = Parsetstp.file Lextstp.token lexbuf in
@@ -340,7 +341,8 @@ let parse_file f =
               let incpath = List.rev (upup :: d :: !include_path) in
               let (forms, name) = Tptp.translate incpath tpphrases in
               let forms = Typetptp.typecheck forms in
-	      (name, List.map (fun x -> (x, false)) forms)
+	      let ret = (name, List.map (fun x -> (x, false)) forms) in
+              ret :: []
           end
       | I_focal ->
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
@@ -352,7 +354,8 @@ let parse_file f =
               Typer.register_new_constants = true;
               Typer.fully_type = false }
           in
-          (name, Typer.phrasebl typer_options result)
+          let ret = (name, Typer.phrasebl typer_options result) in
+	  ret :: []
       | I_dk ->
           let (name, result) = Parsedk.file Lexdk.token lexbuf in
           closer ();
@@ -363,7 +366,8 @@ let parse_file f =
               Typer.register_new_constants = false;
               Typer.fully_type = true }
           in
-          (name, Typer.phrasebl typer_options result)
+          let ret = (name, Typer.phrasebl typer_options result) in
+          ret :: []
       | I_zenon ->
           let zphrases = Parsezen.file Lexzen.token lexbuf in
           closer ();
@@ -383,7 +387,8 @@ let parse_file f =
               Typer.register_new_constants = false;
               Typer.fully_type = false }
           in
-          (thm_default_name, Typer.phrasebl typer_options result)
+          let ret = (thm_default_name, Typer.phrasebl typer_options result)
+	  ret :: []
     with
     | Parsing.Parse_error -> report_error lexbuf "syntax error."
     | Error.Lex_error msg -> report_error lexbuf msg
