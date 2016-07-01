@@ -222,15 +222,18 @@ let rec translate_one dirs accu p =
   | Formula (name, k, body, _) ->
       Error.warn ("unknown formula kind: " ^ k);
       Hyp (name, body, 1) :: accu
-
+;;
+      
 let rec phrase_list accu p =
   match p with
   | Include (_, _) -> accu
   | Annotation s -> accu
   | Formula (_, _, _, _) -> accu
-  | Formula_annot (_, _, _, Some (Other(s))) ->
-  let annot = Other(s) in
-  (list_of_formula annot) :: accu
+  | Formula_annot (_, _, formula_goal, Some (Inference (n, status, annot_list))) ->
+  let annot = Inference (n, status, annot_list) in
+  let link = enot (formula_goal) :: (list_of_formula annot) in
+  link :: accu 
+;;
 	
 and xtranslate dirs ps accu =
   List.fold_left (translate_one dirs) accu ps
