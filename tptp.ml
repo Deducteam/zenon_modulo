@@ -232,14 +232,10 @@ let rec phrase_list_one accu p =
    | Include (_, _) -> accu
    | Annotation s -> accu
    | Formula (_, _, _, _) -> accu
-   | Formula_annot (_, _, formula_goal, Some (Inference (n, status, annot_list))) ->
-   let annot = Inference (n, status, annot_list) in
-   let link = enot (formula_goal) :: (list_of_formula annot) in
-   link :: accu
-
-and phrase_list accu ps =
-   List.fold_left (phrase_list_one) accu ps
-;;
+   | Formula_annot (name, _, formula_goal, Some (annot)) ->
+      let link = enot (formula_goal) :: (list_of_formula annot) in
+      let link = List.map (fun x -> (x, false)) link in 
+      (name,link) :: accu
 
 let translate dirs ps =
   let raw = List.rev (xtranslate dirs ps []) in

@@ -322,7 +322,7 @@ let parse_file f =
               let (forms, name) = Tptp.translate incpath tpphrases in
               let forms = Typetptp.typecheck forms in
 	      let ret = (name, List.map (fun x -> (x, false)) forms) in
-	      [ret] :: accu
+	      [ret]
           end
       | I_tstp ->
         let tpphrases = Parsetstp.file Lextstp.token lexbuf in
@@ -354,7 +354,7 @@ let parse_file f =
               Typer.fully_type = false }
           in
           let ret = (name, Typer.phrasebl typer_options result) in
-	  [ret] :: []
+	  [ret]
       | I_dk ->
           let (name, result) = Parsedk.file Lexdk.token lexbuf in
           closer ();
@@ -366,7 +366,7 @@ let parse_file f =
               Typer.fully_type = true }
           in
          let ret = (name, Typer.phrasebl typer_options result) in
-         [ret] :: []        
+         [ret]        
       | I_zenon ->
           let zphrases = Parsezen.file Lexzen.token lexbuf in
           closer ();
@@ -387,7 +387,7 @@ let parse_file f =
               Typer.fully_type = false }
           in
          let ret = (thm_default_name, Typer.phrasebl typer_options result) in
-	  [ret] :: []
+	  [ret]
     with
     | Parsing.Parse_error -> report_error lexbuf "syntax error."
     | Error.Lex_error msg -> report_error lexbuf msg
@@ -408,7 +408,7 @@ let optim p =
   | _ -> assert false
 ;;
 
-let list_processing th_name phrases_dep = 
+let prove_subproblem th_name phrases_dep = 
   begin match !proof_level with
   | Proof_coq | Proof_coqterm -> Watch.warn_unused_var phrases_dep;
   | _ -> ()
@@ -509,12 +509,6 @@ let list_processing th_name phrases_dep =
   end;
 ;;
 
-let lists_processing lists =
-  match lists with
-  | [] -> ()
-  | form::forms -> list_processing form forms
-;;
-
 let main () =
   Gc.set {(Gc.get ()) with
     Gc.minor_heap_size = 1_000_000;
@@ -526,17 +520,8 @@ let main () =
   in
   Extension.predecl ();
   let list = parse_file file in
-  match list with
-  | [] -> ()
-  | [(th_name, phrases_dep)]::_ ->
-     list_processing th_name phrases_dep
-  | list1::lists ->
-     ( match list1 with
-     | [] -> ()
-     | form1::forms ->
-	list_processing form1 forms );
-    lists_processing lists
-       
+  List.iter prove_subproblem list
+  
   do_exit !retcode
 ;;
 
