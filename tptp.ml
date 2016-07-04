@@ -64,44 +64,14 @@ let add_annotation s =
     | Not_found -> ()
 ;;
 
-let rec list_of_formula annot =
+let rec list_of_formula accu annot =
   match annot with
   | File (_) -> raise Not_a_theorem
   | Inference (_, "[status(thm)]", list) ->
-    ( match list with
-     | [] -> raise Not_a_theorem
-     | annot1::_ ->
-	( match annot1 with
-        | Name (name_list) ->
-          ( match name_list with
-           | [] -> raise Not_a_theorem
-           | name1::next ->
-             (Hashtbl.find Phrase.name_formula_tbl name1) :: (List.map (Hashtbl.find Phrase.name_formula_tbl) next) )
-        | Inference (_, "[status(thm)]", _) -> list_of_formula annot1
-        | File (_) -> raise Not_a_theorem
-        | Name (_) -> raise Not_a_theorem ) )
-  | Name (_) -> raise Not_a_theorem
+      List.fold_left list_of_formula accu list
+  | Name (name) ->
+      (Hashtbl.find Phrase.name_formula_tbl name) :: accu
   | Other (_) -> raise Not_a_theorem
-;;
-
-let rec list_of_name_formula annot = 
-   match annot with
-   | File (_) -> raise Not_a_theorem
-   | Inference (_, "[status(thm)]", list) ->
-    (  match list with
-      | [] -> raise Not_a_theorem
-      | annot1::_ -> 
-        ( match annot1 with
-        | Name (name_list) ->
-            ( match name_list with
-	      | [] -> raise Not_a_theorem
-              | name1::next ->
-	      ( Hashtbl.find Phrase.dependencies_tbl name1) :: (List.map (Hashtbl.find Phrase.dependencies_tbl) next) )
-        | Inference  (_ "[status(thm)]", _) -> list_of_name_formula annot1
-        | File (_) -> raise Not_a_theorem
-        | Name (_) -> raise Not_a_theorem
-   | Name (_) -> raise Not_a_theorem
-   | Other (_) -> raise Not_a_theorem
 ;;
 
 let tptp_to_coq s = try Hashtbl.find trans_table s with Not_found -> s;;
@@ -175,29 +145,29 @@ let rec translate_one dirs accu p =
      accu
   | Annotation s -> add_annotation s; accu
   | Formula (name, ("axiom" | "definition"), body, None) ->
-     Hyp (goal_name, body, 2) :: accu
+   Hyp (goal_name, body, 2) :: accu
   | Formula (_, "hypothesis", _, _) -> accu
   | Formula (_, ("lemma"|"theorem"), _, _) -> accu
   | Formula (name, "conjecture", body, None) ->
-     tptp_thm_name := name;
+    tptp_thm_name := name;
     Hyp (goal_name, enot (body), 0) :: accu
-  | Formula (_, "negated_conjecture", _, _) -> accu
+  | Formula (name, "negated_conjecture", body, _) -> 
+     tptp_thm_name := name;
+     Hyp (goal_name, body, 0) :: accu
   | Formula_annot (name, ("axiom" | "definition"), body, Some (File (_))) ->
      Hyp (goal_name, body, 2) :: accu 
   | Formula_annot (_, ("axiom" | "definition"), _, Some (Other (_))) -> accu
   | Formula_annot (name, "conjecture", body, Some (File(_))) ->
-     tptp_thm_name := name;
-    Hyp (goal_name, enot (body), 0) :: accu 
+   tptp_thm_name := name;
+   Hyp (goal_name, enot (body), 0) :: accu 
   | Formula_annot (name, "conjecture", body, Some (Other (_))) ->
      tptp_thm_name := name;
-    Hyp (goal_name, enot (body), 0) :: accu
+     Hyp (goal_name, enot (body), 0) :: accu
   | Formula_annot (_, "hypothesis", _, _) -> accu
   | Formula_annot (_, ("lemma"|"theorem"), _, _) -> accu
-  | Formula_annot (_ , "negated_conjecture", _, _) -> accu
-  | Formula_annot (name , _, _, Some (Inference (_ , "[status(thm)]", _))) ->
-  let dependencies = phrase_list [] p in
-  ListHyp (goal_name, dependencies, 5) :: accu
-  
+  | Formula_annot (name , "negated_conjecture", body, _) -> 
+     tptp_thm_name := name;
+     Hyp (goal_name, body, 0) :: accu
   (* TFF formulas *)
   | Formula (name, "tff_type", body, None) ->
       Hyp (name, body, 13) :: accu
@@ -261,11 +231,15 @@ let rec phrase_list_one accu p =
    match p with
    | Include (_, _) -> accu
    | Annotation s -> accu
-   | Formula (_, _, _, _) -> accu
+   | Formula (_, _, _, _) -> accu
    | Formula_annot (_, _, formula_goal, Some (Inference (n, status, annot_list))) ->
    let annot = Inference (n, status, annot_list) in
    let link = enot (formula_goal) :: (list_of_formula annot) in
    link :: accu
+
+and phrase_list accu ps =
+   List.fold_left (phrase_list_one) accu ps
+;;
 
 let translate dirs ps =
   let raw = List.rev (xtranslate dirs ps []) in
