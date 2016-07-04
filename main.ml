@@ -342,7 +342,7 @@ let parse_file f =
               let (forms, name) = Tptp.translate incpath tpphrases in
               (name, List.map (fun x -> (x, false)) forms)
               let forms = Typetptp.typecheck forms in
-              phrase_list [] forms
+              Tptp.phrase_list [] forms
            end
       | I_focal ->
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
@@ -409,109 +409,96 @@ let optim p =
   | _ -> assert false
 ;;
 
-let list_processing th_name phrases_dep =
-   match phrases_dep  
-  
-let main () =
-  Gc.set {(Gc.get ()) with
-          Gc.minor_heap_size = 1_000_000;
-          Gc.major_heap_increment = 1_000_000;
-         };
-  let file = match !files with
-             | [f] -> f
-             | _ -> Arg.usage argspec usage_msg; exit 2
-  in
-  Extension.predecl ();
-  let (th_name, phrases_dep) = parse_file file in
+let list_processing th_name phrases_dep = 
   begin match !proof_level with
   | Proof_coq | Proof_coqterm -> Watch.warn_unused_var phrases_dep;
   | _ -> ()
   end;
   let retcode = ref 0 in
   begin try
-    let phrases = List.map fst phrases_dep in
-    let phrases = Rewrite.select_rwrt_rules phrases in
-    let ppphrases = Extension.preprocess phrases in
-    List.iter Extension.add_phrase ppphrases;
-    if !Globals.debug_rwrt
-    then
-      begin
-	Print.print_tbl_term (Print.Chan stdout) !tbl_term;
-	Print.print_tbl_prop (Print.Chan stdout) !tbl_prop;
-      end;
-    let (defs, hyps) = Phrase.separate (Extension.predef ()) ppphrases in
-    List.iter (fun (fm, _) -> Eqrel.analyse fm) hyps;
-    let hyps = List.filter (fun (fm, _) -> not (Eqrel.subsumed fm)) hyps in
-    if !debug_flag then begin
-      let ph_defs = List.map (fun x -> Phrase.Def x) defs in
-      let ph_hyps = List.map (fun (x, y) -> Phrase.Hyp ("", x, y)) hyps in
-      eprintf "initial formulas:\n";
-      List.iter (Print.phrase (Print.Chan stderr)) (ph_defs @ ph_hyps);
-      eprintf "relations: ";
-      Eqrel.print_rels stderr;
-      eprintf "\n";
-      eprintf "typing declarations: ";
-      eprintf "\n";
-      Typer.print_constant_decls stderr;
-      eprintf "----\n";
-      flush stderr;
-      Gc.set {(Gc.get ()) with Gc.verbose = 0x010};
-    end;
-    let params = match !keep_open with
-        | Open_none -> Prove.default_params
-        | Open_all -> Prove.open_params None
-        | Open_first n -> Prove.open_params (Some n)
-        | Open_last n -> Prove.open_params (Some (-n))
-    in
-    let proofs = Prove.prove params defs hyps in
-    let proof= List.hd proofs in
-    let is_open = Mlproof.is_open_proof proof in
-    if is_open then
-        retcode := 12;
-    if not !quiet_flag then begin
-      if is_open then
-        printf "(* NO-PROOF *)\n"
+	  let phrases = List.map fst phrases_dep in
+	  let phrases = Rewrite.select_rwrt_rules phrases in
+	  let ppphrases = Extension.preprocess phrases in
+	  List.iter Extension.add_phrase ppphrases;
+	  if !Globals.debug_rwrt
+	  then
+	    begin
+	      Print.print_tbl_term (Print.Chan stdout) !tbl_term;
+	      Print.print_tbl_prop (Print.Chan stdout) !tbl_prop;
+	    end;
+	  let (defs, hyps) = Phrase.separate (Extension.predef ()) ppphrases in
+	  List.iter (fun (fm, _) -> Eqrel.analyse fm) hyps;
+	  let hyps = List.filter (fun (fm, _) -> not (Eqrel.subsumed fm)) hyps in
+	  if !debug_flag then begin
+	    let ph_defs = List.map (fun x -> Phrase.Def x) defs in
+	    let ph_hyps = List.map (fun (x, y) -> Phrase.Hyp ("", x, y)) hyps in
+	    eprintf "initial formulas:\n";
+	    List.iter (Print.phrase (Print.Chan stderr)) (ph_defs @ ph_hyps);
+	    eprintf "relations: ";
+	    Eqrel.print_rels stderr;
+	    eprintf "\n";
+	    eprintf "typing declarations: ";
+	    eprintf "\n";
+	    Typer.print_constant_decls stderr;
+	    eprintf "----\n";
+	    flush stderr;
+	    Gc.set {(Gc.get ()) with Gc.verbose = 0x010};
+	  end;
+	  let params = match !keep_open with
+            | Open_none -> Prove.default_params
+            | Open_all -> Prove.open_params None
+            | Open_first n -> Prove.open_params (Some n)
+            | Open_last n -> Prove.open_params (Some (-n))
+	  in
+	  let proofs = Prove.prove params defs hyps in
+	  let proof= List.hd proofs in
+	  let is_open = Mlproof.is_open_proof proof in
+	  if is_open then
+            retcode := 12;
+	  if not !quiet_flag then begin
+	    if is_open then
+              printf "(* NO-PROOF *)\n"
       else
-        printf "(* PROOF-FOUND *)\n";
-      flush stdout
-      end;
-    let llp = lazy (optim (Extension.postprocess
-                             (Mltoll.translate th_name ppphrases proof)))
-    in
-    begin match !proof_level with
-    | Proof_none -> ()
-    | Proof_h n -> Print.hlproof (Print.Chan stdout) n proof;
-    | Proof_m -> Print.mlproof (Print.Chan stdout) proof;
+              printf "(* PROOF-FOUND *)\n";
+	    flush stdout
+	  end;
+	  let llp = lazy (optim (Extension.postprocess
+				   (Mltoll.translate th_name ppphrases proof)))
+	  in
+	  begin match !proof_level with
+	  | Proof_none -> ()
+	  | Proof_h n -> Print.hlproof (Print.Chan stdout) n proof;
+	  | Proof_m -> Print.mlproof (Print.Chan stdout) proof;
     | Proof_lx ->
-        let lxp = Mltoll.translate th_name ppphrases proof in
-        Print.llproof (Print.Chan stdout) lxp;
+       let lxp = Mltoll.translate th_name ppphrases proof in
+       Print.llproof (Print.Chan stdout) lxp;
     | Proof_l -> Print.llproof (Print.Chan stdout) (Lazy.force llp);
     | Proof_coq ->
-        let u = Lltocoq.output stdout phrases ppphrases (Lazy.force llp) in
-        Watch.warn phrases_dep llp u;
+       let u = Lltocoq.output stdout phrases ppphrases (Lazy.force llp) in
+       Watch.warn phrases_dep llp u;
     | Proof_coqterm ->
-        let (p, u) = Coqterm.trproof phrases ppphrases (Lazy.force llp) in
-        Coqterm.print stdout p;
-        Watch.warn phrases_dep llp u;
+       let (p, u) = Coqterm.trproof phrases ppphrases (Lazy.force llp) in
+       Coqterm.print stdout p;
+       Watch.warn phrases_dep llp u;
     | Proof_dk ->
-        let u = Lltodk.output stdout phrases (Lazy.force llp) in
-        Watch.warn phrases_dep llp u;
+       let u = Lltodk.output stdout phrases (Lazy.force llp) in
+       Watch.warn phrases_dep llp u;
     | Proof_dkterm ->
        let u = Lltodk.output_term stdout phrases ppphrases (Lazy.force llp) in
        Watch.warn phrases_dep llp u;
     | Proof_isar ->
-        let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in
+       let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in
         Watch.warn phrases_dep llp u;
     | Proof_dot (b, n) ->
-        Print.dots ~full_output:b ~max_depth:n (Print.Chan stdout) (List.rev proofs);
-    end;
-  with
-  | Prove.NoProof ->
-     retcode := 12;
-     if not !quiet_flag then printf "(* NO-PROOF *)\n";
-  | Prove.LimitsExceeded ->
-     retcode := 13;
-     if not !quiet_flag then printf "(* NO-PROOF *)\n";
+       Print.dots ~full_output:b ~max_depth:n (Print.Chan stdout) (List.rev proofs);
+	  end;
+    with
+    | Prove.NoProof ->
+       retcode := 12;
+      if not !quiet_flag then printf "(* NO-PROOF *)\n";
+    | Prove.LimitsExceeded ->
+       retcode := 13;
+      if not !quiet_flag then printf "(* NO-PROOF *)\n";
   end;
   if !stats_flag then begin
     eprintf "nodes searched: %d\n" !Globals.inferences;
@@ -519,9 +506,27 @@ let main () =
     eprintf "proof nodes created: %d\n" !Globals.proof_nodes;
     eprintf "formulas created: %d\n" !Globals.num_expr;
     eprintf "\n";
-    (*Gc.print_stat stderr;*)
+  (*Gc.print_stat stderr;*)
   end;
-
+;;
+  
+let main () =
+  Gc.set {(Gc.get ()) with
+    Gc.minor_heap_size = 1_000_000;
+    Gc.major_heap_increment = 1_000_000;
+  };
+  let file = match !files with
+    | [f] -> f
+    | _ -> Arg.usage argspec usage_msg; exit 2
+  in
+  Extension.predecl ();
+  let list = parse_file file in
+  match list with
+  | [] -> ()
+  | (th_name, phrases_dep)::_ ->
+     list_processing th_name phrases_dep
+  | 
+    
   do_exit !retcode
 ;;
 
