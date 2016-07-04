@@ -340,7 +340,6 @@ let parse_file f =
             with Not_found ->
               let incpath = List.rev (upup :: d :: !include_path) in
               let (forms, name) = Tptp.translate incpath tpphrases in
-              (name, List.map (fun x -> (x, false)) forms)
               let forms = Typetptp.typecheck forms in
               Tptp.phrase_list [] forms
            end
@@ -509,7 +508,13 @@ let list_processing th_name phrases_dep =
   (*Gc.print_stat stderr;*)
   end;
 ;;
-  
+
+let lists_processing lists =
+  match lists with
+  | [] -> ()
+  | form::forms -> list_processing form forms
+;;
+
 let main () =
   Gc.set {(Gc.get ()) with
     Gc.minor_heap_size = 1_000_000;
@@ -523,10 +528,15 @@ let main () =
   let list = parse_file file in
   match list with
   | [] -> ()
-  | (th_name, phrases_dep)::_ ->
+  | [(th_name, phrases_dep)]::_ ->
      list_processing th_name phrases_dep
-  | 
-    
+  | list1::lists ->
+     ( match list1 with
+     | [] -> ()
+     | form1::forms ->
+	list_processing form1 forms );
+    lists_processing lists
+       
   do_exit !retcode
 ;;
 
