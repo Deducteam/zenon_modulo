@@ -64,16 +64,6 @@ let add_annotation s =
     | Not_found -> ()
 ;;
 
-let rec list_of_formula accu annot =
-  match annot with
-  | File (_) -> raise Not_a_theorem
-  | Inference (_, "[status(thm)]", list) ->
-      List.fold_left list_of_formula accu list
-  | Name (name) ->
-      (Hashtbl.find Phrase.name_formula_tbl name) :: accu
-  | Other (_) -> raise Not_a_theorem
-;;
-
 let tptp_to_coq s = try Hashtbl.find trans_table s with Not_found -> s;;
 
 let rec make_annot_expr e =
@@ -107,6 +97,16 @@ let make_definition name form body p =
     let msg = sprintf "annotated formula %s is not a definition" name in
     Error.warn msg;
     form
+;;
+
+let rec list_of_formula accu annot =
+  match annot with
+  | File (_) -> raise Not_a_theorem
+  | Inference (_, "[status(thm)]", list) ->
+      List.fold_left list_of_formula accu list
+  | Name (name) ->
+     (Hashtbl.find Phrase.name_formula_tbl name) :: accu
+  | Other (_) -> raise Not_a_theorem
 ;;
 
 let process_annotations forms =
@@ -233,10 +233,14 @@ let rec phrase_list_one accu p =
    | Annotation s -> accu
    | Formula (_, _, _, _) -> accu
    | Formula_annot (name, _, formula_goal, Some (annot)) ->
-      let link = enot (formula_goal) :: (list_of_formula annot) in
+      let link = (enot (formula_goal)) :: (list_of_formula [] annot) in
       let link = List.map (fun x -> (x, false)) link in 
       (name,link) :: accu
 
+and phrase_list accu ps =
+  List.fold_left phrase_list_one accu ps
+;;
+	
 let translate dirs ps =
   let raw = List.rev (xtranslate dirs ps []) in
   let cooked = process_annotations raw in
