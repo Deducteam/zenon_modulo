@@ -316,7 +316,8 @@ let parse_file f =
               let incpath = List.rev (tptp_env :: upup :: d :: !include_path) in
               let (forms, name) = Tptp.translate incpath tpphrases in
               let forms = Typetptp.typecheck forms in
-	      (name, List.map (fun x -> (x, false)) forms)
+	      let ret = (name, List.map (fun x -> (x, false)) forms) in
+	      [ret]
             with Not_found ->
               let incpath = List.rev (upup :: d :: !include_path) in
               let (forms, name) = Tptp.translate incpath tpphrases in
@@ -325,11 +326,11 @@ let parse_file f =
 	      [ret]
           end
       | I_tstp ->
-        let tpphrases = Parsetstp.file Lextstp.token lexbuf in
-          closer ();
-          begin
-            Tptp.phrase_list [] tpphrases
-           end
+         let tpphrases = Parsetstp.file Lextstp.token lexbuf in
+         closer ();
+         begin
+	   Tptp.phrase_list [] tpphrases
+         end
       | I_focal ->
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
           closer ();

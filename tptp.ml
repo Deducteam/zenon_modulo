@@ -238,7 +238,7 @@ let rec phrase_list_one accu p =
       (name,link) :: accu
 
 and phrase_list accu ps =
-  List.fold_left phrase_list_one accu ps
+  List.map (phrase_list_one accu) ps
 ;;
 	
 let translate dirs ps =
