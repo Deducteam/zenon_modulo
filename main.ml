@@ -317,19 +317,19 @@ let parse_file f =
               let (forms, name) = Tptp.translate incpath tpphrases in
               let forms = Typetptp.typecheck forms in
 	      let ret = (name, List.map (fun x -> (x, false)) forms) in
-	      [ret]
+	      [ret] :: []
             with Not_found ->
               let incpath = List.rev (upup :: d :: !include_path) in
               let (forms, name) = Tptp.translate incpath tpphrases in
               let forms = Typetptp.typecheck forms in
 	      let ret = (name, List.map (fun x -> (x, false)) forms) in
-	      [ret]
+	      [ret] :: []
           end
       | I_tstp ->
          let tpphrases = Parsetstp.file Lextstp.token lexbuf in
          closer ();
          begin
-	   Tptp.phrase_list [] tpphrases
+	   Tptp.phrase_list tpphrases
          end
       | I_focal ->
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
@@ -342,7 +342,7 @@ let parse_file f =
               Typer.fully_type = false }
           in
           let ret = (name, Typer.phrasebl typer_options result) in
-	  [ret]
+	  [ret] :: []
       | I_dk ->
           let (name, result) = Parsedk.file Lexdk.token lexbuf in
           closer ();
@@ -354,7 +354,7 @@ let parse_file f =
               Typer.fully_type = true }
           in
          let ret = (name, Typer.phrasebl typer_options result) in
-         [ret]        
+         [ret] :: []       
       | I_zenon ->
           let zphrases = Parsezen.file Lexzen.token lexbuf in
           closer ();
@@ -375,7 +375,7 @@ let parse_file f =
               Typer.fully_type = false }
           in
          let ret = (thm_default_name, Typer.phrasebl typer_options result) in
-	  [ret]
+	  [ret] :: []
     with
     | Parsing.Parse_error -> report_error lexbuf "syntax error."
     | Error.Lex_error msg -> report_error lexbuf msg
@@ -495,6 +495,9 @@ let prove_subproblem th_name phrases_dep =
     eprintf "\n";
   (*Gc.print_stat stderr;*)
   end;
+
+  do_exit !retcode
+
 ;;
 
 let main () =
@@ -508,9 +511,8 @@ let main () =
   in
   Extension.predecl ();
   let list = parse_file file in
-  List.iter prove_subproblem list
+  List.iter (fun (a,b) -> prove_subproblem a b) list;
   
-  do_exit !retcode
 ;;
 
 let parse_command_line argspec =

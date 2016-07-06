@@ -237,8 +237,8 @@ let rec phrase_list_one accu p =
       let link = List.map (fun x -> (x, false)) link in 
       (name,link) :: accu
 
-and phrase_list accu ps =
-  List.map (phrase_list_one accu) ps
+and phrase_list ps =
+  List.map (phrase_list_one []) ps
 ;;
 	
 let translate dirs ps =
