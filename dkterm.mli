@@ -1,10 +1,13 @@
 (* AST corresponding to a Dedukti output *)
 type var = string
 
-type dkterm =
+type dkterm = private
   | Dktypetype                                  (* type type *)
   | Dktypeprop                                  (* type prop *)
   | Dktypeiota                                  (* type iota *)
+  | Dktriangle    of dkterm                     (* domain of triangle *)
+  | Dktriangle_n  of dkterm                     (* same as Dktriangle but without the leading double negation *)
+  | Dkantineg     of dkterm                     (* Inverse of negation *)
   | Dkseq                                       (* type seq *)
   | Dkproof       of dkterm                     (* type proof of prop *)
 (*  | Dkterm        of dkterm *)                     (* type term of app *)
@@ -84,6 +87,8 @@ val mk_existstype       : dkterm -> dkterm
 val mk_true             : dkterm
 val mk_false            : dkterm
 val mk_equal            : dkterm * dkterm * dkterm -> dkterm
+val mk_triangle         : dkterm -> dkterm
+
 
 val mk_DkRfalse         : dkterm -> dkterm
 val mk_DkRnottrue       : dkterm -> dkterm
@@ -117,6 +122,7 @@ val mk_rwrt             : dkterm list * dkterm * dkterm -> line
 
 val print_line          : out_channel -> line -> unit
 val print_goal_type     : out_channel -> string -> dkterm -> unit
+val print_goal_def      : out_channel -> dkterm -> unit
 val print_dk_type       : out_channel -> dkterm -> unit
 val print_dk_term       : out_channel -> dkterm -> unit
 val print_proof         : out_channel -> string -> dkterm -> unit
