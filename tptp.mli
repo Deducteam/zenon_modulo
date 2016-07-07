@@ -3,7 +3,7 @@
 
 open Phrase;;
 
-val phrase_list : tpphrase list -> ((string * ( Expr.expr * bool ) list) list ) list
+val phrase_list : tpphrase list -> ((string * ( Phrase.phrase * bool ) list) list ) list
 
 val translate : string list -> tpphrase list -> phrase list * string;;
 

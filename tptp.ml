@@ -105,7 +105,7 @@ let rec list_of_formula accu annot =
   | Inference (_, "[status(thm)]", list) ->
       List.fold_left list_of_formula accu list
   | Name (name) ->
-     (Hashtbl.find Phrase.name_formula_tbl name) :: accu
+     Hyp (name,(Hashtbl.find Phrase.name_formula_tbl name),20) :: accu
   | Other (_) -> raise Not_a_theorem
 ;;
 
@@ -233,14 +233,14 @@ let rec phrase_list_one accu p =
    | Annotation s -> accu
    | Formula (_, _, _, _) -> accu
    | Formula_annot (name, _, formula_goal, Some (annot)) ->
-      let link = (enot (formula_goal)) :: (list_of_formula [] annot) in
+      let link = (Hyp(name, enot (formula_goal), 20)) :: (list_of_formula [] annot) in
       let link = List.map (fun x -> (x, false)) link in 
       (name,link) :: accu
 
 and phrase_list ps =
   List.map (phrase_list_one []) ps
 ;;
-	
+
 let translate dirs ps =
   let raw = List.rev (xtranslate dirs ps []) in
   let cooked = process_annotations raw in

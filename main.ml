@@ -511,7 +511,7 @@ let main () =
   in
   Extension.predecl ();
   let list = parse_file file in
-  List.iter (fun (a,b) -> prove_subproblem a b) list;
+  List.iter (fun ((a,b)::_) -> prove_subproblem a b) list;
   
 ;;
 
