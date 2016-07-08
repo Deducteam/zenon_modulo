@@ -396,12 +396,13 @@ let optim p =
   | _ -> assert false
 ;;
 
+  let retcode = ref 0;;
+  
 let prove_subproblem th_name phrases_dep = 
   begin match !proof_level with
   | Proof_coq | Proof_coqterm -> Watch.warn_unused_var phrases_dep;
   | _ -> ()
   end;
-  let retcode = ref 0 in
   begin try
 	  let phrases = List.map fst phrases_dep in
 	  let phrases = Rewrite.select_rwrt_rules phrases in
@@ -493,10 +494,10 @@ let prove_subproblem th_name phrases_dep =
     eprintf "proof nodes created: %d\n" !Globals.proof_nodes;
     eprintf "formulas created: %d\n" !Globals.num_expr;
     eprintf "\n";
-  (*Gc.print_stat stderr;*)
-  end;
-
-  do_exit !retcode
+    (*Gc.print_stat stderr;*)
+   
+    end;
+    if !retcode <> 0 then do_exit !retcode
 
 ;;
 
@@ -511,8 +512,9 @@ let main () =
   in
   Extension.predecl ();
   let list = parse_file file in
-   List.iter (fun (a,b) -> prove_subproblem a b) list
-  
+  List.iter (fun (a,b) -> prove_subproblem a b) list;
+
+   do_exit !retcode
 ;;
 
 let parse_command_line argspec =
