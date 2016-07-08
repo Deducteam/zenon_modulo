@@ -131,8 +131,6 @@ let argspec = [
           "            read input file in Focal format";
   "-itptp", Arg.Unit (fun () -> input_format := I_tptp),
           "            read input file in TPTP format";
-  "-itstpax", Arg.Unit (fun () -> input_format := I_tstp_ax),
-         "             read input file in TSTP format";
   "-itstp", Arg.Unit (fun () -> input_format := I_tstp),
          "             read input file in TSTP format";
   "-iz", Arg.Unit (fun () -> input_format := I_zenon),
@@ -319,16 +317,16 @@ let parse_file f =
               let incpath = List.rev (tptp_env :: upup :: d :: !include_path) in
               let (forms, name) = Tptp.translate incpath tpphrases in
               let forms = Typetptp.typecheck forms in
-	      let ret = (name, List.map (fun x -> (x, false)) forms) in
-	      [ret]
+	      (name, List.map (fun x -> (x, false)) forms)
+	      
             with Not_found ->
               let incpath = List.rev (upup :: d :: !include_path) in
               let (forms, name) = Tptp.translate incpath tpphrases in
               let forms = Typetptp.typecheck forms in
-	      let ret = (name, List.map (fun x -> (x, false)) forms) in
-	      [ret]
+	       (name, List.map (fun x -> (x, false)) forms)
+	      
           end
-      | I_tstp_ax ->
+      | I_tstp ->
          let tpphrases = Parsetstp.file Lextstp.token lexbuf in
          closer ();
          let d = Filename.dirname f in
@@ -340,21 +338,21 @@ let parse_file f =
              let incpath = List.rev (tptp_env :: upup :: d :: !include_path) in
              let (forms, name) = Tptp.translate incpath tpphrases in
              let forms = Typetptp.typecheck forms in
-	     let ret = (name, List.map (fun x -> (x, false)) forms) in
-	     [ret]
+	     (name, List.map (fun x -> (x, false)) forms) 
+	     
            with Not_found ->
              let incpath = List.rev (upup :: d :: !include_path) in
              let (forms, name) = Tptp.translate incpath tpphrases in
              let forms = Typetptp.typecheck forms in
-	     let ret = (name, List.map (fun x -> (x, false)) forms) in
-	     [ret]
+	     (name, List.map (fun x -> (x, false)) forms) 
+	     
          end
-      | I_tstp ->
+(*      | I_tstp ->
          let tpphrases = Parsetstp.file Lextstp.token lexbuf in
          closer ();
          begin
 	   Tptp.phrase_list tpphrases
-         end
+         end*)
       | I_focal ->
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
           closer ();
@@ -365,8 +363,8 @@ let parse_file f =
               Typer.register_new_constants = true;
               Typer.fully_type = false }
           in
-          let ret = (name, Typer.phrasebl typer_options result) in
-	  [ret]
+           (name, Typer.phrasebl typer_options result) 
+	  
       | I_dk ->
           let (name, result) = Parsedk.file Lexdk.token lexbuf in
           closer ();
@@ -377,8 +375,8 @@ let parse_file f =
               Typer.register_new_constants = false;
               Typer.fully_type = true }
           in
-         let ret = (name, Typer.phrasebl typer_options result) in
-         [ret]        
+         (name, Typer.phrasebl typer_options result) 
+                
       | I_zenon ->
           let zphrases = Parsezen.file Lexzen.token lexbuf in
           closer ();
@@ -398,8 +396,8 @@ let parse_file f =
               Typer.register_new_constants = false;
               Typer.fully_type = false }
           in
-         let ret = (thm_default_name, Typer.phrasebl typer_options result) in
-	  [ret]
+          (thm_default_name, Typer.phrasebl typer_options result)
+	 
     with
     | Parsing.Parse_error -> report_error lexbuf "syntax error."
     | Error.Lex_error msg -> report_error lexbuf msg
@@ -530,14 +528,14 @@ let main () =
     Gc.minor_heap_size = 1_000_000;
     Gc.major_heap_increment = 1_000_000;
   };
-  let file = match !files with
+(*  let file = match !files with
     | [f] -> f
     | _ -> Arg.usage argspec usage_msg; exit 2
   in
   Extension.predecl ();
   let list = parse_file file in
   List.iter (fun (a,b) -> prove_subproblem a b) list;
-
+*)
    do_exit !retcode
 ;;
 
