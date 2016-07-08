@@ -16,18 +16,20 @@ let rec mk_quant q vs body =
   | [] -> body
   | h::t ->
           let body = mk_quant q t body in
-          Log.debug 10 "Quantifying over %a" Print.pp_expr h;
+          Log.debug 4 "Quantifying over %a" Print.pp_expr h;
           q (h, body)
 ;;
 
 let cnf_to_formula l =
   let l1 = List.flatten (List.map Expr.get_fv l) in
   let vs = Misc.list_sort_unique String.compare l1 in
+  let subs = List.map (fun n -> tvar_none n, tvar n type_iota) vs in
   let body =
     match l with
     | [] -> assert false
     | a::l2 -> List.fold_left (fun x y -> eor (x,y)) a l2
   in
+  let body =  Expr.substitute subs body in	
   mk_quant eall (List.map (fun x -> (tvar x type_iota)) vs) body
 ;;
 
