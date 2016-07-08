@@ -30,9 +30,6 @@ type zphrase =
 val name_formula_tbl : (string,expr) Hashtbl.t
 ;;
 
-val dependencies_tbl : (string,string) Hashtbl.t
-;;
-
 val separate :
   string list -> phrase list -> definition list * (expr * int) list
 ;;
@@ -41,6 +38,7 @@ type tpannot =
   | File of string
   | Inference of string * string * (tpannot list)
   | Name of string
+  | List of (tpannot list)
   | Other of string
 ;;
 

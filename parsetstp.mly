@@ -108,11 +108,11 @@ phrase:
   | INCLUDE OPEN LIDENT COMMA LBRACKET name_list RBRACKET CLOSE DOT
       { Phrase.Include ($3, Some ($6)) }
   | INPUT_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula CLOSE DOT
-      { Hasttbl.add Phrase.name_formula_tbl $3 $7; Phrase.Formula (ns_hyp $3, $5, $7, None) }
+      { Hashtbl.add Phrase.name_formula_tbl $3 $7; Phrase.Formula (ns_hyp $3, $5, $7, None) }
   | INPUT_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula optional CLOSE DOT
-      { Hasttbl.add Phrase.name_formula_tbl $3 $7; Phrase.Formula_annot (ns_hyp $3, $5, $7, $8) }
+      { Hashtbl.add Phrase.name_formula_tbl $3 $7; Phrase.Formula_annot (ns_hyp $3, $5, $7, $8) }
   | INPUT_CLAUSE OPEN LIDENT COMMA LIDENT COMMA cnf_formula optional CLOSE DOT
-      { Hasttbl.add Phrase.name_formula_tbl $3 $7; Phrase.Formula_annot ($3, $5, cnf_to_formula $7, $8) }
+      { Hashtbl.add Phrase.name_formula_tbl $3 (cnf_to_formula $7); Phrase.Formula_annot ($3, $5, cnf_to_formula $7, $8) }
   | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula COMMA LIDENT CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, Some $9) }
   | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula CLOSE DOT
@@ -220,22 +220,22 @@ optional:
 ;
     
 source:
-| dag_source { Phrase.Option $1 }
+| dag_source { $1 }
 | internal_source { Phrase.Other $1 }
 | external_source { Phrase.File $1 }
 | UNKNOWN { Phrase.Other "unknown" }
-| LBRACKET source_list RBRACKET { Phrase.Other $2 }
+| LBRACKET source_list RBRACKET { Phrase.List $2 }
 ;
 
 source_list:
-| /* mot vide */ { "" }
-| source { "" }
-| source COMMA source_list { "" }
+| /* mot vide */ { [] }
+| source { [$1] }
+| source COMMA source_list { $1 :: $3 }
 ;
 
 dag_source:
-| LIDENT { $1 }
-| INFERENCE OPEN LIDENT COMMA useful_info COMMA LBRACKET source_list RBRACKET CLOSE { "Inference" }
+| LIDENT { Phrase.Name $1 }
+| INFERENCE OPEN LIDENT COMMA useful_info COMMA LBRACKET source_list RBRACKET CLOSE { Phrase.Inference ($3, $5, $8) }
 ;
 
 internal_source:
@@ -275,13 +275,13 @@ optional_info:
 ;
     
 useful_info:
-| LBRACKET info_items RBRACKET { [$2] }
+| LBRACKET info_items RBRACKET { $2 }
 ;
     
 info_items:
-| /*mot vide*/ { None }
-| info_item { Some ($1) }
-| info_item COMMA info_items { Some ($1) }
+| /*mot vide*/ { "" }
+| info_item { "" }
+| info_item COMMA info_items { "" }
 ;
     
 info_item:
