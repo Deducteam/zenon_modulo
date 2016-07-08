@@ -211,9 +211,13 @@ let change_to_def predef body =
   end
 ;;
 
+type infoitem =
+  | Cte of string
+  | Fun of string * (infoitem list)
+
 type tpannot =
   | File of string
-  | Inference of string * string * (tpannot list)
+  | Inference of string * (infoitem list) * (tpannot list)
   | Name of string
   | List of (tpannot list)
   | Other of string

@@ -279,14 +279,14 @@ useful_info:
 ;
     
 info_items:
-| /*mot vide*/ { "" }
-| info_item { "" }
-| info_item COMMA info_items { "" }
+| /*mot vide*/ { [] }
+| info_item { [$1] }
+| info_item COMMA info_items { $1 :: $3 }
 ;
     
 info_item:
-| LIDENT { [$1] }
-| LIDENT OPEN info_items CLOSE { ["Info_item"]  }
+| LIDENT { Phrase.Cte $1 }
+| LIDENT OPEN info_items CLOSE { Phrase.Fun ($1,$3) }
 ;
     
 %%

@@ -9,6 +9,7 @@ open Phrase;;
 open Namespace;;
 
 exception Not_a_theorem;;
+exception Axiom;;
 
 let report_error lexbuf msg =
   Error.errpos (Lexing.lexeme_start_p lexbuf) msg;
@@ -101,12 +102,12 @@ let make_definition name form body p =
 
 let rec list_of_formula accu annot =
   match annot with
-  | File (_) -> raise Not_a_theorem
-  | Inference (_, "[status(thm)]", list) ->
+  | File (_) -> raise Axiom
+  | Inference (_, [Fun ("status", [Cte "thm"])], list) -> 
       List.fold_left list_of_formula accu list
   | Name (name) ->
      Hyp (name,(Hashtbl.find Phrase.name_formula_tbl name),20) :: accu
-  | Other (_) -> raise Not_a_theorem
+  | _ -> raise Not_a_theorem
 ;;
 
 let process_annotations forms =
@@ -228,17 +229,21 @@ and incl dir name accu =
 ;;
 
 let rec phrase_list_one accu p =
-   match p with
+  match p with
    | Include (_, _) -> accu
    | Annotation s -> accu
    | Formula (_, _, _, _) -> accu
-   | Formula_annot (name, _, formula_goal, Some (annot)) ->
+   | Formula_annot (name, _, formula_goal, Some (annot)) -> try 
       let link = (Hyp(name, enot (formula_goal), 20)) :: (list_of_formula [] annot) in
-      let link = List.map (fun x -> (x, false)) link in 
+      let link = List.map (fun x -> (x, false)) link in
       (name,link) :: accu
+     with
+     | Axiom -> accu
+     | Not_a_theorem -> prerr_endline ("Not provable "^name);
+       raise Not_a_theorem
 
 and phrase_list ps =
-  List.map (phrase_list_one []) ps
+  List.fold_left (phrase_list_one) [] ps
 ;;
 
 let translate dirs ps =
