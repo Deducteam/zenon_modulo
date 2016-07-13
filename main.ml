@@ -37,6 +37,7 @@ type input_format =
   | I_zenon
   | I_focal
   | I_tptp
+  | I_tstp_ax
   | I_tstp
   | I_dk
 ;;
@@ -130,6 +131,8 @@ let argspec = [
           "            read input file in Focal format";
   "-itptp", Arg.Unit (fun () -> input_format := I_tptp),
           "            read input file in TPTP format";
+  "-itstpax", Arg.Unit (fun () -> input_format := I_tstp_ax),
+         "             read input file in TSTP format";
   "-itstp", Arg.Unit (fun () -> input_format := I_tstp),
          "             read input file in TSTP format";
   "-iz", Arg.Unit (fun () -> input_format := I_zenon),
@@ -316,16 +319,16 @@ let parse_file f =
               let incpath = List.rev (tptp_env :: upup :: d :: !include_path) in
               let (forms, name) = Tptp.translate incpath tpphrases in
               let forms = Typetptp.typecheck forms in
-	      (name, List.map (fun x -> (x, false)) forms)
-	      
+	      let ret = (name, List.map (fun x -> (x, false)) forms) in
+	      [ret]
             with Not_found ->
               let incpath = List.rev (upup :: d :: !include_path) in
               let (forms, name) = Tptp.translate incpath tpphrases in
               let forms = Typetptp.typecheck forms in
-	       (name, List.map (fun x -> (x, false)) forms)
-	      
+	      let ret = (name, List.map (fun x -> (x, false)) forms) in
+	      [ret]
           end
-      | I_tstp ->
+      | I_tstp_ax ->
          let tpphrases = Parsetstp.file Lextstp.token lexbuf in
          closer ();
          let d = Filename.dirname f in
@@ -337,21 +340,21 @@ let parse_file f =
              let incpath = List.rev (tptp_env :: upup :: d :: !include_path) in
              let (forms, name) = Tptp.translate incpath tpphrases in
              let forms = Typetptp.typecheck forms in
-	     (name, List.map (fun x -> (x, false)) forms) 
-	     
+	     let ret = (name, List.map (fun x -> (x, false)) forms) in
+	     [ret]
            with Not_found ->
              let incpath = List.rev (upup :: d :: !include_path) in
              let (forms, name) = Tptp.translate incpath tpphrases in
              let forms = Typetptp.typecheck forms in
-	     (name, List.map (fun x -> (x, false)) forms) 
-	     
+	     let ret = (name, List.map (fun x -> (x, false)) forms) in
+	     [ret]
          end
-(*      | I_tstp ->
+      | I_tstp ->
          let tpphrases = Parsetstp.file Lextstp.token lexbuf in
          closer ();
          begin
 	   Tptp.phrase_list tpphrases
-         end*)
+         end
       | I_focal ->
           let (name, result) = Parsecoq.file Lexcoq.token lexbuf in
           closer ();
@@ -362,8 +365,8 @@ let parse_file f =
               Typer.register_new_constants = true;
               Typer.fully_type = false }
           in
-           (name, Typer.phrasebl typer_options result) 
-	  
+          let ret = (name, Typer.phrasebl typer_options result) in
+	  [ret]
       | I_dk ->
           let (name, result) = Parsedk.file Lexdk.token lexbuf in
           closer ();
@@ -374,8 +377,8 @@ let parse_file f =
               Typer.register_new_constants = false;
               Typer.fully_type = true }
           in
-         (name, Typer.phrasebl typer_options result) 
-                
+         let ret = (name, Typer.phrasebl typer_options result) in
+         [ret]        
       | I_zenon ->
           let zphrases = Parsezen.file Lexzen.token lexbuf in
           closer ();
@@ -395,8 +398,8 @@ let parse_file f =
               Typer.register_new_constants = false;
               Typer.fully_type = false }
           in
-          (thm_default_name, Typer.phrasebl typer_options result)
-	 
+         let ret = (thm_default_name, Typer.phrasebl typer_options result) in
+	  [ret]
     with
     | Parsing.Parse_error -> report_error lexbuf "syntax error."
     | Error.Lex_error msg -> report_error lexbuf msg
@@ -417,8 +420,8 @@ let optim p =
   | _ -> assert false
 ;;
 
-let retcode = ref 0;; 
-  (*
+  let retcode = ref 0;;
+  
 let prove_subproblem th_name phrases_dep = 
   begin match !proof_level with
   | Proof_coq | Proof_coqterm -> Watch.warn_unused_var phrases_dep;
@@ -520,7 +523,7 @@ let prove_subproblem th_name phrases_dep =
     end;
     if !retcode <> 0 then do_exit !retcode
 
-;;*)
+;;
 
 let main () =
   Gc.set {(Gc.get ()) with
@@ -532,108 +535,8 @@ let main () =
     | _ -> Arg.usage argspec usage_msg; exit 2
   in
   Extension.predecl ();
- (* let list = parse_file file in
+  let list = parse_file file in
   List.iter (fun (a,b) -> prove_subproblem a b) list;
-*)
-  let (th_name, phrases_dep) = parse_file file in
-    begin match !proof_level with
-  | Proof_coq | Proof_coqterm -> Watch.warn_unused_var phrases_dep;
-  | _ -> ()
-  end;
-  begin try
-	  let phrases = List.map fst phrases_dep in
-	  let phrases = Rewrite.select_rwrt_rules phrases in
-	  let ppphrases = Extension.preprocess phrases in
-	  List.iter Extension.add_phrase ppphrases;
-	  if !Globals.debug_rwrt
-	  then
-	    begin
-	      Print.print_tbl_term (Print.Chan stdout) !tbl_term;
-	      Print.print_tbl_prop (Print.Chan stdout) !tbl_prop;
-	    end;
-	  let (defs, hyps) = Phrase.separate (Extension.predef ()) ppphrases in
-	  List.iter (fun (fm, _) -> Eqrel.analyse fm) hyps;
-	  let hyps = List.filter (fun (fm, _) -> not (Eqrel.subsumed fm)) hyps in
-	  if !debug_flag then begin
-	    let ph_defs = List.map (fun x -> Phrase.Def x) defs in
-	    let ph_hyps = List.map (fun (x, y) -> Phrase.Hyp ("", x, y)) hyps in
-	    eprintf "initial formulas:\n";
-	    List.iter (Print.phrase (Print.Chan stderr)) (ph_defs @ ph_hyps);
-	    eprintf "relations: ";
-	    Eqrel.print_rels stderr;
-	    eprintf "\n";
-	    eprintf "typing declarations: ";
-	    eprintf "\n";
-	    Typer.print_constant_decls stderr;
-	    eprintf "----\n";
-	    flush stderr;
-	    Gc.set {(Gc.get ()) with Gc.verbose = 0x010};
-	  end;
-	  let params = match !keep_open with
-            | Open_none -> Prove.default_params
-            | Open_all -> Prove.open_params None
-            | Open_first n -> Prove.open_params (Some n)
-            | Open_last n -> Prove.open_params (Some (-n))
-	  in
-	  let proofs = Prove.prove params defs hyps in
-	  let proof= List.hd proofs in
-	  let is_open = Mlproof.is_open_proof proof in
-	  if is_open then
-            retcode := 12;
-	  if not !quiet_flag then begin
-	    if is_open then
-              printf "(* NO-PROOF *)\n"
-      else
-              printf "(* PROOF-FOUND *)\n";
-	    flush stdout
-	  end;
-	  let llp = lazy (optim (Extension.postprocess
-				   (Mltoll.translate th_name ppphrases proof)))
-	  in
-	  begin match !proof_level with
-	  | Proof_none -> ()
-	  | Proof_h n -> Print.hlproof (Print.Chan stdout) n proof;
-	  | Proof_m -> Print.mlproof (Print.Chan stdout) proof;
-    | Proof_lx ->
-       let lxp = Mltoll.translate th_name ppphrases proof in
-       Print.llproof (Print.Chan stdout) lxp;
-    | Proof_l -> Print.llproof (Print.Chan stdout) (Lazy.force llp);
-    | Proof_coq ->
-       let u = Lltocoq.output stdout phrases ppphrases (Lazy.force llp) in
-       Watch.warn phrases_dep llp u;
-    | Proof_coqterm ->
-       let (p, u) = Coqterm.trproof phrases ppphrases (Lazy.force llp) in
-       Coqterm.print stdout p;
-       Watch.warn phrases_dep llp u;
-    | Proof_dk ->
-       let u = Lltodk.output stdout phrases (Lazy.force llp) in
-       Watch.warn phrases_dep llp u;
-    | Proof_dkterm ->
-       let u = Lltodk.output_term stdout phrases ppphrases (Lazy.force llp) in
-       Watch.warn phrases_dep llp u;
-    | Proof_isar ->
-       let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in
-        Watch.warn phrases_dep llp u;
-    | Proof_dot (b, n) ->
-       Print.dots ~full_output:b ~max_depth:n (Print.Chan stdout) (List.rev proofs);
-	  end;
-    with
-    | Prove.NoProof ->
-       retcode := 12;
-      if not !quiet_flag then printf "(* NO-PROOF *)\n";
-    | Prove.LimitsExceeded ->
-       retcode := 13;
-      if not !quiet_flag then printf "(* NO-PROOF *)\n";
-  end;
-  if !stats_flag then begin
-    eprintf "nodes searched: %d\n" !Globals.inferences;
-    eprintf "max branch formulas: %d\n" !Globals.top_num_forms;
-    eprintf "proof nodes created: %d\n" !Globals.proof_nodes;
-    eprintf "formulas created: %d\n" !Globals.num_expr;
-    eprintf "\n";
-    (*Gc.print_stat stderr;*)
-   
-    end;
 
    do_exit !retcode
 ;;
