@@ -37,7 +37,6 @@ type input_format =
   | I_zenon
   | I_focal
   | I_tptp
-  | I_tstp_ax
   | I_tstp
   | I_dk
 ;;
@@ -131,8 +130,6 @@ let argspec = [
           "            read input file in Focal format";
   "-itptp", Arg.Unit (fun () -> input_format := I_tptp),
           "            read input file in TPTP format";
-  "-itstpax", Arg.Unit (fun () -> input_format := I_tstp_ax),
-         "             read input file in TSTP format";
   "-itstp", Arg.Unit (fun () -> input_format := I_tstp),
          "             read input file in TSTP format";
   "-iz", Arg.Unit (fun () -> input_format := I_zenon),
@@ -328,27 +325,6 @@ let parse_file f =
 	      let ret = (name, List.map (fun x -> (x, false)) forms) in
 	      [ret]
           end
-      | I_tstp_ax ->
-         let tpphrases = Parsetstp.file Lextstp.token lexbuf in
-         closer ();
-         let d = Filename.dirname f in
-         let pp = Filename.parent_dir_name in
-         let upup = Filename.concat (Filename.concat d pp) pp in
-         begin
-           try
-             let tptp_env = Sys.getenv "TPTP" in
-             let incpath = List.rev (tptp_env :: upup :: d :: !include_path) in
-             let (forms, name) = Tptp.translate incpath tpphrases in
-             let forms = Typetptp.typecheck forms in
-	     let ret = (name, List.map (fun x -> (x, false)) forms) in
-	     [ret]
-           with Not_found ->
-             let incpath = List.rev (upup :: d :: !include_path) in
-             let (forms, name) = Tptp.translate incpath tpphrases in
-             let forms = Typetptp.typecheck forms in
-	     let ret = (name, List.map (fun x -> (x, false)) forms) in
-	     [ret]
-         end
       | I_tstp ->
          let tpphrases = Parsetstp.file Lextstp.token lexbuf in
          closer ();
