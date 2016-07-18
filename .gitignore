@@ -14,12 +14,15 @@ parsecoq.ml
 parsecoq.mli
 parsetptp.ml
 parsetptp.mli
+parsetstp.ml
+parsetstp.mli
 parsezen.ml
 parsezen.mli
 parsedk.ml
 parsedk.mli
 lexcoq.ml
 lextptp.ml
+lextstp.ml
 lexsmtlib.ml
 lexzen.ml
 lexdk.ml
