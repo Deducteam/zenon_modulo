@@ -10,6 +10,8 @@ open Namespace;;
 
 let hyp_prefix = "H";;
 
+(* context: store declared variables x_P of type prf |P|
+ *)
 let context = ref (Hashtbl.create 997);;
 let metactx = ref (Hashtbl.create 9);;
 let rawname e = sprintf "%s%x" hyp_prefix (Index.get_number e);;
@@ -22,6 +24,8 @@ exception No_proof of string
 exception No_meta of string
 ;;
 
+(* manage context of declared variables
+ *)
 let add_context e dke =
   Log.debug 4 " |- Add context %s ::  %a"
 	    (match dke with
@@ -76,6 +80,8 @@ let mk_zterm =
   mk_app ("Z", mk_typetype, [])
 ;;
 
+(* symbols coming from arithmetic extension
+ *)
 let predefined_sym =
   [("Z", ("Z", mk_typetype));
    ("$less", ("less", mk_arrow ([mk_zterm; mk_zterm], mk_typeprop)));
@@ -94,7 +100,7 @@ let predefined_sym =
   ]
 ;;
 
-
+(* translation function for types *)
 let rec translate_type e =
   match e with
   | e when (Expr.equal e type_type) ->
@@ -129,6 +135,7 @@ let rec translate_type e =
      mk_var (v, ty)
   | _ -> assert false
 
+(* translation function for expressions *)
 and translate_expr e =
   match e with
   | Evar (v, _) as v' when Mltoll.is_meta v ->
@@ -216,124 +223,6 @@ and translate_expr e =
   | _ -> assert false
 ;;
 
-(*
-let rec trexpr_dktype_aux e =
-  Log.debug 14 " |- dktype aux %a" Print.pp_expr e;
-  match e with
-  | e when (Expr.equal e type_type) ->
-     mk_typetype
-  | e when (Expr.equal e type_prop) ->
-     mk_typeprop
-  | e when (Expr.equal e type_iota) ->
-     mk_typeiota
-  | Evar (s, _) ->
-     mk_var (s, trexpr_dktype_aux (get_type e))
-  | Eapp (Evar(s, _) as s', args, _) ->
-     let type_app = trexpr_dktype_aux (get_type s') in
-     let nargs = List.map trexpr_dktype_aux args in
-     mk_app (s, type_app, nargs)
-  | Earrow (args, ret, _) ->
-     let nret = trexpr_dktype_aux ret in
-     let nargs = List.map trexpr_dktype_aux args in
-     mk_arrow (nargs @ [nret])
-  | Eall (Evar(v, _) as v', p, _)
-       when Expr.equal (get_type v') type_type ->
-     let nvar = mk_var (v, mk_typetype) in
-     let np =
-       match p with
-       | Eapp (Evar(s, _) as s', args, _) ->
-	  let type_app = trexpr_dktype_aux (get_type s') in
-	  let nargs = List.map trexpr_dktype_aux args in
-	  mk_term (mk_app (s, type_app, nargs))
-       | Earrow (args, ret, _) when (Expr.equal ret type_prop) ->
-	  let nret = mk_typeprop in
-	  let nargs =
-	    List.map (fun x -> mk_term (trexpr_dktype_aux x)) args in
-	  mk_arrow (nargs @ [nret])
-       | Earrow (args, ret, _) ->
-	  let nret = mk_term (trexpr_dktype_aux ret) in
-	  let nargs =
-	    List.map (fun x -> mk_term (trexpr_dktype_aux x)) args in
-	  mk_arrow (nargs @ [nret])
-       | Eall (Evar (v2, _) as v2', p2, _)
-	    when Expr.equal (get_type v2') type_type ->
-	  trexpr_dktype_aux p
-       | _ -> assert false
-     in
-     mk_pi (nvar, np)
-  | Etau _ as e
-       when Expr.equal (get_type e) type_type ->
-     let v = Index.make_tau_name e in
-     Log.debug 4 " |- dktype aux %a > %s" Print.pp_expr_t e v;
-     mk_var (v, mk_typetype)
-  | Etau _ as e ->
-     let v = Index.make_tau_name e in
-     Log.debug 4 " |- dktype aux %a > %s" Print.pp_expr_t e v;
-     let ty = trexpr_dktype_aux (get_type e) in
-     mk_var (v, ty)
-  | _ -> assert false
-;;
-
-let rec trexpr_dktype e =
-  Log.debug 14 " |- dktype %a" Print.pp_expr e;
-  match e with
-  | e when (Expr.equal e type_type) ->
-     mk_typetype
-  | e when (Expr.equal e type_prop) ->
-     mk_typeprop
-  | e when (Expr.equal e type_iota) ->
-     mk_typeiota
-  | Evar (s, _) ->
-     mk_term (mk_var (s, trexpr_dktype_aux (get_type e)))
-  | Eapp (Evar(s, _) as s', args, _) ->
-     let type_app = trexpr_dktype_aux (get_type s') in
-     let nargs = List.map trexpr_dktype_aux args in
-     mk_term (mk_app (s, type_app, nargs))
-  | Earrow (args, ret, _)
-       when (Expr.equal ret type_type) ->
-     let nret = mk_typetype in
-     let nargs = List.map trexpr_dktype_aux args in
-     mk_arrow (nargs @ [nret])
-  | Earrow (args, ret, _)
-       when (Expr.equal ret type_prop) ->
-     let nret = mk_typeprop in
-     let nargs = List.map (fun x -> mk_term (trexpr_dktype_aux x)) args in
-     mk_arrow (nargs @ [nret])
-  | Earrow (args, ret, _) ->
-     let nret = mk_term (trexpr_dktype_aux ret) in
-     let nargs = List.map (fun x -> mk_term (trexpr_dktype_aux x)) args in
-     mk_arrow (nargs @ [nret])
-  | Eall (Evar(v, _) as v', p, _)
-       when Expr.equal (get_type v') type_type ->
-     let nvar = mk_var (v, mk_typetype) in
-     let np = trexpr_dktype p in
-     mk_pi (nvar, np)
-  | Etau _ as e
-       when Expr.equal (get_type e) type_type ->
-     let v = Index.make_tau_name e in
-     Log.debug 4 " |- dktype %a > %s" Print.pp_expr_t e v;
-     mk_var (v, mk_typetype)
-  | Etau _ as e ->
-     let v = Index.make_tau_name e in
-     Log.debug 4 " |- dktype %a > %s" Print.pp_expr_t e v;
-     let ty = mk_term (trexpr_dktype_aux (get_type e)) in
-     mk_var (v, ty)
-  | _ -> assert false
-;;
-
-let trexpr_dkvartype e =
-  Log.debug 14 "dkvartype %a" Print.pp_expr_t e;
-  match e with
-  | Evar (s, _) when (Expr.equal (get_type e) type_type) ->
-     mk_var (s, mk_typetype)
-  | Evar (s, _) when (Expr.equal (get_type e) type_iota) ->
-     mk_var (s, mk_term (mk_typeiota))
-  | Evar (s, _) ->
-     mk_var (s, mk_term (trexpr_dktype_aux (get_type e)))
-  | _ -> assert false
-;;
- *)
-
 let rec translate_sigs_aux s accu =
   match s with
   | [] -> List.rev accu
@@ -343,6 +232,9 @@ let rec translate_sigs_aux s accu =
      translate_sigs_aux tl ((v, s') :: accu)
 ;;
 
+(* translate signatures, i.e. form (v,s) to (v, s')
+   where v a string, s its zenon type and s' its dedukti type
+ *)
 let translate_sigs s =
   Log.debug 13 " |- Length of Sigs = %i" (List.length s);
   translate_sigs_aux s []
@@ -371,87 +263,8 @@ let tr_list_vars rule =
      List.rev nvars
 ;;
 
-(*
-let rec trexpr_dkprop e =
-  Log.debug 10 "dkprop %a" Print.pp_expr e;
-  match e with
-  | e when (Expr.equal e type_type) ->
-     mk_typetype
-  | e when (Expr.equal e type_prop) ->
-     mk_typeprop
-  | e when (Expr.equal e type_iota) ->
-     mk_typeiota
-  | Evar _ ->
-     trexpr_dkvartype e
-  | Emeta _ ->
-     assert false
-  | Eapp (Evar(s, _) as s', [], _) ->
-     let nvar = trexpr_dkvartype s' in
-     let type_app = get_dkvar_type (nvar) in
-     mk_app (s, type_app, [])
-  | Eapp (Evar("=", _), [e1; e2], _) ->
-     let ne1 = trexpr_dkprop e1 in
-     let ne2 = trexpr_dkprop e2 in
-     let ty = trexpr_dktype_aux (get_type e1) in
-     mk_equal (ty, ne1, ne2)
-  | Eapp (Evar(s, _) as s', args, _)
-     when (List.mem_assoc s predefined_sym) ->
-     let nvar =
-       trexpr_dkvartype (tvar (fst (List.assoc s predefined_sym)) (get_type s'))
-     in
-     let type_app = get_dkvar_type (nvar) in
-     let nargs = List.map trexpr_dkprop args in
-     mk_app (s, type_app, nargs)
-  | Eapp (Evar(s, _) as s', args, _) ->
-     let nvar = trexpr_dkvartype s' in
-     let type_app = get_dkvar_type (nvar) in
-     let nargs = List.map trexpr_dkprop args in
-     mk_app (s, type_app, nargs)
-  | Eapp _ -> assert false
-  | Earrow (args, ret, _)  ->
-     let nret = trexpr_dkprop ret in
-     let nargs = List.map trexpr_dkprop args in
-     mk_arrow (nargs @ [nret])
-  | Enot (e1, _) -> mk_not (trexpr_dkprop e1)
-  | Eand (e1, e2, _) -> mk_and (trexpr_dkprop e1, trexpr_dkprop e2)
-  | Eor (e1, e2, _) -> mk_or (trexpr_dkprop e1, trexpr_dkprop e2)
-  | Eimply (e1, e2, _) -> mk_imply (trexpr_dkprop e1, trexpr_dkprop e2)
-  | Eequiv (e1, e2, _) -> mk_equiv (trexpr_dkprop e1, trexpr_dkprop e2)
-  | Etrue -> mk_true
-  | Efalse -> mk_false
-  | Eall (Evar (v, _) as v', p, _)
-       when Expr.equal (get_type v') type_type ->
-     mk_foralltype (mk_lam (trexpr_dkvartype v', trexpr_dkprop p))
-  | Eall (Evar (v, _) as v', p, _) ->
-     let nv = trexpr_dkvartype v' in
-     let tnv = get_dkvar_type nv in
-     mk_forall (tnv, (mk_lam (nv, trexpr_dkprop p)))
-  | Eall _ -> assert false
-  | Eex (Evar (v, _) as v', p, _)
-       when Expr.equal (get_type v') type_type ->
-     mk_existstype (mk_lam (trexpr_dkvartype v', trexpr_dkprop p))
-  | Eex (Evar (v, _) as v', p, _) ->
-     let nv = trexpr_dkvartype v' in
-     let tnv = get_dkvar_type nv in
-     mk_exists (tnv, (mk_lam (nv, trexpr_dkprop p)))
-  | Eex _ -> assert false
-  | Etau _ as e
-       when Expr.equal (get_type e) type_type ->
-     let v = Index.make_tau_name e in
-     Log.debug 4 " |- dkprop %a > %s" Print.pp_expr_t e v;
-     mk_var (v, mk_typetype)
-  | Etau _ as e ->
-     let v = Index.make_tau_name e in
-     Log.debug 4 " |- dkprop %a > %s" Print.pp_expr_t e v;
-     let ty = mk_term (trexpr_dktype_aux (get_type e)) in
-     mk_var (v, ty)
-  | Elam (Evar (v, _) as v', p, _) ->
-     let nv = trexpr_dkvartype v' in
-     mk_lam (nv, trexpr_dkprop p)
-  | Elam _ -> assert false
-;;
+(* translate rewrite rules
  *)
-
 let build_dkrwrt rule =
   match rule with
   | (l, r) ->
@@ -478,6 +291,8 @@ let trexpr_dkgoal e =
   mk_proof (translate_expr goal)
 ;;
 
+(* return type of bound variable
+ *)
 let get_type_binder e =
   match e with
   | Eex (v, _, _)
@@ -494,10 +309,14 @@ let get_type_binder e =
      end
 ;;
 
+(* test if quantification over type variable
+ *)
 let is_binder_of_type_var e =
   Expr.equal (get_type_binder e) type_type
 ;;
 
+(* lemma option is disabled for dedukti output, i.e. only one
+ *)
 let extract_prooftree lemmas =
   Log.debug 8 " Number of Lemmas : %i" (List.length lemmas);
   match lemmas with
@@ -510,6 +329,8 @@ let extract_prooftree lemmas =
   | _ -> assert false
 ;;
 
+(* translate quantification into lambda abstraction
+ *)
 let translate_quant_to_dklam p =
   match p with
   | Eall (Evar (v, _) as v', p, _) ->
@@ -530,6 +351,8 @@ let translate_quant_to_dklam p =
   | _ -> assert false
 ;;
 
+(* define a variable of type prf of the expression e
+ *)
 let mk_pr_var e =
   let norm_e = Rewrite.normalize_fm e in
   try
@@ -549,6 +372,8 @@ let get_pr_var e =
   get_context norm_e
 ;;
 
+(* translate a proof tree into a DK term
+ *)
 let rec trproof_dk p =
   Log.debug 4 " ||-- trproof ";
   Log.debug 4 "    > %a" Print.llproof_rule_db p.rule;
@@ -1002,6 +827,8 @@ let rec trproof_dk p =
     | _, _, _, _ -> assert false
 ;;
 
+(* buid a DK term from a proof
+ *)
 let make_proof_term goal prooftree =
   let pr = mk_pr_var goal in
   let sub = trproof_dk prooftree in
@@ -1027,10 +854,14 @@ let rec mk_prf_var_def_aux accu phrases =
   | _ :: tl -> mk_prf_var_def_aux accu tl
 ;;
 
+(* define a variable of type prf of an hypotheses / store in context
+ *)
 let mk_prf_var_def phrases =
   mk_prf_var_def_aux [] phrases
 ;;
 
+(* Get signatures of type constructors inside a type
+ *)
 let rec get_sigs_fm_type accu ty =
   match ty with
   | e when (Expr.equal e type_type)
@@ -1066,6 +897,8 @@ let rec get_sigs_fm_type accu ty =
   | _ -> assert false
 ;;
 
+(* Get type signatures (symbol, type) inside a formula
+ *)
 let rec get_sigs_fm accu fm =
   match fm with
   | Evar (v, _) as v' when Mltoll.is_meta v ->
@@ -1151,6 +984,8 @@ let rec get_sigs_phrases_aux accu phrases =
      get_sigs_phrases_aux accu tl
 ;;
 
+(* Get type signatures from phrases
+ *)
 let get_sigs_phrases sigs phrases =
   get_sigs_phrases_aux sigs phrases
 ;;
@@ -1166,6 +1001,8 @@ let rec get_sigs_proof_aux accu llp =
      List.fold_left (fun x y -> get_sigs_proof_aux x y) accu phyps
 ;;
 
+(* Get type signatures from proofs
+ *)
 let get_sigs_proof sigs llp =
   get_sigs_proof_aux sigs llp
 ;;
@@ -1180,10 +1017,14 @@ let output oc phrases llp =
   Log.debug 13 " |- length Sigs = %i" (List.length sigs);
   let dksigs = translate_sigs sigs in
   let dksigs = List.map (fun (x, y) -> mk_decl (x, y)) dksigs in
+  (* Resolve dependencies between declarations of symbol in dedukti
+     by applying a topological sort *)
   let dep_graph = create 1337 in
   List.iter (add_sym_graph dep_graph) dksigs;
   let dksigs = topo_sort dep_graph in
+  (* create dk variables of type prf of an hypothese *)
   let dkctx = mk_prf_var_def phrases in
+  (* make list of rewrite rules *)
   let rules = Hashtbl.fold (fun x y z -> y :: z) !tbl_term [] in
   let rules = List.append rules
 			  (Hashtbl.fold (fun x y z -> y :: z) !tbl_prop []) in
