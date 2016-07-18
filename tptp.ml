@@ -146,7 +146,7 @@ let rec translate_one dirs accu p =
      accu
   | Annotation s -> add_annotation s; accu
   | Formula (name, ("axiom" | "definition"), body, None) ->
-   Hyp (goal_name, body, 2) :: accu
+   Hyp (name, body, 2) :: accu
   | Formula (_, "hypothesis", _, _) -> accu
   | Formula (_, ("lemma"|"theorem"), _, _) -> accu
   | Formula (name, "conjecture", body, None) ->
@@ -156,7 +156,7 @@ let rec translate_one dirs accu p =
      tptp_thm_name := name;
      Hyp (goal_name, body, 0) :: accu
   | Formula_annot (name, ("axiom" | "definition"), body, Some (File (_))) ->
-     Hyp (goal_name, body, 2) :: accu 
+     Hyp (name, body, 2) :: accu 
   | Formula_annot (_, ("axiom" | "definition"), _, Some (Other (_))) -> accu
   | Formula_annot (name, "conjecture", body, Some (File(_))) ->
    tptp_thm_name := name;
