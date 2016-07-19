@@ -139,7 +139,7 @@ let process_annotations forms =
 
 let rec translate_one dirs accu p =
   match p with
-  | Include (f, None) -> accu
+  | Include (f, None) -> try_incl dirs f accu
   | Include (f, Some _) ->
      (* FIXME change try_incl and incl to implement selective include *)
      (* for the moment, we just ignore the include *)
