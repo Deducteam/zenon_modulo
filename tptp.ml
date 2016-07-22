@@ -149,7 +149,7 @@ let rec translate_one dirs accu p =
    Hyp (name, body, 2) :: accu
   | Formula (name, "hypothesis", body, _) ->
      Hyp (name, accu, 2) :: accu
-  | Formula (_, ("lemma"|"theorem"), _, _) ->
+  | Formula (name, ("lemma"|"theorem"), body, _) ->
      Hyp (name, accu, 2) :: accu
   | Formula (name, "conjecture", body, None) ->
     tptp_thm_name := name;
