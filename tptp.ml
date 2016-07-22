@@ -148,7 +148,7 @@ let rec translate_one dirs accu p =
   | Formula (name, ("axiom" | "definition"), body, None) ->
    Hyp (name, body, 2) :: accu
   | Formula (name, "hypothesis", body, _) ->
-     Hyp (name, accu, 2) :: accu
+     Hyp (name, body, 2) :: accu
   | Formula (name, ("lemma"|"theorem"), body, _) ->
      Hyp (name, accu, 2) :: accu
   | Formula (name, "conjecture", body, None) ->
