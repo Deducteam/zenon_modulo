@@ -168,6 +168,9 @@ let rec translate_one dirs accu p =
   | Formula_annot (_, "hypothesis", _, _) -> accu
   | Formula_annot (_, ("lemma"|"theorem"), _, _) -> accu
   | Formula_annot (_, "plain", _, _) -> accu
+  | Formula_annot (name , "negated_conjecture", body, Some (File(_))) ->
+     tptp_thm_name := name;
+     Hyp (goal_name, body, 0) :: accu
   | Formula_annot (name , "negated_conjecture", body, _) ->
     accu
   (* TFF formulas *)
@@ -234,14 +237,20 @@ let rec phrase_list_one accu p =
    | Include (_, _) -> accu
    | Annotation s -> accu
    | Formula (_, _, _, _) -> accu
-   | Formula_annot (name, _, formula_goal, Some (annot)) -> try 
-      let link = (Hyp(name, enot (formula_goal), 20)) :: (list_of_formula [] annot) in
-      let link = List.map (fun x -> (x, false)) link in
-      (name,link) :: accu
-     with
-     | Axiom -> accu
-     | Not_a_theorem -> prerr_endline ("Not provable "^name);
-       raise Not_a_theorem
+   | Formula_annot (name, _, formula_goal, Some (annot)) ->
+      try
+        let link = (Hyp(name, enot (formula_goal), 20))
+                   :: (list_of_formula [] annot) in
+        let link = List.map (fun x -> (x, false)) link in
+        (*Log.debug 3 "--------- list of link ------------";
+                Log.debug 3 "|- %a" List.map *)
+        (name,link) :: accu
+      with
+      | Axiom ->
+         accu
+      | Not_a_theorem ->
+         prerr_endline ("Not provable "^name);
+         raise Not_a_theorem
 
 and phrase_list ps =
   List.fold_left (phrase_list_one) [] ps
