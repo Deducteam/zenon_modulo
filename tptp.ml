@@ -164,14 +164,12 @@ let rec translate_one dirs accu p =
      tptp_thm_name := name;
      Hyp (goal_name, enot (body), 0) :: accu 
   | Formula_annot (name, "conjecture", body, Some (Other (_))) ->
-     tptp_thm_name := name;
-     Hyp (goal_name, enot (body), 0) :: accu
+     accu
   | Formula_annot (_, "hypothesis", _, _) -> accu
   | Formula_annot (_, ("lemma"|"theorem"), _, _) -> accu
   | Formula_annot (_, "plain", _, _) -> accu
   | Formula_annot (name , "negated_conjecture", body, _) ->
-     tptp_thm_name := name;
-     Hyp (goal_name, body, 0) :: accu
+    accu
   (* TFF formulas *)
   | Formula (name, "tff_type", body, None) ->
       Hyp (name, body, 13) :: accu
