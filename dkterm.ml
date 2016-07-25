@@ -70,6 +70,7 @@ let get_dkvar_type var =
 ;;
 
 let tbl_var_newname = ref (Hashtbl.create 42);;
+let tbl_fun_newname = ref (Hashtbl.create 42);;
 
 let newname () =
   let s = Expr.newname () in
@@ -94,6 +95,17 @@ let get_var_newname var =
 	 nv
       | _ -> assert false
     end
+;;
+
+let get_fun_newname v =
+  try
+    Hashtbl.find !tbl_fun_newname v
+  with Not_found ->
+       begin
+         let nv = "fun_"^v in
+         Hashtbl.add !tbl_fun_newname v nv;
+         nv
+       end
 ;;
 
 let mk_typetype                = Dktypetype
@@ -188,11 +200,12 @@ and print_dk_term o t =
 	     print_dk_type t1 print_dk_term t2
   | Dklam (Dkapp (v, t1, []), t2) ->
      fprintf o "%s : (%a)\n => %a"
-	     v print_dk_type t1 print_dk_term t2
+	     (get_fun_newname v)
+             print_dk_type t1 print_dk_term t2
   | Dklam _ -> assert false
   | Dkapp (v, _, l) ->
      begin
-       print_dk_cst o v;
+       print_dk_cst o (get_fun_newname v);
        List.iter (fun x -> fprintf o " (%a)" print_dk_term x) l;
 (*       fprintf o "\n ";*)
      end
@@ -400,7 +413,7 @@ let print_line o line =
   | Dkdecl (v, _) when String.contains v '.' ->
      ()
   | Dkdecl (v, t) ->
-     fprintf o "def %s : %a.\n\n" v print_dk_type t
+     fprintf o "def %s : %a.\n\n" (get_fun_newname v) print_dk_type t
   | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' || s = "Is_true" ->
      ()
   | Dkrwrt (l, t1, t2) ->

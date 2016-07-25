@@ -286,7 +286,7 @@ let select_goal phrases =
 ;;
 
 let trexpr_dkgoal e =
-  assert (List.length e == 1);
+  (*assert (List.length e == 1);*)
   let goal = List.hd e in
   mk_proof (translate_expr goal)
 ;;
