@@ -164,7 +164,7 @@ let argspec = [
         "              print the proof in Coq script format (force -rename)";
   "-ocoqterm", Arg.Unit (fun () -> proof_level := Proof_coqterm),
             "          print the proof in Coq term format";
-  "-odk", Arg.Unit (fun () -> namespace_flag := true;
+  "-odk", Arg.Unit (fun () -> namespace_flag := false;
                               quiet_flag := true;
 			      proof_level := Proof_dk;
 			      opt_level := 0;
