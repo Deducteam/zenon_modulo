@@ -405,13 +405,15 @@ let rec is_heuri_rwrt_term body =
 ;;
 
 let rec is_heuri_rwrt_prop_aux body =
-  if (is_pos_literal_noteq body) && not (is_empty_list (get_fv body))
+  if (is_pos_literal_noteq body)
+     && not (is_empty_list (get_fv body))
   then true
   else
     begin
       match body with
       | Eequiv (e1, e2, _) ->
 	 is_pos_literal_noteq e1
+         && not (is_literal e2)
 	 && test_fv (get_fv e1) (get_fv e2)
          && not (is_empty_list (get_fv e1))
       | _ -> false
