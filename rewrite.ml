@@ -291,6 +291,18 @@ let rec test_fv l1 l2 =
   | _ -> false
 ;;
 
+let is_pos_literal_noteq body =
+  match body with
+  | Eapp(Evar(sym, _), _, _) when (sym <> "=") -> true
+  | _ -> false
+;;
+
+let is_neg_literal_noteq body =
+  match body with
+  | Enot(Eapp(Evar(sym, _), _, _), _) when (sym <> "=")-> true
+  | _ -> false
+;;
+
 let is_literal_noteq body =
   match body with
   | Eapp(Evar(sym, _), _, _) when (sym <> "=") -> true
@@ -380,7 +392,7 @@ let is_heuri_rwrt_term_aux body =
        match t1, t2 with
        | Eapp _, _ ->
           test_fv (get_fv t1) (get_fv t2)
-       (*&& not (is_empty_list (get_fv t1))*)
+       && not (is_empty_list (get_fv t1))
        | _, _ -> false
      end
   | _ -> false
@@ -393,13 +405,13 @@ let rec is_heuri_rwrt_term body =
 ;;
 
 let rec is_heuri_rwrt_prop_aux body =
-  if is_literal_noteq body
+  if (is_pos_literal_noteq body) && not (is_empty_list (get_fv body))
   then true
   else
     begin
       match body with
       | Eequiv (e1, e2, _) ->
-	 is_literal_noteq e1
+	 is_pos_literal_noteq e1
 	 && test_fv (get_fv e1) (get_fv e2)
          && not (is_empty_list (get_fv e1))
       | _ -> false
@@ -416,9 +428,18 @@ let split_to_prop_rule body =
   let parse_equiv body =
     match body with
     | Eequiv (expr1, expr2, _)
-	 when is_literal_noteq expr1
+	 when is_pos_literal_noteq expr1
 	      && test_fv (get_fv expr1) (get_fv expr2)
       -> (expr1, expr2)
+    | Eequiv (expr1, expr2, _)
+	 when is_neg_literal_noteq expr1
+	      && test_fv (get_fv expr1) (get_fv expr2)
+      -> begin
+         match expr1 with
+         | Enot(Eapp _ as new_e1, _)
+           -> (new_e1, enot(expr2))
+         | _ -> assert false
+       end
     | Eapp (Evar(sym, _), _, _) as expr
 	 when sym <> "="
       -> (expr, etrue)
@@ -518,7 +539,7 @@ let rec select_rwrt_rules_aux accu phrase =
          Rew (name, body, 1) :: accu
        end
      else if !Globals.modulo_heuri
-	     && is_heuri_rwrt_term body
+             && is_heuri_rwrt_term body
      then
        begin
          Log.debug 1 "|- adding rewrite term %s: %a" name Print.pp_expr body;
