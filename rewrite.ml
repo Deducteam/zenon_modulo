@@ -342,6 +342,41 @@ let is_empty_list l =
   | _ -> false
 ;;
 
+let rec is_sym_subexpr s e =
+  match e with
+  | Evar(s', _) ->
+     s = s'
+  | Emeta _ ->
+     false
+  | Eapp(Evar(s', _), args, _) ->
+     (s' = s) || (List.exists (is_sym_subexpr s) args)
+  | Earrow _ ->
+     false
+  | Enot(e, _) ->
+     is_sym_subexpr s e
+  | Eand(e, e', _) ->
+     (is_sym_subexpr s e) || (is_sym_subexpr s e')
+  | Eor(e, e', _) ->
+     (is_sym_subexpr s e) || (is_sym_subexpr s e')
+  | Eimply(e, e', _) ->
+     (is_sym_subexpr s e) || (is_sym_subexpr s e')
+  | Eequiv(e, e', _) ->
+     (is_sym_subexpr s e) || (is_sym_subexpr s e')
+  | Etrue ->
+     false
+  | Efalse ->
+     false
+  | Eall(_, e, _) ->
+     is_sym_subexpr s e
+  | Eex (_, e, _) ->
+     is_sym_subexpr s e
+  | Etau _ ->
+     false
+  | Elam _ ->
+     false
+  | _ -> assert false
+;;
+
 let is_good_rwrt_term_aux body =
   match body with
   | Eapp (Evar ("=", _), [t1; t2], _)
@@ -392,7 +427,8 @@ let is_heuri_rwrt_term_aux body =
        match t1, t2 with
        | Eapp _, _ ->
           test_fv (get_fv t1) (get_fv t2)
-       && not (is_empty_list (get_fv t1))
+          && not (is_sym_subexpr (find_first_sym t1) t2)
+          && not (is_empty_list (get_fv t1))
        | _, _ -> false
      end
   | _ -> false
@@ -413,6 +449,7 @@ let rec is_heuri_rwrt_prop_aux body =
       match body with
       | Eequiv (e1, e2, _) ->
 	 is_pos_literal_noteq e1
+         && not (is_sym_subexpr (find_first_sym e1) e2)
          && not (is_literal e2)
 	 && test_fv (get_fv e1) (get_fv e2)
          && not (is_empty_list (get_fv e1))
