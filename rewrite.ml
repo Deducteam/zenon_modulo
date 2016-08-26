@@ -138,8 +138,8 @@ let rec norm_prop_aux rules fm =
 	then norm_prop_aux tl fm
 	else
 	  begin
-            Log.debug 3 "rewrite prop";
-            Log.debug 3 "## %a --> %a" Print.pp_expr fm
+            Log.debug 1 "rewrite prop";
+            Log.debug 1 "## %a --> %a" Print.pp_expr fm
                       Print.pp_expr new_fm;
 	    new_fm
 	  end
@@ -173,8 +173,8 @@ let rec norm_term t =
   if not (Expr.equal t new_t)
   then
     begin
-      Log.debug 3 "rewrite term";
-      Log.debug 3 "## %a --> %a" Print.pp_expr t Print.pp_expr new_t;
+      Log.debug 1 "rewrite term";
+      Log.debug 1 "## %a --> %a" Print.pp_expr t Print.pp_expr new_t;
       norm_term new_t
     end
   else
@@ -612,8 +612,24 @@ let rec select_rwrt_rules_aux accu phrase =
   | Hyp (name, body, flag)
        when (flag = 2) || (flag = 1) (*|| (flag = 12) || (flag = 11) *)
     ->
-     if !Globals.modulo_heuri
-	&& is_heuri_rwrt_prop body
+     if !Globals.modulo_heuri_two
+	&& is_heuri_rwrt_prop2 body
+     then
+       begin
+         Log.debug 1 "|- adding rewrite prop %s: %a" name Print.pp_expr body;
+         add_rwrt_prop name body;
+         Rew (name, body, 1) :: accu
+       end
+     else if !Globals.modulo_heuri_two
+             && is_heuri_rwrt_term2 body
+     then
+       begin
+         Log.debug 1 "|- adding rewrite term %s: %a" name Print.pp_expr body;
+         add_rwrt_term name body;
+         Rew (name, body, 0) :: accu
+       end
+     else if !Globals.modulo_heuri
+	     && is_heuri_rwrt_prop body
      then
        begin
          Log.debug 1 "|- adding rewrite prop %s: %a" name Print.pp_expr body;
@@ -622,26 +638,6 @@ let rec select_rwrt_rules_aux accu phrase =
        end
      else if !Globals.modulo_heuri
              && is_heuri_rwrt_term body
-     then
-       begin
-         Log.debug 1 "|- adding rewrite term %s: %a" name Print.pp_expr body;
-         add_rwrt_term name body;
-         Rew (name, body, 0) :: accu
-       end
-     else phrase :: accu;
-  | Hyp (name, body, flag)
-       when (flag = 2) || (flag = 1) (*|| (flag = 12) || (flag = 11) *)
-    ->
-     if !Globals.modulo_heuri2
-	&& is_heuri_rwrt_prop2 body
-     then
-       begin
-         Log.debug 1 "|- adding rewrite prop %s: %a" name Print.pp_expr body;
-         add_rwrt_prop name body;
-         Rew (name, body, 1) :: accu
-       end
-     else if !Globals.modulo_heuri2
-             && is_heuri_rwrt_term2 body
      then
        begin
          Log.debug 1 "|- adding rewrite term %s: %a" name Print.pp_expr body;
