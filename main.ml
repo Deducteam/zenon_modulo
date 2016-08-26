@@ -226,6 +226,8 @@ let argspec = [
      "             build the rewrite system from TPTP meta info";
   "-modulo-heuri", Arg.Set modulo_heuri,
      "             build the rewrite system from heuristic";
+  "-modulo-heuri2", Arg.Set modulo_heuri2,
+     "             build the rewrite system from heuristic 2";
   "-dbg-rwrt", Arg.Set debug_rwrt,
      "             debug mode for rewriting"
 ];;

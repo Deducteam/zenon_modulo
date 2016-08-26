@@ -463,6 +463,49 @@ let rec is_heuri_rwrt_prop body =
   | _ -> is_heuri_rwrt_prop_aux body
 ;;
 
+
+let is_heuri_rwrt_term2_aux body =
+  match body with
+  | Eapp (Evar ("=", _), [t1; t2], _)
+       when not (is_commut_term body)
+            && not (Expr.equal t1 t2) ->
+     begin
+       match t1, t2 with
+       | Eapp _, _ ->
+          test_fv (get_fv t1) (get_fv t2)
+          && not (is_empty_list (get_fv t1))
+       | _, _ -> false
+     end
+  | _ -> false
+;;
+
+let rec is_heuri_rwrt_term2 body =
+  match body with
+  | Eall (_, pred, _) -> is_heuri_rwrt_term2 pred
+  | _ -> is_heuri_rwrt_term2_aux body
+;;
+
+let rec is_heuri_rwrt_prop2_aux body =
+  if (is_literal_noteq body)
+     && not (is_empty_list (get_fv body))
+  then true
+  else
+    begin
+      match body with
+      | Eequiv (e1, e2, _) ->
+	 is_literal_noteq e1
+         && test_fv (get_fv e1) (get_fv e2)
+         && not (is_empty_list (get_fv e1))
+      | _ -> false
+    end
+;;
+
+let rec is_heuri_rwrt_prop2 body =
+  match body with
+  | Eall (_, pred, _) -> is_heuri_rwrt_prop2 pred
+  | _ -> is_heuri_rwrt_prop2_aux body
+;;
+
 let split_to_prop_rule body =
   let parse_equiv body =
     match body with
@@ -579,6 +622,26 @@ let rec select_rwrt_rules_aux accu phrase =
        end
      else if !Globals.modulo_heuri
              && is_heuri_rwrt_term body
+     then
+       begin
+         Log.debug 1 "|- adding rewrite term %s: %a" name Print.pp_expr body;
+         add_rwrt_term name body;
+         Rew (name, body, 0) :: accu
+       end
+     else phrase :: accu;
+  | Hyp (name, body, flag)
+       when (flag = 2) || (flag = 1) (*|| (flag = 12) || (flag = 11) *)
+    ->
+     if !Globals.modulo_heuri2
+	&& is_heuri_rwrt_prop2 body
+     then
+       begin
+         Log.debug 1 "|- adding rewrite prop %s: %a" name Print.pp_expr body;
+         add_rwrt_prop name body;
+         Rew (name, body, 1) :: accu
+       end
+     else if !Globals.modulo_heuri2
+             && is_heuri_rwrt_term2 body
      then
        begin
          Log.debug 1 "|- adding rewrite term %s: %a" name Print.pp_expr body;
