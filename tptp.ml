@@ -132,9 +132,9 @@ let rec translate_one dirs accu p =
       accu
   | Annotation s -> add_annotation s; accu
   | Formula (name, ("axiom" | "definition"), body, None) ->
-      Hyp (name, body, 2) :: accu
+      Hyp ("ax_"^name, body, 2) :: accu
   | Formula (name, "hypothesis", body, None) ->
-      Hyp (name, body, 1) :: accu
+      Hyp ("ax_"^name, body, 1) :: accu
   | Formula (name, ("lemma"|"theorem"), body, None) ->
       Hyp (name, body, 1) :: accu
   | Formula (name, "conjecture", body, None) ->
@@ -146,15 +146,15 @@ let rec translate_one dirs accu p =
   | Formula (name, "tff_type", body, None) ->
       Hyp (name, body, 13) :: accu
   | Formula (name, ("tff_axiom" | "tff_definition"), body, None) ->
-      Hyp (name, body, 12) :: accu
+      Hyp ("ax_"^name, body, 12) :: accu
   | Formula (name, "tff_hypothesis", body, None) ->
-      Hyp (name, body, 11) :: accu
+      Hyp ("ax_"^name, body, 11) :: accu
   | Formula (name, ("tff_axiom" | "tff_definition"), body, Some "rewrite") ->
      if !Globals.modulo then Rew (name, body, 12) :: accu
-     else Hyp (name, body, 12) :: accu
+     else Hyp ("ax_"^name, body, 12) :: accu
   | Formula (name, "tff_hypothesis", body, Some "rewrite") ->
      if !Globals.modulo then Rew (name, body, 11) :: accu
-     else Hyp (name, body, 11) :: accu
+     else Hyp ("ax_"^name, body, 11) :: accu
   | Formula (name, ("tff_lemma"|"tff_theorem"), body, None) ->
       Hyp (name, body, 11) :: accu
   | Formula (name, "tff_conjecture", body, None) ->

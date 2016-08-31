@@ -72,6 +72,82 @@ let rec unif_aux l e1 e2 =
 
 let unif t1 t2 = unif_aux [] t1 t2;;
 
+let rec unif_2_aux l e1 e2 =
+  match e1, e2 with
+  | Evar (_, _), _ ->
+     if  not(mem_assoc_expr e1 l) then (e1, e2)::l
+     else if (Expr.equal (assoc_expr e1 l) e2) then l
+     else l
+
+  | Eapp (f1, args1, _), Eapp (f2, args2, _) when (Expr.equal f1 f2)
+    -> (try
+	   List.fold_left2 unif_2_aux l args1 args2
+	 with
+	 | Invalid_argument _ -> l)
+
+  | Enot (x1, _), Enot (y1, _)
+    -> unif_2_aux l x1 y1
+  | Eand (x1, x2, _), Eand (y1, y2, _)
+    -> List.fold_left2 unif_2_aux l [x1;x2] [y1;y2]
+  | Eor (x1, x2, _), Eor (y1, y2, _)
+    -> List.fold_left2 unif_2_aux l [x1;x2] [y1;y2]
+  | Eimply (x1, x2, _), Eimply (y1, y2, _)
+    -> List.fold_left2 unif_2_aux l [x1;x2] [y1;y2]
+  | Eequiv (x1, x2, _), Eequiv (y1, y2, _)
+    -> List.fold_left2 unif_2_aux l [x1;x2] [y1;y2]
+
+  | _, _ when (Expr.equal e1 e2) -> (e1, e2)::l
+  | _, _ -> l
+;;
+
+let rec unif_st_aux l e1 e2 =
+  match e2 with
+  | Evar _ -> l
+  | Eapp (v, args, _) ->
+     let l' = unif_2_aux l e1 e2 in
+     List.fold_left (fun x y -> unif_st_aux x e1 y) l' args
+  | _ -> l
+;;
+
+let unif_st e1 e2 =
+  match e1 with
+  | Eapp _ -> unif_st_aux [] e1 e2
+  | _ -> assert false
+;;
+
+let rec unif_sf_aux l e1 e2 =
+  match e2 with
+  | Eapp _ -> unif_2_aux l e1 e2
+  | Enot (e, _) -> unif_sf_aux l e1 e
+  | Eand (e, e', _) -> List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
+  | Eor (e, e', _) -> List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
+  | Eimply (e, e', _) -> List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
+  | Eequiv (e, e', _) -> List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
+  | Eall (_, e, _) -> unif_sf_aux l e1 e
+  | Eex (_, e, _) -> unif_sf_aux l e1 e
+  | _ -> l
+;;
+
+let unif_sf e1 e2 =
+  match e1 with
+  | Eapp _ -> unif_sf_aux [] e1 e2
+  | _ -> assert false
+;;
+
+let not_unif_subform e1 e2 =
+  let l = unif_sf e1 e2 in
+  match l with
+  | [] -> true
+  | _ -> false
+;;
+
+let not_unif_subterm e1 e2 =
+  let l = unif_st e1 e2 in
+  match l with
+  | [] -> true
+  | _ -> false
+;;
+
 let rec find_best_match incr left_rule fm =
   match left_rule, fm with
   | Evar _ , Evar _
@@ -420,14 +496,12 @@ let rec is_good_rwrt_prop body =
 
 let is_heuri_rwrt_term_aux body =
   match body with
-  | Eapp (Evar ("=", _), [t1; t2], _)
-       when not (is_commut_term body)
-            && not (Expr.equal t1 t2) ->
+  | Eapp (Evar ("=", _), [t1; t2], _) ->
      begin
        match t1, t2 with
        | Eapp _, _ ->
           test_fv (get_fv t1) (get_fv t2)
-          && not (is_sym_subexpr (find_first_sym t1) t2)
+          && not_unif_subterm t1 t2
           && not (is_empty_list (get_fv t1))
        | _, _ -> false
      end
@@ -441,7 +515,7 @@ let rec is_heuri_rwrt_term body =
 ;;
 
 let rec is_heuri_rwrt_prop_aux body =
-  if (is_pos_literal_noteq body)
+  if (is_literal_noteq body)
      && not (is_empty_list (get_fv body))
   then true
   else
@@ -449,9 +523,8 @@ let rec is_heuri_rwrt_prop_aux body =
       match body with
       | Eequiv (e1, e2, _) ->
 	 is_pos_literal_noteq e1
-         && not (is_sym_subexpr (find_first_sym e1) e2)
-         && not (is_literal e2)
-	 && test_fv (get_fv e1) (get_fv e2)
+         && not_unif_subform e1 e2
+         && test_fv (get_fv e1) (get_fv e2)
          && not (is_empty_list (get_fv e1))
       | _ -> false
     end
@@ -612,7 +685,7 @@ let rec select_rwrt_rules_aux accu phrase =
   | Hyp (name, body, flag)
        when (flag = 2) || (flag = 1) (*|| (flag = 12) || (flag = 11) *)
     ->
-     if !Globals.modulo_heuri_two
+     if !Globals.modulo_heuri_simple
 	&& is_heuri_rwrt_prop2 body
      then
        begin
@@ -620,7 +693,7 @@ let rec select_rwrt_rules_aux accu phrase =
          add_rwrt_prop name body;
          Rew (name, body, 1) :: accu
        end
-     else if !Globals.modulo_heuri_two
+     else if !Globals.modulo_heuri_simple
              && is_heuri_rwrt_term2 body
      then
        begin

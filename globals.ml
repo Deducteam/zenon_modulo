@@ -25,5 +25,5 @@ let num_expr = ref 0;;
 let output_dk = ref false;;
 let modulo = ref false;;
 let modulo_heuri = ref false;;
-let modulo_heuri_two = ref false;;
+let modulo_heuri_simple = ref false;;
 let debug_rwrt = ref false;;
