@@ -72,39 +72,17 @@ let rec unif_aux l e1 e2 =
 
 let unif t1 t2 = unif_aux [] t1 t2;;
 
-let rec unif_2_aux l e1 e2 =
-  match e1, e2 with
-  | Evar (_, _), _ ->
-     if  not(mem_assoc_expr e1 l) then (e1, e2)::l
-     else if (Expr.equal (assoc_expr e1 l) e2) then l
-     else l
-
-  | Eapp (f1, args1, _), Eapp (f2, args2, _) when (Expr.equal f1 f2)
-    -> (try
-	   List.fold_left2 unif_2_aux l args1 args2
-	 with
-	 | Invalid_argument _ -> l)
-
-  | Enot (x1, _), Enot (y1, _)
-    -> unif_2_aux l x1 y1
-  | Eand (x1, x2, _), Eand (y1, y2, _)
-    -> List.fold_left2 unif_2_aux l [x1;x2] [y1;y2]
-  | Eor (x1, x2, _), Eor (y1, y2, _)
-    -> List.fold_left2 unif_2_aux l [x1;x2] [y1;y2]
-  | Eimply (x1, x2, _), Eimply (y1, y2, _)
-    -> List.fold_left2 unif_2_aux l [x1;x2] [y1;y2]
-  | Eequiv (x1, x2, _), Eequiv (y1, y2, _)
-    -> List.fold_left2 unif_2_aux l [x1;x2] [y1;y2]
-
-  | _, _ when (Expr.equal e1 e2) -> (e1, e2)::l
-  | _, _ -> l
-;;
-
 let rec unif_st_aux l e1 e2 =
   match e2 with
   | Evar _ -> l
   | Eapp (v, args, _) ->
-     let l' = unif_2_aux l e1 e2 in
+     let l' =
+       begin
+         try unif_aux l e1 e2
+         with
+         | Unif_failed -> l
+       end
+     in
      List.fold_left (fun x y -> unif_st_aux x e1 y) l' args
   | _ -> l
 ;;
@@ -117,14 +95,26 @@ let unif_st e1 e2 =
 
 let rec unif_sf_aux l e1 e2 =
   match e2 with
-  | Eapp _ -> unif_2_aux l e1 e2
-  | Enot (e, _) -> unif_sf_aux l e1 e
-  | Eand (e, e', _) -> List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
-  | Eor (e, e', _) -> List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
-  | Eimply (e, e', _) -> List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
-  | Eequiv (e, e', _) -> List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
-  | Eall (_, e, _) -> unif_sf_aux l e1 e
-  | Eex (_, e, _) -> unif_sf_aux l e1 e
+  | Eapp _ ->
+     begin
+       try unif_aux l e1 e2
+       with
+       | Unif_failed -> l
+     end
+  | Enot (e, _) ->
+     unif_sf_aux l e1 e
+  | Eand (e, e', _) ->
+     List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
+  | Eor (e, e', _) ->
+     List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
+  | Eimply (e, e', _) ->
+     List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
+  | Eequiv (e, e', _) ->
+     List.fold_left (fun x y -> unif_sf_aux x e1 y) l [e; e']
+  | Eall (_, e, _) ->
+     unif_sf_aux l e1 e
+  | Eex (_, e, _) ->
+     unif_sf_aux l e1 e
   | _ -> l
 ;;
 
@@ -135,17 +125,37 @@ let unif_sf e1 e2 =
 ;;
 
 let not_unif_subform e1 e2 =
+  Log.debug 1 " | not unif subform %a ~ %a"
+            Print.pp_expr e1
+            Print.pp_expr e2;
   let l = unif_sf e1 e2 in
   match l with
-  | [] -> true
-  | _ -> false
+  | [] ->
+     Log.debug 1 " | true";
+     true
+  | _ ->
+     begin
+       Log.debug 1 " | false";
+       List.iter
+         (fun (x, y) -> Log.debug 1 " |     %a ~ %a"
+                                  Print.pp_expr x Print.pp_expr y)
+         l;
+       false
+     end
 ;;
 
 let not_unif_subterm e1 e2 =
+  Log.debug 1 " | not unif subterm %a ~ %a"
+            Print.pp_expr e1
+            Print.pp_expr e2;
   let l = unif_st e1 e2 in
   match l with
-  | [] -> true
-  | _ -> false
+  | [] ->
+     Log.debug 1 " | true";
+     true
+  | _ ->
+     Log.debug 1 " | false";
+     false
 ;;
 
 let rec find_best_match incr left_rule fm =
@@ -509,6 +519,7 @@ let is_heuri_rwrt_term_aux body =
 ;;
 
 let rec is_heuri_rwrt_term body =
+  Log.debug 1 " | is_heuri Ax : %a" Print.pp_expr body;
   match body with
   | Eall (_, pred, _) -> is_heuri_rwrt_term pred
   | _ -> is_heuri_rwrt_term_aux body
@@ -531,6 +542,7 @@ let rec is_heuri_rwrt_prop_aux body =
 ;;
 
 let rec is_heuri_rwrt_prop body =
+  Log.debug 1 " | is_heuri Ax : %a" Print.pp_expr body;
   match body with
   | Eall (_, pred, _) -> is_heuri_rwrt_prop pred
   | _ -> is_heuri_rwrt_prop_aux body
