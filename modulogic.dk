@@ -488,10 +488,41 @@ def lemme_notequiv_1 (p : prop)
   => H2 : proof (not (or p q))
      => H1 (lemme_notor_3 p q H2) (lemme_notor_4 p q H2).
 
+(; [p : prop, q : prop] Rnotimply p q --> ;)
+(;   H1 : (proof p -> proof (not q) -> proof False) ;)
+(;   => H2 : proof (not (imp p q)) ;)
+(;      => H2 (lemme_notimply_3 p q (lemme_notimply_2 p q H1 H2)). ;)
+
+(; def Rnotimplytest : p : prop -> ;)
+(;                 q : prop -> ;)
+(;                 (proof p -> proof (not q) -> seq) -> ;)
+(;                 proof (not (imp p q)) -> ;)
+(;                 seq. ;)
+
+(; def Rnotimplytesttwo : p : prop -> ;)
+(;                 q : prop -> ;)
+(;                 (proof p -> proof (not q) -> seq) -> ;)
+(;                 proof (not (imp p q)) -> ;)
+(;                 seq. ;)
+
+(; [p : prop, q : prop] Rnotimplytest p q --> ;)
+(;   H1 : (proof p -> proof (not q) -> proof False) ;)
+(;   => H2 : proof (not (imp p q)) ;)
+(;      => H2 (lemme_notimply_3 p q ;)
+(;                             (H4 : proof p ;)
+(;                              => (H1 H4) ;)
+(;                                 (H5 : proof q ;)
+(;                                   => H2 (H6 : proof p ;)
+(; 	                                  => H5))) ). ;)
+
 [p : prop, q : prop] Rnotimply p q -->
   H1 : (proof p -> proof (not q) -> proof False)
   => H2 : proof (not (imp p q))
-     => H2 (lemme_notimply_3 p q (lemme_notimply_2 p q H1 H2)).
+     => H2 (H3 : proof p
+            => (H1 H3) (H4 : proof q
+                        => H2 (H5 : proof p
+                               => H4)) q).
+
 
 [p : prop, q : prop] Rnotequiv p q -->
   H1 : (proof (not p) -> proof (not q))
