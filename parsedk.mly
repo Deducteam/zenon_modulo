@@ -191,9 +191,9 @@ term_simple:
 | OR  term_simple term_simple { eor    ($2, $3) }
 | IMP term_simple term_simple { eimply ($2, $3) }
 | EQV term_simple term_simple { eequiv ($2, $3) }
-| ALL type_simple LPAREN ID COLON typ DOUBLE_ARROW term_simple RPAREN
+| ALL type_simple LPAREN ID COLON complex_type DOUBLE_ARROW term_simple RPAREN
       { eall (tvar $4 $6, $8)}
-| EX type_simple LPAREN ID COLON typ DOUBLE_ARROW term_simple RPAREN
+| EX type_simple LPAREN ID COLON complex_type DOUBLE_ARROW term_simple RPAREN
       { eex (tvar $4 $6, $8)}
 | ALL_TYPE LPAREN ID COLON TYPE DOUBLE_ARROW term_simple RPAREN
       { eall (tvar $3 type_type, $7)}
@@ -232,7 +232,6 @@ type_qid:
         mk_const_t $1 }
 type_simple:
 | type_qid { $1 }
-| PROP { type_prop }
 | LPAREN pre_typ RPAREN { $2 }
 typs:
 | type_simple { [$1] }
@@ -260,15 +259,20 @@ pre_typ:
 
 typ:
 | TERM type_simple { $2 }
+| PROP { type_prop }
 
 complex_type :
-| typ {$1}
-| TERM type_simple ARROW complex_type {match $4 with Earrow (tys, ty, _) -> earrow ($2 :: tys) ty | ty -> earrow [$2] ty}
-| LPAREN complex_type RPAREN ARROW complex_type {match $5 with Earrow (tys, ty, _) -> earrow ($2 :: tys) ty | ty -> earrow [$2] ty}
-| ID COLON TYPE ARROW complex_type {eall (tvar $1 type_type, $5)}
+| typ { $1 }
+| LPAREN arrow_type RPAREN { $2 }
 
-closed_complex_type :
-| complex_type { close_term [] $1 }
+arrow_type :
+| typ { $1 }
+| TERM type_simple ARROW arrow_type {match $4 with Earrow (tys, ty, _) -> earrow ($2 :: tys) ty | ty -> earrow [$2] ty}
+| LPAREN arrow_type RPAREN ARROW arrow_type {match $5 with Earrow (tys, ty, _) -> earrow ($2 :: tys) ty | ty -> earrow [$2] ty}
+| ID COLON TYPE ARROW arrow_type {eall (tvar $1 type_type, $5)}
+
+closed_arr_type :
+| arrow_type { close_term [] $1 }
 
 kind :
 | TYPE { type_type }
@@ -283,10 +287,10 @@ hyp_def:
 | QID COLON kind DOT { Typer.declare_constant ($1, $3); [] }
 | ID COLON PROOF closed_term DOT { [Phrase.Hyp ($1, $4, 1)] }
 | QID COLON PROOF closed_term DOT { [Phrase.Hyp ($1, $4, 1)] }
-| ID COLON closed_complex_type DOT { Typer.declare_constant ($1, $3); [] }
-| QID COLON closed_complex_type DOT { Typer.declare_constant ($1, $3); [] }
-| DEFKW ID COLON closed_complex_type DOT { Typer.declare_constant ($2, $4); [] }
-| DEFKW QID COLON closed_complex_type DOT { Typer.declare_constant ($2, $4); [] }
+| ID COLON closed_arr_type DOT { Typer.declare_constant ($1, $3); [] }
+| QID COLON closed_arr_type DOT { Typer.declare_constant ($1, $3); [] }
+| DEFKW ID COLON closed_arr_type DOT { Typer.declare_constant ($2, $4); [] }
+| DEFKW QID COLON closed_arr_type DOT { Typer.declare_constant ($2, $4); [] }
 | DEFKW ID COLON typ DEF closed_term DOT
      { (* Definition without argument.
           We don't add the rewrite rule now because the definition
@@ -337,17 +341,17 @@ hyp_def:
          }
 
 compact_args:
-| LPAREN ID COLON typ RPAREN
+| LPAREN ID COLON arrow_type RPAREN
          {
            (* Arguments of definitions.
               These variables must be typed now
               because they are bound now. *)
            [tvar $2 $4] }
-| LPAREN ID COLON typ RPAREN compact_args
+| LPAREN ID COLON arrow_type RPAREN compact_args
          { (tvar $2 $4) :: $6 }
 
 env_decl:
-| ID COLON complex_type
+| ID COLON arrow_type
      { tvar $1 $3 }
 | ID COLON TYPE
      { tvar $1 type_type }

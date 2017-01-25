@@ -697,7 +697,7 @@ let rec pp_expr e =
   match e with
   | Evar _ -> e
   | Emeta _ -> e
-  | Earrow _ -> assert false
+  | Earrow (l, ty, _) -> earrow (List.map pp_expr l) (pp_expr ty)
   | Eapp (Evar("Is_true",_), [Eapp (Evar(s,_) as var, args, _)], _) ->
       eapp (tvar ("Is_true**" ^ s) (ret_bool_to_prop (get_type var)), List.map pp_expr args)
   | Eapp (s, args, _) -> eapp (s, List.map pp_expr args)

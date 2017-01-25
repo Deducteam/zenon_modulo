@@ -345,7 +345,7 @@ xmid       : p : prop ->
 	     (proof (not p) -> proof z) ->
 	     proof z.
 
-{nnpp (p : prop)} : proof (not (not p)) -> proof p :=
+def nnpp (p : prop) : proof (not (not p)) -> proof p :=
     H1 : proof (not (not p))
     => xmid p p
 	    (H2 : proof p
@@ -355,14 +355,14 @@ xmid       : p : prop ->
 
 (; usefull lemmas to prove rules ;)
 
-{true_intro} : proof True
+def true_intro : proof True
              :=
                p : prop
 	       => x : proof p
 	          => x.
 
-{lemme_contraposition (p : prop)
-                      (q : prop)}
+def lemme_contraposition (p : prop)
+                      (q : prop)
 : (proof (imp p q) ->
    proof (imp (not q) (not p)))
 :=
@@ -371,45 +371,45 @@ xmid       : p : prop ->
      => H3 : proof p
 	=> H2 (H1 H3).
 
-{lemme_equiv_1 (p : prop)
+def lemme_equiv_1 (p : prop)
 	       (q : prop)
 	       (H5 : proof q -> proof p)
 	       (H2 : proof p -> proof (not q))
-	       (HQ : proof q)}
+	       (HQ : proof q)
 : proof (not q)
 :=
   H2 (H5 HQ).
 
-{lemme_equiv_2 (p : prop)
+def lemme_equiv_2 (p : prop)
  	       (q : prop)
 	       (H5 : proof q -> proof p)
-	       (H2 : proof p -> proof (not q))}
+	       (H2 : proof p -> proof (not q))
 : proof (not q)
 :=
   HQ : proof q
   => lemme_equiv_1 p q H5 H2 HQ HQ.
 
-{lemme_equiv_3 (p : prop)
-	       (q : prop)
-	       (H5 : proof q -> proof p)
-	       (H2 : proof p -> proof (not q))
-	       (H4 : proof p -> proof q)}
-: proof (not p)
-:=
-  lemme_contraposition p q H4 (lemme_equiv_2 p q H5 H2).
-
-{lemme_equiv_4 (p : prop)
+def lemme_equiv_3 (p : prop)
 	       (q : prop)
 	       (H5 : proof q -> proof p)
 	       (H2 : proof p -> proof (not q))
 	       (H4 : proof p -> proof q)
-	       (H1 : proof (not p) -> proof (not (not q)))}
+: proof (not p)
+:=
+  lemme_contraposition p q H4 (lemme_equiv_2 p q H5 H2).
+
+def lemme_equiv_4 (p : prop)
+	       (q : prop)
+	       (H5 : proof q -> proof p)
+	       (H2 : proof p -> proof (not q))
+	       (H4 : proof p -> proof q)
+	       (H1 : proof (not p) -> proof (not (not q)))
 : proof (not (not q))
 :=
   H1 (lemme_equiv_3 p q H5 H2 H4).
 
-{lemme_notor_1 (p : prop)
-	       (q : prop)}
+def lemme_notor_1 (p : prop)
+	       (q : prop)
 : proof p -> proof (or p q)
 :=
   H1 : proof p
@@ -418,8 +418,8 @@ xmid       : p : prop ->
 	=> H3 : (proof q -> proof z)
 	   => H2 H1.
 
-{lemme_notor_2 (p : prop)
-	       (q : prop)}
+def lemme_notor_2 (p : prop)
+	       (q : prop)
 : proof q -> proof (or p q)
 :=
   H1 : proof q
@@ -428,50 +428,50 @@ xmid       : p : prop ->
 	=> H3 : (proof q -> proof z)
 	   => H3 H1.
 
-{lemme_notor_3 (p : prop)
+def lemme_notor_3 (p : prop)
 	       (q : prop)
-	       (H2 : proof (not (or p q)))}
+	       (H2 : proof (not (or p q)))
 : proof (not p)
 :=
   lemme_contraposition p (or p q) (lemme_notor_1 p q) H2.
 
-{lemme_notor_4 (p : prop)
+def lemme_notor_4 (p : prop)
 	       (q : prop)
-	       (H2 : proof (not (or p q)))}
+	       (H2 : proof (not (or p q)))
 : proof (not q)
 :=
   lemme_contraposition q (or p q) (lemme_notor_2 p q) H2.
 
-{lemme_notimply_1 (p : prop)
+def lemme_notimply_1 (p : prop)
 	          (q : prop)
-	          (H2 : proof (not (imp p q)))}
+	          (H2 : proof (not (imp p q)))
 : proof (not q)
 :=
   H3 : proof q
   => H2 (H4 : proof p
 	 => H3).
 
-{lemme_notimply_2 (p : prop)
+def lemme_notimply_2 (p : prop)
 	          (q : prop)
 	          (H1 : proof p -> proof (not (not q)))
-	          (H2 : proof (not (imp p q)))}
+	          (H2 : proof (not (imp p q)))
 : proof (not p)
 :=
   H3 : proof p
   => (H1 H3) (lemme_notimply_1 p q H2).
 
-{lemme_notimply_3 (p : prop)
+def lemme_notimply_3 (p : prop)
 	          (q : prop)
-	          (H3 : proof (not p))}
+	          (H3 : proof (not p))
 : proof (imp p q)
 :=
   H4 : proof p
   => H3 H4 q.
 
-{lemme_notequiv_1 (p : prop)
+def lemme_notequiv_1 (p : prop)
                   (q : prop)
                   (H2 : proof p -> proof (not (not q)))
-                  (H3 : proof (not (eqv p q)))}
+                  (H3 : proof (not (eqv p q)))
 : proof (not p)
 :=
   HP : proof p
