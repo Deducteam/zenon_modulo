@@ -1,0 +1,14 @@
+opam-version: "1.2"
+name: "zenon_modulo_focalide"
+version: "dev"
+maintainer: "dedukti-dev@inria.fr"
+author: "Pierre Halmagrand"
+build: [
+  ["./configure" "--bindir" "%{bin}%" "--libdir" "%{lib}%"]
+  [make "all"]
+  [make "install"]
+]
+depends: [
+  "dedukti" { >= "2.5" }
+  "base-bytes"
+]
