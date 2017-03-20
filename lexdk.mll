@@ -19,6 +19,7 @@ rule token = parse
 | "(;" { comment (pos lexbuf) [] lexbuf }
 | "def" { DEFKW }
 | "cc.uT" { TYPE }
+| "Type" { TYPE }
 | "cc.eT" { TERM }
 | "cc.eP" { PROOF }
 | "cc.Arrow" { CCARR }
