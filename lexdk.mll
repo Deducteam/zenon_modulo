@@ -38,6 +38,7 @@ rule token = parse
 | "dk_logic.eP" { PROOF }
 | "dk_logic.ebP" { ISTRUE }
 | "dk_logic.Prop" { PROP }
+| "dk_builtins.prop" { PROP }
 | number as n { NUMBER(n) }
 | id as id { ID(id) }
 | qid as qid { QID(qid) }
