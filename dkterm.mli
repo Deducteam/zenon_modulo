@@ -56,6 +56,8 @@ type dkterm =
   | DkRconglr       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
   | DkRcongrl       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
 
+exception Unknown_term of dkterm;;
+
 type line =
   | Dkdecl of var * dkterm                     (* declaration of symbols *)
   | Dkrwrt of dkterm list * dkterm * dkterm    (* rewrite rules *)
@@ -114,6 +116,8 @@ val mk_DkRnotalltype    : dkterm * dkterm * dkterm -> dkterm
 val mk_DkRsubst         : dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRconglr        : dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRcongrl        : dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
+
+val mk_Magic : Expr.definition list -> (Expr.expr * int) list -> dkterm
 
 val mk_decl             : var * dkterm -> line
 val mk_rwrt             : dkterm list * dkterm * dkterm -> line

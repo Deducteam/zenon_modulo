@@ -47,6 +47,7 @@ type binop =
 *)
 
 type rule =
+  | RMagic of definition list * (expr * int) list
   | Rfalse
     (*
        ------ Rfalse

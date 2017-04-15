@@ -230,6 +230,7 @@ let sequent o l =
 ;;
 
 let get_rule_name = function
+  | Magic _ -> "Magic", []
   | Close e -> "Axiom", [e]
   | Close_refl (s, e) -> "Refl("^(get_name s)^")", [e]
   | Close_sym (s, e1, e2) -> "Sym("^(get_name s)^")", [e1; e2]
@@ -321,6 +322,7 @@ let mlproof o p =
 ;;
 
 let hlrule_name = function
+  | Magic _ -> "Magic", []
   | Close (e) -> "Axiom", [e; enot (e)]
   | Close_refl (s, e) -> "Refl("^(get_name s)^")", [enot (eapp (s, [e; e]))]
   | Close_sym (s, e1, e2) ->
@@ -495,6 +497,7 @@ let binop_name = function
 let llproof_rule o r =
   let pr f = oprintf o f in
   match r with
+  | RMagic _ -> ()
   | Rfalse -> pr "---false";
   | Rnottrue -> pr "---nottrue";
   | Raxiom (p) -> pr "---axiom "; llproof_expr o p;
@@ -705,6 +708,7 @@ let expr_esc o e =
 let sexpr_esc e = Log.on_buffer (fun b -> expr_esc (Buff b)) e
 
 let dot_rule_name = function
+  | Magic _ -> "Magic", []
   | Close e -> "Axiom", [e]
   | Close_refl (s, e) -> "Refl("^(sexpr_esc s)^")", [e]
   | Close_sym (s, e1, e2) -> "Sym("^(sexpr_esc s)^")", [e1; e2]

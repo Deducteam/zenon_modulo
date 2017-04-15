@@ -1568,6 +1568,7 @@ module LL = Llproof;;
 
 let pp_rule r =
   match r with
+  | LL.RMagic _
   | LL.Rfalse | LL.Rnottrue -> r
   | LL.Raxiom (e) -> LL.Raxiom (pp_expr e)
   | LL.Rcut (e) -> LL.Rcut (pp_expr e)

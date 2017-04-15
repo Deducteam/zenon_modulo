@@ -417,8 +417,10 @@ let main () =
     if !debug_flag then begin
       let ph_defs = List.map (fun x -> Phrase.Def x) defs in
       let ph_hyps = List.map (fun (x, y) -> Phrase.Hyp ("", x, y)) hyps in
-      eprintf "initial formulas:\n";
-      List.iter (Print.phrase (Print.Chan stderr)) (ph_defs @ ph_hyps);
+      eprintf "definitions:\n";
+      List.iter (Print.phrase (Print.Chan stderr)) ph_defs;
+      eprintf "hypotheses:\n";
+      List.iter (Print.phrase (Print.Chan stderr)) ph_hyps;
       eprintf "relations: ";
       Eqrel.print_rels stderr;
       eprintf "\n";
@@ -435,8 +437,10 @@ let main () =
         | Open_first n -> Prove.open_params (Some n)
         | Open_last n -> Prove.open_params (Some (-n))
     in
-    let proofs = Prove.prove params defs hyps in
-    let proof= List.hd proofs in
+    let proof = { Mlproof.mlconc = [];
+                  Mlproof.mlrule = Mlproof.Magic (defs, hyps);
+                  Mlproof.mlhyps = [| |];
+                  Mlproof.mlrefc = 0 } in
     let is_open = Mlproof.is_open_proof proof in
     if is_open then
         retcode := 12;
@@ -475,7 +479,7 @@ let main () =
         let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in
         Watch.warn phrases_dep llp u;
     | Proof_dot (b, n) ->
-        Print.dots ~full_output:b ~max_depth:n (Print.Chan stdout) (List.rev proofs);
+        Print.dots ~full_output:b ~max_depth:n (Print.Chan stdout) [proof];
     end;
   with
   | Prove.NoProof ->

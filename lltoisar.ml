@@ -299,6 +299,7 @@ let rec p_tree hyps i dict oc proof =
   let gamma = p_gamma hyps i dict oc in
   let delta = p_delta hyps i dict oc in
   match proof.rule with
+  | RMagic _ -> ()
   | Rconnect (And, e1, e2) ->
      alpha "and" (eand (e1, e2)) [e1; e2] proof.hyps;
   | Rconnect (Or, e1, e2) ->

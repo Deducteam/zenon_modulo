@@ -1068,6 +1068,7 @@ let rec process_prooftree p =
 
 and process_rule r =
   match r with
+  | RMagic _ -> r
   | Rfalse -> Rfalse
   | Rnottrue -> Rnottrue
   | Raxiom (e1) -> Raxiom (process_expr e1)

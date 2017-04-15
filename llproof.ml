@@ -11,6 +11,7 @@ type binop =
 ;;
 
 type rule =
+  | RMagic of definition list * (expr * int) list
   | Rfalse
   | Rnottrue
   | Raxiom of expr
@@ -87,6 +88,7 @@ let get_lemma name =
 let reduce conc rule hyps =
   let eliminated =
     match rule with
+    | RMagic _ -> []
     | Rfalse -> [efalse]
     | Rnottrue -> [enot (etrue)]
     | Raxiom (p) -> [p; enot p]

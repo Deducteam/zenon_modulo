@@ -8,7 +8,7 @@
 *.dko
 *.bin
 *.byt
-zenon_modulo
+zenon_transfer
 *.output
 parsecoq.ml
 parsecoq.mli

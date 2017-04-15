@@ -263,6 +263,7 @@ let notmeta x =
 let p_rule oc r =
   let poc fmt = fprintf oc fmt in
   match r with
+  | RMagic _ -> ()
   | Rconnect (And, e1, e2) ->
       apply_alpha oc "and" (eand (e1, e2)) e1 e2
   | Rconnect (Or, e1, e2) ->

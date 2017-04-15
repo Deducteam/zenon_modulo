@@ -211,6 +211,7 @@ let rec trtree env node =
   let tr_subtree_1 = tr_subtree_1 env in
   let tr_subtree_2 = tr_subtree_2 env in
   match rule with
+  | RMagic _ -> assert false
   | Rfalse -> getv env (efalse)
   | Rnottrue -> Capp (Cvar "zenon_nottrue", [getv env (enot (etrue))])
   | Raxiom (p) -> Capp (getv env (enot p), [getv env p])

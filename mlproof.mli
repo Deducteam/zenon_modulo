@@ -4,6 +4,7 @@
 open Expr;;
 
 type rule =
+  | Magic of definition list * (expr * int) list
   | Close of expr               (* p, -p  /  (.)                [p]*)
   | Close_refl of expr * expr (* -r(a,a)  /  (.)              [r a]*)
   | Close_sym of expr * expr * expr

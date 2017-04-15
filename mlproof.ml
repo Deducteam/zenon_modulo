@@ -5,6 +5,7 @@ open Expr;;
 open Printf;;
 
 type rule =
+  | Magic of definition list * (expr * int) list
   | Close of expr
   | Close_refl of expr * expr
   | Close_sym of expr * expr * expr

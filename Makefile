@@ -78,34 +78,34 @@ DKOBJ = $(DKSRC:%.dk=%.dko)
 
 .PHONY: all byt bin coq
 
-all: byt bin zenon_modulo coq dk
+all: byt bin zenon_transfer coq dk
 
 coq: $(COQOBJ)
 
 dk: $(DKOBJ)
 
-byt: zenon_modulo.byt
+byt: zenon_transfer.byt
 
-bin: zenon_modulo.bin
+bin: zenon_transfer.bin
 
-zenon_modulo.bin: $(BINOBJS)
-	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa $(BYTES_CMXA) $(BINOBJS)
+zenon_transfer.bin: $(BINOBJS)
+	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_transfer.bin unix.cmxa $(BYTES_CMXA) $(BINOBJS)
 
-zenon_modulo.byt: $(BYTOBJS)
-	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_modulo.byt unix.cma $(BYTES_CMA) $(BYTOBJS)
+zenon_transfer.byt: $(BYTOBJS)
+	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_transfer.byt unix.cma $(BYTES_CMA) $(BYTOBJS)
 
-zenon_modulo: zenon_modulo.byt
-	if test -x zenon_modulo.bin; then \
-	  cp zenon_modulo.bin zenon_modulo; \
+zenon_transfer: zenon_transfer.byt
+	if test -x zenon_transfer.bin; then \
+	  cp zenon_transfer.bin zenon_transfer; \
         else \
-	  cp zenon_modulo.byt zenon_modulo; \
+	  cp zenon_transfer.byt zenon_transfer; \
 	fi
 
 
 .PHONY: install
 install:
 	mkdir -p "$(DESTDIR)$(INSTALL_BIN_DIR)"
-	cp zenon_modulo "$(DESTDIR)$(INSTALL_BIN_DIR)/"
+	cp zenon_transfer "$(DESTDIR)$(INSTALL_BIN_DIR)/"
 	mkdir -p "$(DESTDIR)$(INSTALL_LIB_DIR)"
 	cp $(COQSRC) "$(DESTDIR)$(INSTALL_LIB_DIR)/"
 	for i in $(COQOBJ); \
@@ -118,8 +118,8 @@ install:
 
 .PHONY: uninstall
 uninstall:
-	rm -f "$(DESTDIR)$(INSTALL_BIN_DIR)/zenon_modulo$(EXE)"
-	rm -rf "$(DESTDIR)$(INSTALL_LIB_DIR)/zenon_modulo"
+	rm -f "$(DESTDIR)$(INSTALL_BIN_DIR)/zenon_transfer$(EXE)"
+	rm -rf "$(DESTDIR)$(INSTALL_LIB_DIR)/zenon_transfer"
 
 .SUFFIXES: .ml .mli .cmo .cmi .cmx .v .vo .dk .dko
 
@@ -196,10 +196,10 @@ checksum.ml: $(IMPL:checksum.ml=)
 
 .PHONY: dist
 dist: $(ALLSRC)
-	rm -rf dist/zenon_modulo
-	mkdir -p dist/zenon_modulo
-	cp -r $(ALLSRC) dist/zenon_modulo
-	cd dist && tar cf - zenon_modulo | gzip >../zenon_modulo_focalide_$(VERSION).tar.gz
+	rm -rf dist/zenon_transfer
+	mkdir -p dist/zenon_transfer
+	cp -r $(ALLSRC) dist/zenon_transfer
+	cd dist && tar cf - zenon_transfer | gzip >../zenon_transfer_focalide_$(VERSION).tar.gz
 
 .PHONY: doc odoc docdir
 doc docdir:
@@ -216,8 +216,8 @@ clean:
 	rm -f parsecoq.ml parsecoq.mli lexcoq.ml
 	rm -f parsedk.ml parsedk.mli lexdk.ml
 	rm -f checksum.ml
-	rm -f zenon_modulo *.bin *.byt
-	rm -rf dist zenon_modulo.tar.gz
+	rm -f zenon_transfer *.bin *.byt
+	rm -rf dist zenon_transfer.tar.gz
 
 .PHONY: depend
 depend: $(IMPL) $(INTF) $(COQSRC)

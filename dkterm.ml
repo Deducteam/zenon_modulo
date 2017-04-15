@@ -155,10 +155,14 @@ let mk_rwrt       (l, t1, t2)  =
   | (Dktriangle t1, Dktriangle t2)
   | (t1, t2) -> Dkrwrt (l, t1, t2)
 
+let mk_Magic d h = mk_app ("cert.run", mk_typetype, [])
+
+exception Unknown_term of dkterm;;
+
 let rec print_dk_type o t =
   match t with
-  | Dktypetype -> fprintf o "zen.type"
-  | Dktypeprop -> fprintf o "zen.alpha"
+  | Dktypetype -> fprintf o "fol.type"
+  | Dktypeprop -> fprintf o "fol.prop"
   | Dkarrow (l, r) ->
      begin
        List.iter (fun x -> fprintf o "%a -> " print_dk_type x) l;
@@ -169,8 +173,8 @@ let rec print_dk_type o t =
 	     (get_var_newname var) print_dk_type t1 print_dk_type t2
   | Dkpi _ -> assert false
   | Dkproof (t) ->
-     fprintf o "zen.proof (%a)" print_dk_term t
-  | t -> fprintf o "zen.term (%a)" print_dk_zentype t
+     fprintf o "fol.proof (%a)" print_dk_term t
+  | t -> fprintf o "fol.term (%a)" print_dk_zentype t
 
 and print_dk_zentype o t =
   match t with
@@ -206,29 +210,29 @@ and print_dk_term o t =
      fprintf o "zen.arrow (%a) (%a)"
              print_dk_term t1 print_dk_term (Dkarrow (l, t2))
   | Dkseq -> fprintf o "zen.seq"
-  | Dktriangle (t) -> fprintf o "zen.triangle (%a)" print_dk_term t
+  | Dktriangle (t) -> fprintf o "%a" print_dk_term t
   | Dknot (t) ->
-     fprintf o "zen.not\n (%a)" print_dk_term t
+     fprintf o "fol.not\n (%a)" print_dk_term t
   | Dkand (t1, t2) ->
-     fprintf o "zen.and\n (%a) (%a)" print_dk_term t1 print_dk_term t2
+     fprintf o "fol.and\n (%a) (%a)" print_dk_term t1 print_dk_term t2
   | Dkor (t1, t2) ->
-     fprintf o "zen.or\n (%a) (%a)" print_dk_term t1 print_dk_term t2
+     fprintf o "fol.or\n (%a) (%a)" print_dk_term t1 print_dk_term t2
   | Dkimply (t1, t2) ->
-     fprintf o "zen.imp\n (%a) (%a)" print_dk_term t1 print_dk_term t2
+     fprintf o "fol.imp\n (%a) (%a)" print_dk_term t1 print_dk_term t2
   | Dkequiv (t1, t2) ->
-     fprintf o "zen.eqv\n (%a) (%a)" print_dk_term t1 print_dk_term t2
+     fprintf o "fol.eqv\n (%a) (%a)" print_dk_term t1 print_dk_term t2
   | Dkforall (t1, t2) ->
-     fprintf o "zen.forall (%a)\n (%a)" print_dk_zentype t1 print_dk_term t2
+     fprintf o "fol.all (%a)\n (%a)" print_dk_zentype t1 print_dk_term t2
   | Dkexists (t1, t2) ->
-     fprintf o "zen.exists (%a)\n (%a)" print_dk_zentype t1 print_dk_term t2
+     fprintf o "fol.ex (%a)\n (%a)" print_dk_zentype t1 print_dk_term t2
   | Dkforalltype (t) ->
      fprintf o "zen.foralltype\n (%a)" print_dk_term t
   | Dkexiststype (t) ->
      fprintf o "zen.existstype\n (%a)" print_dk_term t
-  | Dktrue -> fprintf o "zen.True"
-  | Dkfalse -> fprintf o "zen.False"
+  | Dktrue -> fprintf o "fol.true"
+  | Dkfalse -> fprintf o "fol.false"
   | Dkequal (t1, t2, t3) ->
-     fprintf o "zen.equal (%a)\n (%a)\n (%a)"
+     fprintf o "eq.eq (%a)\n (%a)\n (%a)"
 	     print_dk_zentype t1
 	     print_dk_term t2
 	     print_dk_term t3
@@ -389,6 +393,7 @@ and print_dk_term o t =
 	     print_dk_term pr1
 	     print_dk_term pr2
 	     print_dk_term pr3
+  | _ -> fprintf o "(; Unknown term ;)"
   | _ -> assert false
 ;;
 

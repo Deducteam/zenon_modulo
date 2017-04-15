@@ -130,6 +130,7 @@ and tr_expr a = memo expr_tbl xtr_expr a
 
 let tr_rule r =
   match r with
+  | Magic (d, h) -> LL.RMagic (d, h)
   | Close (p) -> LL.Raxiom (tr_expr p)
   | Close_refl (Evar("=",_), e) -> LL.Rnoteq (tr_expr e)
   | Close_sym (Evar("=",_), e, f) -> LL.Reqsym (tr_expr e, tr_expr f)
@@ -276,6 +277,8 @@ let make_lemma llprf extras mlprf =
 ;;
 
 let is_derived = function
+  | Magic _ -> false
+
   | Close _ -> false
 
   | Close_refl (Evar("=",_), _) -> false
@@ -1079,6 +1082,7 @@ and translate_derived p =
       let sub = Array.map to_llproof p.mlhyps in
       Extension.to_llproof tr_expr p sub
 
+  | Magic _
   | Close _
   | False | NotTrue
   | NotNot _ | And _ | NotOr _ | NotImpl _

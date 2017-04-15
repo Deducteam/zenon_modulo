@@ -129,12 +129,13 @@ let rec translate_type e =
      mk_var (v, ty)
   | _ -> assert false
 
-and translate_app v' l =
+and translate_app v' l ty =
   match (v', l) with
   | (Evar (v, _), []) ->
      let ty = translate_type (get_type v') in
      mk_app (v, ty, [])
-  | (Evar ("=", _), [e1; e2]) ->
+  | (Evar ("=", _), [e1; e2])
+  | (Evar ("Is_true", _), [Eapp (Evar("basics._equal_", _), [_; e1; e2], _)]) ->
      let ty = translate_type (get_type e1) in
      let e1' = translate_expr e1 in
      let e2' = translate_expr e2 in
@@ -148,10 +149,29 @@ and translate_app v' l =
      let args' = List.map translate_expr args in
      mk_app (v, ty, args')
   | (Evar (v, _), args) ->
-     let ty = translate_type (get_type v') in
-     let args' = List.map translate_expr args in
-     mk_app (v, ty, args')
+     if Expr.equal ty type_prop then
+       mk_app ("fol.apply_pred",
+               mk_typetype,
+               [mk_app ("fol.make_pred", mk_typetype, [translate_types args; mk_app (v, mk_typetype, [])]);
+                translate_exprs args])
+     else
+       mk_app ("fol.apply_fun",
+               mk_typetype,
+               [mk_app ("fol.make_fun", mk_typetype, [translate_types args; translate_type ty; mk_app (v, mk_typetype, [])]);
+               translate_exprs args])
   | (_, _) -> assert false
+
+and translate_types = function
+  | [] -> mk_app ("fol.nil_type", mk_typetype, [])
+  | e :: l ->
+    let ty = translate_type (get_type e) in
+    mk_app ("fol.cons_type", mk_typetype, [ty; translate_types l])
+
+and translate_exprs = function
+  | [] -> mk_app ("fol.nil_term", mk_typetype, [])
+  | e :: l ->
+    let ty = translate_type (get_type e) in
+    mk_app ("fol.cons_term", mk_typetype, [ty; translate_expr e; translate_types l; translate_exprs l])
 
 and translate_expr e =
   match e with
@@ -162,11 +182,7 @@ and translate_expr e =
      let ty = translate_type (get_type v') in
      mk_var (v, ty)
   | Emeta _ -> assert false
-  | Eapp (v, l, _) ->
-     let return = translate_app v l in
-     if Expr.equal (get_type e) type_prop then
-       mk_triangle return
-     else return
+  | Eapp (v, l, _) -> translate_app v l (get_type e)
   | Enot (e, _) ->
      let e' = translate_expr e in
      mk_not (e')
@@ -881,6 +897,9 @@ let rec trproof_dk p =
         (match phyps with
         | [ next ] -> trproof_dk next
         | _ -> assert false)
+
+     | RMagic (d, h) -> mk_Magic d h
+
      | _ -> assert false
 
   and mk_pnotp_subst pp argspp argsnqq phyps =
@@ -1032,10 +1051,10 @@ let rec mk_prf_var_def_aux accu phrases =
        mk_prf_var_def_aux accu tl
      else
        (*let v = rawname_prf norm_fm in*)
-       let ty = mk_proof (translate_expr norm_fm) in
-       let dkfm = mk_app (name, ty, []) in
+       let ty = translate_expr norm_fm in
+       let dkfm = mk_app (name, mk_proof ty, []) in
        add_context norm_fm dkfm;
-       mk_prf_var_def_aux (mk_decl (name, ty) :: accu) tl
+       mk_prf_var_def_aux ((name, ty) :: accu) tl
   | _ :: tl -> mk_prf_var_def_aux accu tl
 ;;
 
@@ -1182,6 +1201,31 @@ let get_sigs_proof sigs llp =
   get_sigs_proof_aux sigs llp
 ;;
 
+let rec print_list_hyps oc = function
+  | [] -> fprintf oc "cert.nil_ctx"
+  | (s, a) :: l -> fprintf oc "(cert.cons_ctx_proof (%a) %s %a)"
+                           print_dk_term a
+                           s
+                           print_list_hyps l
+
+let rec find_major_hyp acc = function
+  | [] -> failwith (sprintf "Found no hypothesis similar to the goal")
+  | (n, ty) :: l when String.sub n 0 5 = "_p_A_" -> (n, ty, List.rev acc @ l)
+  | a :: l -> find_major_hyp (a :: acc) l
+
+let rec print_dk_fun_rel oc = function
+  | [] -> fprintf oc "transfer.nil_fun_rel_ctx"
+  | ("abst_morph_plus", _) :: l ->
+     fprintf oc "(transfer.cons_fun_rel_ctx (fol.make_fun (fol.cons_type _p_A_T (fol.cons_type _p_A_T fol.nil_type)) _p_A_T _p_A_plus) (fol.make_fun (fol.cons_type abst_T (fol.cons_type abst_T fol.nil_type)) abst_T abst_plus) (transfer_def.Rel2 _p_A_T abst_T morph) morph abst_morph_plus %a)"
+     print_dk_fun_rel l
+  | ("abst_morph_times", _) :: l ->
+     fprintf oc "(transfer.cons_fun_rel_ctx (fol.make_fun (fol.cons_type _p_A_T (fol.cons_type _p_A_T fol.nil_type)) _p_A_T _p_A_times) (fol.make_fun (fol.cons_type abst_T (fol.cons_type abst_T fol.nil_type)) abst_T abst_times) (transfer_def.Rel2 _p_A_T abst_T morph) morph abst_morph_times %a)"
+     print_dk_fun_rel l
+  | ("abst_morph_succ", _) :: l ->
+     fprintf oc "(transfer.cons_fun_rel_ctx (fol.make_fun (fol.cons_type _p_A_T fol.nil_type) _p_A_T _p_A_succ) (fol.make_fun (fol.cons_type abst_T fol.nil_type) abst_T abst_succ) (transfer_def.Rel1 _p_A_T abst_T morph) morph abst_morph_succ %a)"
+     print_dk_fun_rel l
+  | _ :: l -> print_dk_fun_rel oc l
+
 let output ?filename oc phrases llp =
   Log.debug 2 "=========== Generate Dedukti Term =============";
   let sigs = Expr.get_defs () in
@@ -1228,12 +1272,11 @@ let output ?filename oc phrases llp =
                f
   in
   let filename = match filename with Some f -> basename f | None -> "tocheck" in
+  let (mname, mty, dkctx) = find_major_hyp [] dkctx in
 
   fprintf oc "#NAME %s" filename;
   fprintf oc ".\n";
   List.iter (print_line oc) dksigs;
-  fprintf oc "\n";
-  List.iter (print_line oc) dkctx;
   fprintf oc "\n";
   List.iter (print_line oc) dkrules;
   fprintf oc "\n";
@@ -1241,26 +1284,37 @@ let output ?filename oc phrases llp =
   fprintf oc "\n";
   print_goal_type oc dkname dkgoal;
   fprintf oc "\n";
-  print_proof oc dkname dkproof;
+  fprintf oc "magic %a (zen.imp (%a) (%a)) %s\n\n"
+          print_list_hyps dkctx
+	  print_dk_term mty
+	  print_dk_term dkngoal
+          mname;
+  (* print_proof oc dkname dkproof; *)
   []
 ;;
 
 let output_term oc phrases llp =
   Log.debug 2 "=========== Generate Dedukti Term =============";
   (* register hypothesis in the context *)
-  let _ = mk_prf_var_def phrases in
-  let (_, goal) = List.split (select_goal phrases) in
+  let dkctx = mk_prf_var_def phrases in
+  let (name, goal) = List.split (select_goal phrases) in
   assert (List.length goal = 1);
+  let dkname = List.hd name in
+  let dkgoal = trexpr_dkgoal goal in
   let ngoal = match (List.hd goal) with
     | Enot (ng, _) -> ng
     | _ -> assert false
   in
-  let dkgoal = translate_expr ngoal in
-  let prooftree = extract_prooftree llp in
-  let dkproof = make_proof_term (List.hd goal) prooftree in
-
-  fprintf oc "zen.nnpp (%a)\n\n(%a)"
-	  print_dk_term dkgoal
-	  print_dk_term dkproof;
+  let dkngoal = translate_expr ngoal in
+  let (mname, mty, dkctx) = find_major_hyp [] dkctx in
+  fprintf oc "(morph : (fol.term _p_A_T -> fol.term abst_T -> fol.prop) =>
+   tac.run (fol.imp (%a) (%a)) (cert.run (fol.imp (%a) (%a)) (%a) (transfer.transfer_imp_goal (transfer.cons_rel_ctx _p_A_T abst_T morph transfer.nil_rel_ctx) %a)) %s) (a : fol.term _p_A_T => b : fol.term abst_T => fol.apply_pred (fol.make_pred (fol.cons_type _p_A_T (fol.cons_type abst_T fol.nil_type)) abst_morph) (fol.cons_term _p_A_T a (fol.cons_type abst_T fol.nil_type) (fol.cons_term abst_T b fol.nil_type fol.nil_term)))\n\n"
+	  print_dk_term mty
+	  print_dk_term dkngoal
+	  print_dk_term mty
+	  print_dk_term dkngoal
+          print_list_hyps dkctx
+          print_dk_fun_rel dkctx
+          mname;
   []
 ;;
