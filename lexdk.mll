@@ -19,6 +19,7 @@ rule token = parse
 | "(;" { comment (pos lexbuf) [] lexbuf }
 | "def" { DEFKW }
 | "cc.uT" { TYPE }
+| "Type" { TYPE }
 | "cc.eT" { TERM }
 | "cc.eP" { PROOF }
 | "cc.Arrow" { CCARR }
@@ -37,6 +38,7 @@ rule token = parse
 | "dk_logic.eP" { PROOF }
 | "dk_logic.ebP" { ISTRUE }
 | "dk_logic.Prop" { PROP }
+| "dk_builtins.prop" { PROP }
 | number as n { NUMBER(n) }
 | id as id { ID(id) }
 | qid as qid { QID(qid) }
