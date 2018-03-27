@@ -40,7 +40,7 @@ SOURCES = log.ml version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
 
 COQSRC = zenon.v zenon_coqbool.v zenon_equiv.v zenon_induct.v zenon_focal.v zenon_arith.v zenon_arith_reals.v
 
-DKSRC = cc.dk dk_bool.dk dk_logic.dk dk_tuple.dk basics_minimal.dk modulogic.dk zenon_focal.dk
+DKSRC = cc.dk dk_bool.dk dk_logic.dk dk_tuple.dk basics_minimal.dk zen.dk zenon_focal.dk
 
 DOCSRC =
 
