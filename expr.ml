@@ -643,7 +643,7 @@ let count_metas e = List.length (get_metas e);;
 let cursym = ref (Bytes.of_string var_prefix)
 
 let rec incr_sym n =
-  assert (n <= String.length !cursym);
+  assert (n <= Bytes.length !cursym);
   if (n =%= Bytes.length !cursym) then begin
       cursym := Bytes.extend !cursym 0 1;
       Bytes.set !cursym n 'a'
