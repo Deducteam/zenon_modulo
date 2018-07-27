@@ -84,5 +84,6 @@ against the princess and beagle automated provers.
 
 ## CONTACT
 
-Guillaume Bury <guillaume.bury@inria.fr>
+Guillaume Bury <guillaume.bury@inria.fr> 
+
 Mohamed Yacine EL HADDADD <mohamed-yacine.el-haddad@inria.fr>
