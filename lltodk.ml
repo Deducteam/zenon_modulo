@@ -1034,12 +1034,10 @@ let output oc phrases llp =
   let dkname = List.hd name in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-
-  fprintf oc "#NAME tocheck";
   fprintf oc ".\n";
-  List.iter (print_line oc) dksigs;
+  if !Globals.output_sig then () else List.iter (print_line oc) dksigs;
   fprintf oc "\n";
-  List.iter (print_line oc) dkctx;
+  if !Globals.output_sig then () else List.iter (print_line oc) dkctx;
   fprintf oc "\n";
   List.iter (print_line oc) dkrules;
   fprintf oc "\n";

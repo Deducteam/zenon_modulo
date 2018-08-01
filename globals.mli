@@ -27,3 +27,6 @@ val modulo : bool ref;;
 val modulo_heuri : bool ref;;
 val modulo_heuri_simple : bool ref;;
 val debug_rwrt : bool ref;;
+
+val output_sig : bool ref;;
+val signature_name : string ref;;

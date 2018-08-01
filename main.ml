@@ -68,7 +68,8 @@ let int_arg r arg =
       | _ -> raise (Arg.Bad "bad numeric argument")
     with Failure "float_of_string" -> raise (Arg.Bad "bad numeric argument")
 ;;
-
+let p_string s = 
+  signature_name := s;;
 let parse_size_time s =
   let l = String.length s in
   let rec loop i =
@@ -164,6 +165,15 @@ let argspec = [
 			      opt_level := 0;
 			      Globals.output_dk := true),
         "              print the proof in Dk script format (force -rename)";
+  "-odksig", Arg.Unit (fun () -> namespace_flag := true;
+                              quiet_flag := true;
+			      proof_level := Proof_dk;
+			      opt_level := 0;
+			      Globals.output_dk := true;
+            Globals.output_sig := true),
+        "              print the proof in Dk script format without declaration of function symbols and contexts";
+  "-sig_name", Arg.String ( p_string),
+              "Using symbols in the proof";
   "-odkterm", Arg.Unit (fun () -> proof_level := Proof_dkterm;
 				  opt_level := 0;
 				  Globals.output_dk := true),

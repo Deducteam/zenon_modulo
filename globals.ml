@@ -27,3 +27,6 @@ let modulo = ref false;;
 let modulo_heuri = ref false;;
 let modulo_heuri_simple = ref false;;
 let debug_rwrt = ref false;;
+
+let output_sig = ref false;;
+let signature_name = ref "";;

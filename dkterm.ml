@@ -176,7 +176,7 @@ and print_dk_cst o t =
   match t with
   | "Is_true" -> fprintf o "dk_logic.ebP"
   | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
-  | s -> fprintf o "%s" s
+  | s -> if !Globals.signature_name = "" then fprintf o "%s" s else fprintf o "%s.%s" !Globals.signature_name s
 
 and print_dk_term o t =
   match t with
