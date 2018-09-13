@@ -1035,9 +1035,9 @@ let output oc phrases llp =
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
 
-  if !Globals.output_sig then () else List.iter (print_line oc) dksigs;
+  if !Globals.signature_name = "" then () else List.iter (print_line oc) dksigs;
   fprintf oc "\n";
-  if !Globals.output_sig then () else List.iter (print_line oc) dkctx;
+  if !Globals.signature_name = "" then () else List.iter (print_line oc) dkctx;
   fprintf oc "\n";
   List.iter (print_line oc) dkrules;
   fprintf oc "\n";
@@ -1060,9 +1060,10 @@ let output_term oc phrases ppphrases llp =
   let dkgoal = translate_expr ngoal in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-
+  if !Globals.signature_name = "" then () else fprintf oc "def delta : zen.proof (%a) \n := \n " print_dk_term dkgoal; 
   fprintf oc "zen.nnpp (%a)\n\n(%a)"
 	  print_dk_term dkgoal
 	  print_dk_term dkproof;
+    if !Globals.signature_name = "" then () else fprintf oc ".";
   []
 ;;

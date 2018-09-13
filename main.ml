@@ -165,15 +165,8 @@ let argspec = [
 			      opt_level := 0;
 			      Globals.output_dk := true),
         "              print the proof in Dk script format (force -rename)";
-  "-odksig", Arg.Unit (fun () -> namespace_flag := true;
-                              quiet_flag := true;
-			      proof_level := Proof_dk;
-			      opt_level := 0;
-			      Globals.output_dk := true;
-            Globals.output_sig := true),
-        "              print the proof in Dk script format without declaration of function symbols and contexts";
-  "-sig_name", Arg.String ( p_string),
-              "Using symbols in the proof";
+  "-sig", Arg.String ( p_string),
+              "print the proof using a signature name for each symbol";
   "-odkterm", Arg.Unit (fun () -> proof_level := Proof_dkterm;
 				  opt_level := 0;
 				  Globals.output_dk := true),
@@ -454,7 +447,7 @@ let main () =
       if is_open then
         printf "(* NO-PROOF *)\n"
       else
-        printf "(* PROOF-FOUND *)\n";
+        if !Globals.signature_name <> "" then () else printf "(* PROOF-FOUND *)\n";
       flush stdout
       end;
     let llp = lazy (optim (Extension.postprocess
