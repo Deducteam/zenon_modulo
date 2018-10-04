@@ -1035,9 +1035,9 @@ let output oc phrases llp =
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
 
-  if !Globals.signature_name = "" then () else List.iter (print_line oc) dksigs;
+  if !Globals.signature_name = "" then List.iter (print_line oc) dksigs;
   fprintf oc "\n";
-  if !Globals.signature_name = "" then () else List.iter (print_line oc) dkctx;
+  if !Globals.signature_name = "" then List.iter (print_line oc) dkctx;
   fprintf oc "\n";
   List.iter (print_line oc) dkrules;
   fprintf oc "\n";

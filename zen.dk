@@ -20,6 +20,8 @@ def or  : prop -> prop -> prop.
 def imp : prop -> prop -> prop.
 def eqv : prop -> prop -> prop.
 
+select : a : type -> term a.
+
 def forall : a : type -> (term a -> prop) -> prop.
 def exists : a : type -> (term a -> prop) -> prop.
 
