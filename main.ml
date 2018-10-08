@@ -164,13 +164,13 @@ let argspec = [
 			      proof_level := Proof_dk;
 			      opt_level := 0;
 			      Globals.output_dk := true),
-        "              print the proof in Dk script format (force -rename)";
+        "               print the proof in Dk script format (force -rename)";
   "-sig", Arg.String ( p_string),
-              "print the proof using a signature name for each symbol";
+              "              print the proof using a signature name for each symbol";
   "-odkterm", Arg.Unit (fun () -> proof_level := Proof_dkterm;
 				  opt_level := 0;
 				  Globals.output_dk := true),
-            "          print the proof in DK term format";
+            "           print the proof in DK term format";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
       "<n>             print the proof in high-level format up to depth <n>";
   "-oisar", Arg.Unit (fun () -> proof_level := Proof_isar),
@@ -445,7 +445,7 @@ let main () =
         retcode := 12;
     if not !quiet_flag then begin
       if is_open then
-        printf "(* NO-PROOF *)\n"
+        if !Globals.signature_name <> "" then () else printf "(* NO-PROOF *)\n"
       else
         if !Globals.signature_name <> "" then () else printf "(* PROOF-FOUND *)\n";
       flush stdout
@@ -483,10 +483,10 @@ let main () =
   with
   | Prove.NoProof ->
      retcode := 12;
-     if not !quiet_flag then printf "(* NO-PROOF *)\n";
+     if not !quiet_flag then (if !Globals.signature_name <> "" then () else printf "(* NO-PROOF *)\n");
   | Prove.LimitsExceeded ->
      retcode := 13;
-     if not !quiet_flag then printf "(* NO-PROOF *)\n";
+     if not !quiet_flag then (if !Globals.signature_name <> "" then () else printf "(* NO-PROOF *)\n");
   end;
   if !stats_flag then begin
     eprintf "nodes searched: %d\n" !Globals.inferences;
