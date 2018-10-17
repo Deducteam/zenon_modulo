@@ -156,15 +156,15 @@ let rec print_dk_type o t =
   | Dktypeprop -> fprintf o "zen.prop"
   | Dkarrow (l, r) ->
      begin
-       List.iter (fun x -> fprintf o "%a -> " print_dk_type x) l;
+       List.iter (fun x -> fprintf o "%a ⇒ " print_dk_type x) l;
        print_dk_type o r;
      end
   | Dkpi (Dkvar (v, t1) as var, t2) ->
-     fprintf o "%s : %a\n -> %a"
+     fprintf o "∀ (%s : %a),\n %a"
 	     (get_var_newname var) print_dk_type t1 print_dk_type t2
   | Dkpi _ -> assert false
   | Dkproof (t) ->
-     fprintf o "zen.proof (%a)" print_dk_term t
+     fprintf o "zen.Proof (%a)" print_dk_term t
   | t -> fprintf o "zen.term (%a)" print_dk_zentype t
 
 and print_dk_zentype o t =
@@ -185,11 +185,11 @@ and print_dk_term o t =
   | Dkvar (v, _) as var ->
      fprintf o "%s" (get_var_newname var)
   | Dklam (Dkvar (v, t1) as var, t2) ->
-     fprintf o "%s : (%a)\n => %a"
+     fprintf o "λ (%s : %a),\n %a"
 	     (get_var_newname var)
 	     print_dk_type t1 print_dk_term t2
   | Dklam (Dkapp (v, t1, []), t2) ->
-     fprintf o "%s : (%a)\n => %a"
+     fprintf o "λ (%s : %a),\n %a"
 	     v print_dk_type t1 print_dk_term t2
   | Dklam _ -> assert false
   | Dkapp (v, _, l) ->
@@ -202,7 +202,7 @@ and print_dk_term o t =
   | Dknot (t) ->
      fprintf o "zen.not\n (%a)" print_dk_term t
   | Dkand (t1, t2) ->
-     fprintf o "zen.and\n (%a) (%a)" print_dk_term t1 print_dk_term t2
+     fprintf o "zen.{|and|}\n (%a) (%a)" print_dk_term t1 print_dk_term t2
   | Dkor (t1, t2) ->
      fprintf o "zen.or\n (%a) (%a)" print_dk_term t1 print_dk_term t2
   | Dkimply (t1, t2) ->
@@ -402,22 +402,22 @@ let print_line o line =
   | Dkdecl (v, _) when String.contains v '.' ->
      ()
   | Dkdecl (v, t) ->
-     fprintf o "def %s : %a.\n\n" v print_dk_type t
+     fprintf o "symbol %s : %a\n\n" v print_dk_type t
   | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' || s = "Is_true" ->
      ()
   | Dkrwrt (l, t1, t2) ->
-     fprintf o "[%a]\n %a \n --> %a.\n\n"
+     fprintf o "[%a]\n %a \n → %a\n\n"
 	     pr_list_var l print_dk_term t1 print_dk_term t2
 ;;
 
 let print_goal_type o name goal =
-  fprintf o "def %s :\n %a\n -> %a.\n"
+  fprintf o "definition %s :\n %a\n ⇒ %a\n"
 	  name print_dk_type goal print_dk_term mk_seq
 ;;
 
 let print_proof o name proof =
-  fprintf o "[] %s -->\n %a.\n"
-	  name print_dk_term proof
+  fprintf o "%a\n"
+	  print_dk_term proof
 ;;
 
 (* to manage dependances of symbols definitions *)
