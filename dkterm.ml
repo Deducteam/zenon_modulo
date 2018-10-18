@@ -1,6 +1,11 @@
 open Printf
 open Expr
 
+let forbidden_idents = ["require"; "open"; "as"; "let"; "in"; "symbol"; "definition"; "theorem"; "rule"; "and"; "assert"; "assertnot"; "const"; "injective"; "TYPE"; "pos"; "neg"; "proof"; "refine"; "intro"; "apply"; "simpl"; "rewrite"; "reflexivity"; "symmetry"; "focus"; "print"; "proofterm"; "qed"; "admit"; "abort"; "set"; "_"];;
+let escape_name s = if (List.mem s forbidden_idents) or 
+                       (Str.string_match (Str.regexp "[0-9]+") s 0) 
+                    then "{|" ^ s ^ "|}" else s;;
+
 type var = string
 
 type dkterm =
@@ -176,21 +181,21 @@ and print_dk_cst o t =
   match t with
   | "Is_true" -> fprintf o "dk_logic.ebP"
   | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
-  | s -> if !Globals.signature_name = "" then fprintf o "%s" s else 
+  | s -> if !Globals.signature_name = "" then fprintf o "%s" (escape_name s) else 
     if Mltoll.is_meta s then fprintf o "zen.select (zen.iota)" else 
-      fprintf o "%s.%s" !Globals.signature_name s
+      fprintf o "%s.%s" !Globals.signature_name (escape_name s)
 
 and print_dk_term o t =
   match t with
   | Dkvar (v, _) as var ->
-     fprintf o "%s" (get_var_newname var)
+     fprintf o "%s" (escape_name (get_var_newname var))
   | Dklam (Dkvar (v, t1) as var, t2) ->
      fprintf o "λ (%s : %a),\n %a"
-	     (get_var_newname var)
+	     (escape_name (get_var_newname var))
 	     print_dk_type t1 print_dk_term t2
   | Dklam (Dkapp (v, t1, []), t2) ->
      fprintf o "λ (%s : %a),\n %a"
-	     v print_dk_type t1 print_dk_term t2
+	     (escape_name v) print_dk_type t1 print_dk_term t2
   | Dklam _ -> assert false
   | Dkapp (v, _, l) ->
      begin
@@ -397,12 +402,14 @@ let rec pr_list_var o l =
   | _ -> assert false
 ;;
 
+
 let print_line o line =
   match line with
   | Dkdecl (v, _) when String.contains v '.' ->
      ()
   | Dkdecl (v, t) ->
-     fprintf o "symbol %s : %a\n\n" v print_dk_type t
+    
+     fprintf o "symbol %s : %a\n\n" (escape_name v) print_dk_type t
   | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' || s = "Is_true" ->
      ()
   | Dkrwrt (l, t1, t2) ->
@@ -412,7 +419,7 @@ let print_line o line =
 
 let print_goal_type o name goal =
   fprintf o "definition %s :\n %a\n ⇒ %a\n"
-	  name print_dk_type goal print_dk_term mk_seq
+	 (escape_name name) print_dk_type goal print_dk_term mk_seq
 ;;
 
 let print_proof o name proof =

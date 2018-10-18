@@ -85,10 +85,10 @@ byt: zenon_modulo.byt
 bin: zenon_modulo.bin
 
 zenon_modulo.bin: $(BINOBJS)
-	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa zarith.cmxa $(BINOBJS)
+	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa zarith.cmxa str.cmxa $(BINOBJS)
 
 zenon_modulo.byt: $(BYTOBJS)
-	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_modulo.byt unix.cma zarith.cma $(BYTOBJS)
+	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_modulo.byt unix.cma zarith.cma str.cma $(BYTOBJS)
 
 zenon_modulo: zenon_modulo.byt
 	if test -x zenon_modulo.bin; then \
