@@ -2,9 +2,7 @@ open Printf
 open Expr
 
 let forbidden_idents = ["require"; "open"; "as"; "let"; "in"; "symbol"; "definition"; "theorem"; "rule"; "and"; "assert"; "assertnot"; "const"; "injective"; "TYPE"; "pos"; "neg"; "proof"; "refine"; "intro"; "apply"; "simpl"; "rewrite"; "reflexivity"; "symmetry"; "focus"; "print"; "proofterm"; "qed"; "admit"; "abort"; "set"; "_"];;
-let escape_name s = if (List.mem s forbidden_idents) or 
-                       (Str.string_match (Str.regexp "[0-9]+") s 0) 
-                    then "{|" ^ s ^ "|}" else s;;
+let escape_name s = "{|" ^ s ^ "|}";;
 
 type var = string
 
