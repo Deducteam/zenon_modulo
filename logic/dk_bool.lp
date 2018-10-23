@@ -1,4 +1,4 @@
-require cc
+require logic.cc as cc
 // Bool 
 // Declaration 
 symbol const bool : cc.uT

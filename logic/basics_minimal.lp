@@ -2,10 +2,10 @@
 // habituellement généré basics.dk. Ce fichier permet de tester Zenon
 // indépendamment de FoCaLiZe.
 
-require cc
-require dk_bool
-require dk_logic
-require dk_tuple
+require logic.cc as cc
+require logic.dk_bool as dk_bool
+require logic.dk_logic as dk_logic
+require logic.dk_tuple as dk_tuple
 
 
 definition Is_true ≔ dk_logic.ebP

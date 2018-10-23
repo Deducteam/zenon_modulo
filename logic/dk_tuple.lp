@@ -1,4 +1,4 @@
-require open cc
+require open logic.cc
 
 symbol const prod : uT ⇒ uT ⇒ uT
 symbol const Prod : uT ⇒ uT ⇒ TYPE

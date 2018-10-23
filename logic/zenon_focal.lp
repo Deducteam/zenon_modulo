@@ -1,7 +1,7 @@
-require cc
-require dk_logic
-require dk_bool
-require zen
+require logic.cc as cc
+require logic.dk_logic as dk_logic
+require logic.dk_bool as dk_bool
+require logic.zen as zen
 
 definition bool ≔
   dk_bool.bool

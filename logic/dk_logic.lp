@@ -1,5 +1,5 @@
-require cc
-require dk_bool
+require logic.cc as cc
+require logic.dk_bool as dk_bool
 
 // Impredicative prop 
 

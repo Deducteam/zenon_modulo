@@ -1,5 +1,5 @@
-require cc
-require dk_logic
+require logic.cc as cc
+require logic.dk_logic as dk_logic
 
 
 // Logic for Zenon Modulo
