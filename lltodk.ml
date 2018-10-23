@@ -1060,7 +1060,7 @@ let output_term oc phrases ppphrases llp =
   let dkgoal = translate_expr ngoal in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-  fprintf oc "require zen\n";
+  fprintf oc "require logic.zen as zen\n";
   if !Globals.signature_name <> "" then fprintf oc "require %s\n" !Globals.signature_name;
   fprintf oc "definition delta : zen.Proof (%a) \n ≔ \n " print_dk_term dkgoal; 
   fprintf oc "zen.nnpp (%a)\n\n(%a)"
