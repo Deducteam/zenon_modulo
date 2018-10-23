@@ -1034,7 +1034,7 @@ let output oc phrases llp =
   let dkname = List.hd name in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-  fprintf oc "require zen\n";
+  fprintf oc "require logic.zen as zen\n";
   if !Globals.signature_name = "" then List.iter (print_line oc) dksigs;
   fprintf oc "\n";
   if !Globals.signature_name = "" then List.iter (print_line oc) dkctx;
