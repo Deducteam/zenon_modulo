@@ -186,6 +186,7 @@ tff_type_sig:
      { mk_quant eall $4 $7 }
   | ALL RANGL LBRACKET tff_quant RBRACKET COLON OPEN tff_type_arrow CLOSE
      { mk_quant eall $4 $8 }
+  | OPEN tff_type_sig CLOSE { $2 }
 ;
 tff_quant:
   | UIDENT COLON TTYPE COMMA tff_quant  { (tvar (ns_var $1) type_type) :: $5 }
