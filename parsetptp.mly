@@ -138,30 +138,28 @@ expr_list:
   | expr                         { [$1] }
 ;
 formula:
-  | atom %prec lowest          { $1 }
-  | atom AND formula           { eand ($1, $3) }
-  | atom OR formula            { eor ($1, $3) }
-  | atom IMPLY formula         { eimply ($1, $3) }
-  | atom EQUIV formula         { eequiv ($1, $3) }
-  | atom RIMPLY formula        { eimply ($3, $1) }
-  | atom XOR formula           { enot (eequiv ($1, $3)) }
-  | atom NOR formula           { enot (eor ($1, $3)) }
-  | atom NAND formula          { enot (eand ($1, $3)) }
+  | unit_formula %prec lowest          { $1 }
+  | unit_formula AND formula           { eand ($1, $3) }
+  | unit_formula OR formula            { eor ($1, $3) }
+  | unit_formula IMPLY formula         { eimply ($1, $3) }
+  | unit_formula EQUIV formula         { eequiv ($1, $3) }
+  | unit_formula RIMPLY formula        { eimply ($3, $1) }
+  | unit_formula XOR formula           { enot (eequiv ($1, $3)) }
+  | unit_formula NOR formula           { enot (eor ($1, $3)) }
+  | unit_formula NAND formula          { enot (eand ($1, $3)) }
 ;
 type_def:
     | OPEN type_def CLOSE        { $2 }
     | LIDENT COLON tff_type_sig  { eapp (tvar_none "#", [tvar_none $1; $3]) }
 ;
-atom:
-  | ALL LBRACKET var_list RBRACKET COLON atom
+unit_formula:
+  | ALL LBRACKET var_list RBRACKET COLON unit_formula
                                    { mk_quant eall $3 $6 }
-  | EX LBRACKET var_list RBRACKET COLON atom
+  | EX LBRACKET var_list RBRACKET COLON unit_formula
                                    { mk_quant eex $3 $6 }
-  | NOT atom                       { enot ($2) }
+  | NOT unit_formula               { enot ($2) }
   | OPEN formula CLOSE             { $2 }
-  | TRUE                           { etrue }
-  | FALSE                          { efalse }
-  | expr                           { $1 }
+  | atom                           { $1 }
 ;
 var_list:
   | UIDENT COMMA var_list             { (tvar (ns_var $1) type_iota) :: $3 }
@@ -170,12 +168,14 @@ var_list:
   | UIDENT COLON expr                 { [tvar (ns_var $1) $3] }
 ;
 tff_type_arrow:
-  | expr RANGL expr                   { earrow [$1] $3 }
-  | OPEN tff_tuple CLOSE RANGL expr   { earrow $2 $5 }
+  | tff_unitary_type RANGL expr       { earrow $1 $3 }
 ;
+tff_unitary_type:
+  | expr { [ $1 ] }
+  | OPEN tff_tuple CLOSE { $2 }
 tff_tuple:
-  | expr                  { [$1] }
-  | expr STAR tff_tuple   {  $1 :: $3 }
+  | tff_unitary_type STAR expr   { $1 @ [$3] }
+  | tff_tuple STAR expr   {  $1 @ [ $3 ] }
 ;
 tff_type_sig:
   | expr
@@ -201,10 +201,17 @@ cnf_formula:
   | OPEN disjunction CLOSE         { $2 }
   | disjunction                    { $1 }
 ;
-
 disjunction:
-  | atom                           { [$1] }
-  | disjunction OR atom            { $3 :: $1 }
+  | literal                           { [$1] }
+  | disjunction OR literal            { $3 :: $1 }
 ;
-
+literal:
+  | atom { $1 }
+  | NOT atom { $2 }
+;
+atom:
+  | TRUE                           { etrue }
+  | FALSE                          { efalse }
+  | expr                           { $1 }
+;
 %%
