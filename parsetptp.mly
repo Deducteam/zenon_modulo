@@ -29,7 +29,7 @@ let cnf_to_formula l =
   let body =
     match l with
     | [] -> assert false
-    | a::l2 -> List.fold_left (fun x y -> eor (x,y)) a l2
+    | a::l2 -> List.fold_left (fun x y -> eor (y,x)) a l2
   in
   mk_quant eall (List.map (fun x -> (tvar x type_iota)) vs) body
 ;;
