@@ -207,7 +207,7 @@ disjunction:
 ;
 literal:
   | atom { $1 }
-  | NOT atom { $2 }
+  | NOT atom { enot ($2) }
 ;
 atom:
   | TRUE                           { etrue }
