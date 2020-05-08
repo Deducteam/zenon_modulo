@@ -433,12 +433,12 @@ let print_line o line =
   | Dkrwrt (l, t1, t2) ->
       (* fprintf o "[%a]\n %a \n → %a\n\n"
 	     pr_list_var l print_dk_term_aux (t1, get_var_names l) print_dk_term_aux (t2, get_var_names l) *)
-       fprintf o "rule %a \n → %a\n\n"
+       fprintf o "rule %a \n ↪ %a\n\n"
 	      print_dk_term_aux (t1, get_var_names l) print_dk_term_aux (t2, get_var_names l)
 ;;
 
 let print_goal_type o name goal =
-  fprintf o "definition %s :\n %a\n ⇒ %a\n"
+  fprintf o "definition %s :\n %a\n → %a\n"
 	 (escape_name name) print_dk_type goal print_dk_term mk_seq
 ;;
 
