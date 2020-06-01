@@ -162,7 +162,7 @@ let delete_pvar v l = List.filter (fun x -> x <> v) l;;
 let rec print_dk_type_aux o (t, l_rule) =
   match t with
   | Dktypetype -> fprintf o "Type"
-  | Dktypeprop -> fprintf o "prop"
+  | Dktypeprop -> fprintf o "Prop"
   | Dkarrow (l, r) ->
      begin
        List.iter (fun x -> fprintf o "%a → " print_dk_type_aux (x, l_rule)) l;
@@ -174,7 +174,7 @@ let rec print_dk_type_aux o (t, l_rule) =
 	      pvar print_dk_type_aux (t1, l_rule) print_dk_type_aux (t2, delete_pvar pvar l_rule)
   | Dkpi _ -> assert false
   | Dkproof (t) ->
-     fprintf o "ϵ (%a)" print_dk_term_aux (t, l_rule)
+     fprintf o "π (%a)" print_dk_term_aux (t, l_rule)
   | t -> fprintf o "τ (%a)" print_dk_zentype_aux (t, l_rule)
 and print_dk_type o t = print_dk_type_aux o (t, [])
 and print_dk_zentype_aux o (t, l) =
@@ -211,7 +211,7 @@ and print_dk_term_aux o (t, l_rule) =
        List.iter (fun x -> fprintf o " (%a)" print_dk_term_aux (x, l_rule)) l;
 (*       fprintf o "\n ";*)
      end
-  | Dkseq -> fprintf o "seq"
+  | Dkseq -> fprintf o "π ⊥"
   | Dknot (t) ->
      fprintf o "¬\n (%a)" print_dk_term_aux  (t, l_rule)
   | Dkand (t1, t2) ->
@@ -235,8 +235,7 @@ and print_dk_term_aux o (t, l_rule) =
   | Dktrue -> fprintf o "⊤"
   | Dkfalse -> fprintf o "⊥"
   | Dkequal (t1, t2, t3) ->
-     fprintf o "equal (%a)\n (%a)\n (%a)"
-	     print_dk_zentype_aux (t1, l_rule)
+     fprintf o "(%a) = (%a)"
 	     print_dk_term_aux (t2, l_rule)
 	     print_dk_term_aux (t3, l_rule)
   | DkRfalse (pr) -> fprintf o "Rfalse\n (%a)" print_dk_term_aux (pr, l_rule)
