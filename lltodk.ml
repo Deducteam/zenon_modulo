@@ -1062,7 +1062,7 @@ let output_term oc phrases ppphrases llp =
   let dkproof = make_proof_term (List.hd goal) prooftree in
   fprintf oc "require open logic.zen\n";
   if !Globals.signature_name <> "" then fprintf oc "require %s\n" !Globals.signature_name;
-  fprintf oc "definition delta : ϵ (%a) \n ≔ \n " print_dk_term dkgoal;
+  fprintf oc "definition delta : π (%a) \n ≔ \n " print_dk_term dkgoal;
   fprintf oc "nnpp (%a)\n\n(%a)"
 	  print_dk_term dkgoal
 	  print_dk_term dkproof;
