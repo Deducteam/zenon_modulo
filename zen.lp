@@ -111,7 +111,9 @@ symbol Rconglr a (p : (τ a → Prop)) (t1 t2 : τ a) :
 symbol Rcongrl a (p : (τ a → Prop)) (t1 t2 : τ a) :
   (π (p t2) → π ⊥) → π (p t1) → π (t2 = t1) → π ⊥
 
-rule π ⊥ ↪ Π p, π p
+symbol bot : π ⊥ → Πp, π p
+ 
+// rule π ⊥ ↪ Π p, π p
 rule π (¬ $p) ↪ π $p → π ⊥
 rule π ⊤ ↪ Π p, π p → π p
 rule π (imp $p $q) ↪ π $p → π $q
@@ -122,15 +124,24 @@ rule π ({|and|} $p $q) ↪ Π x, (π $p → π $q → π x) → π x
 rule π (@∃ $a $p) ↪ Π P, (Π(x : τ $a), π ($p x) → π P) → π P
 rule π (@∀ $a $p) ↪ Π x, π ($p x)
 
-constant symbol xmid (p z : Prop) : (π p → π z) → (π (¬ p) → π z) → π z
+rule bot $b (∀ $p) $t ↪ bot $b ($p $t)
+rule bot $b (imp $p $q) $t ↪ bot $b $q
+rule bot $b ⊥ ↪ $b
 
-definition nnpp (p : Prop) : π (¬ (¬ p)) → π p ≔
-    λ (H1 : π (¬ (¬ p))),
-      xmid p p
-	    (λ (H2 : π p),
-        H2)
-	    (λ (H3 : π (¬ p)),
-	        H1 H3 p)
+constant symbol nnpp (p : Prop) : π (¬ (¬ p)) → π p
+
+//    λ (H1 : π (¬ (¬ p))),
+  //    xmid p p
+	  //  (λ (H2 : π p),
+      //  H2)
+	    // (λ (H3 : π (¬ p)),
+	     //   H1 H3 p)
+definition xmid : Π (p z : Prop), (π p → π z) → (π (¬ p) → π z) → π z ≔
+  λp z ppz pnpz, nnpp z (λpz, pz (ppz (nnpp p (λpnp, pz (pnpz pnp)))))
+
+
+
+
 
 // usefull lemmas to prove rules
 
@@ -234,12 +245,12 @@ definition lemme_notimply_2 (p : Prop)
   λ (H3 : π p),
     (H1 H3) (lemme_notimply_1 p q H2)
 
-definition lemme_notimply_3 (p : Prop)
-	          (q : Prop)
-	          (H3 : π (¬ p))
-: π (imp p q)
-≔
-  λ (H4 : π p), H3 H4 q
+// definition lemme_notimply_3 (p : Prop)
+	 //         (q : Prop)
+	 //         (H3 : π (¬ p))
+// : π (imp p q)
+// ≔
+  // λ (H4 : π p), H3 H4 q
 
 definition lemme_notequiv_1 (p : Prop)
                   (q : Prop)
@@ -358,24 +369,27 @@ rule Rnotor $p $q ↪
 //                                   => H2 (H6 : π p
 // 	                                  => H5))) ).
 
+// symbol Rnotimply p q : (π p → π (¬ q) → π ⊥) → π (¬ (imp p q)) → π ⊥
+
 rule Rnotimply $p $q ↪
   λ (H1 : (π $p → π (¬ $q) → π ⊥))
     (H2 : π (¬ (imp $p $q))),
      H2 (λ (H3 : π $p),
-            (H1 H3) (λ (H4 : π $q),
+            bot ((H1 H3) (λ (H4 : π $q),
                         H2 (λ (H5 : π $p),
-                               H4)) $q)
+                               H4)) ) $q)
 
 
 rule Rnotequiv $p $q ↪
   λ (H1 : (π (¬ $p) → π (¬ $q)))
     (H2 : (π $p → π (¬ (¬ $q))))
     (H3 : π (¬ (eqv $p $q))),
+
     (λ (HNP : π (¬ $p)),
             H3 (λ (z : Prop)
                   (H4 : (π (imp $p $q) → π (imp $q $p) → π z)),
-                      H4 (λ (HP : π $p), HNP HP $q)
-                            (λ (HQ : π $q), H1 HNP HQ $p)))
+                      H4 (λ (HP : π $p), bot (HNP HP) $q)
+                            (λ (HQ : π $q), bot (H1 HNP HQ) $p)))
            (lemme_notequiv_1 $p $q H2 H3)
 
 rule Rex $a $p ↪
