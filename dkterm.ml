@@ -5,7 +5,9 @@ let forbidden_idents = ["require"; "open"; "as"; "let"; "in"; "symbol"; "definit
 
 let escape_name s =
   let id_regex = Str.regexp "^[a-zA-Z_][a-zA-Z0-9_]*$" in
-  if Str.string_match id_regex s 0 then s else "{|" ^ s ^ "|}"
+  if Str.string_match id_regex s 0 
+    && List.for_all ((<>) s) forbidden_idents 
+    then s else "{|" ^ s ^ "|}"
 
 type var = string
 
@@ -174,7 +176,7 @@ let rec print_dk_type_aux o (t, l_rule) =
 	      pvar print_dk_type_aux (t1, l_rule) print_dk_type_aux (t2, delete_pvar pvar l_rule)
   | Dkpi _ -> assert false
   | Dkproof (t) ->
-     fprintf o "π (%a)" print_dk_term_aux (t, l_rule)
+     fprintf o "ϵ (%a)" print_dk_term_aux (t, l_rule)
   | t -> fprintf o "τ (%a)" print_dk_zentype_aux (t, l_rule)
 and print_dk_type o t = print_dk_type_aux o (t, [])
 and print_dk_zentype_aux o (t, l) =
@@ -211,7 +213,7 @@ and print_dk_term_aux o (t, l_rule) =
        List.iter (fun x -> fprintf o " (%a)" print_dk_term_aux (x, l_rule)) l;
 (*       fprintf o "\n ";*)
      end
-  | Dkseq -> fprintf o "π ⊥"
+  | Dkseq -> fprintf o "ϵ ⊥"
   | Dknot (t) ->
      fprintf o "¬\n (%a)" print_dk_term_aux  (t, l_rule)
   | Dkand (t1, t2) ->
@@ -426,18 +428,18 @@ let print_line o line =
      ()
   | Dkdecl (v, t) ->
 
-     fprintf o "symbol %s : %a\n\n" (escape_name v) print_dk_type t
+     fprintf o "symbol %s : %a;\n\n" (escape_name v) print_dk_type t
   | Dkrwrt (_, Dkapp (s, _, _), _) when String.contains s '.' || s = "Is_true" ->
      ()
   | Dkrwrt (l, t1, t2) ->
       (* fprintf o "[%a]\n %a \n → %a\n\n"
 	     pr_list_var l print_dk_term_aux (t1, get_var_names l) print_dk_term_aux (t2, get_var_names l) *)
-       fprintf o "rule %a \n ↪ %a\n\n"
+       fprintf o "rule %a \n ↪ %a;\n\n"
 	      print_dk_term_aux (t1, get_var_names l) print_dk_term_aux (t2, get_var_names l)
 ;;
 
 let print_goal_type o name goal =
-  fprintf o "definition %s :\n %a\n → %a\n"
+  fprintf o "symbol %s :\n %a\n → %a\n"
 	 (escape_name name) print_dk_type goal print_dk_term mk_seq
 ;;
 
