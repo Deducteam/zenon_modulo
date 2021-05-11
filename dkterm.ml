@@ -1,7 +1,15 @@
 open Printf
 open Expr
 
-let forbidden_idents = ["require"; "open"; "as"; "let"; "in"; "symbol"; "definition"; "theorem"; "rule"; "and"; "assert"; "assertnot"; "const"; "injective"; "TYPE"; "pos"; "neg"; "proof"; "refine"; "intro"; "apply"; "simpl"; "rewrite"; "reflexivity"; "symmetry"; "focus"; "print"; "proofterm"; "qed"; "admit"; "abort"; "set"; "_"];;
+let forbidden_idents = ["abort";"admit";"admitted";"apply";"as";"assert";"assertnot";
+                        "associative";"assume";"begin";"builtin";"commutative";"compute";
+                        "constant";"debug";"end";"fail";"flag";"focus";"have";"generalize";
+                        "in";"induction";"inductive";"infix";"injective";"left";"let";
+                        "notation";"off";"on";"opaque";"open";"prefix";"print";"private";
+                        "proofterm";"protected";"prover";"prover_timeout";"quantifier";
+                        "refine";"reflexivity";"require";"rewrite";"right";"rule";"sequential";
+                        "simplify";"solve";"symbol";"symmetry";"type";"TYPE";"unif_rule";
+                        "verbose";"why3";"with"; "_"]
 
 let escape_name s =
   let id_regex = Str.regexp "^[a-zA-Z_][a-zA-Z0-9_]*$" in
@@ -225,10 +233,10 @@ and print_dk_term_aux o (t, l_rule) =
   | Dkequiv (t1, t2) ->
      fprintf o "(%a)\n⇔\n(%a)\n" print_dk_term_aux (t1, l_rule) print_dk_term_aux (t2, l_rule)
   | Dkforall (_, t2) ->
-     fprintf o "∀ (%a)" print_dk_term_aux (t2, l_rule)
+     fprintf o "∀α (%a)" print_dk_term_aux (t2, l_rule)
      (* fprintf o "@∀ (%a)\n (%a)" print_dk_zentype_aux (t1, l_rule) print_dk_term_aux (t2, l_rule) *)
   | Dkexists (_, t2) ->
-     fprintf o "∃ (%a)" print_dk_term_aux (t2, l_rule)
+     fprintf o "∃α (%a)" print_dk_term_aux (t2, l_rule)
      (* fprintf o "@∃ (%a)\n (%a)" print_dk_zentype_aux  (t1, l_rule) print_dk_term_aux (t2, l_rule) *)
   | Dkforalltype (t) ->
      fprintf o "foralltype\n (%a)" print_dk_term_aux (t, l_rule)
@@ -237,7 +245,7 @@ and print_dk_term_aux o (t, l_rule) =
   | Dktrue -> fprintf o "⊤"
   | Dkfalse -> fprintf o "⊥"
   | Dkequal (t1, t2, t3) ->
-     fprintf o "(%a) = (%a)"
+     fprintf o "(%a) =α (%a)"
 	     print_dk_term_aux (t2, l_rule)
 	     print_dk_term_aux (t3, l_rule)
   | DkRfalse (pr) -> fprintf o "Rfalse\n (%a)" print_dk_term_aux (pr, l_rule)
