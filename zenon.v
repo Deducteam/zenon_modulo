@@ -67,12 +67,12 @@ Lemma zenon_notall : forall (T : Type) (P : T -> Prop),
   (forall z : T, (~(P z) -> False)) -> (~(forall x : T, (P x)) -> False).
 Proof. intros T P Ha Hb. apply Hb. intro. apply NNPP. exact (Ha x). Qed.
 
-Lemma zenon_notallex : forall (T : Type) (P : T -> Prop),
+Lemma zenon_notallex : forall {T : Type} (P : T -> Prop),
   ((exists x : T, ~ (P x)) -> False) -> (~(forall x : T, (P x)) -> False).
 Proof.
   firstorder. apply H0. intro x. apply NNPP. intro nPx. apply (H x nPx).
 Qed.
-Implicit Arguments zenon_notallex [T].
+(*Implicit Arguments zenon_notallex [T].*)
 
 Lemma zenon_subst :
   forall (T : Type) (P : T -> Prop) (a b : T),
@@ -111,8 +111,8 @@ Definition zenon_notimply_s := fun P Q c h => zenon_notimply P Q h c.
 Definition zenon_notequiv_s := fun P Q c h i => zenon_notequiv P Q h i c.
 Definition zenon_ex_s := fun T P c h => zenon_ex T P h c.
 Definition zenon_notall_s := fun T P c h => zenon_notall T P h c.
-Definition zenon_notallex_s := fun T P c h => @zenon_notallex T P h c.
-Implicit Arguments zenon_notallex_s [T].
+Definition zenon_notallex_s := fun {T} P c h => @zenon_notallex T P h c.
+(*Implicit Arguments zenon_notallex_s [T].*)
 
 Definition zenon_subst_s := fun T P x y c h i => zenon_subst T P x y h i c.
 Definition zenon_pnotp_s := fun P Q c h i => zenon_pnotp P Q h i c.
@@ -134,7 +134,7 @@ Proof. intros. rewrite (NNPP (a = b)). congruence. auto. Qed.
 (* ------------------------------------------------------------ *)
 
 Lemma zenon_recfun_unfold :
-  forall (A : Type) (P : A -> Prop) (a b : A) (eqn : a = b),
+  forall {A : Type} (P : A -> Prop) (a b : A) (eqn : a = b),
   (P b -> False) -> P a -> False.
 Proof.
   intros A P a b eqn H pa.
@@ -143,9 +143,9 @@ Proof.
   auto.
 Qed.
 
-Implicit Arguments zenon_recfun_unfold [A].
+(*Implicit Arguments zenon_recfun_unfold [A].*)
 
 Definition zenon_recfun_unfold_s :=
-  fun A P a b eqn c h => @zenon_recfun_unfold A P a b eqn h c
+  fun {A} P a b eqn c h => @zenon_recfun_unfold A P a b eqn h c
 .
-Implicit Arguments zenon_recfun_unfold_s [A].
+(*Implicit Arguments zenon_recfun_unfold_s [A].*)
