@@ -1,6 +1,6 @@
 
 Require Import Classical.
-Require Import Omega.
+Require Import Psatz.
 Require Export ZArith.
 Require Export ZArith.BinInt.
 Require Export QArith.
@@ -78,7 +78,7 @@ Ltac arith_norm_in H :=
   repeat rewrite qneg in H.
 
 Ltac arith_unfold :=
-  unfold Qplus, Qminus, Qmult, Qeq, Qle, Qlt, Zdiv;
+  unfold Qplus, Qminus, Qmult, Qeq, Qle, Qlt, Z.div;
   try repeat rewrite Qmult_1_l;
   try repeat rewrite Qmult_1_r;
   unfold Qnum, Qden;
@@ -86,7 +86,7 @@ Ltac arith_unfold :=
   try repeat rewrite Z.mul_1_r.
 
 Ltac arith_unfold_in H :=
-  unfold Qplus, Qminus, Qmult, Qeq, Qle, Qlt, Zdiv in H;
+  unfold Qplus, Qminus, Qmult, Qeq, Qle, Qlt, Z.div in H;
   try repeat rewrite Qmult_1_l in H;
   try repeat rewrite Qmult_1_r in H;
   unfold Qnum, Qden in H;
@@ -96,24 +96,24 @@ Ltac arith_unfold_in H :=
 Ltac arith_simpl k H :=
   arith_norm; arith_norm_in H;
   try (rewrite <- (Qmult_inj_r _ _ k) in H;
-    [ idtac | arith_unfold; simpl; omega];
+    [ idtac | arith_unfold; simpl; lia];
     arith_norm_in H);
   match goal with
   | H: ?e <= 0 |- ?f <= 0 =>
       let x := fresh in
       cut (e == f); [
         intro x; try rewrite <- x; exact H |
-        repeat rewrite qneg; arith_norm; arith_unfold; omega ]
+        repeat rewrite qneg; arith_norm; arith_unfold; lia ]
   | H: ?e < 0 |- ?f < 0 =>
       let x := fresh in
       cut (e == f); [
         intro x; try rewrite <- x; exact H |
-        repeat rewrite qneg; arith_norm; arith_unfold; omega ]
+        repeat rewrite qneg; arith_norm; arith_unfold; lia ]
   | H: ?e == 0 |- ?f == 0 =>
       let x := fresh in
       cut (e == f); [
         intro x; try rewrite <- x; exact H |
-        repeat rewrite qneg; arith_norm; arith_unfold; omega ]
+        repeat rewrite qneg; arith_norm; arith_unfold; lia ]
   end.
 
 Ltac Qle_mult k Hyp H :=
@@ -121,7 +121,7 @@ let x := fresh in
 cut (k >= 0); [
   intro x;
   pose proof (Qmult_le_compat_r _ _ k Hyp x) as H
-| arith_unfold; omega ].
+| arith_unfold; lia ].
 
 Ltac Qle_mult_opp k Hyp H :=
 let y := fresh in
@@ -132,10 +132,10 @@ Lemma arith_opp_inv : forall (a: Z) (b: positive), - (- a # b) == a # b.
 Proof. intros. unfold Qeq, Qnum, Qden. simpl. rewrite Z.opp_involutive. trivial. Qed.
 
 Ltac arith_opp :=
-  repeat match goal with
-  | H : context[- (Zneg ?a # ?b)] |- _ => rewrite (arith_opp_inv (' a) b) in H
-  | |- context[- ((Zneg ?a) # ?b)] => rewrite (arith_opp_inv (' a) b)
-  end.
+  repeat (match goal with
+  | H : context[ (Zneg ?a # ?b)] |- _ => rewrite (arith_opp_inv (a) b) in H
+  | |- context[ ((Zneg ?a) # ?b)] => rewrite (arith_opp_inv (a) b)
+  end).
 
 Ltac arith_switch H H' :=
   pose proof (Qopp_le_compat _ _ H) as H';
@@ -145,7 +145,7 @@ Ltac arith_q_trans lower upper new := first [
   pose proof (Qle_trans _ _ _ lower upper) as new |
   pose proof (Qlt_trans _ _ _ lower upper) as new |
   pose proof (Qle_lt_trans _ _ _ lower upper) as new |
-  pose proof (Qlt_le_trans _ _ _ lower upper) as new ].
+ pose proof (Qlt_le_trans _ _ _ lower upper) as new ]. 
 
 Ltac arith_trans_aux lower upper new :=
   first [
@@ -161,7 +161,7 @@ Ltac arith_trans A B C := first [ arith_trans_aux A B C | arith_trans_aux B A C 
 Ltac arith_omega H :=
   try rewrite H; try rewrite <- H;
   arith_unfold; arith_unfold_in H;
-  first [ omega | simpl; simpl in H; omega ].
+  first [ lia | simpl; simpl in H; lia ].
 
 Ltac arith_trans_simpl A B := let C := fresh in arith_trans A B C; arith_omega C.
 
