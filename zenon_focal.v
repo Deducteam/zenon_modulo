@@ -191,7 +191,7 @@ Proof.
 Qed.
 
 Lemma zenon_focal_ite_rel_l :
-  forall (A B : Type) (r: A -> B -> Prop) (cond : bool) (thn els : A) (e2 : B),
+  forall {A B : Type} (r: A -> B -> Prop) (cond : bool) (thn els : A) (e2 : B),
   (Is_true cond -> (r thn e2) -> False) ->
   (~Is_true cond -> (r els e2) -> False) ->
   r (if cond then thn else els) e2 -> False.
@@ -199,10 +199,8 @@ Proof.
   intros A B r cond; unfold Is_true; destruct cond; auto.
 Qed.
 
-Implicit Arguments zenon_focal_ite_rel_l [A B].
-
 Lemma zenon_focal_ite_rel_r :
-  forall (A B : Type) (r: A -> B -> Prop) (e1 : A) (cond : bool) (thn els : B),
+  forall {A B : Type} (r: A -> B -> Prop) (e1 : A) (cond : bool) (thn els : B),
   (Is_true cond -> (r e1 thn) -> False) ->
   (~Is_true cond -> (r e1 els) -> False) ->
   r e1 (if cond then thn else els) -> False.
@@ -210,10 +208,8 @@ Proof.
   intros A B r e1 cond; unfold Is_true; destruct cond; auto.
 Qed.
 
-Implicit Arguments zenon_focal_ite_rel_r [A B].
-
 Lemma zenon_focal_ite_rel_nl :
-  forall (A B : Type) (r: A -> B -> Prop) (cond : bool) (thn els : A) (e2 : B),
+  forall {A B : Type} (r: A -> B -> Prop) (cond : bool) (thn els : A) (e2 : B),
   (Is_true cond -> ~(r thn e2) -> False) ->
   (~Is_true cond -> ~(r els e2) -> False) ->
   ~(r (if cond then thn else els) e2) -> False.
@@ -221,18 +217,14 @@ Proof.
   intros A B r cond; unfold Is_true; destruct cond; auto.
 Qed.
 
-Implicit Arguments zenon_focal_ite_rel_nl [A B].
-
 Lemma zenon_focal_ite_rel_nr :
-  forall (A B : Type) (r: A -> B -> Prop) (e1 : A) (cond : bool) (thn els : B),
+  forall {A B : Type} (r: A -> B -> Prop) (e1 : A) (cond : bool) (thn els : B),
   (Is_true cond -> ~(r e1 thn) -> False) ->
   (~Is_true cond -> ~(r e1 els) -> False) ->
   ~(r e1 (if cond then thn else els)) -> False.
 Proof.
   intros A B r e1 cond; unfold Is_true; destruct cond; auto.
 Qed.
-
-Implicit Arguments zenon_focal_ite_rel_nr [A B].
 
 Lemma zenon_focal_istrue_true : forall e,
   (e = true -> False) -> (Is_true e -> False).
@@ -311,22 +303,21 @@ Definition zenon_focal_ite_bool_n_s :=
   fun i t e c h1 h2 => zenon_focal_ite_bool_n i t e h1 h2 c
 .
 Definition zenon_focal_ite_rel_l_s :=
-  fun A B r i t e e2 c h1 h2
+  fun {A B} r i t e e2 c h1 h2
   => @zenon_focal_ite_rel_l A B r i t e e2 h1 h2 c
 .
-Implicit Arguments zenon_focal_ite_rel_l_s [A B].
+
 Definition zenon_focal_ite_rel_r_s :=
-  fun A B r e1 i t e c h1 h2
+  fun {A B} r e1 i t e c h1 h2
   => @zenon_focal_ite_rel_r A B r e1 i t e h1 h2 c
 .
-Implicit Arguments zenon_focal_ite_rel_r_s [A B].
+
 Definition zenon_focal_ite_rel_nl_s :=
-  fun A B r i t e e2 c h1 h2
+  fun {A B} r i t e e2 c h1 h2
   => @zenon_focal_ite_rel_nl A B r i t e e2 h1 h2 c
 .
-Implicit Arguments zenon_focal_ite_rel_nl_s [A B].
+
 Definition zenon_focal_ite_rel_nr_s :=
-  fun A B r e1 i t e c h1 h2
+  fun {A B} r e1 i t e c h1 h2
   => @zenon_focal_ite_rel_nr A B r e1 i t e h1 h2 c
 .
-Implicit Arguments zenon_focal_ite_rel_nr_s [A B].

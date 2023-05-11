@@ -1034,7 +1034,8 @@ let output oc phrases llp =
   let dkname = List.hd name in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-  fprintf oc "require logic.zen as zen\n";
+  fprintf oc "require open Logic.Zenon.FOL Logic.Zenon.LL Logic.Zenon.ND Logic.Zenon.ND_eps Logic.Zenon.ND_eps_full Logic.Zenon.ND_eps_aux Logic.Zenon.LL_ND;\n";
+  fprintf oc "require open Logic.Zenon.zen;\n";
   if !Globals.signature_name = "" then List.iter (print_line oc) dksigs;
   fprintf oc "\n";
   if !Globals.signature_name = "" then List.iter (print_line oc) dkctx;
@@ -1044,6 +1045,7 @@ let output oc phrases llp =
   print_goal_type oc dkname dkgoal;
   fprintf oc " ≔ ";
   print_proof oc dkname dkproof;
+   fprintf oc ";";
   []
 ;;
 
@@ -1060,10 +1062,11 @@ let output_term oc phrases ppphrases llp =
   let dkgoal = translate_expr ngoal in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-  fprintf oc "require logic.zen as zen\n";
-  if !Globals.signature_name <> "" then fprintf oc "require %s\n" !Globals.signature_name;
-  fprintf oc "definition delta : zen.Proof (%a) \n ≔ \n " print_dk_term dkgoal; 
-  fprintf oc "zen.nnpp (%a)\n\n(%a)"
+  fprintf oc "require open Logic.Zenon.FOL Logic.Zenon.LL Logic.Zenon.ND Logic.Zenon.ND_eps Logic.Zenon.ND_eps_full Logic.Zenon.ND_eps_aux Logic.Zenon.LL_ND;\n";
+  fprintf oc "require open Logic.Zenon.zen;\n";
+  if !Globals.signature_name <> "" then fprintf oc "require %s.%s as %s;\n" !Globals.signature_name !Globals.signature_name !Globals.signature_name;
+  fprintf oc "symbol delta : ϵ (%a) \n ≔ \n " print_dk_term dkgoal;
+  fprintf oc "nnpp (%a)\n\n(%a);"
 	  print_dk_term dkgoal
 	  print_dk_term dkproof;
   []
