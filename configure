@@ -52,7 +52,7 @@ if check convert; then CONVERT=convert; else CONVERT=:; fi
 if check coqc; then COQC=coqc; else COQC=:; fi
 if check coqdep; then COQDEP=coqdep; else COQDEP=:; fi
 if check gs; then GS=gs; else GS=:; fi
-if check dkcheck; then DKCHECK=dkcheck; else DKCHECK=:; fi
+if check dk; then DKCHECK='dk check'; else DKCHECK=:; fi
 
 for i in sum md5 md5sum md5deep sha1deep sha256deep; do
   if check $i; then SUM=$i; break; fi
