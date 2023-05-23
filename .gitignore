@@ -1,3 +1,5 @@
+*.vok
+*.vos
 *.cm[iox]
 *.o
 *.annot

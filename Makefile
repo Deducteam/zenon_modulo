@@ -72,7 +72,7 @@ COQOBJ = $(COQSRC:%.v=%.vo)
 
 DKOBJ = $(DKSRC:%.dk=%.dko)
 
-.PHONY: all byt bin coq
+.PHONY: all byt bin coq dk
 
 all: byt bin zenon_modulo coq dk
 
