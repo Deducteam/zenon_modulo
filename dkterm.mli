@@ -1,4 +1,5 @@
-(* AST corresponding to a Dedukti output *)
+(* AST corresponding to Dedukti format
+   common to the dk and the lambdapi output *)
 type var = string
 
 type dkterm =
@@ -60,6 +61,7 @@ type line =
   | Dkrwrt of dkterm list * dkterm * dkterm    (* rewrite rules *)
 
 val get_dkvar_type      : dkterm -> dkterm
+val get_var_newname    : dkterm -> string
 
 val mk_typetype         : dkterm
 val mk_typeprop         : dkterm
@@ -115,11 +117,6 @@ val mk_DkRcongrl        : dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * 
 val mk_decl             : var * dkterm -> line
 val mk_rwrt             : dkterm list * dkterm * dkterm -> line
 
-val print_line          : out_channel -> line -> unit
-val print_goal_type     : out_channel -> string -> dkterm -> unit
-val print_dk_type       : out_channel -> dkterm -> unit
-val print_dk_term       : out_channel -> dkterm -> unit
-val print_proof         : out_channel -> string -> dkterm -> unit
 
 
 type declaration =

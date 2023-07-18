@@ -19,6 +19,8 @@ type proof_level =
   | Proof_dot of bool * int
   | Proof_dk
   | Proof_dkterm
+  | Proof_lp
+  | Proof_lpterm
 ;;
 
 let proof_level = ref Proof_none;;
@@ -171,6 +173,16 @@ let argspec = [
 				  opt_level := 0;
 				  Globals.output_dk := true),
             "           print the proof in DK term format";
+  "-olp", Arg.Unit (fun () -> namespace_flag := true;
+                              quiet_flag := true;
+			      proof_level := Proof_lp;
+			      opt_level := 0;
+			      Globals.output_dk := true),
+        "               print the proof in lambdapi script format (force -rename)";
+  "-olpterm", Arg.Unit (fun () -> proof_level := Proof_lpterm;
+				  opt_level := 0;
+				  Globals.output_dk := true),
+            "           print the proof in lambdapi term format";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
       "<n>             print the proof in high-level format up to depth <n>";
   "-oisar", Arg.Unit (fun () -> proof_level := Proof_isar),
@@ -473,6 +485,12 @@ let main () =
         Watch.warn phrases_dep llp u;
     | Proof_dkterm ->
        let u = Lltodk.output_term stdout phrases ppphrases (Lazy.force llp) in
+       Watch.warn phrases_dep llp u;
+    | Proof_lp ->
+        let u = Lltolp.output stdout phrases (Lazy.force llp) in
+        Watch.warn phrases_dep llp u;
+    | Proof_lpterm ->
+       let u = Lltolp.output_term stdout phrases ppphrases (Lazy.force llp) in
        Watch.warn phrases_dep llp u;
     | Proof_isar ->
         let u = Lltoisar.output stdout phrases ppphrases (Lazy.force llp) in
