@@ -1035,7 +1035,7 @@ let output oc phrases llp =
   let dkname = List.hd name in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-  fprintf oc "require open Logic.Zenon.FOL Logic.Zenon.LL Logic.Zenon.ND Logic.Zenon.ND_eps Logic.Zenon.ND_eps_full Logic.Zenon.ND_eps_aux Logic.Zenon.LL_ND Logic.Zenon.zen;\n";
+  fprintf oc "require open Logic.Zenon.FOL Logic.Zenon.LL Logic.Zenon.ND Logic.Zenon.ND_eps Logic.Zenon.ND_eps_full Logic.Zenon.ND_eps_aux Logic.Zenon.LL_ND Logic.Zenon.zen;\n\n";
   if !Globals.signature_name = "" then List.iter (print_line oc) dksigs;
   fprintf oc "\n";
   if !Globals.signature_name = "" then List.iter (print_line oc) dkctx;
@@ -1061,11 +1061,12 @@ let output_term oc phrases ppphrases llp =
   in
   let dkgoal = translate_expr ngoal in
   let prooftree = extract_prooftree llp in
+  let goal_name = (List.hd llp).name in
   let dkproof = make_proof_term (List.hd goal) prooftree in
   fprintf oc "require open Logic.Zenon.FOL Logic.Zenon.LL Logic.Zenon.ND Logic.Zenon.ND_eps Logic.Zenon.ND_eps_full Logic.Zenon.ND_eps_aux Logic.Zenon.LL_ND Logic.Zenon.zen;\n";
   if !Globals.signature_name <> "" then fprintf oc "require %s as S;\n" !Globals.signature_name;
-  fprintf oc "symbol delta : ϵ (%a) \n ≔ \n " print_dk_term dkgoal;
-  fprintf oc "nnpp (%a)\n\n(%a);"
+  fprintf oc "\nrule S.%s ↪ \n" goal_name;
+  fprintf oc "  nnpp (%a)\n    (%a);"
 	  print_dk_term dkgoal
 	  print_dk_term dkproof;
   []
