@@ -397,6 +397,9 @@ let rec decompose_disj e forms =
   | _ -> assert false
 ;;
 
+module TauMap = Map.Make(Int)
+
+
 let rec decompose_conj n e dirs vars forms taus =
   match e, dirs, vars with
   | Eand (e1, e2, _), L::rest, _ ->
@@ -405,14 +408,17 @@ let rec decompose_conj n e dirs vars forms taus =
   | Eand (e1, e2, _), R::rest, _ ->
       let n1 = decompose_conj n e2 rest vars forms taus in
       make_node [e] (And (e1, e2)) [[e2]] [n1]
-  | Eall (v, e1, _), _, w::rest when n = w ->
-      begin match taus with
-      | [] -> assert false
-      | x::t ->
-          let f = Expr.substitute [(v, x)] e1 in
-          let n1 = decompose_conj (n+1) f dirs rest forms t in
-          make_node [e] (All (e, x)) [[f]] [n1]
-      end
+  | Eall (v, e1, _), _, vars when List.mem n vars ->
+     begin try
+       let x = TauMap.find n taus in
+       let rest = List.filter ((<>) n) vars in
+       let t = TauMap.remove n taus in
+       let f = Expr.substitute [(v, x)] e1 in
+       let n1 = decompose_conj (n+1) f dirs rest forms t in
+       make_node [e] (All (e, x)) [[f]] [n1]
+     with
+       Not_found -> assert false
+     end
   | Eall (v, e1, _), _, _ ->
       let x = emeta (e) in
       let f = Expr.substitute [(v, x)] e1 in
@@ -433,14 +439,16 @@ let rec decompose_conj n e dirs vars forms taus =
       let ne2 = enot e2 in
       let n1 = decompose_conj n ne2 rest vars forms taus in
       make_node [e] (NotOr (e1, e2)) [[ne2]] [n1]
-  | Enot (Eex (v, e1, _), _), _, w::rest when n = w ->
-      begin match taus with
-      | [] -> assert false
-      | x::t ->
-          let f = Expr.substitute [(v, x)] (enot e1) in
-          let n1 = decompose_conj (n+1) f dirs rest forms t in
-          make_node [e] (NotEx (e, x)) [[f]] [n1]
-      end
+  | Enot (Eex (v, e1, _), _), _, _ when List.mem n vars ->
+     begin try
+       let x = TauMap.find n taus in
+       let rest = List.filter ((<>) n) vars in
+       let f = Expr.substitute [(v, x)] (enot e1) in
+       let t = TauMap.remove n taus in
+       let n1 = decompose_conj (n+1) f dirs rest forms t in
+       make_node [e] (NotEx (e, x)) [[f]] [n1]
+       with Not_found -> assert false
+     end
   | Enot (Eex (v, e1, _) as e2, _), _, _ ->
       let x = emeta (e2) in
       let f = Expr.substitute [(v, x)] (enot e1) in
@@ -472,7 +480,7 @@ let rec decompose_conj n e dirs vars forms taus =
   | _, _, _ ->
       assert (dirs = []);
       assert (vars = []);
-      assert (taus = []);
+      assert (TauMap.is_empty taus);
       decompose_disj e forms
 ;;
 
@@ -480,87 +488,130 @@ let get_proof e =
   let ne = enot e in
   match HE.find hyps_tbl e with
   | Refl ((f, dirs, vars)) ->
-      let (f1, tau) = inst_nall ne in
-      let n1 = decompose_conj 0 f dirs vars [f1] [tau] in
-      let n2 = make_node [ne] (NotAll ne) [[f1]] [n1] in
-      (n2, [f])
+     let (f1, tau) = inst_nall ne in
+     let n1 = decompose_conj 0 f dirs vars [f1]
+                (TauMap.singleton (List.hd vars) tau) in
+     let n2 = make_node [ne] (NotAll ne) [[f1]] [n1] in
+     (n2, [f])
   | Sym ((f, dirs, vars)) ->
-      let (f1, tau1) = inst_nall ne in
-      let (f2, tau2) = inst_nall f1 in
-      begin match f2 with
-      | Enot (Eimply (f3, f4, _), _) ->
-          let nf4 = enot f4 in
-          let n1 = decompose_conj 0 f dirs vars [f3; nf4] [tau1; tau2] in
-          let n2 = make_node [f2] (NotImpl (f3, f4)) [[f3; nf4]] [n1] in
-          let n3 = make_node [f1] (NotAll f1) [[f2]] [n2] in
-          let n4 = make_node [ne] (NotAll ne) [[f1]] [n3] in
-          (n4, [f])
-      | _ -> assert false
-      end
+     let (f1, tau1) = inst_nall ne in
+     let (f2, tau2) = inst_nall f1 in
+     let taus = match vars with
+         [n1; n2] -> TauMap.empty
+                     |> TauMap.add n1 tau1
+                     |> TauMap.add n2 tau2
+       | _ -> assert false
+     in
+     begin match f2 with
+     | Enot (Eimply (f3, f4, _), _) ->
+        let nf4 = enot f4 in
+        let n1 = decompose_conj 0 f dirs vars [f3; nf4] taus in
+        let n2 = make_node [f2] (NotImpl (f3, f4)) [[f3; nf4]] [n1] in
+        let n3 = make_node [f1] (NotAll f1) [[f2]] [n2] in
+        let n4 = make_node [ne] (NotAll ne) [[f1]] [n3] in
+        (n4, [f])
+     | _ -> assert false
+     end
   | Sym2 (s, (fsy, dirsy, varsy), (ftx, dirtx, vartx)) ->
-      let (f1, tau1) = inst_nall ne in
-      let (f2, tau2) = inst_nall f1 in
-      let rtt = eapp (s, [tau1; tau1]) in
-      let nrtt = enot rtt in
-      begin match f2 with
-      | Enot (Eimply (f3, f4, _), _) ->
-          let nf4 = enot f4 in
-          let n1 = decompose_conj 0 fsy dirsy varsy [nrtt] [tau1] in
-          let n2 = decompose_conj 0 ftx dirtx vartx [rtt; f3; nf4]
-                                  [tau1; tau1; tau2]
-          in
-          let n3 = make_node [] (Cut rtt) [[rtt]; [nrtt]] [n2; n1] in
-          let n4 = make_node [f2] (NotImpl (f3, f4)) [[f3; nf4]] [n3] in
-          let n5 = make_node [f1] (NotAll f1) [[f2]] [n4] in
-          let n6 = make_node [ne] (NotAll ne) [[f1]] [n5] in
-          (n6, [fsy; ftx])
-      | _ -> assert false
-      end
+     let (f1, tau1) = inst_nall ne in
+     let (f2, tau2) = inst_nall f1 in
+     let taus1 = match varsy with
+         [n1] -> TauMap.singleton n1 tau1
+       | _ -> assert false
+     in
+     let taus2 = match vartx with
+         [n1; n2; n3] -> TauMap.empty
+                     |> TauMap.add n1 tau1
+                     |> TauMap.add n2 tau1
+                     |> TauMap.add n3 tau2
+       | _ -> assert false
+     in
+     let rtt = eapp (s, [tau1; tau1]) in
+     let nrtt = enot rtt in
+     begin match f2 with
+     | Enot (Eimply (f3, f4, _), _) ->
+        let nf4 = enot f4 in
+        let n1 = decompose_conj 0 fsy dirsy varsy [nrtt] taus1 in
+        let n2 = decompose_conj 0 ftx dirtx vartx [rtt; f3; nf4]
+                   taus2
+        in
+        let n3 = make_node [] (Cut rtt) [[rtt]; [nrtt]] [n2; n1] in
+        let n4 = make_node [f2] (NotImpl (f3, f4)) [[f3; nf4]] [n3] in
+        let n5 = make_node [f1] (NotAll f1) [[f2]] [n4] in
+        let n6 = make_node [ne] (NotAll ne) [[f1]] [n5] in
+        (n6, [fsy; ftx])
+     | _ -> assert false
+     end
   | Trans ((f, dirs, vars)) ->
-      let (f1, tau1) = inst_nall ne in
-      let (f2, tau2) = inst_nall f1 in
-      let (f3, tau3) = inst_nall f2 in
-      begin match f3 with
-      | Enot (Eimply (f4, (Eimply (f5, f6, _) as f56), _), _) ->
-          let nf6 = enot f6 in
-          let n1 = decompose_conj 0 f dirs vars [f4; f5; nf6] [tau1; tau2; tau3]
-          in
-          let n2 = make_node [f56] (NotImpl (f5, f6)) [[f5; nf6]] [n1] in
-          let n3 = make_node [f3] (NotImpl (f4, f56)) [[f4; enot f56]] [n2] in
-          let n4 = make_node [f2] (NotAll f2) [[f3]] [n3] in
-          let n5 = make_node [f1] (NotAll f1) [[f2]] [n4] in
-          let n6 = make_node [ne] (NotAll ne) [[f1]] [n5] in
-          (n6, [f])
-      | _ -> assert false
-      end
+     let (f1, tau1) = inst_nall ne in
+     let (f2, tau2) = inst_nall f1 in
+     let (f3, tau3) = inst_nall f2 in
+     let taus = match vars with
+         [n1; n2; n3] -> TauMap.empty
+                     |> TauMap.add n1 tau1
+                     |> TauMap.add n2 tau2
+                     |> TauMap.add n3 tau3
+       | _ -> assert false
+     in
+     begin match f3 with
+     | Enot (Eimply (f4, (Eimply (f5, f6, _) as f56), _), _) ->
+        let nf6 = enot f6 in
+        let n1 = decompose_conj 0 f dirs vars [f4; f5; nf6] taus
+        in
+        let n2 = make_node [f56] (NotImpl (f5, f6)) [[f5; nf6]] [n1] in
+        let n3 = make_node [f3] (NotImpl (f4, f56)) [[f4; enot f56]] [n2] in
+        let n4 = make_node [f2] (NotAll f2) [[f3]] [n3] in
+        let n5 = make_node [f1] (NotAll f1) [[f2]] [n4] in
+        let n6 = make_node [ne] (NotAll ne) [[f1]] [n5] in
+        (n6, [f])
+     | _ -> assert false
+     end
   | Trans2 (s, (fsy, dirsy, varsy), (ftx, dirtx, vartx)) ->
-      let (f1, tau1) = inst_nall ne in
-      let (f2, tau2) = inst_nall f1 in
-      let (f3, tau3) = inst_nall f2 in
-      let rt1t1 = eapp (s, [tau1; tau1]) in
-      let nrt1t1 = enot rt1t1 in
-      let rt3t1 = eapp (s, [tau3; tau1]) in
-      let nrt3t1 = enot rt3t1 in
-      begin match f3 with
-      | Enot (Eimply (f4, (Eimply (f5, f6, _) as f56), _), _) ->
-          let nf6 = enot f6 in
-          let n1 = decompose_conj 0 ftx dirtx vartx [rt3t1; rt1t1; nf6]
-                                  [tau3; tau1; tau1]
-          in
-          let n2 = decompose_conj 0 ftx dirtx vartx [f4; f5; nrt3t1]
-                                  [tau1; tau2; tau3]
-          in
-          let n3 = make_node [] (Cut rt3t1) [[rt3t1]; [nrt3t1]] [n1; n2] in
-          let n4 = decompose_conj 0 fsy dirsy varsy [nrt1t1] [tau1] in
-          let n5 = make_node [] (Cut rt1t1) [[rt1t1]; [nrt1t1]] [n3; n4] in
-          let n6 = make_node [f56] (NotImpl (f5, f6)) [[f5; nf6]] [n5] in
-          let n7 = make_node [f3] (NotImpl (f4, f56)) [[f4; enot f56]] [n6] in
-          let n8 = make_node [f2] (NotAll f2) [[f3]] [n7] in
-          let n9 = make_node [f1] (NotAll f1) [[f2]] [n8] in
-          let n10 = make_node [ne] (NotAll ne) [[f1]] [n9] in
-          (n10, [fsy; ftx])
-      | _ -> assert false
-      end
+     let (f1, tau1) = inst_nall ne in
+     let (f2, tau2) = inst_nall f1 in
+     let (f3, tau3) = inst_nall f2 in
+     let taus1 = match vartx with
+         [n1; n2; n3] -> TauMap.empty
+                     |> TauMap.add n1 tau3
+                     |> TauMap.add n2 tau1
+                     |> TauMap.add n3 tau1
+       | _ -> assert false
+     in
+     let taus2 = match vartx with
+         [n1; n2; n3] -> TauMap.empty
+                     |> TauMap.add n1 tau1
+                     |> TauMap.add n2 tau2
+                     |> TauMap.add n3 tau3
+       | _ -> assert false
+     in
+     let taus3 = match varsy with
+         [n1] -> TauMap.singleton n1 tau1
+       | _ -> assert false
+     in
+     let rt1t1 = eapp (s, [tau1; tau1]) in
+     let nrt1t1 = enot rt1t1 in
+     let rt3t1 = eapp (s, [tau3; tau1]) in
+     let nrt3t1 = enot rt3t1 in
+     begin match f3 with
+     | Enot (Eimply (f4, (Eimply (f5, f6, _) as f56), _), _) ->
+        let nf6 = enot f6 in
+        let n1 = decompose_conj 0 ftx dirtx vartx [rt3t1; rt1t1; nf6]
+                   taus1
+        in
+        let n2 = decompose_conj 0 ftx dirtx vartx [f4; f5; nrt3t1]
+                   taus2
+        in
+        let n3 = make_node [] (Cut rt3t1) [[rt3t1]; [nrt3t1]] [n1; n2] in
+        let n4 = decompose_conj 0 fsy dirsy varsy [nrt1t1] taus3 in
+        let n5 = make_node [] (Cut rt1t1) [[rt1t1]; [nrt1t1]] [n3; n4] in
+        let n6 = make_node [f56] (NotImpl (f5, f6)) [[f5; nf6]] [n5] in
+        let n7 = make_node [f3] (NotImpl (f4, f56)) [[f4; enot f56]] [n6] in
+        let n8 = make_node [f2] (NotAll f2) [[f3]] [n7] in
+        let n9 = make_node [f1] (NotAll f1) [[f2]] [n8] in
+        let n10 = make_node [ne] (NotAll ne) [[f1]] [n9] in
+        (n10, [fsy; ftx])
+     | _ -> assert false
+     end
 ;;
 
 let print_rels oc =
