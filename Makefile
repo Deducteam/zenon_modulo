@@ -32,7 +32,8 @@ SOURCES = log.ml version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
 	  parsetptp.mly lextptp.mll typetptp.ml \
 	  parsecoq.mly lexcoq.mll parsedk.mly lexdk.mll tptp.ml \
           coqterm.ml lltocoq.ml \
-	  dkterm.ml lltodk.ml \
+	  dkterm.ml dkprint.ml lltodk.ml \
+	  lpprint.ml lltolp.ml \
           enum.ml isar_case.ml lltoisar.ml \
           ext_focal.ml ext_tla.ml ext_recfun.ml \
           ext_equiv.ml ext_induct.ml ext_arith.ml \
@@ -72,7 +73,7 @@ COQOBJ = $(COQSRC:%.v=%.vo)
 
 DKOBJ = $(DKSRC:%.dk=%.dko)
 
-.PHONY: all byt bin coq
+.PHONY: all byt bin coq dk
 
 all: byt bin zenon_modulo coq dk
 
@@ -85,10 +86,10 @@ byt: zenon_modulo.byt
 bin: zenon_modulo.bin
 
 zenon_modulo.bin: $(BINOBJS)
-	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa zarith.cmxa $(BINOBJS)
+	$(CAMLBIN) $(CAMLBINFLAGS) -o zenon_modulo.bin unix.cmxa zarith.cmxa str.cmxa $(BINOBJS)
 
 zenon_modulo.byt: $(BYTOBJS)
-	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_modulo.byt unix.cma zarith.cma $(BYTOBJS)
+	$(CAMLBYT) $(CAMLBYTFLAGS) -o zenon_modulo.byt unix.cma zarith.cma str.cma $(BYTOBJS)
 
 zenon_modulo: zenon_modulo.byt
 	if test -x zenon_modulo.bin; then \

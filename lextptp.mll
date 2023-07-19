@@ -77,8 +77,8 @@ rule token = parse
   | "$true"          { TRUE }
   | "$false"         { FALSE }
   | "$tType"         { TTYPE }
-  | "\'"             { single_quoted (Buffer.create 20) lexbuf }
-  | "\""             { double_quoted (Buffer.create 20) lexbuf }
+  | "\'"             { let buf = Buffer.create 20 in Buffer.add_char buf '\''; single_quoted buf lexbuf }
+  | "\""             { let buf = Buffer.create 20 in Buffer.add_char buf '\"'; double_quoted buf lexbuf }
   | upperid idchar * { UIDENT (Lexing.lexeme lexbuf) }
   | '$'? lowerid idchar * { LIDENT (Lexing.lexeme lexbuf) }
 
@@ -104,7 +104,7 @@ and single_quoted buf = parse
       Buffer.add_string buf (Lexing.lexeme lexbuf);
       single_quoted buf lexbuf
     }
-  | '\'' { LIDENT (Buffer.contents buf) }
+  | '\'' { Buffer.add_char buf '\''; LIDENT (Buffer.contents buf) }
   | '\\' { raise (Error.Lex_error "bad \\ escape in <single_quoted>") }
   | _ { raise (Error.Lex_error "bad character in <single_quoted>") }
 
@@ -117,6 +117,6 @@ and double_quoted buf = parse
       Buffer.add_string buf (Lexing.lexeme lexbuf);
       double_quoted buf lexbuf
     }
-  | '\"' { STRING (Buffer.contents buf) }
+  | '\"' { Buffer.add_char buf '\"'; STRING (Buffer.contents buf) }
   | '\\' { raise (Error.Lex_error "bad \\ escape in <distinct_object>") }
   | _ { raise (Error.Lex_error "bad character in <distinct_object>") }
