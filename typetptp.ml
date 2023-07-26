@@ -58,7 +58,12 @@ let tff_find v env =
   with Not_found ->
     raise (Type_error (Printf.sprintf "Unknown variable : %s" v))
 
+let symbols = ref []
+
+let is_symbol s = List.mem s !symbols
+
 let tff_add_type name t env =
+  symbols := name::!symbols;
   if tff_mem name env then
     match M.find name env.tff with
     | [] -> assert false

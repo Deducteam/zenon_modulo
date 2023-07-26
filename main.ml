@@ -183,6 +183,8 @@ let argspec = [
 				  opt_level := 0;
 				  Globals.output_dk := true),
             "           print the proof in lambdapi term format";
+  "-neg-conj", Arg.String (fun s -> Globals.neg_conj := s),
+      "<n>             set the negated conjecture name";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
       "<n>             print the proof in high-level format up to depth <n>";
   "-oisar", Arg.Unit (fun () -> proof_level := Proof_isar),

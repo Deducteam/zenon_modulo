@@ -50,7 +50,10 @@ and print_dk_cst o t =
   | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
   | s -> if !Globals.signature_name = "" then fprintf o "%s" (escape_name s) else
     if Mltoll.is_meta s then fprintf o "select ι" else
-      fprintf o "S.%s" (escape_name s)
+      begin
+        fprintf o "S.%s" (escape_name s);
+        if not (Typetptp.is_symbol s) then fprintf o " %s" !Globals.neg_conj
+      end
 
 and print_dk_term_aux o (t, l_rule) =
   match t with

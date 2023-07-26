@@ -30,3 +30,4 @@ val debug_rwrt : bool ref;;
 
 val output_sig : bool ref;;
 val signature_name : string ref;;
+val neg_conj : string ref;;
