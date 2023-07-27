@@ -101,21 +101,30 @@ phrase:
   | INCLUDE OPEN LIDENT CLOSE DOT  { Phrase.Include ($3, None) }
   | INCLUDE OPEN LIDENT COMMA LBRACKET name_list RBRACKET CLOSE DOT
                                    { Phrase.Include ($3, Some ($6)) }
-  | INPUT_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula CLOSE DOT
+  | INPUT_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula extra CLOSE DOT
                                    { Phrase.Formula (ns_hyp $3, $5, $7, None) }
-  | INPUT_CLAUSE OPEN LIDENT COMMA LIDENT COMMA cnf_formula CLOSE DOT
+  | INPUT_CLAUSE OPEN LIDENT COMMA LIDENT COMMA cnf_formula extra CLOSE DOT
      { Phrase.Formula (ns_hyp $3, $5, cnf_to_formula $7, None) }
-  | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula COMMA LIDENT CLOSE DOT
+  | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula COMMA LIDENT extra CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, Some $9) }
-  | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula CLOSE DOT
+  | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA formula extra CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, None) }
-  | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA type_def CLOSE DOT
+  | INPUT_TFF_FORMULA OPEN LIDENT COMMA LIDENT COMMA type_def extra CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, None) }
-  | INPUT_TFF_FORMULA OPEN INT COMMA LIDENT COMMA formula CLOSE DOT
+  | INPUT_TFF_FORMULA OPEN INT COMMA LIDENT COMMA formula extra CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, None) }
-  | INPUT_TFF_FORMULA OPEN INT COMMA LIDENT COMMA type_def CLOSE DOT
+  | INPUT_TFF_FORMULA OPEN INT COMMA LIDENT COMMA type_def extra CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, None) }
   | ANNOT                          { Phrase.Annotation $1 }
+;
+extra:
+  | {}
+  | COMMA extra_expr extra {}
+;
+extra_expr:
+  | expr {}
+  | LBRACKET extra_expr extra RBRACKET {}
+  | LIDENT OPEN LIDENT extra CLOSE {}
 ;
 expr:
   | UIDENT                             { tvar_none (ns_var $1) }
