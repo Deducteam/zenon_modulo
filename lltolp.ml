@@ -1065,8 +1065,10 @@ let output_term oc phrases ppphrases llp =
   let dkproof = make_proof_term (List.hd goal) prooftree in
   fprintf oc "require open Logic.Zenon.FOL Logic.Zenon.LL Logic.Zenon.ND Logic.Zenon.ND_eps Logic.Zenon.ND_eps_full Logic.Zenon.ND_eps_aux Logic.Zenon.LL_ND Logic.Zenon.zen;\n";
   if !Globals.signature_name <> "" then fprintf oc "require %s as S;\n" !Globals.signature_name;
-  fprintf oc "\nrule S.%s ↪ \n" goal_name;
-  fprintf oc "  nnpp (%a)\n    (%a);\n"
+  fprintf oc "\nrule S.%s ↪ " goal_name;
+  let n = !Globals.neg_conj in
+  if n <> "" then fprintf oc "λ %s,\n" n;
+  fprintf oc "\n  nnpp (%a)\n    (%a);\n"
 	  print_dk_term dkgoal
 	  print_dk_term dkproof;
   []
