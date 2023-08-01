@@ -58,12 +58,7 @@ let tff_find v env =
   with Not_found ->
     raise (Type_error (Printf.sprintf "Unknown variable : %s" v))
 
-let symbols = ref []
-
-let is_symbol s = List.mem s !symbols
-
 let tff_add_type name t env =
-  symbols := name::!symbols;
   if tff_mem name env then
     match M.find name env.tff with
     | [] -> assert false
@@ -335,12 +330,17 @@ let notype_kind = function
   | s when is_tff_expr s -> s - 10
   | s -> s
 
+let symbols = ref []
+
+let is_symbol s = List.mem s !symbols
+
 let type_phrase env p = match p with
   | Phrase.Hyp (name, e, kind) when is_tff_def kind ->
     Log.debug 1 "typechecking TFF definition '%s'" name;
     p, type_tff_def env e
   | Phrase.Hyp (name, e, kind) when is_tff_axiom kind ->
     Log.debug 1 "typechecking TFF axiom '%s'" name;
+    symbols := name :: !symbols;
     let e', env' = type_tff_expr env e in
     Phrase.Hyp (name, e', notype_kind kind), env'
   | Phrase.Hyp (name, e, kind) when is_tff_expr kind ->
@@ -359,6 +359,7 @@ let type_phrase env p = match p with
     Phrase.Rew (name, e', notype_kind kind), env'
   | Phrase.Hyp (name, e, kind) ->
     Log.debug 1 "typechecking FOF formula '%s'" name;
+    symbols := name :: !symbols;
     let e' = type_fof_expr env e in
     Phrase.Hyp(name, e', kind), env
   | _ ->
