@@ -9,4 +9,4 @@ val type_tff_expr : env -> Expr.t -> Expr.t * env
 
 val typecheck : Phrase.phrase list -> Phrase.phrase list
 
-val is_symbol : string -> bool
+val is_axiom : string -> bool

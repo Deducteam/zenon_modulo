@@ -52,7 +52,7 @@ and print_dk_cst o t =
     if Mltoll.is_meta s then fprintf o "select ι" else
       begin
         fprintf o "S.%s" (escape_name s);
-        if not (Typetptp.is_symbol s) then fprintf o " %s" !Globals.neg_conj
+        if Typetptp.is_axiom s then fprintf o " %s" !Globals.neg_conj
       end
 
 and print_dk_term_aux o (t, l_rule) =
