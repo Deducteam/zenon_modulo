@@ -872,7 +872,7 @@ let mk_tuple l =
 
 let rec to_llproof p =
   if (p.mlrefc < 0)
-     && not !Globals.output_dk then
+     && not (!Globals.output_dk || !Globals.output_lp) then
     get_lemma p
   else
     begin
@@ -890,7 +890,7 @@ let rec to_llproof p =
           (nn, extras)
       in
       if (p.mlrefc > 1)
-	 && not !Globals.output_dk
+	 && not (!Globals.output_dk || !Globals.output_lp)
       then
 	begin
 	  make_lemma result extras p;

@@ -53,7 +53,8 @@ and print_dk_cst o t =
     if s = !Globals.neg_conj then fprintf o "%s" s else
       begin
         fprintf o "S.%s" (escape_name s);
-        if Typetptp.is_axiom s then fprintf o " %s" !Globals.neg_conj
+        if not !Globals.check_axiom && Typetptp.is_axiom s then
+          fprintf o " %s" !Globals.neg_conj
       end
 
 and print_dk_term_aux o (t, l_rule) =

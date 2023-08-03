@@ -23,6 +23,7 @@ let stored_lemmas = ref 0;;
 let num_expr = ref 0;;
 
 let output_dk = ref false;;
+let output_lp = ref false;;
 let modulo = ref false;;
 let modulo_heuri = ref false;;
 let modulo_heuri_simple = ref false;;
@@ -31,3 +32,14 @@ let debug_rwrt = ref false;;
 let output_sig = ref false;;
 let signature_name = ref "";;
 let neg_conj = ref "";;
+let check_axiom = ref false;;
+
+let begin_comment() =
+  if !output_dk then "(;"
+  else if !output_lp then "/*"
+  else "(*"
+
+let end_comment() =
+  if !output_dk then ";)"
+  else if !output_lp then "*/"
+  else "*)"

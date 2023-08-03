@@ -23,6 +23,7 @@ val stored_lemmas : int ref;;
 val num_expr : int ref;;
 
 val output_dk : bool ref;;
+val output_lp : bool ref;;
 val modulo : bool ref;;
 val modulo_heuri : bool ref;;
 val modulo_heuri_simple : bool ref;;
@@ -31,3 +32,7 @@ val debug_rwrt : bool ref;;
 val output_sig : bool ref;;
 val signature_name : string ref;;
 val neg_conj : string ref;;
+val check_axiom : bool ref;;
+
+val begin_comment : unit -> string;;
+val end_comment : unit -> string;;
