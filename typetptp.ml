@@ -330,12 +330,17 @@ let notype_kind = function
   | s when is_tff_expr s -> s - 10
   | s -> s
 
+let axioms = ref []
+
+let is_axiom s = List.mem s !axioms
+
 let type_phrase env p = match p with
   | Phrase.Hyp (name, e, kind) when is_tff_def kind ->
     Log.debug 1 "typechecking TFF definition '%s'" name;
     p, type_tff_def env e
   | Phrase.Hyp (name, e, kind) when is_tff_axiom kind ->
     Log.debug 1 "typechecking TFF axiom '%s'" name;
+    axioms := name :: !axioms;
     let e', env' = type_tff_expr env e in
     Phrase.Hyp (name, e', notype_kind kind), env'
   | Phrase.Hyp (name, e, kind) when is_tff_expr kind ->
@@ -354,6 +359,7 @@ let type_phrase env p = match p with
     Phrase.Rew (name, e', notype_kind kind), env'
   | Phrase.Hyp (name, e, kind) ->
     Log.debug 1 "typechecking FOF formula '%s'" name;
+    axioms := name :: !axioms;
     let e' = type_fof_expr env e in
     Phrase.Hyp(name, e', kind), env
   | _ ->

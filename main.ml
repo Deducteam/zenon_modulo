@@ -70,8 +70,7 @@ let int_arg r arg =
       | _ -> raise (Arg.Bad "bad numeric argument")
     with Failure "float_of_string" -> raise (Arg.Bad "bad numeric argument")
 ;;
-let p_string s = 
-  signature_name := s;;
+
 let parse_size_time s =
   let l = String.length s in
   let rec loop i =
@@ -167,7 +166,7 @@ let argspec = [
 			      opt_level := 0;
 			      Globals.output_dk := true),
         "               print the proof in Dk script format (force -rename)";
-  "-sig", Arg.String ( p_string),
+  "-sig", Arg.String (fun s -> Globals.signature_name := s),
               "              print the proof using a signature name for each symbol";
   "-odkterm", Arg.Unit (fun () -> proof_level := Proof_dkterm;
 				  opt_level := 0;
@@ -177,12 +176,16 @@ let argspec = [
                               quiet_flag := true;
 			      proof_level := Proof_lp;
 			      opt_level := 0;
-			      Globals.output_dk := true),
+			      Globals.output_lp := true),
         "               print the proof in lambdapi script format (force -rename)";
   "-olpterm", Arg.Unit (fun () -> proof_level := Proof_lpterm;
 				  opt_level := 0;
-				  Globals.output_dk := true),
+				  Globals.output_lp := true),
             "           print the proof in lambdapi term format";
+  "-neg-conj", Arg.String (fun s -> Globals.neg_conj := s),
+      "<n>             set the negated conjecture name";
+  "-check-axiom", Arg.Unit (fun () -> Globals.check_axiom := true),
+      "<n>             indicate whether this is a GDV leaf problem";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
       "<n>             print the proof in high-level format up to depth <n>";
   "-oisar", Arg.Unit (fun () -> proof_level := Proof_isar),
@@ -457,9 +460,11 @@ let main () =
         retcode := 12;
     if not !quiet_flag then begin
       if is_open then
-        if !Globals.signature_name <> "" then () else printf "(* NO-PROOF *)\n"
+        if !Globals.signature_name <> "" then ()
+        else printf "%s" (begin_comment() ^ " NO-PROOF " ^ end_comment() ^ "\n")
       else
-        if !Globals.signature_name <> "" then () else printf "(* PROOF-FOUND *)\n";
+        if !Globals.signature_name <> "" then ()
+        else printf "%s" (begin_comment() ^ " PROOF-FOUND " ^ end_comment() ^ "\n");
       flush stdout
       end;
     let llp = lazy (optim (Extension.postprocess

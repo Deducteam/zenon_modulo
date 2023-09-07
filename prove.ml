@@ -1524,9 +1524,9 @@ let prove_fail () =
   if !Globals.debug_flag then Step.forms "NO PROOF" (Index.get_all ());
   Error.err "exhausted search space without finding a proof";
   flush stderr;
-  printf "(* Current branch:\n";
+  printf "%s" (Globals.begin_comment() ^ " Current branch:\n");
   List.iter f (Index.get_all ());
-  printf "*)\n";
+  printf "%s" (Globals.end_comment() ^ "\n");
   raise NoProof
 ;;
 
