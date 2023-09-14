@@ -38,9 +38,9 @@ let get_total_time, get_start_time =
 (** {2 Misc} *)
 
 let clear_line () =
-  output_string Pervasives.stdout
+  output_string Stdlib.stdout
     "\r                                                         \r";
-  flush Pervasives.stdout
+  flush Stdlib.stdout
 
 
 let debug_level_ = ref 0

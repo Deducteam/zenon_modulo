@@ -232,7 +232,7 @@ let make_notequiv st sym (p, g) (np, ng) =
        begin
          try
            let compare_size (m1, _) (m2, _) =
-             - Pervasives.compare (Expr.size m1) (Expr.size m2)
+             - Stdlib.compare (Expr.size m1) (Expr.size m2)
            in
            let subst = Expr.preunify_list tyvar1 tyvar2 in
            let subst = List.sort compare_size subst in
@@ -751,7 +751,7 @@ let newnodes_match_congruence st fm g _ =
        begin
 	 try
            let compare_size (m1, _) (m2, _) =
-             - Pervasives.compare (Expr.size m1) (Expr.size m2)
+             - Stdlib.compare (Expr.size m1) (Expr.size m2)
            in
            let subst = Expr.preunify_list tyvar1 tyvar2 in
            assert (subst <> []);
@@ -872,7 +872,7 @@ let newnodes_match_trans st fm g _ =
         begin
           try
             let compare_size (m1, _) (m2, _) =
-              - Pervasives.compare (Expr.size m1) (Expr.size m2)
+              - Stdlib.compare (Expr.size m1) (Expr.size m2)
             in
             let tyvar1 = get_type seq in
             let tyvar2 =

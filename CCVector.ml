@@ -173,7 +173,7 @@ let compare cmp v1 v2 =
   let n = min v1.size v2.size in
   let rec check i =
     if i = n
-      then Pervasives.compare v1.size v2.size
+      then Stdlib.compare v1.size v2.size
       else
         let c = cmp (get v1 i) (get v2 i) in
         if c = 0 then check (i+1) else c
@@ -272,7 +272,7 @@ let filter' p v =
 
 (*$T
   let v = 1 -- 10 in filter' (fun x->x<4) v; \
-   to_list v |> List.sort Pervasives.compare = [1;2;3]
+   to_list v |> List.sort Stdlib.compare = [1;2;3]
 *)
 
 let filter p v =
