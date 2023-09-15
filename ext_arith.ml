@@ -533,7 +533,7 @@ let subst_inst (e, n) (e', n') =
     (e'', subst_inst_aux subst n')
 
 let order_inst l =
-    let l = List.sort (fun (e, _) (e', _) -> Pervasives.compare (Expr.size e) (Expr.size e')) l in
+    let l = List.sort (fun (e, _) (e', _) -> Stdlib.compare (Expr.size e) (Expr.size e')) l in
     let l = List.fold_left (fun acc x -> x :: (List.map (subst_inst x) acc)) [] l in
     l
 

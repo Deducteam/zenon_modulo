@@ -472,7 +472,7 @@ module Make(Var: VarType) = struct
                 (Q.to_bigint (List.fold_left Q.max Q.zero (List.filter Q.is_real (List.map (fun x -> Q.abs (Q.div (Q.mul k x) k')) (l :: u :: expr))))) in
             m, max_coef
         ) t.bounds (0, Z.zero) in
-        let n = Pervasives.max (CCVector.length t.nbasic) m in
+        let n = Stdlib.max (CCVector.length t.nbasic) m in
         Q.of_bigint (Z.pow (Z.mul (Z.of_int 2) (Z.mul (Z.pow (Z.of_int n) 2) max_coef)) n)
 
     let bound_all t int_vars g =
@@ -708,7 +708,7 @@ module MakeHelp(Var : VarType) = struct
     | _, _ -> false
 
   let compare_var v1 v2 = match v1, v2 with
-    | Intern i, Intern j -> Pervasives.compare i j
+    | Intern i, Intern j -> Stdlib.compare i j
     | Intern _, Extern _ -> 1
     | Extern _, Intern _ -> -1
     | Extern v1, Extern v2 -> Var.compare v1 v2
