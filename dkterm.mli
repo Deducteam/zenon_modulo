@@ -119,10 +119,7 @@ val mk_rwrt             : dkterm list * dkterm * dkterm -> line
 
 
 
-type declaration =
-  | Some of line       (* line is a Dkdecl here *)
-  | None
-;;
+type declaration = line option;;
 
 type vertex = {
   mutable decl : declaration;
