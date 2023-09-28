@@ -141,6 +141,7 @@ let rec translate_one dirs accu p =
       tptp_thm_name := name;
       Hyp (goal_name, enot (body), 0) :: accu
   | Formula (name, "negated_conjecture", body, None) ->
+      tptp_thm_name := "negation_of_" ^ name;
       Hyp (name, body, 0) :: accu
   (* TFF formulas *)
   | Formula (name, "tff_type", body, None) ->
