@@ -1056,10 +1056,10 @@ let output_term oc phrases ppphrases llp =
   let (_, goal) = List.split (select_goal phrases) in
   assert (List.length goal = 1);
   let ngoal = match (List.hd goal) with
-    | Enot (ng, _) -> ng
-    | _ -> assert false
+    | Enot (ng, _) -> Some ng
+    | _ -> None
   in
-  let dkgoal = translate_expr ngoal in
+  let dkgoal = Option.map translate_expr ngoal in
   let prooftree = extract_prooftree llp in
   let goal_name = (List.hd llp).name in
   let dkproof = make_proof_term (List.hd goal) prooftree in
@@ -1068,8 +1068,13 @@ let output_term oc phrases ppphrases llp =
   fprintf oc "\nrule S.%s ↪ " goal_name;
   let n = !Globals.neg_conj in
   if n <> "" then fprintf oc "λ %s,\n" n;
-  fprintf oc "\n  nnpp (%a)\n    (%a);\n"
-	  print_dk_term dkgoal
-	  print_dk_term dkproof;
+  begin
+    match dkgoal with
+    | Some g -> fprintf oc "\n  nnpp (%a)\n    (%a);\n"
+	          print_dk_term g
+	          print_dk_term dkproof
+    | None -> fprintf oc "\n %a;\n"
+	        print_dk_term dkproof
+  end;
   []
 

@@ -155,10 +155,7 @@ let mk_rwrt       (l, t1, t2)  = Dkrwrt (l, t1, t2)
 
 (* to manage dependances of symbols definitions *)
 
-type declaration =
-  | Some of line       (* line is a Dkdecl here *)
-  | None
-;;
+type declaration = line option
 
 type vertex = {
   mutable decl : declaration;
