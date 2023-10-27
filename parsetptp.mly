@@ -40,6 +40,7 @@ let cnf_to_formula l =
 %token IMPLY
 %token RIMPLY
 %token AND
+%token ITE_F
 %token OR
 %token NOT
 %token PROP
@@ -137,6 +138,7 @@ expr:
   | REAL                               { Arith.mk_real $1 }
   | expr EQSYM expr                    { eeq $1 $3 }
   | expr NEQSYM expr                   { enot (eeq $1 $3) }
+  | OPEN expr CLOSE                    { $2 }
 ;
 arguments:
   | OPEN expr_list CLOSE         { $2 }
@@ -157,6 +159,7 @@ formula:
   | unit_formula NOR formula           { enot (eor ($1, $3)) }
   | unit_formula NAND formula          { enot (eand ($1, $3)) }
 ;
+
 type_def:
     | OPEN type_def CLOSE        { $2 }
     | LIDENT COLON tff_type_sig  { eapp (tvar_none "#", [tvar_none $1; $3]) }
@@ -168,6 +171,7 @@ unit_formula:
                                    { mk_quant eex $3 $6 }
   | NOT unit_formula               { enot ($2) }
   | OPEN formula CLOSE             { $2 }
+  | ITE_F OPEN formula COMMA formula COMMA formula CLOSE { let a,b,c = $3,$5,$7 in eor(eand(enot a, b), eand(a,c)) }
   | atom                           { $1 }
 ;
 var_list:
