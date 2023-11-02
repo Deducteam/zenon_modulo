@@ -1,8 +1,11 @@
+#REQUIRE cc.
+#REQUIRE dk_bool.
+#REQUIRE dk_logic.
+#REQUIRE dk_tuple.
+
 (; Ceci est une version minimale écrite à la main du fichier
 habituellement généré basics.dk. Ce fichier permet de tester Zenon
 indépendamment de FoCaLiZe. ;)
-
-#NAME basics.
 
 def Is_true := dk_logic.ebP.
 

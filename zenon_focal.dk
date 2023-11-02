@@ -1,4 +1,7 @@
-#NAME focal.
+#REQUIRE cc.
+#REQUIRE dk_bool.
+#REQUIRE dk_logic.
+#REQUIRE zen.
 
 def bool := dk_bool.bool.
 def Bool := dk_bool.Bool.

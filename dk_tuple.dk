@@ -1,4 +1,4 @@
-#NAME dk_tuple.
+#REQUIRE cc.
 
 prod : cc.uT -> cc.uT -> cc.uT.
 Prod : cc.uT -> cc.uT -> Type.
