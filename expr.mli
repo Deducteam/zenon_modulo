@@ -59,6 +59,7 @@ val emeta : expr -> expr;;
 val eapp : expr * expr list -> expr;;
 
 val eeq : expr -> expr -> expr;;
+val eite_t : expr -> expr -> expr -> expr;;
 val estring : expr;;
 
 (* Prop construction *)

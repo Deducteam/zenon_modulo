@@ -738,6 +738,12 @@ and eeq a b =
     let s = tvar "=" (earrow [t; t] type_prop) in
     eapp (s, [a; b])
 
+and eite_t p a b =
+  let t = get_type a in
+  let t' = get_type p in
+  let s = tvar "$ite_t" (earrow [t'; t; t] t) in
+  eapp (s, [p; a; b])
+
 and substitute_unsafe map e =
   let aux f map v body =
       let t = substitute_unsafe map (get_type v) in

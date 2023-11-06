@@ -1,4 +1,5 @@
-#NAME dk_logic.
+#REQUIRE cc.
+#REQUIRE dk_bool.
 
 (; Impredicative prop ;)
 

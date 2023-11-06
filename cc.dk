@@ -1,4 +1,3 @@
-#NAME cc.
 (; Calculus of Construction embedded into Lambda-Pi Modulo ;)
 
 uT : Type.

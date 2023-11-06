@@ -1,4 +1,5 @@
-#NAME zen.
+#REQUIRE cc.
+#REQUIRE dk_logic.
 
 (; Logic for Zenon Modulo ;)
 

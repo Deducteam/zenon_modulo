@@ -185,6 +185,11 @@ let rec type_tff_app env expected e =
   | Eapp(Evar("$int", _), [], _) -> Arith.type_int, env
   | Eapp(Evar("$rat", _), [], _) -> Arith.type_rat, env
   | Eapp(Evar("$real", _), [], _) -> Arith.type_real, env
+  | Eapp(Evar("$ite_t", _), [p; a; b], _) ->
+     let p', env' = type_tff_prop env p in
+     let a', env'' = type_tff_term env' a in
+     let b', env''' = type_tff_term env'' b in
+     eite_t p' a' b', env'''
   (* Application typechecking *)
   | Eapp(Evar("=", _), [a; b], _) ->
     let a', env' = type_tff_term env a in
