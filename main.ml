@@ -68,7 +68,7 @@ let int_arg r arg =
       | 'd' -> multiplier 86400.
       | '0'..'9' -> r := float_of_string arg
       | _ -> raise (Arg.Bad "bad numeric argument")
-    with Failure "float_of_string" -> raise (Arg.Bad "bad numeric argument")
+    with Failure x when x = "float_of_string" -> raise (Arg.Bad "bad numeric argument")
 ;;
 
 let parse_size_time s =

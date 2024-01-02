@@ -8,7 +8,7 @@ include .config_var
 # Staging directory for package managers
 DESTDIR =
 
-CAMLFLAGS = -warn-error "$(WARN_ERROR)"
+CAMLFLAGS = -I +unix -I +str -warn-error "$(WARN_ERROR)"
 
 CAMLBINFLAGS = $(CAMLFLAGS) $(BIN_DEBUG_FLAGS)
 CAMLBYTFLAGS = $(CAMLFLAGS) $(BYT_DEBUG_FLAGS)
@@ -217,6 +217,6 @@ clean:
 .PHONY: depend
 depend: $(IMPL) $(INTF) $(COQSRC)
 	$(CAMLDEP) $(IMPL) $(INTF) >.depend
-	$(COQDEP) -I . $(COQSRC) >>.depend
+	$(COQDEP) $(COQSRC) >>.depend
 
 include .depend

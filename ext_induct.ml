@@ -385,7 +385,7 @@ let newnodes_injective e g =
          nbranches = [| branch |];
        } ]
      with
-     | Invalid_argument "List.map2" -> raise Empty
+     | Invalid_argument x when x = "List.map2" -> raise Empty
      | Not_found -> assert false
      end
   | Eapp (Evar("=",_), [e1; e2], _) when constr_head e1 && constr_head e2 ->
@@ -404,6 +404,21 @@ let newnodes_injective e g =
         nbranches = [| |];
       }; Stop ]
   | Enot (Eapp (Evar("=",_), [e1; Eapp (Evar("$any-induct",_), [Evar (ty, _); e2], _)], _), _)
+       when constr_head e1 && get_constr e1 <> get_constr e2 ->
+     let constr = get_constr e2 in
+     let args = List.map (fun _ -> tvar_none "_") (get_args e2) in
+     let cas1 = make_case_expr constr args etrue in
+     let cas2 = make_case_expr "_" [] efalse in
+     let x = newtvar type_none in
+     let caract = elam (x, eapp (tvar_none "$match", [x; cas1; cas2])) in
+     let h = enot (eeq e2 e1) in
+     [ Node {
+           nconc = [];
+           nrule = Ext ("induct", "discriminate_diff", [e2; e1; caract]);
+           nprio = Arity;
+           ngoal = g;
+           nbranches = [| [h] |];
+     } ]
   | Enot (Eapp (Evar("=",_), [Eapp (Evar("$any-induct",_), [Evar (ty, _); e2], _); e1], _), _)
     when constr_head e1 && get_constr e1 <> get_constr e2 ->
      let constr = get_constr e2 in
