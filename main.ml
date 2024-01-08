@@ -519,7 +519,8 @@ let main () =
     eprintf "\n";
     (*Gc.print_stat stderr;*)
   end;
-
+  let nb_term, nb_prop = Rewrite.nb_rewrite () in
+  printf "Number of rewrites on terms: %d\nNumber of rewrites on props: %d\n" nb_term nb_prop;
   do_exit !retcode
 ;;
 
