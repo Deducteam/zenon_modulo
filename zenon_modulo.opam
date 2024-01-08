@@ -1,0 +1,28 @@
+opam-version: "2.0"
+homepage: "https://github.com/Deducteam/zenon_modulo"
+dev-repo: "git+https://github.com/Deducteam/zenon_modulo.git"
+maintainer: "Guillaume Burel <guillaume.burel@ensiie.fr>"
+authors: [ "INRIA and contributors" ]
+license: "BSD-3-Clause"
+bug-reports: "https://github.com/Deducteam/zenon_modulo/issues"
+tags: [ "automated theorem prover" ]
+depends: [
+  "ocaml" {>= "4.08.0"}
+  "zarith" {>= "1.11"}
+]
+depopts: [
+  "coq"
+]
+build: [
+  ["./configure"
+   "--prefix" prefix
+   "--libdir" "%{zenon_modulo:lib}%"]
+  [make]
+]
+install: [[make "install"]]
+synopsis: "Zenon Modulo Theory"
+description: """
+Automated theorem prover for first order classical logic (with
+equality), based on the tableau method. Zenon_modulo handles first-order
+logic with equality. Its most important feature is that it outputs the
+proofs of the theorems, in Coq-checkable form."""
