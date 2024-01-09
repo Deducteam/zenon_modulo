@@ -1,4 +1,5 @@
 opam-version: "2.0"
+version: "0.5.0"
 homepage: "https://github.com/Deducteam/zenon_modulo"
 dev-repo: "git+https://github.com/Deducteam/zenon_modulo.git"
 maintainer: "Guillaume Burel <guillaume.burel@ensiie.fr>"
