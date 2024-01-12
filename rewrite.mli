@@ -16,6 +16,9 @@ val unif : expr -> expr -> (expr * expr ) list;;
    sigma : t1 -> t2
 *)
 
+val nb_rewrite : unit -> int * int;;
+(* return the number of rewrites on terms and props *)
+
 val rewrite_term : (expr * expr) -> expr -> expr;;
 
 val rewrite_prop : (expr * expr) -> expr -> expr;;

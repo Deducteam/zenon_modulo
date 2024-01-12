@@ -92,7 +92,7 @@ let get_induct name =
 let is_constr e =
   match e with
   | Eapp (Evar("@",_), Evar (f, _) :: _, _) | Eapp (Evar(f,_), _, _)
-    when Hashtbl.mem constructor_table f -> true
+    -> Hashtbl.mem constructor_table f
   | _ -> false
 ;;
 

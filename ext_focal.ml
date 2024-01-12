@@ -127,7 +127,7 @@ let newnodes_istrue e g =
          }; Stop ]
     with
     | Higher_order -> higher_order_warning p; []
-    | Invalid_argument "List.map2" -> arity_warning p; []
+    | Invalid_argument x when x = "List.map2" -> arity_warning p; []
     | Not_found -> assert false
   in
   match e with

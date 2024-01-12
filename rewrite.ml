@@ -202,10 +202,17 @@ let ordering_two fm (l1, r1) (l2, r2) =
   else -1
 ;;
 
+let nb_rewrite_term = ref 0
+let nb_rewrite_prop = ref 0
+let nb_rewrite () = (!nb_rewrite_term, !nb_rewrite_prop)
+
 let rec rewrite_prop (l, r) p =
   try
     let subst = unif l p in
-    Expr.substitute subst r
+    begin
+      nb_rewrite_prop := !nb_rewrite_prop + 1;
+      Expr.substitute subst r
+    end
   with
   | Unif_failed ->
     (match p with
@@ -241,7 +248,10 @@ let norm_prop fm =
 let rec rewrite_term (l, r) p =
   try
     let subst = unif l p in
-    Expr.substitute subst r
+    begin
+      nb_rewrite_term := !nb_rewrite_term + 1;
+      Expr.substitute subst r
+    end
   with
   | Unif_failed -> p
 ;;

@@ -575,7 +575,7 @@ let newnodes_prop e g =
        let hs = mk_hyps args1 args2 in
        mknode Prop "record_eq_match" (e :: hs) [| hs |]
      with
-     | Invalid_argument "check_record_labels" -> []
+     | Invalid_argument x when x = "check_record_labels" -> []
      | Exit -> mknode Prop "record_eq_mismatch" [e; e] [| |]
      end
   | Enot (Eapp (Evar("=",_), [Eapp (Evar("TLA.record",_), args1, _);
@@ -597,7 +597,7 @@ let newnodes_prop e g =
        let branches = Array.of_list (List.map (fun x -> [x]) hs) in
        mknode Prop "record_neq_match" (e :: hs) branches
      with
-     | Invalid_argument "check_record_labels" -> []
+     | Invalid_argument x when x = "check_record_labels" -> []
      | Exit -> []
      end
   | Enot (Eapp (Evar("=",_), [e1; Eapp (Evar("TLA.record",_), args, _) as e2], _), _) ->

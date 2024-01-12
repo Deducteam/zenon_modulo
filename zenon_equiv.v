@@ -49,24 +49,24 @@ Lemma zenon_equiv_merge_right : forall X D E F G : Prop,
   -> False.
   Proof. tauto. Qed.
 
-Let L'1_zenon_equiv_merge_left:(forall T'0:(Prop),(forall T'1:(Prop),((~
+Local Lemma L'1_zenon_equiv_merge_left:(forall T'0:(Prop),(forall T'1:(Prop),((~
 (T'1<->T'0))->((~T'1)->((~T'0)->(False)))))).
 Proof (fun(T'0:(Prop))(T'1:(Prop))(H'7:(~(T'1<->T'0)))(H'8:(~T'1))(H'9:(
 ~T'0))=>(zenon_notequiv T'1 T'0 (fun(H'8:(~T'1))(H'b:T'0)=>(H'9 H'b)) (
 fun(H'a:T'1)(H'9:(~T'0))=>(H'8 H'a)) H'7)).
-Let L'2_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),((~
+Local Lemma L'2_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),((~
 (T'3<->T'4))->(T'4->(T'3->(False)))))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(H'c:(~(T'3<->T'4)))(H'd:T'4)(H'e:T'3)
 =>(zenon_notequiv T'3 T'4 (fun(H'10:(~T'3))(H'd:T'4)=>(H'10 H'e)) (fun(
 H'e:T'3)(H'f:(~T'4))=>(H'f H'd)) H'c)).
-Let L'3_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
+Local Lemma L'3_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
 forall T'5:(Prop),((T'5<->(T'3<->T'4))->((~T'5)->(T'4->(T'3->(False)))))
 ))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'11:(T'5<->(T'3<->T'4)))
 (H'12:(~T'5))(H'd:T'4)(H'e:T'3)=>(zenon_equiv T'5 (T'3<->T'4) (fun(H'12
 :(~T'5))(H'c:(~(T'3<->T'4)))=>(L'2_zenon_equiv_merge_left T'4 T'3 H'c
 H'd H'e)) (fun(H'13:T'5)(H'14:(T'3<->T'4))=>(H'12 H'13)) H'11)).
-Let L'4_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'4_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'5)->(((T'5<->(T'3<->T'4))<->
 T'2)->(T'2->(T'4->(T'3->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'12:(~T'5))(
@@ -74,12 +74,12 @@ H'15:((T'5<->(T'3<->T'4))<->T'2))(H'16:T'2)(H'd:T'4)(H'e:T'3)=>(
 zenon_equiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))(
 H'17:(~T'2))=>(H'17 H'16)) (fun(H'11:(T'5<->(T'3<->T'4)))(H'16:T'2)=>(
 L'3_zenon_equiv_merge_left T'4 T'3 T'5 H'11 H'12 H'd H'e)) H'15)).
-Let L'5_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),((
+Local Lemma L'5_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),((
 T'3<->T'4)->(T'3->((~T'4)->(False)))))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(H'14:(T'3<->T'4))(H'e:T'3)(H'f:(~T'4)
 )=>(zenon_equiv T'3 T'4 (fun(H'10:(~T'3))(H'f:(~T'4))=>(H'10 H'e)) (fun(
 H'e:T'3)(H'd:T'4)=>(H'f H'd)) H'14)).
-Let L'6_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
+Local Lemma L'6_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
 forall T'5:(Prop),((~T'5)->((~(T'5<->(T'3<->T'4)))->(T'3->((~T'4)->(
 False)))))))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'12:(~T'5))(H'18:(~(T'5
@@ -87,7 +87,7 @@ Proof (fun(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'12:(~T'5))(H'18:(~(T'5
 (fun(H'12:(~T'5))(H'14:(T'3<->T'4))=>(L'5_zenon_equiv_merge_left T'4
 T'3 H'14 H'e H'f)) (fun(H'13:T'5)(H'c:(~(T'3<->T'4)))=>(H'12 H'13))
 H'18)).
-Let L'7_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'7_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'5)->(T'2->((~((T'5<->(T'3<->
 T'4))<->T'2))->(T'3->((~T'4)->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'12:(~T'5))(
@@ -95,34 +95,34 @@ H'16:T'2)(H'19:(~((T'5<->(T'3<->T'4))<->T'2)))(H'e:T'3)(H'f:(~T'4))=>(
 zenon_notequiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))
 (H'16:T'2)=>(L'6_zenon_equiv_merge_left T'4 T'3 T'5 H'12 H'18 H'e H'f))
 (fun(H'11:(T'5<->(T'3<->T'4)))(H'17:(~T'2))=>(H'17 H'16)) H'19)).
-Let L'8_zenon_equiv_merge_left:(forall T'0:(Prop),(forall T'1:(Prop),((
+Local Lemma L'8_zenon_equiv_merge_left:(forall T'0:(Prop),(forall T'1:(Prop),((
 T'1<->T'0)->((~T'1)->(T'0->(False)))))).
 Proof (fun(T'0:(Prop))(T'1:(Prop))(H'1a:(T'1<->T'0))(H'8:(~T'1))(H'b
 :T'0)=>(zenon_equiv T'1 T'0 (fun(H'8:(~T'1))(H'9:(~T'0))=>(H'9 H'b)) (
 fun(H'a:T'1)(H'b:T'0)=>(H'8 H'a)) H'1a)).
-Let L'9_zenon_equiv_merge_left:(forall T'0:(Prop),(forall T'1:(Prop),((
+Local Lemma L'9_zenon_equiv_merge_left:(forall T'0:(Prop),(forall T'1:(Prop),((
 T'1<->T'0)->((~T'0)->(T'1->(False)))))).
 Proof (fun(T'0:(Prop))(T'1:(Prop))(H'1a:(T'1<->T'0))(H'9:(~T'0))(H'a
 :T'1)=>(zenon_equiv T'1 T'0 (fun(H'8:(~T'1))(H'9:(~T'0))=>(H'8 H'a)) (
 fun(H'a:T'1)(H'b:T'0)=>(H'9 H'b)) H'1a)).
-Let L'10_zenon_equiv_merge_left:(forall T'0:(Prop),(forall T'1:(Prop),((
+Local Lemma L'10_zenon_equiv_merge_left:(forall T'0:(Prop),(forall T'1:(Prop),((
 ~(T'1<->T'0))->(T'1->(T'0->(False)))))).
 Proof (fun(T'0:(Prop))(T'1:(Prop))(H'7:(~(T'1<->T'0)))(H'a:T'1)(H'b:T'0)
 =>(zenon_notequiv T'1 T'0 (fun(H'8:(~T'1))(H'b:T'0)=>(H'8 H'a)) (fun(
 H'a:T'1)(H'9:(~T'0))=>(H'9 H'b)) H'7)).
-Let L'11_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),((
+Local Lemma L'11_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),((
 ~T'3)->((T'3<->T'4)->(T'4->(False)))))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(H'10:(~T'3))(H'14:(T'3<->T'4))(H'd
 :T'4)=>(zenon_equiv T'3 T'4 (fun(H'10:(~T'3))(H'f:(~T'4))=>(H'f H'd)) (
 fun(H'e:T'3)(H'd:T'4)=>(H'10 H'e)) H'14)).
-Let L'12_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
+Local Lemma L'12_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
 forall T'5:(Prop),((~T'3)->((T'5<->(T'3<->T'4))->(T'5->(T'4->(False)))))
 ))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(H'11:(T'5<->
 (T'3<->T'4)))(H'13:T'5)(H'd:T'4)=>(zenon_equiv T'5 (T'3<->T'4) (fun(
 H'12:(~T'5))(H'c:(~(T'3<->T'4)))=>(H'12 H'13)) (fun(H'13:T'5)(H'14:(T'3
 <->T'4))=>(L'11_zenon_equiv_merge_left T'4 T'3 H'10 H'14 H'd)) H'11)).
-Let L'13_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'13_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'3)->(T'5->(((T'5<->(T'3<->T'4)
 )<->T'2)->(T'2->(T'4->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(
@@ -130,12 +130,12 @@ H'13:T'5)(H'15:((T'5<->(T'3<->T'4))<->T'2))(H'16:T'2)(H'd:T'4)=>(
 zenon_equiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))(
 H'17:(~T'2))=>(H'17 H'16)) (fun(H'11:(T'5<->(T'3<->T'4)))(H'16:T'2)=>(
 L'12_zenon_equiv_merge_left T'4 T'3 T'5 H'10 H'11 H'13 H'd)) H'15)).
-Let L'14_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),((
+Local Lemma L'14_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),((
 ~T'3)->((~(T'3<->T'4))->((~T'4)->(False)))))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(H'10:(~T'3))(H'c:(~(T'3<->T'4)))(H'f
 :(~T'4))=>(zenon_notequiv T'3 T'4 (fun(H'10:(~T'3))(H'd:T'4)=>(H'f H'd))
  (fun(H'e:T'3)(H'f:(~T'4))=>(H'10 H'e)) H'c)).
-Let L'15_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
+Local Lemma L'15_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
 forall T'5:(Prop),((~T'3)->(T'5->((~(T'5<->(T'3<->T'4)))->((~T'4)->(
 False)))))))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(H'13:T'5)(
@@ -143,7 +143,7 @@ H'18:(~(T'5<->(T'3<->T'4))))(H'f:(~T'4))=>(zenon_notequiv T'5 (T'3<->
 T'4) (fun(H'12:(~T'5))(H'14:(T'3<->T'4))=>(H'12 H'13)) (fun(H'13:T'5)(
 H'c:(~(T'3<->T'4)))=>(L'14_zenon_equiv_merge_left T'4 T'3 H'10 H'c H'f))
  H'18)).
-Let L'16_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'16_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'3)->(T'5->(T'2->((~((T'5<->(
 T'3<->T'4))<->T'2))->((~T'4)->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(
@@ -151,7 +151,7 @@ H'13:T'5)(H'16:T'2)(H'19:(~((T'5<->(T'3<->T'4))<->T'2)))(H'f:(~T'4))=>(
 zenon_notequiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))
 (H'16:T'2)=>(L'15_zenon_equiv_merge_left T'4 T'3 T'5 H'10 H'13 H'18 H'f)
 ) (fun(H'11:(T'5<->(T'3<->T'4)))(H'17:(~T'2))=>(H'17 H'16)) H'19)).
-Let L'17_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
+Local Lemma L'17_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
 forall T'5:(Prop),((~T'3)->((~T'5)->((~(T'5<->(T'3<->T'4)))->(T'4->(
 False)))))))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(H'12:(~T'5))
@@ -159,7 +159,7 @@ Proof (fun(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(H'12:(~T'5))
 (fun(H'12:(~T'5))(H'14:(T'3<->T'4))=>(L'11_zenon_equiv_merge_left T'4
 T'3 H'10 H'14 H'd)) (fun(H'13:T'5)(H'c:(~(T'3<->T'4)))=>(H'12 H'13))
 H'18)).
-Let L'18_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'18_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'3)->((~T'5)->(((T'5<->(T'3<->
 T'4))<->T'2)->((~T'2)->(T'4->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(
@@ -167,7 +167,7 @@ H'12:(~T'5))(H'15:((T'5<->(T'3<->T'4))<->T'2))(H'17:(~T'2))(H'd:T'4)=>(
 zenon_equiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))(
 H'17:(~T'2))=>(L'17_zenon_equiv_merge_left T'4 T'3 T'5 H'10 H'12 H'18
 H'd)) (fun(H'11:(T'5<->(T'3<->T'4)))(H'16:T'2)=>(H'17 H'16)) H'15)).
-Let L'19_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
+Local Lemma L'19_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
 forall T'5:(Prop),((~T'3)->((T'5<->(T'3<->T'4))->((~T'5)->((~T'4)->(
 False)))))))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(H'11:(T'5<->
@@ -175,7 +175,7 @@ Proof (fun(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(H'11:(T'5<->
 fun(H'12:(~T'5))(H'c:(~(T'3<->T'4)))=>(L'14_zenon_equiv_merge_left T'4
 T'3 H'10 H'c H'f)) (fun(H'13:T'5)(H'14:(T'3<->T'4))=>(H'12 H'13)) H'11))
 .
-Let L'20_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'20_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'3)->((~T'5)->((~T'2)->((~((
 T'5<->(T'3<->T'4))<->T'2))->((~T'4)->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(
@@ -184,14 +184,14 @@ T'4))=>(zenon_notequiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3
 <->T'4))))(H'16:T'2)=>(H'17 H'16)) (fun(H'11:(T'5<->(T'3<->T'4)))(H'17:(
 ~T'2))=>(L'19_zenon_equiv_merge_left T'4 T'3 T'5 H'10 H'11 H'12 H'f))
 H'19)).
-Let L'21_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
+Local Lemma L'21_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
 forall T'5:(Prop),(T'5->((~(T'5<->(T'3<->T'4)))->(T'4->(T'3->(False)))))
 ))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'13:T'5)(H'18:(~(T'5<->(
 T'3<->T'4))))(H'd:T'4)(H'e:T'3)=>(zenon_notequiv T'5 (T'3<->T'4) (fun(
 H'12:(~T'5))(H'14:(T'3<->T'4))=>(H'12 H'13)) (fun(H'13:T'5)(H'c:(~(T'3
 <->T'4)))=>(L'2_zenon_equiv_merge_left T'4 T'3 H'c H'd H'e)) H'18)).
-Let L'22_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'22_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),(T'5->(((T'5<->(T'3<->T'4))<->T'2)
 ->((~T'2)->(T'4->(T'3->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'13:T'5)(
@@ -199,14 +199,14 @@ H'15:((T'5<->(T'3<->T'4))<->T'2))(H'17:(~T'2))(H'd:T'4)(H'e:T'3)=>(
 zenon_equiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))(
 H'17:(~T'2))=>(L'21_zenon_equiv_merge_left T'4 T'3 T'5 H'13 H'18 H'd
 H'e)) (fun(H'11:(T'5<->(T'3<->T'4)))(H'16:T'2)=>(H'17 H'16)) H'15)).
-Let L'23_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
+Local Lemma L'23_zenon_equiv_merge_left:(forall T'4:(Prop),(forall T'3:(Prop),(
 forall T'5:(Prop),((T'5<->(T'3<->T'4))->(T'5->(T'3->((~T'4)->(False)))))
 ))).
 Proof (fun(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'11:(T'5<->(T'3<->T'4)))
 (H'13:T'5)(H'e:T'3)(H'f:(~T'4))=>(zenon_equiv T'5 (T'3<->T'4) (fun(H'12
 :(~T'5))(H'c:(~(T'3<->T'4)))=>(H'12 H'13)) (fun(H'13:T'5)(H'14:(T'3<->
 T'4))=>(L'5_zenon_equiv_merge_left T'4 T'3 H'14 H'e H'f)) H'11)).
-Let L'24_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'24_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),(T'5->((~T'2)->((~((T'5<->(T'3<->
 T'4))<->T'2))->(T'3->((~T'4)->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'13:T'5)(
@@ -214,7 +214,7 @@ H'17:(~T'2))(H'19:(~((T'5<->(T'3<->T'4))<->T'2)))(H'e:T'3)(H'f:(~T'4))=>
 (zenon_notequiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4)))
 )(H'16:T'2)=>(H'17 H'16)) (fun(H'11:(T'5<->(T'3<->T'4)))(H'17:(~T'2))=>(
 L'23_zenon_equiv_merge_left T'4 T'3 T'5 H'11 H'13 H'e H'f)) H'19)).
-Let L'25_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'25_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'5)->(((T'5<->(T'3<->T'4))<->
 T'2)->((~T'2)->(T'3->((~T'4)->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'12:(~T'5))(
@@ -222,7 +222,7 @@ H'15:((T'5<->(T'3<->T'4))<->T'2))(H'17:(~T'2))(H'e:T'3)(H'f:(~T'4))=>(
 zenon_equiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))(
 H'17:(~T'2))=>(L'6_zenon_equiv_merge_left T'4 T'3 T'5 H'12 H'18 H'e H'f)
 ) (fun(H'11:(T'5<->(T'3<->T'4)))(H'16:T'2)=>(H'17 H'16)) H'15)).
-Let L'26_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'26_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'5)->((~T'2)->((~((T'5<->(T'3
 <->T'4))<->T'2))->(T'4->(T'3->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'12:(~T'5))(
@@ -230,7 +230,7 @@ H'17:(~T'2))(H'19:(~((T'5<->(T'3<->T'4))<->T'2)))(H'd:T'4)(H'e:T'3)=>(
 zenon_notequiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))
 (H'16:T'2)=>(H'17 H'16)) (fun(H'11:(T'5<->(T'3<->T'4)))(H'17:(~T'2))=>(
 L'3_zenon_equiv_merge_left T'4 T'3 T'5 H'11 H'12 H'd H'e)) H'19)).
-Let L'27_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'27_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'3)->(T'5->(((T'5<->(T'3<->T'4)
 )<->T'2)->((~T'2)->((~T'4)->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(
@@ -238,7 +238,7 @@ H'13:T'5)(H'15:((T'5<->(T'3<->T'4))<->T'2))(H'17:(~T'2))(H'f:(~T'4))=>(
 zenon_equiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))(
 H'17:(~T'2))=>(L'15_zenon_equiv_merge_left T'4 T'3 T'5 H'10 H'13 H'18
 H'f)) (fun(H'11:(T'5<->(T'3<->T'4)))(H'16:T'2)=>(H'17 H'16)) H'15)).
-Let L'28_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'28_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'3)->(T'5->((~T'2)->((~((T'5<->
 (T'3<->T'4))<->T'2))->(T'4->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(
@@ -246,7 +246,7 @@ H'13:T'5)(H'17:(~T'2))(H'19:(~((T'5<->(T'3<->T'4))<->T'2)))(H'd:T'4)=>(
 zenon_notequiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))
 (H'16:T'2)=>(H'17 H'16)) (fun(H'11:(T'5<->(T'3<->T'4)))(H'17:(~T'2))=>(
 L'12_zenon_equiv_merge_left T'4 T'3 T'5 H'10 H'11 H'13 H'd)) H'19)).
-Let L'29_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'29_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'3)->((~T'5)->(((T'5<->(T'3<->
 T'4))<->T'2)->(T'2->((~T'4)->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(
@@ -254,7 +254,7 @@ H'12:(~T'5))(H'15:((T'5<->(T'3<->T'4))<->T'2))(H'16:T'2)(H'f:(~T'4))=>(
 zenon_equiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))(
 H'17:(~T'2))=>(H'17 H'16)) (fun(H'11:(T'5<->(T'3<->T'4)))(H'16:T'2)=>(
 L'19_zenon_equiv_merge_left T'4 T'3 T'5 H'10 H'11 H'12 H'f)) H'15)).
-Let L'30_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'30_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),((~T'3)->((~T'5)->(T'2->((~((T'5<->
 (T'3<->T'4))<->T'2))->(T'4->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'10:(~T'3))(
@@ -262,7 +262,7 @@ H'12:(~T'5))(H'16:T'2)(H'19:(~((T'5<->(T'3<->T'4))<->T'2)))(H'd:T'4)=>(
 zenon_notequiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))
 (H'16:T'2)=>(L'17_zenon_equiv_merge_left T'4 T'3 T'5 H'10 H'12 H'18 H'd)
 ) (fun(H'11:(T'5<->(T'3<->T'4)))(H'17:(~T'2))=>(H'17 H'16)) H'19)).
-Let L'31_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'31_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),(T'5->(((T'5<->(T'3<->T'4))<->T'2)
 ->(T'2->(T'3->((~T'4)->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'13:T'5)(
@@ -270,7 +270,7 @@ H'15:((T'5<->(T'3<->T'4))<->T'2))(H'16:T'2)(H'e:T'3)(H'f:(~T'4))=>(
 zenon_equiv (T'5<->(T'3<->T'4)) T'2 (fun(H'18:(~(T'5<->(T'3<->T'4))))(
 H'17:(~T'2))=>(H'17 H'16)) (fun(H'11:(T'5<->(T'3<->T'4)))(H'16:T'2)=>(
 L'23_zenon_equiv_merge_left T'4 T'3 T'5 H'11 H'13 H'e H'f)) H'15)).
-Let L'32_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
+Local Lemma L'32_zenon_equiv_merge_left:(forall T'2:(Prop),(forall T'4:(Prop),(
 forall T'3:(Prop),(forall T'5:(Prop),(T'5->(T'2->((~((T'5<->(T'3<->T'4))
 <->T'2))->(T'4->(T'3->(False)))))))))).
 Proof (fun(T'2:(Prop))(T'4:(Prop))(T'3:(Prop))(T'5:(Prop))(H'13:T'5)(
@@ -533,42 +533,42 @@ Lemma zenon_equiv_inner_loop : forall L A B : Prop,
   -> False.
   Proof. tauto. Qed.
 
-Let L'1_zenon_equiv_reverse:(forall T'0:(Prop),(forall T'1:(Prop),((~(
+Local Lemma L'1_zenon_equiv_reverse:(forall T'0:(Prop),(forall T'1:(Prop),((~(
 T'1<->T'0))->((~T'1)->((~T'0)->(False)))))).
 Proof (fun(T'0:(Prop))(T'1:(Prop))(H'6:(~(T'1<->T'0)))(H'7:(~T'1))(H'8:(
 ~T'0))=>(zenon_notequiv T'1 T'0 (fun(H'7:(~T'1))(H'a:T'0)=>(H'8 H'a)) (
 fun(H'9:T'1)(H'8:(~T'0))=>(H'7 H'9)) H'6)).
-Let L'2_zenon_equiv_reverse:(forall T'2:(Prop),(forall T'3:(Prop),((~(
+Local Lemma L'2_zenon_equiv_reverse:(forall T'2:(Prop),(forall T'3:(Prop),((~(
 T'3<->T'2))->((~T'3)->((~T'2)->(False)))))).
 Proof (fun(T'2:(Prop))(T'3:(Prop))(H'b:(~(T'3<->T'2)))(H'c:(~T'3))(H'd:(
 ~T'2))=>(zenon_notequiv T'3 T'2 (fun(H'c:(~T'3))(H'f:T'2)=>(H'd H'f)) (
 fun(H'e:T'3)(H'd:(~T'2))=>(H'c H'e)) H'b)).
-Let L'3_zenon_equiv_reverse:(forall T'2:(Prop),(forall T'3:(Prop),((T'3
+Local Lemma L'3_zenon_equiv_reverse:(forall T'2:(Prop),(forall T'3:(Prop),((T'3
 <->T'2)->((~T'3)->(T'2->(False)))))).
 Proof (fun(T'2:(Prop))(T'3:(Prop))(H'10:(T'3<->T'2))(H'c:(~T'3))(H'f
 :T'2)=>(zenon_equiv T'3 T'2 (fun(H'c:(~T'3))(H'd:(~T'2))=>(H'd H'f)) (
 fun(H'e:T'3)(H'f:T'2)=>(H'c H'e)) H'10)).
-Let L'4_zenon_equiv_reverse:(forall T'0:(Prop),(forall T'1:(Prop),((T'1
+Local Lemma L'4_zenon_equiv_reverse:(forall T'0:(Prop),(forall T'1:(Prop),((T'1
 <->T'0)->((~T'1)->(T'0->(False)))))).
 Proof (fun(T'0:(Prop))(T'1:(Prop))(H'11:(T'1<->T'0))(H'7:(~T'1))(H'a
 :T'0)=>(zenon_equiv T'1 T'0 (fun(H'7:(~T'1))(H'8:(~T'0))=>(H'8 H'a)) (
 fun(H'9:T'1)(H'a:T'0)=>(H'7 H'9)) H'11)).
-Let L'5_zenon_equiv_reverse:(forall T'0:(Prop),(forall T'1:(Prop),((T'1
+Local Lemma L'5_zenon_equiv_reverse:(forall T'0:(Prop),(forall T'1:(Prop),((T'1
 <->T'0)->((~T'0)->(T'1->(False)))))).
 Proof (fun(T'0:(Prop))(T'1:(Prop))(H'11:(T'1<->T'0))(H'8:(~T'0))(H'9
 :T'1)=>(zenon_equiv T'1 T'0 (fun(H'7:(~T'1))(H'8:(~T'0))=>(H'7 H'9)) (
 fun(H'9:T'1)(H'a:T'0)=>(H'8 H'a)) H'11)).
-Let L'6_zenon_equiv_reverse:(forall T'0:(Prop),(forall T'1:(Prop),((~(
+Local Lemma L'6_zenon_equiv_reverse:(forall T'0:(Prop),(forall T'1:(Prop),((~(
 T'1<->T'0))->(T'1->(T'0->(False)))))).
 Proof (fun(T'0:(Prop))(T'1:(Prop))(H'6:(~(T'1<->T'0)))(H'9:T'1)(H'a:T'0)
 =>(zenon_notequiv T'1 T'0 (fun(H'7:(~T'1))(H'a:T'0)=>(H'7 H'9)) (fun(
 H'9:T'1)(H'8:(~T'0))=>(H'8 H'a)) H'6)).
-Let L'7_zenon_equiv_reverse:(forall T'2:(Prop),(forall T'3:(Prop),((~(
+Local Lemma L'7_zenon_equiv_reverse:(forall T'2:(Prop),(forall T'3:(Prop),((~(
 T'3<->T'2))->(T'3->(T'2->(False)))))).
 Proof (fun(T'2:(Prop))(T'3:(Prop))(H'b:(~(T'3<->T'2)))(H'e:T'3)(H'f:T'2)
 =>(zenon_notequiv T'3 T'2 (fun(H'c:(~T'3))(H'f:T'2)=>(H'c H'e)) (fun(
 H'e:T'3)(H'd:(~T'2))=>(H'd H'f)) H'b)).
-Let L'8_zenon_equiv_reverse:(forall T'2:(Prop),(forall T'3:(Prop),((T'3
+Local Lemma L'8_zenon_equiv_reverse:(forall T'2:(Prop),(forall T'3:(Prop),((T'3
 <->T'2)->((~T'2)->(T'3->(False)))))).
 Proof (fun(T'2:(Prop))(T'3:(Prop))(H'10:(T'3<->T'2))(H'd:(~T'2))(H'e
 :T'3)=>(zenon_equiv T'3 T'2 (fun(H'c:(~T'3))(H'd:(~T'2))=>(H'c H'e)) (

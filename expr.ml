@@ -725,7 +725,7 @@ and type_app s args =
                 let t, t' = find2 (fun t t' -> not (t == t')) l l' in
                 raise (Type_Mismatch (t, t', "Expr.type_app"))
             with
-            | Invalid_argument "find2" ->
+            | Invalid_argument x when x =%= "find2" ->
                 raise (Bad_Arity (s, args))
             | Not_found ->
                 ret
