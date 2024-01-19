@@ -88,7 +88,7 @@ let get_meta_type s =
   ident_to_type (String.sub s ofs (len - ofs))
 ;;
 
-let term_tbl = HE.create 9997;;
+(* let term_tbl = HE.create 9997 *)
 
 let memo tbl f x =
   try HE.find tbl x
@@ -102,14 +102,14 @@ let expr_tbl = HE.create 9997;;
 
 let rec xtr_expr a =
   match a with
-  | Evar (v, _) -> a
+  | Evar (_, _) -> a
   | Emeta (Eall(v, _, _) as e, _)
   | Emeta (Eex(v, _, _) as e, _)
     -> tvar (make_meta_name e) (Expr.get_type v)
   | Emeta(_) -> assert false
-  | Earrow(args, ret, _) -> assert false
+  | Earrow(_, _, _) -> assert false
 
-  | Eapp (Evar("$scope",_), lam :: tau :: vals, _) -> tr_expr (apply lam tau)
+  | Eapp (Evar("$scope",_), lam :: tau :: _, _) -> tr_expr (apply lam tau)
   | Eapp (s, args, _) -> eapp (s, List.map tr_expr args)
 
   | Enot (p, _) -> enot (tr_expr p)
@@ -213,21 +213,21 @@ let tr_rule r =
   | NotAllEx _
     -> assert false
 
-  | Close_refl (s, _) (* when s <> "=" *) -> assert false
+  | Close_refl (_(*s*), _) (* when s <> "=" *) -> assert false
 ;;
 
 let rec merge l1 l2 =
   match l1 with
   | [] -> l2
-  | (t,a) as ta :: tas ->
-      if List.exists (fun (x, y) -> Expr.equal a y) l2
+  | (_,a) as ta :: tas ->
+      if List.exists (fun (_, y) -> Expr.equal a y) l2
       then merge tas l2
       else merge tas (ta :: l2)
 ;;
 
 let rec get_params accu p =
   match p with
-  | Evar (v, _) -> accu
+  | Evar (_, _) -> accu
   | Emeta (m, _) ->
      let name = make_meta_name m in
      merge [Expr.get_type m, tvar (name) (Expr.get_type p)] accu
@@ -241,11 +241,11 @@ let rec get_params accu p =
   | Eequiv (e, f, _) -> get_params (get_params accu e) f
   | Etrue -> accu
   | Efalse -> accu
-  | Eall (v, e, _) -> get_params accu e
-  | Eex (v, e, _) -> get_params accu e
+  | Eall (_, e, _) -> get_params accu e
+  | Eex (_, e, _) -> get_params accu e
   | Etau (v, _, _) ->
      merge [Expr.get_type v, p] accu
-  | Elam (v, e, _) -> get_params accu e
+  | Elam (_, e, _) -> get_params accu e
 ;;
 
 let lemma_tbl = (Hashtbl.create 997
@@ -432,11 +432,11 @@ and recomp_disj_n sub f =
      end
 ;;
 
-exception Found of Expr.expr;;
+(*exception Found of Expr.expr*)
 
-let rec xfind_occ v e1 e2 =
+(*let rec xfind_occ v e1 e2 =
   match e1, e2 with
-  | Evar (v1, _), _ when Expr.equal e1 v -> raise (Found e2)
+  | Evar (_, _), _ when Expr.equal e1 v -> raise (Found e2)
   | Emeta _, _ -> ()
   | Eapp (_, a1, _), Eapp (_, a2, _) -> List.iter2 (xfind_occ v) a1 a2
   | Enot (f1, _), Enot (f2, _) -> xfind_occ v f1 f2
@@ -453,21 +453,18 @@ let rec xfind_occ v e1 e2 =
   | Eex (_, f1, _), Eex (_, f2, _) -> xfind_occ v f1 f2
   | Etau _, _ -> ()
   | Elam _, _ -> ()
-  | _, _ -> assert false
-;;
+  | _, _ -> assert false*)
 
-let find_occ v e1 e2 =
+(*let find_occ v e1 e2 =
   try xfind_occ v e1 e2;
       assert false
-  with Found e -> e
-;;
+  with Found e -> e*)
 
-let find_subst e1 e2 =
+(*let find_subst e1 e2 =
   match e1, e2 with
   | Eall (v1, f1, _), Eall (v2, f2, _) -> (v2, find_occ v1 f1 f2)
   | Eex (v1, f1, _), Eex (v2, f2, _) -> (v2, find_occ v1 f1 f2)
-  | _, _ -> assert false
-;;
+  | _, _ -> assert false *)
 
 let rec get_actuals env var =
   match var with
@@ -912,14 +909,14 @@ and get_sub l =
 
 and translate_derived p =
   match p.mlrule with
-  | Definition (DefPseudo ((def_hyp, _), s, _, args, body), folded, unfolded) ->
+  | Definition (DefPseudo ((def_hyp, _), s, _, args, _), folded, unfolded) ->
       let actuals = get_args def_hyp args folded unfolded in
       let exp =
         translate_pseudo_def p def_hyp s actuals folded unfolded
       in
       let (n, ext) = to_llproof exp in
       (n, union [def_hyp] ext)
-  | Definition (DefRec (eqn, s, _, args, body), folded, unfolded) ->
+  | Definition (DefRec (eqn, s, _, _, _), folded, unfolded) ->
       let actuals = get_diff_args folded unfolded in
       let exp =
         translate_rec_def p eqn s actuals folded unfolded
@@ -953,7 +950,7 @@ and translate_derived p =
       let n3 = make_cut exyz n2 n1 in
       to_llproof n3
   | NotExPartial _ -> assert false
-  | Close_sym (Evar("=",_), a, b) -> assert false
+  | Close_sym (Evar("=",_), _, _) -> assert false
   | Close_sym (s, a, b) ->
       let sym_hyp = Eqrel.get_sym_hyp s in
       let pab = eapp (s, [a; b]) in
@@ -972,7 +969,7 @@ and translate_derived p =
       let n2 = make_all refl_hyp a n1 in
       let (n, ext) = to_llproof n2 in
       (n, union [refl_hyp] ext)
-  | P_NotP_sym (Evar("=",_), (Eapp (Evar("=",_), [a; b], _) as aeb),
+  | P_NotP_sym (Evar("=",_), (Eapp (Evar("=",_), [_; _], _) as aeb),
                      Enot (Eapp (Evar("=",_), [c; d], _), _)) ->
       let (n1, n2) = gethyps2 p in
       let ndec = enot (eeq d c) in
@@ -980,7 +977,7 @@ and translate_derived p =
       let n4 = make_direct_sym_neq c d n3 in
       to_llproof n4
   | P_NotP_sym (s, (Eapp (s1, [a; b], _) as pab),
-                (Enot (Eapp (s2, [c; d], _), _) as npcd)) ->
+                (Enot (Eapp (s2, [_; _], _), _) as npcd)) ->
       assert (compare s s1 = 0 && compare s s2 = 0);
       let (n1, n2) = gethyps2 p in
       let sym_hyp = Eqrel.get_sym_hyp s in
@@ -1012,11 +1009,11 @@ and translate_derived p =
       let n4 = make_direct_sym_neq c d n3 in
       to_llproof n4
   | TransEq (a, b, Enot (Eapp (Evar("=",_), [c; d], _), _)) ->
-      let (n1, n2, n3) = gethyps3 p in
+      let (n1, _, n3) = gethyps3 p in
       let n4 = expand_trans_equal a b c d n1 n3 in
       to_llproof n4
   | TransEq_sym (a, b, Enot (Eapp (Evar("=",_), [c; d], _), _)) ->
-      let (n1, n2, n3) = gethyps3 p in
+      let (n1, _, n3) = gethyps3 p in
       let n4 = expand_trans_equal a b d c n1 n3 in
       let n5 = make_direct_sym_neq c d n4 in
       to_llproof n5
@@ -1064,7 +1061,7 @@ and translate_derived p =
      let n1 = make_conglr lam tau va n_eq in
      let n2 = make_cut (eeq tau va) n1 n0 in
      to_llproof n2
-  | Miniscope (lam, tau, []) ->
+  | Miniscope (_, _, []) ->
      to_llproof (gethyps1 p)
   | Miniscope _ -> assert false
   | NotAllEx (Enot (Eall (v, body, _), _) as nap) ->
@@ -1100,7 +1097,7 @@ and translate_pseudo_def p def_hyp s args folded unfolded =
      let n1 = translate_pseudo_def p newhyp s rest folded unfolded in
      make_node [def_hyp] (All (def_hyp, a1)) [[newhyp]] [n1]
 
-and translate_pseudo_def_base p def_hyp s args folded unfolded =
+and translate_pseudo_def_base p def_hyp s _ folded unfolded =
   let n0 = match p.mlhyps with
     | [| n0 |] -> n0
     | _ -> assert false
@@ -1118,13 +1115,13 @@ and translate_pseudo_def_base p def_hyp s args folded unfolded =
         make_node [def_hyp] (Equiv (a, b)) [[nq]; [unf]] [n2; n0]
   | Eapp (Evar("=",_), [_; _], _) when Expr.equal folded (enot def_hyp) ->
       make_node [folded; def_hyp] (Close def_hyp) [] []
-  | Eapp (Evar("=",_), [xx; yy], _) ->
+  | Eapp (Evar("=",_), [_; _], _) ->
      let make_cong = match def_hyp with
-       | Eapp (Evar("=",_), [Eapp (Evar(s1,_), _, _); body], _)
-       | Eapp (Evar("=",_), [Evar (s1, _); body], _)
+       | Eapp (Evar("=",_), [Eapp (Evar(s1,_), _, _); _], _)
+       | Eapp (Evar("=",_), [Evar (s1, _); _], _)
          when s1 = s -> make_conglr
-       | Eapp (Evar("=",_), [body; Eapp (Evar(s1,_), _, _)], _)
-       | Eapp (Evar("=",_), [body; Evar (s1, _)], _)
+       | Eapp (Evar("=",_), [_; Eapp (Evar(s1,_), _, _)], _)
+       | Eapp (Evar("=",_), [_; Evar (s1, _)], _)
          when s1 = s -> make_congrl
        | _ -> assert false
      in
@@ -1133,7 +1130,7 @@ and translate_pseudo_def_base p def_hyp s args folded unfolded =
      make_cong (elam (x, ctx)) a b n0
   | _ -> assert false
 
-and translate_rec_def p eqn s args folded unfolded =
+and translate_rec_def p eqn _ args folded unfolded =
   let n0 = match p.mlhyps with
     | [| n0 |] -> n0
     | _ -> assert false

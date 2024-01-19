@@ -14,7 +14,7 @@ let str_tail s =
   String.sub s 1 (String.length s - 1)
 ;;
 
-let cmp_forms (f1, g1) (f2, g2) =
+let cmp_forms (f1, _) (f2, _) =
   compare (Index.get_number f1) (Index.get_number f2)
 ;;
 

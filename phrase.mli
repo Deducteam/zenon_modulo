@@ -36,6 +36,6 @@ type tpphrase =
   | Annotation of string
 ;;
 
-val change_to_def : string list -> expr -> definition;;
 (** Turn a def-shaped formula into a (real) definition.
     Raise [Invalid_argument] if the argument is not def-shaped. *)
+val change_to_def : string list -> expr -> definition;;

@@ -209,7 +209,7 @@ module Make(Var: VarType) = struct
                 let l = list_uniq r in
                 if List.exists (equal_var a) l then l else a :: l
 
-    let rec empty_expr n = CCVector.make n Q.zero
+    let empty_expr n = CCVector.make n Q.zero
 
     let find_expr_basic t x =
         match index x t.basic with

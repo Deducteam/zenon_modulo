@@ -25,7 +25,7 @@ type coqterm =
   | Cmatch of coqterm * (string * string list * coqterm) list
   | Cifthenelse of coqterm * coqterm * coqterm
   | Cfix of string * string * coqterm
-  | Cannot of coqterm * coqterm
+(*  | Cannot of coqterm * coqterm *)
 ;;
 
 type coqproof =
@@ -116,11 +116,10 @@ let synthesize = function
   | ty -> raise (Cannot_infer (Print.sexpr ty))
 ;;
 
-let to_var e =
+(* let to_var e =
   match e with
   | Evar (v, _) -> v
-  | _ -> assert false
-;;
+  | _ -> assert false *)
 
 let cty s =
   match s with
@@ -178,7 +177,7 @@ and trcase env accu e =
 (*
 let getv env e = Cannot (Cvar (getname e), trexpr env e);;
 *)
-let getv env e = Cvar (getname e);;
+let getv _ e = Cvar (getname e);;
 
 let tropt env e = if !Globals.short_flag then Cwild else trexpr env e;;
 let trpred env v ty p = Clam (v, cty ty, trexpr env p);;
@@ -186,7 +185,7 @@ let trpred env v ty p = Clam (v, cty ty, trexpr env p);;
 let mklam env v t = Clam (getname v, tropt env v, t);;
 let mklams env args t = List.fold_right (mklam env) args t;;
 
-let mkfixcase (c, args) =
+let mkfixcase (_, args) =
   let mklam e arg =
     match arg with
     | Phrase.Self -> Clam ("_", Cwild, Clam ("_", Cwild, e))
@@ -206,7 +205,7 @@ let rec mk_eq_args gen pre post1 post2 =
 ;;
 
 let rec trtree env node =
-  let {conc = conc; rule = rule; hyps = hyps} = node in
+  let {conc = _; rule = rule; hyps = hyps} = node in
   let trexpr = trexpr env in
   let tropt = tropt env in
   let trpred = trpred env in
@@ -274,7 +273,7 @@ let rec trtree env node =
       let lam2 = mklam p (mklam (enot q) sub2) in
       let concl = getv env (enot (eequiv (p, q))) in
       Capp (Cvar "zenon_notequiv", [tropt p; tropt q; lam1; lam2; concl])
-  | Rex (Eex (Evar (x, _) as vx, px, _) as exp, z) ->
+  | Rex (Eex (Evar (x, _) as vx, px, _) as exp, _) ->
       let sub = tr_subtree_1 hyps in
       let zz = etau (vx, px) in
       let zzn = Index.make_tau_name zz in
@@ -283,7 +282,7 @@ let rec trtree env node =
       let lam = Clam (zzn, cty ty, mklam pzz sub) in
       Capp (Cvar "zenon_ex", [cty ty; trpred x ty px; lam; getv env exp])
   | Rex _ -> assert false
-  | Rnotall (Eall (Evar (x, _) as vx, px, _) as allp, z) ->
+  | Rnotall (Eall (Evar (x, _) as vx, px, _) as allp, _) ->
       let sub = tr_subtree_1 hyps in
       let zz = etau (vx, enot (px)) in
       let zzn = Index.make_tau_name (zz) in
@@ -344,10 +343,10 @@ let rec trtree env node =
      let concl2 = getv env (eeq b a) in
      Capp (Cvar "zenon_congruence_rl",
            [Cwild; trexpr p; trexpr a; trexpr b; lam; concl1; concl2])
-  | Rdefinition (name, sym, args, body, None, folded, unfolded) ->
+  | Rdefinition (_, _, _, _, None, folded, unfolded) ->
       let sub = tr_subtree_1 hyps in
       Clet (getname unfolded, getv env folded, sub)
-  | Rdefinition (name, sym, args, body, Some v, folded, unfolded) ->
+  | Rdefinition _ (*name, sym, args, body, Some v, folded, unfolded)*) ->
       assert false (* TODO *)
 
 (* FIXME should drop the coqterm translation or add yet another field
@@ -364,11 +363,11 @@ let rec trtree env node =
                             [trexpr a; trexpr car; Cvar "I"; trexpr b]),
            subp)
   | Rextension (_, "zenon_induct_discriminate_diff", _, _, _) -> assert false
-  | Rextension (_, "zenon_induct_cases", [Evar (ty, _); ctx; e1], [c], hs) ->
+  | Rextension (_, "zenon_induct_cases", [Evar (ty, _); _; e1], [_], _) ->
      let (args, cstrs, schema) = get_induct ty in
      let typargs = List.map (fun _ -> Cwild) args in
      let make_hyp h (c, cargs) =
-       let vars = List.map (fun x -> Expr.newname ()) cargs in
+       let vars = List.map (fun _ -> Expr.newname ()) cargs in
        let shape =
          let vvars = List.map tvar_none vars in
          let params = List.map (fun _ -> tvar_type "_") args in
@@ -504,19 +503,18 @@ let rec get_goal phrases =
   | _ :: t -> get_goal t
 ;;
 
-let rec get_th_name lemmas =
+(* let rec get_th_name lemmas =
   match lemmas with
   | [] -> assert false
   | [h] -> h.name
-  | _ :: t -> get_th_name t
-;;
+  | _ :: t -> get_th_name t *)
 
 let trproof phrases ppphrases l =
   try
     Hashtbl.clear lemma_env;
     init_mapping phrases;
     init_induct ppphrases;
-    let (lemmas, raw, th_name, formals) = trp l in
+    let (lemmas, raw, th_name, _) = trp l in
     match get_goal phrases with
     | Some goal ->
         let trg = tropt [] goal in
@@ -628,7 +626,7 @@ let to_infix = function
 ;;
 
 let pr_oc oc prefix t =
-  let rec pr_list p b l =
+  let pr_list p b l =
     let f t = bprintf b " %a" p t; in
     List.iter f l;
   in
@@ -681,8 +679,8 @@ let pr_oc oc prefix t =
        bprintf b "(fix %s %a:%a:=%a)" f pr_lams lams pr_ty ty pr body
     | Cifthenelse (e1, e2, e3) ->
        bprintf b "(if %a then %a else %a)" pr e1 pr e2 pr e3;
-    | Cannot (e1, e2) ->
-       bprintf b "(%a:%a)" pr e1 pr e2;
+(*    | Cannot (e1, e2) ->
+       bprintf b "(%a:%a)" pr e1 pr e2; *)
 
   and pr_lams b l =
     let f (v, ty) =
@@ -813,13 +811,13 @@ let get_signatures ps ext_decl =
     | Phrase.Def (DefReal (_, s, _, _, e, _)) ->
         defined := s :: !defined;
         get_sig (Indirect s) [] e;
-    | Phrase.Def (DefRec (eqn, s, _, _, e)) ->
+    | Phrase.Def (DefRec (_, s, _, _, e)) ->
         defined := s :: !defined;
         get_sig (Indirect s) [] e;
     | Phrase.Def (DefPseudo _) -> assert false
-    | Phrase.Sig (sym, args, res) ->
+    | Phrase.Sig (sym, _, res) ->
         set_type sym (Declared res);
-    | Phrase.Inductive (ty, args, constrs, schema) ->
+    | Phrase.Inductive (ty, _, constrs, _) ->
         set_type ty (Declared "Type");  (* FIXME add arguments *)
         List.iter (fun (x, _) -> set_type x (Declared ty)) constrs;
     | Phrase.Rew _ -> ()
@@ -840,10 +838,10 @@ let get_signatures ps ext_decl =
     if List.mem sym !defined then l
     else begin
       match sign with
-      | Default (arity, (Prop|Term|Type _)) -> (sym, sign) :: l
+      | Default (_, (Prop|Term|Type _)) -> (sym, sign) :: l
       | Default (arity, Indirect s) ->
           (sym, Default (arity, follow_indirect [] s)) :: l
-      | Declared (res) -> l
+      | Declared _ -> l
       | Hyp_name -> l
     end
   in
@@ -868,7 +866,7 @@ let print_signature oc (sym, sign) =
         | Type s -> fprintf oc "%s.\n" s;
         | Indirect _ -> assert false;
       end;
-  | Declared (res) -> assert false
+  | Declared _ -> assert false
   | Hyp_name -> assert false
 ;;
 
@@ -898,17 +896,17 @@ let declare_hyp oc h =
   | Phrase.Hyp (name, stmt, _) ->
       pr_oc oc (sprintf "Parameter %s : " name) (trexpr [] (Arith.coqify stmt));
       fprintf oc ".\n";
-  | Phrase.Def (DefReal (name, sym, _, [], body, None)) ->
+  | Phrase.Def (DefReal (_, sym, _, [], body, None)) ->
       let prefix = sprintf "Definition %s := " sym in
       pr_oc oc prefix (trexpr [] body);
       fprintf oc ".\n";
-  | Phrase.Def (DefReal (name, sym, _, params, body, None)) ->
+  | Phrase.Def (DefReal (_, sym, _, params, body, None)) ->
       fprintf oc "Definition %s := fun" sym;
       List.iter (print_var oc) params;
       fprintf oc " =>\n";
       pr_oc oc "" (trexpr [] body);
       fprintf oc ".\n";
-  | Phrase.Def (DefReal (name, sym, _, params, body, Some v)) ->
+  | Phrase.Def (DefReal (_, sym, _, params, body, Some v)) ->
       fprintf oc "Fixpoint %s" sym;
       List.iter (print_var oc) params;
       fprintf oc " { struct %s } :=\n" v;

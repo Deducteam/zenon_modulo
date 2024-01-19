@@ -191,31 +191,31 @@ let remove_by_goalness ist l =
 let rec is_empty l =
   match l with
   | [] -> true
-  | (i, h) :: t -> Heap.is_empty h && is_empty t
+  | (_, h) :: t -> Heap.is_empty h && is_empty t
 ;;
 
 let rec remove_eq q =
   match q with
-  | { eq_front = h :: t } -> Some (h, { q with eq_front = t })
-  | { eq_back = _ :: _ } ->
+  | { eq_front = h :: t; _ } -> Some (h, { q with eq_front = t })
+  | { eq_back = _ :: _; _ } ->
      remove_eq { q with eq_front = List.rev q.eq_back; eq_back = [] }
   | _ -> None
 ;;
 
 let rec remove_inst q =
   match q with
-  | { inst_state = ist; inst_size = hpl } when ist < ist_small ->
+  | { inst_state = ist; inst_size = hpl; _ } when ist < ist_small ->
       begin match remove_by_goalness ist hpl with
       | Some (x, l) ->
          Some (x, {q with inst_state = ist + 1; inst_size = l})
       | None -> remove_inst {q with inst_state = ist_small}
       end
-  | { inst_state = ist; inst_front = h::t } ->
+  | { inst_state = ist; inst_front = h::t; _ } ->
       Some (h, {q with inst_front = t; inst_state = (ist + 1) mod ist_max})
-  | { inst_back = []; inst_size = hpl } ->
+  | { inst_back = []; inst_size = hpl; _ } ->
       if is_empty hpl then None
       else remove_inst {q with inst_state = 0}
-  | { inst_back = l } ->
+  | { inst_back = l; _ } ->
      remove_inst {q with inst_front = List.rev l; inst_back = []}
 ;;
 
@@ -225,14 +225,14 @@ let chain r1 r2 q =
   | x -> x
 ;;
 
-let rec remove q =
+let remove q =
   match q with
-  | { prop1 = h::t } -> Some (h, {q with prop1 = t})
-  | { prop2 = h::t } -> Some (h, {q with prop2 = t})
-  | { unary = h::t } -> Some (h, {q with unary = t})
-  | { binary = h::t } -> Some (h, {q with binary = t})
-  | { nary = h::t } -> Some (h, {q with nary = t})
-  | { eq_count = count } when count > 0 ->
+  | { prop1 = h::t; _ } -> Some (h, {q with prop1 = t})
+  | { prop2 = h::t; _ } -> Some (h, {q with prop2 = t})
+  | { unary = h::t; _ } -> Some (h, {q with unary = t})
+  | { binary = h::t; _ } -> Some (h, {q with binary = t})
+  | { nary = h::t; _ } -> Some (h, {q with nary = t})
+  | { eq_count = count; _ } when count > 0 ->
      chain remove_eq remove_inst { q with eq_count = count - 1 }
   | _ -> chain remove_inst remove_eq { q with eq_count = num_eq }
 ;;
@@ -245,15 +245,15 @@ let rec last x l =
 
 let head q =
   match q with
-  | { prop1 = h::t } -> Some h
-  | { prop2 = h::t } -> Some h
-  | { unary = h::t } -> Some h
-  | { binary = h::t } -> Some h
-  | { nary = h::t } -> Some h
-  | { eq_front = h::t } -> Some h
-  | { eq_back = h::t } -> Some (last h t)
-  | { inst_front = h::t} -> Some h
-  | { inst_back = h::t} -> Some (last h t)
+  | { prop1 = h::_; _ } -> Some h
+  | { prop2 = h::_; _ } -> Some h
+  | { unary = h::_; _ } -> Some h
+  | { binary = h::_; _ } -> Some h
+  | { nary = h::_; _ } -> Some h
+  | { eq_front = h::_; _ } -> Some h
+  | { eq_back = h::t; _ } -> Some (last h t)
+  | { inst_front = h::_ ; _ } -> Some h
+  | { inst_back = h::t ;_ } -> Some (last h t)
   | _ -> None
 ;;
 

@@ -90,7 +90,7 @@ let reduce conc rule hyps =
     | Rfalse -> [efalse]
     | Rnottrue -> [enot (etrue)]
     | Raxiom (p) -> [p; enot p]
-    | Rcut (p) -> []
+    | Rcut _ -> []
     | Rnoteq (a) -> [enot (eeq a a)]
     | Reqsym (a, b) -> [eeq a b; enot (eeq b a)]
     | Rnotnot (p) -> [enot (enot (p))]
@@ -102,17 +102,17 @@ let reduce conc rule hyps =
     | Rnotconnect (Or, p, q) -> [enot (eor (p, q))]
     | Rnotconnect (Imply, p, q) -> [enot (eimply (p, q))]
     | Rnotconnect (Equiv, p, q) -> [enot (eequiv (p, q))]
-    | Rex (ep, v) -> [ep]
-    | Rall (ap, t) -> [ap]
-    | Rnotex (ep, t) -> [enot (ep)]
-    | Rnotall (ap, v) -> [enot (ap)]
+    | Rex (ep, _) -> [ep]
+    | Rall (ap, _) -> [ap]
+    | Rnotex (ep, _) -> [enot (ep)]
+    | Rnotall (ap, _) -> [enot (ap)]
     | Rpnotp (p, q) -> [p; q]
     | Rnotequal (a, b) -> [enot (eeq a b)]
     | RcongruenceLR (p, a, b) -> [apply p a; eeq a b]
     | RcongruenceRL (p, a, b) -> [apply p a; eeq b a]
-    | Rdefinition (name, sym, args, body, recarg, fld, unf) -> [fld]
-    | Rextension (ext, name, args, cons, hyps) -> cons
-    | Rlemma (name, args) -> (get_lemma name).proof.conc
+    | Rdefinition (_, _, _, _, _, fld, _) -> [fld]
+    | Rextension (_, _, _, cons, _) -> cons
+    | Rlemma (name, _) -> (get_lemma name).proof.conc
   in
   let useful = List.fold_left (fun accu h -> h.conc @@ accu) eliminated hyps in
   List.filter (fun x -> List.exists (Expr.equal x) useful) conc
@@ -133,7 +133,7 @@ let rec opt t =
   | _ -> { t with conc = nconc; hyps = nhyps }
 ;;
 
-let occurs name e = not (Expr.equal e (substitute [(tvar_prop name, etrue)] e));;
+(* let occurs name e = not (Expr.equal e (substitute [(tvar_prop name, etrue)] e));; *)
 
 let optimise p =
   Hashtbl.clear lemmas;

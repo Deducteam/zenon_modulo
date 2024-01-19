@@ -28,7 +28,7 @@ let do_progress f bar =
         progress_cur := cur;
       end else if cur > !progress_cur then begin
         eprintf "%c" backspace;
-        for i = !progress_cur to cur - 1 do
+        for _ = !progress_cur to cur - 1 do
           eprintf "%c" bar;
         done;
         eprintf "%c" (progress_anim.[!progress_char]);

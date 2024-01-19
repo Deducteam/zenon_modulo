@@ -23,15 +23,16 @@ val list_map4 :
 ;;
 val list_nth_tail : 'a list -> int -> 'a list;;
 
-val list_sort_unique : ('a -> 'a -> int) -> 'a list -> 'a list;;
 (** Sort the list and remove duplicates. *)
+val list_sort_unique : ('a -> 'a -> int) -> 'a list -> 'a list;;
 
 val list_indexq : 'a -> 'a list -> int;;
 
 val string_split : string -> string list;;
 val occurs : string -> string -> bool;;
-val is_prefix : string -> string -> bool;;
+
 (** [is_prefix pre str] is [true] iff [pre] is a prefix of [str]. *)
+val is_prefix : string -> string -> bool;;
 
 val replace_first : string -> string -> string -> string;;
 val isalnum : char -> bool;;

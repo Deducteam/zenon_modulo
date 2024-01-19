@@ -13,11 +13,11 @@ let forbidden_idents = ["abort";"admit";"admitted";"apply";"as";"assert";"assert
 
 let escape_name s =
   let id_regex = Str.regexp "^[a-zA-Z_][a-zA-Z0-9_]*$" in
-  if Str.string_match id_regex s 0 
-    && List.for_all ((<>) s) forbidden_idents 
+  if Str.string_match id_regex s 0
+    && List.for_all ((<>) s) forbidden_idents
     then s else "{|" ^ s ^ "|}"
 
-   
+
 let check_pvar v l = if List.mem v l then "&" ^ v else v
 let delete_pvar v l = List.filter (fun x -> x <> v) l
 
@@ -30,7 +30,7 @@ let rec print_dk_type_aux o (t, l_rule) =
        List.iter (fun x -> fprintf o "%a → " print_dk_type_aux (x, l_rule)) l;
        print_dk_type_aux o (r, l_rule);
      end
-  | Dkpi (Dkvar (v, t1) as var, t2) ->
+  | Dkpi (Dkvar (_, t1) as var, t2) ->
   let pvar = escape_name (get_var_newname var) in
       fprintf o "Π (%s : %a),\n %a"
 	      pvar print_dk_type_aux (t1, l_rule) print_dk_type_aux (t2, delete_pvar pvar l_rule)
@@ -59,10 +59,10 @@ and print_dk_cst o t =
 
 and print_dk_term_aux o (t, l_rule) =
   match t with
-  | Dkvar (v, _) as var ->
+  | Dkvar (_, _) as var ->
       let pvar = (escape_name (get_var_newname var)) in
       fprintf o "%s" (check_pvar pvar l_rule)
- | Dklam (Dkvar (v, t1) as var, t2) ->
+ | Dklam (Dkvar (_, t1) as var, t2) ->
       let pvar = (escape_name (get_var_newname var)) in
      fprintf o "λ (%s : %a),\n %a"
 	     pvar
@@ -101,7 +101,7 @@ and print_dk_term_aux o (t, l_rule) =
      fprintf o "existstype\n (%a)" print_dk_term_aux (t, l_rule)
   | Dktrue -> fprintf o "⊤"
   | Dkfalse -> fprintf o "⊥"
-  | Dkequal (t1, t2, t3) ->
+  | Dkequal (_, t2, t3) ->
      fprintf o "(%a) =α (%a)"
 	     print_dk_term_aux (t2, l_rule)
 	     print_dk_term_aux (t3, l_rule)
@@ -266,7 +266,7 @@ and print_dk_term_aux o (t, l_rule) =
  and print_dk_term o t = print_dk_term_aux o (t, [])
 
 
-let rec pr_list_var o l =
+(* let rec pr_list_var o l =
   match l with
   | [] -> ()
   | [Dkvar (v, t) as var] ->
@@ -276,7 +276,7 @@ let rec pr_list_var o l =
 	     (get_var_newname var)
 	     print_dk_type t
 	     pr_list_var tl
-  | _ -> assert false
+  | _ -> assert false *)
 
 
 let rec get_var_names l =
@@ -311,4 +311,3 @@ let print_goal_type o name goal =
 let print_proof o name proof =
   fprintf o "%a\n"
 	  print_dk_term proof
-

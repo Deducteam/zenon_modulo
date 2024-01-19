@@ -35,9 +35,12 @@ val get_start_time : unit -> float
 
 (** {2 Misc} *)
 
-val set_debug : int -> unit     (** Set debug level *)
-val get_debug : unit -> int     (** Current debug level *)
-val need_cleanup : bool ref     (** Cleanup line before printing? *)
+(** Set debug level *)
+val set_debug : int -> unit
+(** Current debug level *)
+val get_debug : unit -> int
+(** Cleanup line before printing? *)
+val need_cleanup : bool ref
 
 val debug : int -> ('a, Buffer.t, unit, unit) format4 -> 'a
   (** debug message *)

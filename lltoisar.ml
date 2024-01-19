@@ -10,11 +10,10 @@ open Namespace;;
 
 module Dict = Set.Make (String);;
 
-let rec dict_addlist l d =
+(* let rec dict_addlist l d =
   match l with
   | [] -> d
-  | h::t -> dict_addlist t (Dict.add h d)
-;;
+  | h::t -> dict_addlist t (Dict.add h d) *)
 
 let dict_add x d = Dict.add x d;;
 let dict_mem x d = Dict.mem x d;;
@@ -213,7 +212,7 @@ and p_recordset_field env dict oc (l, e) =
 ;;
 
 let p_expr dict oc e = p_expr [] dict oc e;;
-let p_expr_list dict oc l = p_expr_list [] dict oc l;;
+(* let p_expr_list dict oc l = p_expr_list [] dict oc l;; *)
 
 let p_apply dict oc (lam, arg) =
   let n_lam = vname lam in
@@ -322,9 +321,9 @@ let rec p_tree hyps i dict oc proof =
      let other =
        let rec loop l =
          match l with
-         | [ [x] ] -> false
-         | [ [x; y] ] -> true
-         | h :: t -> loop t
+         | [ [_] ] -> false
+         | [ [_; _] ] -> true
+         | _ :: t -> loop t
          | _ -> assert false
        in loop hs
      in
@@ -345,7 +344,7 @@ let rec p_tree hyps i dict oc proof =
      p_sub dict hs proof.hyps;
   | Rextension (_, "zenon_case", _, _, _) -> assert false
 
-  | Rextension (_, "zenon_stringequal", [v1; v2], [con], []) ->
+  | Rextension (_, "zenon_stringequal", [_; _], [con], []) ->
      let v1nev2 = enot (con) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps v1nev2) (p_expr dict) v1nev2;
      iprintf i oc "by (simp only: zenon_sa_1 zenon_sa_2,\n";
@@ -357,7 +356,7 @@ let rec p_tree hyps i dict oc proof =
      iprintf i oc "by (rule notE [OF %s %s])\n" (hname hyps v1nev2)
              (hname hyps con);
   | Rextension (_, "zenon_stringequal", _, _, _) -> assert false
-  | Rextension (_, "zenon_stringdiffll", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
+  | Rextension (_, "zenon_stringdiffll", [_; s1; _; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
      let s1nes2 = enot (eeq s1 s2) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
@@ -368,7 +367,7 @@ let rec p_tree hyps i dict oc proof =
              (hname hyps s1nes2) (hname hyps c1) (hname hyps c2);
      p_tree hyps (iinc i) dict1 oc t
   | Rextension (_, "zenon_stringdiffll", _, _, _) -> assert false
-  | Rextension (_, "zenon_stringdifflr", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
+  | Rextension (_, "zenon_stringdifflr", [_; s1; _; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
      let s1nes2 = enot (eeq s1 s2) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
@@ -379,7 +378,7 @@ let rec p_tree hyps i dict oc proof =
              (hname hyps s1nes2) (hname hyps c1) (hname hyps c2);
      p_tree hyps (iinc i) dict1 oc t
   | Rextension (_, "zenon_stringdifflr", _, _, _) -> assert false
-  | Rextension (_, "zenon_stringdiffrl", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
+  | Rextension (_, "zenon_stringdiffrl", [_; s1; _; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
      let s1nes2 = enot (eeq s1 s2) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
@@ -390,7 +389,7 @@ let rec p_tree hyps i dict oc proof =
              (hname hyps s1nes2) (hname hyps c1) (hname hyps c2);
      p_tree hyps (iinc i) dict1 oc t
   | Rextension (_, "zenon_stringdiffrl", _, _, _) -> assert false
-  | Rextension (_, "zenon_stringdiffrr", [e1; s1; e2; s2], [c1; c2], [[h]]) ->
+  | Rextension (_, "zenon_stringdiffrr", [_; s1; _; s2], [c1; c2], [[h]]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
      let s1nes2 = enot (eeq s1 s2) in
      iprintf i oc "have %s: \"%a\"\n" (hname hyps s1nes2) (p_expr dict) s1nes2;
@@ -415,7 +414,7 @@ let rec p_tree hyps i dict oc proof =
      let dict3 = List.fold_left p_hyp dict hs in
      p_tree hyps i dict3 oc t
   | Rextension (_, "zenon_tuple_eq_match", _, _, _) -> assert false
-  | Rextension (_, "zenon_tuple_eq_mismatch", [e], [c], []) ->
+  | Rextension (_, "zenon_tuple_eq_mismatch", [e], [_], []) ->
      iprintf i oc "show FALSE\n";
      iprintf i oc "using %s by auto\n" (hname hyps e);
   | Rextension (_, "zenon_tuple_eq_mismatch", _, _, _) -> assert false
@@ -452,7 +451,7 @@ let rec p_tree hyps i dict oc proof =
        iprintf i oc "by ((rule zenon_recfield_1)+, rule zenon_recfield_2b)\n"
      end else begin
        iprintf i oc "by (";
-       for j = len downto idx + 1 do
+       for _ = len downto idx + 1 do
          fprintf oc "rule zenon_recfield_1, ";
        done;
        fprintf oc "rule zenon_recfield_2, ((rule zenon_recfield_3)+)?, ";
@@ -506,7 +505,7 @@ let rec p_tree hyps i dict oc proof =
      let (dict4, _) = List.fold_left print_hyp (dict2, tla_one) hs in
      p_tree hyps i dict4 oc t
   | Rextension (_, "zenon_in_product", _, _, _) -> assert false
-  | Rextension (_, "zenon_notin_product", [e1; e2], [c], hs) ->
+  | Rextension (_, "zenon_notin_product", [e1; _], [c], hs) ->
      let dict1 = p_let dict i oc e1 in
      let print_hyp dict1 nhl t =
        let h, nh =
@@ -549,16 +548,16 @@ let rec p_tree hyps i dict oc proof =
      let dict3 = List.fold_left p_hyp dict hs in
      p_tree hyps i dict3 oc t
   | Rextension (_, "zenon_record_eq_match", _, _, _) -> assert false
-  | Rextension (_, "zenon_record_eq_mismatch", [e], [c], []) ->
+  | Rextension (_, "zenon_record_eq_mismatch", [e], [_], []) ->
      iprintf i oc "show FALSE\n";
      iprintf i oc "using %s by auto\n" (hname hyps e);
   | Rextension (_, "zenon_record_eq_mismatch", _, _, _) -> assert false
   | Rextension (_, "zenon_record_neq_match", _, _, _) ->
      iprintf i oc "sorry\n" (* FIXME TODO *)
-  | Rextension (_, "zenon_neq_record", [e1; e2], [c], h0 :: h1 :: hs) ->
+  | Rextension (_, "zenon_neq_record", [_; _], [_], _ :: _ :: _) ->
      iprintf i oc "sorry\n" (* FIXME TODO *)
   | Rextension (_, "zenon_neq_record", _, _, _) -> assert false
-  | Rextension (_, "zenon_record_neq", [e1; e2], [c], h0 :: h1 :: hs) ->
+  | Rextension (_, "zenon_record_neq", [_; _], [_], _ :: _ :: _) ->
      iprintf i oc "sorry\n" (* FIXME TODO *)
   | Rextension (_, "zenon_record_neq", _, _, _) -> assert false
 
@@ -603,7 +602,7 @@ let rec p_tree hyps i dict oc proof =
      let (dict6, _) = List.fold_left print_hyp (dict4, tla_one) hs in
      p_tree hyps i dict6 oc t
   | Rextension (_, "zenon_in_recordset", _, _, _) -> assert false
-  | Rextension (_, "zenon_notin_recordset", [e1; e2], [c], hs) ->
+  | Rextension (_, "zenon_notin_recordset", [e1; _], [c], hs) ->
      let dict1 = p_let dict i oc e1 in
      let print_hyp dict1 nhl t =
        let h, nh =
@@ -637,14 +636,14 @@ let rec p_tree hyps i dict oc proof =
 
   | Rextension (_, name, args, con, []) ->
      let p_arg dict oc e = fprintf oc "\"%a\"" (p_expr dict) e in
-     let p_con dict oc e = fprintf oc "%s" (hname hyps e) in
+     let p_con _ oc e = fprintf oc "%s" (hname hyps e) in
      iprintf i oc "show FALSE\n";
      iprintf i oc "by (rule %s [of %a, OF %a])\n" name
              (p_list dict "" p_arg " ") args (p_list dict "" p_con " ") con;
   | Rextension (_, name, args, con, [hs]) ->
      let t = match proof.hyps with [t] -> t | _ -> assert false in
      let p_arg dict oc e = fprintf oc "\"%a\"" (p_expr dict) e in
-     let p_con dict oc e = fprintf oc "%s" (hname hyps e) in
+     let p_con _ oc e = fprintf oc "%s" (hname hyps e) in
      let p_hyp (dict, j) h =
        if List.memq h t.conc then begin
          iprintf i oc "have %s: \"%a\"" (hname hyps h) (p_expr dict) h;
@@ -659,7 +658,7 @@ let rec p_tree hyps i dict oc proof =
      p_tree hyps i dict3 oc t
   | Rextension (_, name, args, con, hs) ->
      let p_arg dict oc e = fprintf oc "\"%a\"" (p_expr dict) e in
-     let p_con dict oc e = fprintf oc "%s" (hname hyps e) in
+     let p_con _ oc e = fprintf oc "%s" (hname hyps e) in
      iprintf i oc "show FALSE\n";
      iprintf i oc "proof (rule %s [of %a, OF %a])\n" name
              (p_list dict "" p_arg " ") args (p_list dict "" p_con " ") con;
@@ -696,8 +695,8 @@ let rec p_tree hyps i dict oc proof =
       | Etau _ :: t -> filter_vars t
       | _ -> assert false
      in
-     let pr dict oc v = fprintf oc "?%s=%s" v v in
-     let pr_hyp dict oc h = fprintf oc "%s" (hname hyps h) in
+     let pr _ oc v = fprintf oc "?%s=%s" v v in
+     let pr_hyp _ oc h = fprintf oc "%s" (hname hyps h) in
      iprintf i oc "show FALSE\n";
      iprintf i oc "by (rule %s [" l;
      begin match filter_vars a with
@@ -723,7 +722,7 @@ let rec p_tree hyps i dict oc proof =
      let n_ne1 = hname hyps (enot e1) in
      iprintf i oc "show FALSE\n";
      iprintf i oc "by (rule notE [OF %s %s])\n" n_ne1 n_e1;
-  | Rdefinition (name, s, args, body, None, conc, hyp) ->
+  | Rdefinition (name, _, _, _, None, conc, hyp) ->
      let n_conc = hname hyps conc in
      let n_hyp = hname hyps hyp in
      iprintf i oc "have %s_%s: \"%a == %a\"" n_hyp n_conc
@@ -894,7 +893,7 @@ and p_subst hyps i dict oc mk l1 l2 rl2 prev =
 
 let p_lemma hyps i dict oc lem =
   iprintf i oc "have %s: \"" lem.name;
-  let f (ty, e) accu =
+  let f (_, e) accu =
     match e with
     | Evar (x, _) -> x :: accu
     | Etau _ -> accu
@@ -928,7 +927,7 @@ let p_lemma hyps i dict oc lem =
 let rec get_ngoal phrases =
   match phrases with
   | [] -> enot (efalse)
-  | Phrase.Hyp (n, e, _) :: t when n = goal_name -> e
+  | Phrase.Hyp (n, e, _) :: _ when n = goal_name -> e
   | _ :: t -> get_ngoal t
 ;;
 
@@ -957,9 +956,9 @@ let rec get_nary_rules accu prf =
        let other =
          let rec loop l =
            match l with
-           | [ [x] ] -> false
-           | [ [x; y] ] -> true
-           | h :: t -> loop t
+           | [ [_] ] -> false
+           | [ [_; _] ] -> true
+           | _ :: t -> loop t
            | _ -> assert false
          in loop hs
        in
@@ -1021,7 +1020,7 @@ let rec p_lemmas oc llp phrases lemmas =
   | h::t -> p_lemmas oc t phrases (h::lemmas);
 ;;
 
-let output oc phrases ppphrases llp =
+let output oc phrases _ llp =
   if !Globals.ctx_flag then begin
     fprintf oc "(* BEGIN-CONTEXT *)\n";
     fprintf oc "theory zenon_tmp_theory imports Constant Zenon begin\n";

@@ -20,9 +20,9 @@ exception Empty;;
 
 type constructor_desc = {
   cd_num : int;
-  cd_name : string;
+  (* cd_name : string; *)
   cd_type : string;
-  cd_args : inductive_arg list;
+  (* cd_args : inductive_arg list; *)
 };;
 
 let constructor_table =
@@ -59,8 +59,8 @@ let get_args e =
        list_nth_tail a (List.length params)
      with Not_found -> assert false
      end
-  | Eapp (Evar(s,_), a, _) -> a
-  | Evar (s, _) -> []
+  | Eapp (Evar(_, _), a, _) -> a
+  | Evar (_, _) -> []
   | _ -> assert false
 ;;
 
@@ -115,7 +115,7 @@ let make_match_redex e g ctx is_t ee cases =
     in
     assert (is_constr c);
     let cs = List.map (make_case []) cases in
-    let goodcase (c1, a1, b1) =
+    let goodcase (c1, a1, _) =
       c1 = "_" || c1 = c && List.length a1 = List.length aa
     in
     try
@@ -188,7 +188,7 @@ let make_match_branches e cases =
   | [] -> Error.warn "empty pattern-matching"; raise Empty
   | _ ->
       let c = normalize_cases cases in
-      let f (constr, vars, body) =
+      let f (constr, vars, _) =
         let rvars = List.map (fun _ -> Expr.newtvar type_none) vars in
         let pattern = eapp (tvar_none "@", tvar_none constr :: (get_unders constr) @ rvars) in
 (*
@@ -204,12 +204,11 @@ let make_match_branches e cases =
       List.map f c
 ;;
 
-let rec get_match_case branches =
+(* let rec get_match_case branches =
   match branches with
   | [] -> raise Not_found
   | [Eapp (Evar("=",_), [_; e2], _) as shape; _] :: t when Index.member shape -> e2
-  | _ :: t -> get_match_case t
-;;
+  | _ :: t -> get_match_case t *)
 
 let get_type cases =
   match cases with
@@ -282,10 +281,10 @@ let newnodes_match_cases_eq e g =
   | _ -> []
 ;;
 
-let make_induction_branch ty targs p (con, args) =
+let make_induction_branch _ targs p (con, args) =
   let rec f vars args =
     match args with
-    | Param s :: t ->
+    | Param _ :: t ->
        let x = Expr.newtvar type_none in
        eall (x, f (x :: vars) t)
     | Self :: t ->
@@ -305,7 +304,7 @@ let newnodes_induction e g =
      begin try
        let ty = Expr.get_type v in
        let (tycon, targs) = parse_type (Print.sexpr ty) in
-       let (args, cons, schema) = Hashtbl.find type_table tycon in
+       let (_, cons, _) = Hashtbl.find type_table tycon in
        let p = elam (v, body) in
        let br = List.map (make_induction_branch (Print.sexpr ty) targs p) cons in
        [ Node {
@@ -323,7 +322,7 @@ let newnodes_induction e g =
      begin try
        let ty = Expr.get_type v in
        let (tycon, targs) = parse_type (Print.sexpr ty) in
-       let (args, cons, schema) = Hashtbl.find type_table tycon in
+       let (_, cons, _) = Hashtbl.find type_table tycon in
        let p = elam (v, body) in
        let br = List.map (make_induction_branch (Print.sexpr ty) targs p) cons in
        [ Node {
@@ -340,7 +339,7 @@ let newnodes_induction e g =
      begin try
        let ty = Expr.get_type v in
        let (tycon, targs) = parse_type (Print.sexpr ty) in
-       let (args, cons, schema) = Hashtbl.find type_table tycon in
+       let (_, cons, _) = Hashtbl.find type_table tycon in
        let np = elam (v, enot (body)) in
        let p = elam (v, body) in
        let br = List.map (make_induction_branch (Print.sexpr ty) targs np) cons in
@@ -403,7 +402,7 @@ let newnodes_injective e g =
         ngoal = g;
         nbranches = [| |];
       }; Stop ]
-  | Enot (Eapp (Evar("=",_), [e1; Eapp (Evar("$any-induct",_), [Evar (ty, _); e2], _)], _), _)
+  | Enot (Eapp (Evar("=",_), [e1; Eapp (Evar("$any-induct",_), [Evar (_, _); e2], _)], _), _)
        when constr_head e1 && get_constr e1 <> get_constr e2 ->
      let constr = get_constr e2 in
      let args = List.map (fun _ -> tvar_none "_") (get_args e2) in
@@ -419,7 +418,7 @@ let newnodes_injective e g =
            ngoal = g;
            nbranches = [| [h] |];
      } ]
-  | Enot (Eapp (Evar("=",_), [Eapp (Evar("$any-induct",_), [Evar (ty, _); e2], _); e1], _), _)
+  | Enot (Eapp (Evar("=",_), [Eapp (Evar("$any-induct",_), [Evar (_, _); e2], _); e1], _), _)
     when constr_head e1 && get_constr e1 <> get_constr e2 ->
      let constr = get_constr e2 in
      let args = List.map (fun _ -> tvar_none "_") (get_args e2) in
@@ -482,12 +481,12 @@ let newnodes_constr_eq e g =
   in
   let l1 =
     match e with
-    | Eapp (Evar("=",_), [e1; e2], _) when constr_head e1 -> mk_nodes e1
+    | Eapp (Evar("=",_), [e1; _], _) when constr_head e1 -> mk_nodes e1
     | _ -> []
   in
   let l2 =
     match e with
-    | Eapp (Evar("=",_), [e1; e2], _) when constr_head e2 -> mk_nodes e2
+    | Eapp (Evar("=",_), [_; e2], _) when constr_head e2 -> mk_nodes e2
     | _ -> []
   in
   l1 @ l2
@@ -582,7 +581,7 @@ let newnodes e g _ =
   @ (try newnodes_induction e g with Empty -> [])
 ;;
 
-let make_inst m term g = assert false;;
+let make_inst _ _ _ = assert false;;
 
 let rec get_decreasing_arg e env =
   match e with
@@ -623,7 +622,7 @@ let to_llproof tr_expr mlp args =
        | a1 :: t1, a2 :: t2 ->
           let hyp = tr_expr (eeq a1 a2) in
           if List.exists (Expr.equal hyp) accu.conc then begin
-            let (_, cons, schema) =
+            let (_, cons, _) =
               try Hashtbl.find type_table ty with Not_found -> assert false
             in
             let mk_case (name, args) =
@@ -663,7 +662,7 @@ let to_llproof tr_expr mlp args =
        | a1 :: t1, a2 :: t2 ->
           let hyp = tr_expr (eeq a1 a2) in
           if List.exists (Expr.equal hyp) accu.conc then begin
-            let (_, cons, schema) =
+            let (_, cons, _) =
               try Hashtbl.find type_table ty with Not_found -> assert false
             in
             let mk_case (name, args) =
@@ -809,8 +808,8 @@ let to_llproof tr_expr mlp args =
 ;;
 
 let add_induct_def ty args constrs schema =
-  let f i (name, a) =
-    let desc = { cd_num = i; cd_type = ty; cd_args = a; cd_name = name } in
+  let f i (name, _) =
+    let desc = { cd_num = i; cd_type = ty(*; cd_args = a ; cd_name = name *) } in
     Hashtbl.add constructor_table name desc;
   in
   list_iteri f constrs;
@@ -839,7 +838,7 @@ let add_formula e =
   | _ -> ()
   end;
   begin match e with
-  | Eapp (Evar("=",_), [e1; e2], _) when constr_head e1 ->
+  | Eapp (Evar("=",_), [e1; _], _) when constr_head e1 ->
       Hashtbl.add constr_expr (get_constr e1) e1;
   | _ -> ()
   end;
@@ -858,12 +857,12 @@ let remove_formula e =
   | _ -> ()
   end;
   begin match e with
-  | Eapp (Evar("=",_), [e1; e2], _) when constr_head e1 ->
+  | Eapp (Evar("=",_), [e1; _], _) when constr_head e1 ->
       Hashtbl.remove constr_expr (get_constr e1);
   | _ -> ()
   end;
   begin match get_matching e with
-  | Some (ctx, is_t, ee, cases) when not (constr_head ee) ->
+  | Some (_, _, ee, _) when not (constr_head ee) ->
      HE.remove matches ee
   | _ -> ()
   end;
@@ -893,7 +892,7 @@ let p_rule_coq oc r =
   | Rextension (_, "zenon_induct_discriminate_diff", [], [e1; e2; _], []) ->
       let h = enot (eeq e1 e2) in
       poc "assert (%a) as %s. discriminate.\n" p_expr h (getname h);
-  | Rextension (_, "zenon_induct_cases", [Evar (ty, _); ctx; e1], [c], hs) ->
+  | Rextension (_, "zenon_induct_cases", [Evar (_, _); _; e1], [_], hs) ->
      poc "case_eq (%a); [\n    " p_expr e1;
      let rec get_params case =
        match case with
@@ -901,9 +900,9 @@ let p_rule_coq oc r =
           let (vs, e) = get_params body in
           let vv = Expr.newtvar type_none in
           (vv :: vs, substitute [(v, vv)] e)
-       | Enot (Eapp (Evar("=",_), [_; Evar (v, _)], _), _)
-       | Enot (Eapp (Evar("=",_), [_; Eapp (Evar("@",_), Evar (v, _) :: _, _)], _), _)
-       | Enot (Eapp (Evar("=",_), [_; Eapp (Evar(v,_), _, _)], _), _)
+       | Enot (Eapp (Evar("=",_), [_; Evar (_, _)], _), _)
+       | Enot (Eapp (Evar("=",_), [_; Eapp (Evar("@",_), Evar (_, _) :: _, _)], _), _)
+       | Enot (Eapp (Evar("=",_), [_; Eapp (Evar(_,_), _, _)], _), _)
         -> ([], case)
        | Enot (body, _) -> get_params body
        | _ -> assert false
@@ -914,7 +913,7 @@ let p_rule_coq oc r =
        fprintf oc "apply NNPP; zenon_intro %s\n" (getname ahyp);
      in
      fprintf oc "%a].\n" (p_list "" p_case "  | ") params;
-  | Rextension (_, "zenon_induct_induction_notall", [Evar (ty, _); p], [c], hs)
+  | Rextension (_, "zenon_induct_induction_notall", [Evar (ty, _); _], [c], hs)
     ->
      fprintf oc "apply %s.\n" (getname c);
      let (args, constrs, schema) = Hashtbl.find type_table ty in
@@ -931,12 +930,12 @@ let p_rule_coq oc r =
      in
      p_list "" p_case " | " oc hs;
      fprintf oc "].\n";
-  | Rextension (_, "zenon_induct_fix", [Evar (ty, _); ctx; foldx; unfx; a],
-                [c], [ [h] ]) ->
-     let (_, cstrs, schema) = Coqterm.get_induct ty in
+  | Rextension (_, "zenon_induct_fix", [Evar (ty, _); _; _; _; a],
+                [_], [ [h] ]) ->
+     let (_, cstrs, _) = Coqterm.get_induct ty in
      poc "assert (%s : %a).\n" (getname h) p_expr h;
      poc "case_eq (%a); [\n    " p_expr a;
-     let p_case oc (c, args) =
+     let p_case oc (_, args) =
        List.iter (fun _ -> fprintf oc "intro; ") args;
        fprintf oc "intro zenon_tmp; rewrite zenon_tmp in *; auto\n";
      in

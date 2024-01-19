@@ -5,7 +5,7 @@ open Printf;;
 
 open Expr;;
 open Llproof;;
-open Namespace;;
+(* open Namespace *)
 
 exception Found of expr;;
 
@@ -63,7 +63,7 @@ let is_infix_op s = match s with
     | "$coq_div" | "=="
     | "$less" | "$lesseq" | "$greater" | "$greatereq" | "="
     | "$sum" | "$product" | "$difference" -> true
-    | s -> false
+    | _ -> false
 
 let to_infix = function
     | "$less" -> "<"
@@ -93,7 +93,7 @@ and p_expr oc e =
   | Evar (v, _) ->
       poc "%s" v;
   | Earrow(args, ret, _) ->
-      poc "("; List.iteri (fun i t -> p_expr oc t; poc " -> ") args;
+      poc "("; List.iteri (fun _ t -> p_expr oc t; poc " -> ") args;
       p_expr oc ret; poc ")"
   | Eapp (Evar("$coq_scope",_), [Evar(s,_); e], _) ->
       poc "(%a)%%%s" p_expr e s;
@@ -178,7 +178,7 @@ let rec p_bound_vars oc l =
   | [] -> ()
 ;;
 
-let rec p_forall oc l =
+let p_forall oc l =
   match l with
   | _ :: _ -> fprintf oc "forall%a, " p_bound_vars l;
   | [] -> ()
@@ -233,9 +233,8 @@ let p_intros oc l =
   fprintf oc "idtac";
 ;;
 
-let p_rev_app oc (f, args) =
-  fprintf oc "(%s%a)" f p_expr_list (List.rev args)
-;;
+(* let p_rev_app oc (f, args) =
+  fprintf oc "(%s%a)" f p_expr_list (List.rev args) *)
 
 let apply_alpha oc lem h0 h1 h2 =
   fprintf oc "apply (zenon_%s_s _ _ %s). zenon_intro %s. zenon_intro %s.\n"
@@ -287,18 +286,18 @@ let p_rule oc r =
       | [] -> poc ".\n";
       | _ -> poc "; [ %a ].\n" (p_list "" p_intros " | ") hyps;
       end;
-  | Rextension (ext, lemma, args, cons, hyps) ->
+  | Rextension (ext, _, _, _, _) ->
      Extension.p_rule_coq ext oc r;
-  | Rnotnot (p as e) ->
+  | Rnotnot e ->
       poc "apply %s. zenon_intro %s.\n" (getname (enot (enot e))) (getname e);
-  | Rex (Eex (vx, e, _) as p, t) ->
+  | Rex (Eex (vx, e, _) as p, _) ->
       let h0 = getname p in
       let zz = etau (vx, e) in
       let zzn = Index.make_tau_name zz in
       let h1 = getname (substitute [(vx, zz)] e) in
       poc "elim %s. zenon_intro %s. zenon_intro %s.\n" h0 zzn h1;
   | Rex _ -> assert false
-  | Rnotall (Eall (vx, e, _) as p, t) ->
+  | Rnotall (Eall (vx, e, _) as p, _) ->
       let h0 = getname (enot p) in
       let zz = etau (vx, enot (e)) in
       let zzn = Index.make_tau_name zz in
@@ -327,9 +326,9 @@ let p_rule oc r =
       let h0 = getname e in
       let h1 = getname (enot e) in
       poc "exact (%s %s).\n" h1 h0;
-  | Rdefinition (_, s, a, b, None, c, h) ->
+  | Rdefinition (_, _, _, _, None, c, h) ->
       poc "assert (%s : %a). exact %s.\n" (getname h) p_expr h (getname c);
-  | Rdefinition (_, s, a, b, Some v, c, h) ->
+  | Rdefinition (_, s, a, _, Some v, c, h) ->
       let args =
         match get_diff c h with
         | Eapp (Evar(ss,_), args, _) when ss = s -> args
@@ -420,7 +419,7 @@ let rec p_lemmas oc l =
   match l with
   | [] -> ()
   | lem :: t ->
-     let params = List.filter (fun (ty, v) -> notmeta v) lem.params in
+     let params = List.filter (fun (_, v) -> notmeta v) lem.params in
      declare_lemma oc lem.name params lem.proof.conc;
      p_script_lemma oc (List.length params) lem.proof;
      fprintf oc "(* end of lemma %s *)\n" lem.name;
@@ -431,7 +430,7 @@ let p_theorem oc phrases l =
   match l with
   | [] -> assert false
   | thm :: lemmas ->
-     let params = List.filter (fun (ty, v) -> notmeta v) thm.params in
+     let params = List.filter (fun (_, v) -> notmeta v) thm.params in
      declare_theorem oc thm.name params thm.proof.conc phrases;
      p_lemmas oc (List.rev lemmas);
      p_script_thm oc thm.proof;

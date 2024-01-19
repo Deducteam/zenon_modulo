@@ -2,7 +2,6 @@
 Version.add "$Id$";;
 
 open Expr;;
-open Printf;;
 
 type rule =
   | Close of expr
@@ -196,7 +195,7 @@ let make_pnp pa npb ns =
   make_node [pa; npb] (P_NotP (pa, npb)) (mk_neqs aa bb) ns
 ;;
 
-let make_pnps r rab nrcd n0 n1 =
+let make_pnps _ rab nrcd n0 n1 =
   let (r, a, b) =
     match rab with
     | Eapp (r, [a; b], _) -> (r, a, b)

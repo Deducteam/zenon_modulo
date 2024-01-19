@@ -100,7 +100,7 @@ let postprocess p =
 
 let to_llproof tr_expr node subs =
   match node.mlrule with
-  | Ext (th, rule, args) ->
+  | Ext (th, _, _) ->
       let t = find_extension th !active in
       t.to_llproof tr_expr node subs
   | _ -> assert false
