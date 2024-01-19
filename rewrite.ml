@@ -5,8 +5,8 @@ Version.add "$Id$";;
 
 open Expr;;
 open Print;;
-open Node;;
-open Mlproof;;
+(* open Node;;*)
+(* open Mlproof;;*)
 open Phrase;;
 
 
@@ -32,13 +32,12 @@ let rec assoc_expr x = function
 
 let rec mem_assoc_expr x = function
   | [] -> false
-  | (a, b)::l -> (Expr.equal a x) || mem_assoc_expr x l
+  | (a, _)::l -> (Expr.equal a x) || mem_assoc_expr x l
 ;;
 
-let rec mem_expr x = function
+(*let rec mem_expr x = function
   | [] -> false
-  | a :: l -> (Expr.equal a x) || mem_expr x l
-;;
+  | a :: l -> (Expr.equal a x) || mem_expr x l*)
 
 exception Unif_failed;;
 
@@ -75,7 +74,7 @@ let unif t1 t2 = unif_aux [] t1 t2;;
 let rec unif_st_aux l e1 e2 =
   match e2 with
   | Evar _ -> l
-  | Eapp (v, args, _) ->
+  | Eapp (_, args, _) ->
      let l' =
        begin
          try unif_aux l e1 e2
@@ -158,7 +157,7 @@ let not_unif_subterm e1 e2 =
      false
 ;;
 
-let rec find_best_match incr left_rule fm =
+(*let rec find_best_match incr left_rule fm =
   match left_rule, fm with
   | Evar _ , Evar _
     -> let new_incr = incr + 1 in
@@ -170,10 +169,9 @@ let rec find_best_match incr left_rule fm =
   | Eapp _, _
     -> let new_incr = incr - 1 in
        new_incr
-  | _, _ -> incr
-;;
+  | _, _ -> incr*)
 
-let ordering_two fm (l1, r1) (l2, r2) =
+(*let ordering_two fm (l1, _) (l2, _) =
   match fm with
   | Enot (r_fm, _)
     ->
@@ -191,16 +189,14 @@ let ordering_two fm (l1, r1) (l2, r2) =
        else if find_best_match 0 l1 fm < find_best_match 0 l2 fm
        then 1
        else -1
-     end
-;;
+     end*)
 
- let ordering (l1, r1) (l2, r2) =
+(* let ordering (l1, _) (l2, _) =
   let fv_l1 = get_fv l1 in
   let fv_l2 = get_fv l2 in
   if List.length fv_l1 = List.length fv_l2 then 0
   else if List.length fv_l1 > List.length fv_l2 then 1
-  else -1
-;;
+  else -1*)
 
 let nb_rewrite_term = ref 0
 let nb_rewrite_prop = ref 0
@@ -245,7 +241,7 @@ let norm_prop fm =
   norm_prop_aux rules fm
 ;;
 
-let rec rewrite_term (l, r) p =
+let rewrite_term (l, r) p =
   try
     let subst = unif l p in
     begin
@@ -350,7 +346,7 @@ let is_commut_term body =
   | _ -> false
 ;;
 
-let is_assoc_term body =
+(*let is_assoc_term body =
   match body with
   | Eapp (Evar("=", _), [t1; t2], _) ->
     begin
@@ -377,8 +373,7 @@ let is_assoc_term body =
 	    -> true
       | _ -> false
     end
-  | _ -> false
-;;
+  | _ -> false*)
 
 let rec test_fv l1 l2 =
   match l2 with
@@ -406,14 +401,13 @@ let is_literal_noteq body =
   | _ -> false
 ;;
 
-let is_literal_eq body =
+(*let is_literal_eq body =
   match body with
-  | Eapp(Evar(sym, _), _, _)  -> true
-  | Enot(Eapp(Evar(sym, _), _, _), _)  -> true
-  | _ -> false
-;;
+  | Eapp(Evar(_, _), _, _)  -> true
+  | Enot(Eapp(Evar(_, _), _, _), _)  -> true
+  | _ -> false*)
 
-let rec is_equal_term body =
+(*let rec is_equal_term body =
   match body with
   | Eapp (Evar("=", _), [t1; t2], _)
       when not (is_commut_term body) ->
@@ -423,8 +417,7 @@ let rec is_equal_term body =
        | _, Eapp _ -> test_fv (get_fv t2) (get_fv t1)
        | _, _ -> false
      end
-  | _ -> false
-;;
+  | _ -> false*)
 
 (*let rec is_conj_term body =
   match body with
@@ -438,7 +431,7 @@ let is_empty_list l =
   | _ -> false
 ;;
 
-let rec is_sym_subexpr s e =
+(*let rec is_sym_subexpr s e =
   match e with
   | Evar(s', _) ->
      s = s'
@@ -470,8 +463,7 @@ let rec is_sym_subexpr s e =
      false
   | Elam _ ->
      false
-  | _ -> assert false
-;;
+  | _ -> assert false*)
 
 let is_good_rwrt_term_aux body =
   match body with
@@ -494,7 +486,7 @@ let rec is_good_rwrt_term body =
   | _ -> is_good_rwrt_term_aux body
 ;;
 
-let rec is_good_rwrt_prop_aux body =
+let is_good_rwrt_prop_aux body =
   if is_literal_noteq body
   then true
   else
@@ -535,7 +527,7 @@ let rec is_heuri_rwrt_term body =
   | _ -> is_heuri_rwrt_term_aux body
 ;;
 
-let rec is_heuri_rwrt_prop_aux body =
+let is_heuri_rwrt_prop_aux body =
   if (is_literal_noteq body)
      && not (is_empty_list (get_fv body))
   then true
@@ -580,7 +572,7 @@ let rec is_heuri_rwrt_term2 body =
   | _ -> is_heuri_rwrt_term2_aux body
 ;;
 
-let rec is_heuri_rwrt_prop2_aux body =
+let is_heuri_rwrt_prop2_aux body =
   if (is_literal_noteq body)
      && not (is_empty_list (get_fv body))
   then true
@@ -683,7 +675,7 @@ let get_rwrt_from_def = function
 
 exception Bad_Rewrite_Rule of string * expr;;
 
-let rec select_rwrt_rules_aux accu phrase =
+let select_rwrt_rules_aux accu phrase =
   match phrase with
   | Rew (name, body, flag)
        when (flag = 2) || (flag = 1)

@@ -37,8 +37,10 @@ val get_start_time : unit -> float
 
 (** Set debug level *)
 val set_debug : int -> unit
+
 (** Current debug level *)
 val get_debug : unit -> int
+
 (** Cleanup line before printing? *)
 val need_cleanup : bool ref
 

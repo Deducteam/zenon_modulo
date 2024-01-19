@@ -88,7 +88,7 @@ let rec make_annot_expr e =
   | Elam (x,e,_) -> elam (x, make_annot_expr e)
 ;;
 
-let make_definition name form body p =
+let make_definition name form body _ =
   try Def (Phrase.change_to_def (Extension.predef ()) body)
   with Invalid_argument _ ->
     let msg = sprintf "annotated formula %s is not a definition" name in
@@ -126,7 +126,7 @@ let process_annotations forms =
 let rec translate_one dirs accu p =
   match p with
   | Include (f, None) -> try_incl dirs f accu
-  | Include (f, Some _) ->
+  | Include (_, Some _) ->
       (* FIXME change try_incl and incl to implement selective include *)
       (* for the moment, we just ignore the include *)
       accu

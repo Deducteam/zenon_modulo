@@ -70,14 +70,14 @@ let pp_pos pos =
 let sprintf format =
   let buffer = Buffer.create 64 in
   Printf.kbprintf
-    (fun fmt -> Buffer.contents buffer)
+    (fun _ -> Buffer.contents buffer)
     buffer
     format
 
 let fprintf oc format =
   let buffer = Buffer.create 64 in
   Printf.kbprintf
-    (fun fmt -> Buffer.output_buffer oc buffer)
+    (fun _ -> Buffer.output_buffer oc buffer)
   buffer
   format
 
@@ -100,7 +100,7 @@ let pp_opt pp buf x = match x with
 
 (** print a list of items using the printing function *)
 let rec pp_list ?(sep=", ") pp_item buf = function
-  | x::((y::xs) as l) ->
+  | x::((_::_) as l) ->
     pp_item buf x;
     Buffer.add_string buf sep;
     pp_list ~sep pp_item buf l

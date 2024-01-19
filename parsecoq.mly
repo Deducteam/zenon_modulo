@@ -3,8 +3,6 @@
 %{
 Version.add "$Id: parsecoq.mly,v 1.34 2012-04-11 18:27:26 doligez Exp $";;
 
-open Printf;;
-
 open Expr;;
 open Namespace;;
 open Phrase;;
@@ -37,12 +35,11 @@ let mk_apply (e, l) =
   | _ -> raise Parse_error
 ;;
 
-let rec mk_arobas_apply (id, l) =
+(*let rec mk_arobas_apply (id, l) =
   match l with
   | Evar ("_", _) :: t -> mk_arobas_apply (id, t)
   | [] -> tvar_none (id)
-  | _ -> eapp (tvar_none id, l)
-;;
+  | _ -> eapp (tvar_none id, l) *)
 
 let mk_all bindings body =
   let f (var, ty) e = eall (tvar var ty, e) in
@@ -83,7 +80,7 @@ let mk_pattern (constr, args) body =
   mk_lam bindings (eapp (tvar_none "$match-case", [tvar_none (constr); body]))
 ;;
 
-let mk_inductive name ty bindings constrs =
+let mk_inductive name _ bindings constrs =
   let args = List.map fst bindings in
   let g (tcon, targs) =
     if tcon = name && targs = args then Self

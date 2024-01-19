@@ -14,16 +14,14 @@ let hyp_prefix = "H"
 (* context: store declared variables x_P of type prf |P|
  *)
 let context = ref (Hashtbl.create 997)
-let metactx = ref (Hashtbl.create 9)
-let rawname e = sprintf "%s%x" hyp_prefix (Index.get_number e)
+(*let metactx = ref (Hashtbl.create 9)*)
+(*let rawname e = sprintf "%s%x" hyp_prefix (Index.get_number e)*)
 let rawname_prf e = sprintf "%s%s%x" "prf_" hyp_prefix (Index.get_number e)
-let rawname_meta e = sprintf "%s%x" "const_" (Index.get_number e)
+(*let rawname_meta e = sprintf "%s%x" "const_" (Index.get_number e)*)
 
 exception No_proof of string
 
-
-exception No_meta of string
-
+(*exception No_meta of string*)
 
 (* manage context of declared variables
  *)
@@ -63,18 +61,18 @@ let exists_in_context e =
     false
 
 
-let add_metactx e dke =
+(*let add_metactx e dke =
   Log.debug 3 " |- Add metactx %a" Print.pp_expr e;
-  Hashtbl.add !metactx e dke
+  Hashtbl.add !metactx e dke*)
 
 
-let get_metactx e =
+(*let get_metactx e =
   Log.debug 3 " |- Get metactx %a" Print.pp_expr e;
   try
     Hashtbl.find !metactx e
   with Not_found ->
     raise (No_meta (Printf.sprintf "for meta %s"
-				   (Print.sexpr e)))
+				   (Print.sexpr e)))*)
 
 
 let mk_zterm =
@@ -257,7 +255,7 @@ let get_freevars e =
 
 let tr_list_vars rule =
   match rule with
-  | (l, r) ->
+  | (l, _) ->
      Log.debug 4 " |- Tr list var %a" Print.pp_expr l;
      let vars = get_freevars l in
      let nvars = List.map translate_expr vars in
@@ -324,7 +322,7 @@ let extract_prooftree lemmas =
   | [] -> assert false
   | [lemma] ->
      let prooftree = match lemma with
-       | {proof = p} -> p
+       | {proof = p; _ } -> p
      in
      prooftree
   | _ -> assert false
@@ -517,7 +515,7 @@ let rec trproof_dk p =
 	let lam1 = mk_lam (prp, mk_lam (prnq, sub1)) in
 	let conc = get_pr_var (enot (eequiv (p, q))) in
 	mk_DkRnotequiv (dkp, dkq, lam0, lam1, conc)
-     | Rex (Eex (Evar (x, _) as vx, px, _) as exp, z) ->
+     | Rex (Eex (Evar (_, _) as vx, px, _) as exp, _) ->
 	if (is_binder_of_type_var exp) then
 	  let dkp = translate_quant_to_dklam exp in
 	  let zz = etau (vx, px) in
@@ -539,7 +537,7 @@ let rec trproof_dk p =
 	  let lam = mk_lam (dkzz, mk_lam (prpzz, sub)) in
 	  let conc = get_pr_var exp in
 	  mk_DkRex (a, dkp, lam, conc)
-     | Rall (Eall (Evar (x, _) as vx, px, _) as allp, t) ->
+     | Rall (Eall (Evar (_, _) as vx, px, _) as allp, t) ->
 	if (is_binder_of_type_var allp) then
 	  let dkp = translate_quant_to_dklam allp in
 	  let dkt = translate_expr t in
@@ -559,7 +557,7 @@ let rec trproof_dk p =
 	  let lam = mk_lam (prpt, sub) in
 	  let conc = get_pr_var allp in
 	  mk_DkRall (a, dkp, dkt, lam, conc)
-     | Rnotex (Eex (Evar (x, _) as vx, px, _) as exp, t) ->
+     | Rnotex (Eex (Evar (_, _) as vx, px, _) as exp, t) ->
 	if (is_binder_of_type_var exp) then
 	  let dkp = translate_quant_to_dklam exp in
 	  let dkt = translate_expr t in
@@ -579,7 +577,7 @@ let rec trproof_dk p =
 	  let lam = mk_lam (prpt, sub) in
 	  let conc = get_pr_var (enot exp) in
 	  mk_DkRnotex (a, dkp, dkt, lam, conc)
-     | Rnotall (Eall (Evar (x, _) as vx, px, _) as allp, t) ->
+     | Rnotall (Eall (Evar (_, _) as vx, px, _) as allp, _) ->
 	if (is_binder_of_type_var allp) then
 	  let dkp = translate_quant_to_dklam allp in
 	  let zz = etau (vx, enot (px)) in
@@ -994,7 +992,7 @@ let get_sigs_phrases sigs phrases =
 let rec get_sigs_proof_aux accu llp =
   match llp with
   | {conc = pconc;
-     rule = prule;
+     rule = _;
      hyps = phyps;}
     ->
      let accu = List.fold_left (fun x y -> get_sigs_fm x y)
@@ -1026,9 +1024,9 @@ let output oc phrases llp =
   (* create dk variables of type prf of an hypothese *)
   let dkctx = mk_prf_var_def phrases in
   (* make list of rewrite rules *)
-  let rules = Hashtbl.fold (fun x y z -> y :: z) !tbl_term [] in
+  let rules = Hashtbl.fold (fun _ y z -> y :: z) !tbl_term [] in
   let rules = List.append rules
-			  (Hashtbl.fold (fun x y z -> y :: z) !tbl_prop []) in
+			  (Hashtbl.fold (fun _ y z -> y :: z) !tbl_prop []) in
   let dkrules = List.map build_dkrwrt rules in
   let (name, goal) = List.split (select_goal phrases) in
   let dkgoal = trexpr_dkgoal goal in
@@ -1048,7 +1046,7 @@ let output oc phrases llp =
   []
 
 
-let output_term oc phrases ppphrases llp =
+let output_term oc phrases _ llp =
   Log.debug 2 "=========== Generate Dedukti Term =============";
   (* register hypothesis in the context *)
   let _ = mk_prf_var_def phrases in
@@ -1061,10 +1059,9 @@ let output_term oc phrases ppphrases llp =
   let dkgoal = translate_expr ngoal in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-  if !Globals.signature_name = "" then () else fprintf oc "def delta : zen.proof (%a) \n := \n " print_dk_term dkgoal; 
+  if !Globals.signature_name = "" then () else fprintf oc "def delta : zen.proof (%a) \n := \n " print_dk_term dkgoal;
   fprintf oc "zen.nnpp (%a)\n\n(%a)"
 	  print_dk_term dkgoal
 	  print_dk_term dkproof;
     if !Globals.signature_name = "" then () else fprintf oc ".";
   []
-

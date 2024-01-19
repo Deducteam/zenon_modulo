@@ -24,13 +24,12 @@
 exception Bad_template of string;;
 exception Bad_number of int;;
 
-val expand_string : int -> string -> string;;
 (** Expand a template. *)
+val expand_string : int -> string -> string;;
 
-val expand_string_rev : int -> string -> string;;
 (** Expand a template in reverse order. *)
+val expand_string_rev : int -> string -> string;;
 
-val expand_text : int -> string -> string;;
 (**
   [expand_text p text] expands all the templates found between [@@@] and
   [...] in [text].  If a template is followed by [\[n+]i[\]] where i
@@ -46,3 +45,4 @@ val expand_text : int -> string -> string;;
   If a template is ill-formed, raise [Bad_template].  If the number
   of terms is negative, raise [Bad_number].
 *)
+val expand_text : int -> string -> string;;

@@ -6,7 +6,7 @@ open Lexing;;
 open Parsecoq;;
 open Printf;;
 
-exception Lex_error of string;;
+(* exception Lex_error of string;; *)
 
 let stringbuf = Buffer.create 100;;
 let idbuf = Buffer.create 100;;

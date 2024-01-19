@@ -43,7 +43,7 @@ and print_dk_zentype_aux o (t, l) =
   match t with
   | Dktypeiota -> fprintf o "ι"
   | t -> print_dk_term_aux o (t, l)
-and print_dk_zentype o t = print_dk_zentype_aux o (t, [])
+(* and print_dk_zentype o t = print_dk_zentype_aux o (t, []) *)
 and print_dk_cst o t =
   match t with
   | "Is_true" -> fprintf o "dk_logic.ebP"
@@ -282,7 +282,7 @@ and print_dk_term_aux o (t, l_rule) =
 let rec get_var_names l =
   match l with
   | [] -> []
-  | (Dkvar (v, t) as var) :: l' -> (escape_name (get_var_newname var)) :: (get_var_names l')
+  | (Dkvar (_, _) as var) :: l' -> (escape_name (get_var_newname var)) :: (get_var_names l')
   | _ -> assert false
 
 
@@ -308,6 +308,6 @@ let print_goal_type o name goal =
 	 (escape_name name) print_dk_type goal print_dk_term mk_seq
 
 
-let print_proof o name proof =
+let print_proof o _ proof =
   fprintf o "%a\n"
 	  print_dk_term proof

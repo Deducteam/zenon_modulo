@@ -6,10 +6,9 @@ open Lexing;;
 open Parsetptp;;
 open Printf;;
 
-let rec count_lf i s accu =
+(*let rec count_lf i s accu =
   if i >= String.length s then accu
-  else count_lf (i+1) s (if s.[i] = '\n' then accu + 1 else accu)
-;;
+  else count_lf (i+1) s (if s.[i] = '\n' then accu + 1 else accu)*)
 
 let adjust_pos lexbuf =
   let lx = Lexing.lexeme lexbuf in

@@ -158,19 +158,19 @@ module Make(Var: VarType) = struct
 
     let copy_vect = CCVector.copy
 
-    let matrix_iter f m =
+    (*let matrix_iter f m =
         for i = 0 to CCVector.length m - 1 do
             for j = 0 to CCVector.length (vget m 0) - 1 do
                 mset m i j (f i j (mget m i j))
             done
-        done
+        done*)
 
     let init_matrix line col f =
         CCVector.init line (fun i -> CCVector.init col (fun j -> f i j))
 
     let copy_matrix m =
         if CCVector.length m = 0 then
-            init_matrix 0 0 (fun i j -> Q.zero)
+            init_matrix 0 0 (fun _ _ -> Q.zero)
         else
             init_matrix (CCVector.length m) (CCVector.length (vget m 0)) (mget m)
 
@@ -209,7 +209,7 @@ module Make(Var: VarType) = struct
                 let l = list_uniq r in
                 if List.exists (equal_var a) l then l else a :: l
 
-    let empty_expr n = CCVector.make n Q.zero
+    (* let empty_expr n = CCVector.make n Q.zero *)
 
     let find_expr_basic t x =
         match index x t.basic with
@@ -227,10 +227,10 @@ module Make(Var: VarType) = struct
         else
             raise (UnExpected "Unknown variable")
 
-    let find_coef t x y =
+    (*let find_coef t x y =
         match index x t.basic, index y t.nbasic with
         | -1, _ | _, -1 -> assert false
-        | i, j -> mget t.tab i j
+        | i, j -> mget t.tab i j*)
 
     let basic_value t i =
         let expr = vget t.tab i in
@@ -378,9 +378,9 @@ module Make(Var: VarType) = struct
                 (aux t.nbasic (vget t.tab i))
         with Not_found -> raise NoneSuitable
 
-    let subst x y a =
+    (*let subst x y a =
         let k = index x a in
-        vset a k y
+        vset a k y*)
 
     let pivot t kx ky a =
         (* Assignment change *)
@@ -423,7 +423,7 @@ module Make(Var: VarType) = struct
         | None -> raise Not_found
         | Some x -> x
 
-    let rec solve_aux debug t =
+    let solve_aux debug t =
         debug t;
         H.iter (fun x (l, u) -> if gt l u then raise (AbsurdBounds x)) t.bounds;
         try
@@ -431,7 +431,7 @@ module Make(Var: VarType) = struct
                 let (i, x, v, b) = find_outside t in
                 let _, v' = is_within_aux v b in
                 try
-                    let y, (j, a) = find_suitable t i (compare v v' < 0) in
+                    let _, (j, a) = find_suitable t i (compare v v' < 0) in
                     pivot t i j a;
                     vset t.assign j v';
                     debug t
@@ -539,7 +539,7 @@ module Make(Var: VarType) = struct
 
     (* TODO: insert user functions between iterations ? + debug function for ksolve ? *)
     let nsolve_aux max_depth t int_vars =
-        let f = fun _ _ -> () in
+        let f = fun _ -> () in
         let to_do = Queue.create () in
         let final = ref None in
         Queue.push (0, t.bounds, (vget t.nbasic 0, Q.minus_inf, Q.inf), final) to_do;

@@ -76,10 +76,10 @@ let rec suffix n l =
   if n = 0 then l else
   match l with
   | [] -> assert false
-  | h :: t -> suffix (n-1) t
+  | _ :: t -> suffix (n-1) t
 ;;
 
-let rec correlate l1 l2 =
+let correlate l1 l2 =
   let f x y =
     match x, y with
     | String s1, String s2 when s1 = s2 -> S s1
@@ -91,7 +91,6 @@ let rec correlate l1 l2 =
   in
   try List.map2 f l1 l2
   with Invalid_argument _ -> assert false
-;;
 
 let rec is_prefix pre s n =
   if n >= String.length pre then true

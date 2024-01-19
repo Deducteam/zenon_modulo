@@ -14,7 +14,7 @@ let typ = ref type_iota;;
 
 let mem_assoc x env = List.exists (fun (y, _) -> get_name x = get_name y) env;;
 
-let rec check_pattern env sym e =
+let check_pattern env sym e =
   match e with
   | Eapp (s, [(Evar _ as x); (Evar _ as y)], _)
   | Enot (Eapp (s, [(Evar _ as x); (Evar _ as y)], _), _)
@@ -116,7 +116,7 @@ let rec partition pos neg l =
 
 let rec number_var env v =
   match env with
-  | (Evar (x, _), t) :: rest ->
+  | (Evar (x, _), _) :: rest ->
       if x = v then List.length rest else number_var rest v
   | _ -> assert false
 ;;
@@ -387,11 +387,11 @@ let rec decompose_disj e forms =
       make_node [e] (NotNot (e1)) [[e1]] [n1]
   | Efalse -> make_node [e] False [] []
   | Enot (Etrue, _) -> make_node [e] NotTrue [] []
-  | Eapp (s, _, _) ->
+  | Eapp (_, _, _) ->
       let ne = enot e in
       assert (List.exists (Expr.equal ne) forms);
       make_node [e; ne] (Close e) [] []
-  | Enot (Eapp (s, _, _) as e1, _) ->
+  | Enot (Eapp (_, _, _) as e1, _) ->
       assert (List.exists (Expr.equal e1) forms);
       make_node [e1; e] (Close e1) [] []
   | _ -> assert false
@@ -457,21 +457,21 @@ let rec decompose_conj n e dirs vars forms taus =
   | Enot (Enot (e1, _), _), _, _ ->
       let n1 = decompose_conj n e1 dirs vars forms taus in
       make_node [e] (NotNot e1) [[e1]] [n1]
-  | Eequiv (e1, e2, _), L::rest, _ ->
+  | Eequiv (e1, e2, _), L::_, _ ->
       let ne1 = enot e1 in
       let n1 = decompose_disj ne1 forms in
       let n2 = decompose_disj e2 forms in
       make_node [e] (Equiv (e1, e2)) [[ne1]; [e2]] [n1; n2]
-  | Eequiv (e1, e2, _), R::rest, _ ->
+  | Eequiv (e1, e2, _), R::_, _ ->
       let ne2 = enot e2 in
       let n1 = decompose_disj e1 forms in
       let n2 = decompose_disj ne2 forms in
       make_node [e] (Equiv (e1, e2)) [[ne2]; [e1]] [n2; n1]
-  | Enot (Eequiv (e1, e2, _), _), L::rest, _ ->
+  | Enot (Eequiv (e1, e2, _), _), L::_, _ ->
       let n1 = decompose_disj e1 forms in
       let n2 = decompose_disj e2 forms in
       make_node [e] (NotEquiv (e1, e2)) [[e2]; [e1]] [n2; n1]
-  | Enot (Eequiv (e1, e2, _), _), R::rest, _ ->
+  | Enot (Eequiv (e1, e2, _), _), R::_, _ ->
       let ne1 = enot e1 in
       let ne2 = enot e2 in
       let n1 = decompose_disj ne1 forms in

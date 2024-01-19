@@ -14,13 +14,13 @@ let map_fold f s l =
 
 let rec const_list n x = if n > 0 then x :: (const_list (n - 1) x) else []
 
-let opt_out = function Some x -> x | None -> assert false
+(* let opt_out = function Some x -> x | None -> assert false *)
 
 (* Copied from expr.ml for substituting *)
 let conflict v map =
   match v with
   | Evar (vv, _) ->
-    List.exists (fun (w, e) -> List.mem vv (get_fv e)) map
+    List.exists (fun (_, e) -> List.mem vv (get_fv e)) map
   | _ -> assert false
 ;;
 
@@ -48,7 +48,7 @@ let empty_env = {
 
 let tff_mem v env = M.mem v env.tff
 
-let tff_find v env =
+(* let tff_find v env =
   try
     begin match M.find v env.tff with
       | [] -> assert false
@@ -56,7 +56,7 @@ let tff_find v env =
       | _ -> raise (Type_error (Printf.sprintf "Single-type variable expected ('%s')" v))
     end
   with Not_found ->
-    raise (Type_error (Printf.sprintf "Unknown variable : %s" v))
+    raise (Type_error (Printf.sprintf "Unknown variable : %s" v)) *)
 
 let tff_add_type name t env =
   if tff_mem name env then
@@ -229,7 +229,7 @@ and type_tff_prop env e =
   Log.debug 4 " |- type prop %a" Print.pp_expr e;
   match e with
   (* Proposition typechecking *)
-  | Evar(v, _) -> type_tff_var type_prop env e
+  | Evar(_, _) -> type_tff_var type_prop env e
   | Emeta(_) -> assert false
   | Eapp(_) -> type_tff_app env type_prop e
   | Enot(f, _) ->
@@ -256,7 +256,7 @@ and type_tff_prop env e =
     e, env
   | Eall(_) -> type_tff_quant type_tff_prop eall env e
   | Eex(_) -> type_tff_quant type_tff_prop eex env e
-  | Etau(Evar(s, _), body, _) -> assert false
+  | Etau(Evar(_, _), _, _) -> assert false
   | _ -> raise (Type_error ("Ill-formed expression"))
 
 and type_tff_quant k mk_quant env e =
@@ -286,14 +286,14 @@ and type_tff_quant k mk_quant env e =
 and type_tff_term env e =
   Log.debug 4 " |- type term %a" Print.pp_expr e;
   match e with
-  | Evar(v, _) -> type_tff_var type_tff_i env e
+  | Evar(_, _) -> type_tff_var type_tff_i env e
   | Eapp(_) -> type_tff_app env type_tff_i e
   | Elam(_) -> type_tff_quant type_tff_term elam env e
   | _ -> raise (Type_error ("Ill-formed expression"))
 
 and type_tff_type env e = match e with
   | _ when Expr.equal e type_none -> type_tff_i, env
-  | Evar(v, _) -> type_tff_var type_type env e
+  | Evar(_, _) -> type_tff_var type_type env e
   | Eapp(_) -> type_tff_app env type_type e
   | Eall(_) -> type_tff_quant type_tff_type eall env e
   | Earrow(args, ret, _) ->

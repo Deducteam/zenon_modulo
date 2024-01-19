@@ -126,7 +126,7 @@ let rec coerce t = function
                 if Expr.equal type_int t then mk_int
                 else if Expr.equal type_rat t then mk_rat
                 else if Expr.equal type_real t then mk_real
-                else (fun s -> assert false)
+                else (fun _ -> assert false)
             in
             begin try
                 aux (Q.to_string (of_string s))
@@ -217,7 +217,7 @@ let of_cexpr e = match e with
     | _ -> raise NotaFormula
 
 let rec of_nexpr e = match e with
-    | Eapp (Evar(s, _), [], _) -> begin try [of_cexpr e, etrue] with Exit -> [Q.one, e] end
+    | Eapp (Evar(_, _), [], _) -> begin try [of_cexpr e, etrue] with Exit -> [Q.one, e] end
     | Eapp (Evar("$uminus",_), [a], _) -> fdiff [Q.zero, etrue] (of_nexpr a)
     | Eapp (Evar("$sum",_), [a; b], _) -> fadd (of_nexpr a) (of_nexpr b)
     | Eapp (Evar("$difference",_), [a; b], _) -> fdiff (of_nexpr a) (of_nexpr b)
@@ -276,11 +276,11 @@ let mk_coq_q p q =
 
 let coq_const c = mk_coq_q (const (Z.to_string (Q.num c))) (const (Z.to_string (Q.den c)))
 
-let coq_var x =
+(*let coq_var x =
     if is_int x then
         mk_coq_q x (const "1")
     else
-        x
+        x*)
 
 let type_scope = tvar "#coq_scope" Expr.type_type
 
@@ -375,7 +375,7 @@ and coqify_prop e = match e with
     | Efalse -> e
     | Eall(v, body, _) -> eall (v, coqify_prop body)
     | Eex(v, body, _) -> eex (v, coqify_prop body)
-    | Etau(v, body, _) -> e
+    | Etau(_, _, _) -> e
     | Elam(v, body, _) -> elam (v, coqify_prop body)
     | _ -> coqify_term e
 
@@ -397,7 +397,7 @@ type 'a clist = {
 
 let cl_is_empty l = l.front = [] && l.acc = []
 
-let cl_to_list l = (List.rev l.acc) @ l.front
+(* let cl_to_list l = (List.rev l.acc) @ l.front *)
 
 let cl_from_list l = {
     front = l;
@@ -518,7 +518,7 @@ let ct_from_ml p =
                 (List.for_all (fun (_, e) ->
                     (is_num e) && (match e with
                     | Emeta(_) -> true
-                    | Eapp(Evar(s, _), [], _) -> false
+                    | Eapp(Evar(_, _), [], _) -> false
                     | _ -> false)) f) &&
                 (List.exists (fun (_, e) -> match e with
                     | Emeta(_) -> true
@@ -580,9 +580,9 @@ let rec treebox p =
     let aux cl =
         let l = cl_to_list cl in
         let s = String.concat ", " (List.map Print.sexpr l) in
-        PrintBox.Simple.(`Text (Log.sprintf "[%s]" s))
+        `Text (Log.sprintf "[%s]" s)
     in
-    PrintBox.Simple.(`Tree (aux p.node, Array.to_list @@ Array.map treebox p.children))
+    `Tree (aux p.node, Array.to_list @@ Array.map treebox p.children)
 
 let sctree t = PrintBox.Simple.to_string (treebox t)
 

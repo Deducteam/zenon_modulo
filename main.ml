@@ -250,12 +250,11 @@ let argspec = [
      "             debug mode for rewriting"
 ];;
 
-let print_usage () =
+(*let print_usage () =
   Arg.usage argspec usage_msg;
   eprintf "The default include path is the following:\n";
   List.iter (fun x -> eprintf "  %s\n" x) !include_path;
-  exit 0;
-;;
+  exit 0;*)
 
 let do_exit code = exit (code + if !Error.got_warning then 100 else 0);;
 
@@ -388,12 +387,11 @@ let parse_file f =
   with Sys_error (msg) -> Error.err msg; do_exit 4;
 ;;
 
-let rec extract_strong accu phr_dep =
+(*let rec extract_strong accu phr_dep =
   match phr_dep with
   | [] -> accu
   | (p, true) :: t -> extract_strong (p::accu) t
-  | (_, false) :: t -> extract_strong accu t
-;;
+  | (_, false) :: t -> extract_strong accu t*)
 
 let optim p =
   match !opt_level with

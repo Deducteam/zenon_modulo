@@ -3,8 +3,6 @@
 %{
 Version.add "$Id: parsezen.mly,v 1.16 2012-04-11 18:27:26 doligez Exp $";;
 
-open Printf;;
-
 open Expr;;
 open Namespace;;
 open Phrase;;
@@ -40,11 +38,10 @@ let mk_pattern constr vars body =
   mk_elam (vars, type_iota, eapp (tvar_none "$match-case", [tvar_none constr; body]))
 ;;
 
-let hyp_counter = ref 0;;
-let gen_hyp_name () =
+(*let hyp_counter = ref 0;;*)
+(* let gen_hyp_name () =
   incr hyp_counter;
-  sprintf "%s%d" anon_prefix !hyp_counter
-;;
+  sprintf "%s%d" anon_prefix !hyp_counter *)
 
 let mk_string s = tvar_iota ("\"" ^ s ^ "\"");;
 

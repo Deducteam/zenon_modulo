@@ -5,7 +5,6 @@
 Version.add "$Id: parsedk.mly,v 1.34 2012-04-11 18:27:26 doligez Exp $";;
 
 open Expr
-open Printf
 
 let mk_const s ty = eapp (tvar s ty, []);;
 let mk_const_t s = mk_const s type_type;;
@@ -13,10 +12,10 @@ let mk_const_t s = mk_const s type_type;;
 (* Global list of type aliases *)
 let ty_aliases = ref [("dk_tuple.prod", mk_const_t "basics.prod")];;
 
-exception Unknown_builtin of string;;
-exception Bad_arity of string * int;;
+(* exception Unknown_builtin of string;; *)
+(* exception Bad_arity of string * int;; *)
 
-exception Application_head_is_not_a_var of expr;;
+(* exception Application_head_is_not_a_var of expr;; *)
 
 let rec get_params e =
   match e with
@@ -145,7 +144,7 @@ term:
                       eapp (head, tail)
                    | Eapp (v, l, _) ->
                       eapp (v, l @ tail)
-                   | e ->
+                   | _ ->
                       Log.debug 15 "Parse Error: head is %a"
                                 Print.pp_expr head;
                       raise Parse_error

@@ -13,7 +13,7 @@ open Expr;;
 
 (* Exception raised when we meet a variable which is not present in the environment,
    i.e. which was not introduced by a binder. *)
-exception Scoping_error of string;;
+(* exception Scoping_error of string;;*)
 (* Exception raised when a function is applied to the bad number of arguments *)
 exception Arity_mismatch of expr * expr list;;
 
@@ -127,7 +127,7 @@ and infer_expr opts env = function
           for scoping purpose *)
        eapp (f, List.map (infer_expr opts env) args)
      else
-       let (type_args, term_args, tys, ret_ty) = instantiate opts env args tyf in
+       let (type_args, term_args, tys, _) = instantiate opts env args tyf in
        eapp (tvar f_sym tyf, type_args @ List.map2 (check_expr opts env) tys term_args)
   | Etau (Evar _ as x, body, _) ->
      etau (x, check_expr opts (x :: env) type_prop body)
@@ -139,7 +139,7 @@ and xcheck_expr opts env ty e =
   then infer_expr opts env e
   else
     match e with
-    | Evar (s, _) ->
+    | Evar (_, _) ->
        (* Call inference because it checks for scoping *)
        let e' = infer_expr opts env e in
        let ret_ty = get_type e' in
@@ -287,13 +287,13 @@ let declare_def_constant opts = function
 let definition opts d =
   let (env, typed_body) = declare_def_constant opts d in
   match d with
-  | DefReal (name, ident, ty, params, body, decarg) ->
+  | DefReal (name, ident, ty, params, _, decarg) ->
      DefReal (name, ident, ty, params, typed_body, decarg)
-  | DefPseudo ((e, n), s, ty, params, body) ->
+  | DefPseudo ((e, n), s, ty, params, _) ->
      DefPseudo ((infer_expr opts env e, n), s, ty, params, typed_body)
-  | DefRec (None, s, ty, params, body) ->
+  | DefRec (None, s, ty, params, _) ->
      DefRec (None, s, ty, params, typed_body)
-  | DefRec (Some e, s, ty, params, body) ->
+  | DefRec (Some e, s, ty, params, _) ->
      DefRec (Some (infer_expr opts env e), s, ty, params, typed_body)
 ;;
 
@@ -326,7 +326,7 @@ let declare_phrase (p, _) = match p with
 ;;
 
 (* Check that there is no free variable in phrases *)
-let rec check_fv phrases =
+let check_fv phrases =
   List.iter
     (fun p -> Log.debug 15 "Checking free vars of %a" Print.pp_phrase p; match p with
       | Phrase.Hyp (_, e, _) ->

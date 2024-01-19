@@ -10,7 +10,7 @@ let rec print_dk_type o t =
        List.iter (fun x -> fprintf o "%a -> " print_dk_type x) l;
        print_dk_type o r;
      end
-  | Dkpi (Dkvar (v, t1) as var, t2) ->
+  | Dkpi (Dkvar (_, t1) as var, t2) ->
      fprintf o "%s : %a\n -> %a"
 	     (get_var_newname var) print_dk_type t1 print_dk_type t2
   | Dkpi _ -> assert false
@@ -27,15 +27,15 @@ and print_dk_cst o t =
   match t with
   | "Is_true" -> fprintf o "dk_logic.ebP"
   | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
-  | s -> if !Globals.signature_name = "" then fprintf o "%s" s else 
-    if Mltoll.is_meta s then fprintf o "zen.select (zen.iota)" else 
+  | s -> if !Globals.signature_name = "" then fprintf o "%s" s else
+    if Mltoll.is_meta s then fprintf o "zen.select (zen.iota)" else
       fprintf o "%s.%s" !Globals.signature_name s
 
 and print_dk_term o t =
   match t with
-  | Dkvar (v, _) as var ->
+  | Dkvar (_, _) as var ->
      fprintf o "%s" (get_var_newname var)
-  | Dklam (Dkvar (v, t1) as var, t2) ->
+  | Dklam (Dkvar (_, t1) as var, t2) ->
      fprintf o "%s : (%a)\n => %a"
 	     (get_var_newname var)
 	     print_dk_type t1 print_dk_term t2
@@ -238,9 +238,9 @@ and print_dk_term o t =
 let rec pr_list_var o l =
   match l with
   | [] -> ()
-  | [Dkvar (v, t) as var] ->
+  | [Dkvar (_, t) as var] ->
      fprintf o "%s : %a" (get_var_newname var) print_dk_type t
-  | (Dkvar (v, t) as var) :: tl ->
+  | (Dkvar (_, t) as var) :: tl ->
      fprintf o "%s : %a, %a"
 	     (get_var_newname var)
 	     print_dk_type t
@@ -269,4 +269,3 @@ let print_goal_type o name goal =
 let print_proof o name proof =
   fprintf o "[] %s -->\n %a.\n"
 	  name print_dk_term proof
-

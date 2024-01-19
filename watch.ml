@@ -5,7 +5,7 @@ open Printf;;
 
 open Expr;;
 open Llproof;;
-open Namespace;;
+(* open Namespace;; *)
 
 module HE = Hashtbl.Make (Expr);;
 let hyp_names = (HE.create 37 : string HE.t);;
@@ -28,7 +28,7 @@ let add_expr e =
   with Not_found -> ()
 ;;
 
-let extract_name (p, dep) =
+let extract_name (p, _) =
   match p with
   | Phrase.Hyp (name, e, _) -> HE.add hyp_names e name
   | _ -> ()
@@ -39,7 +39,7 @@ let dowarn kind name =
   Error.warn msg;
 ;;
 
-let check (p, dep) =
+let check (p, _) =
   match p with
   | Phrase.Hyp (name, _, _) when not (test name) -> dowarn "hypothesis" name
   | Phrase.Def (DefReal (_, s, _, _, _, _)) when not (test s) ->
@@ -69,9 +69,9 @@ let rec check_unused name e =
   | Evar _ | Emeta _ | Etrue | Efalse
     -> ()
   | Earrow _ -> assert false
-  | Eapp (Evar("$fix",_), Elam (f, body, _) :: args, _) ->
+  | Eapp (Evar("$fix",_), Elam (_, body, _) :: args, _) ->
      List.iter (check_unused name) (body :: args)
-  | Eapp (f, args, _) -> List.iter (check_unused name) args;
+  | Eapp (_, args, _) -> List.iter (check_unused name) args;
   | Enot (e1, _) -> check_unused name e1;
   | Eand (e1, e2, _) | Eor (e1, e2, _) | Eimply (e1, e2, _) | Eequiv (e1, e2, _)
     -> check_unused name e1; check_unused name e2;

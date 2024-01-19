@@ -6,9 +6,8 @@ open Misc;;
 open Mlproof;;
 open Printf;;
 
-let ( === ) = ( = );;
-let ( = ) = ();;
-let string_equal x y = String.compare x y == 0;;
+(* let ( === ) = ( = );; *)
+(* let string_equal x y = String.compare x y == 0;; *)
 
 let get_name = function
     | Evar(s,_) -> s
@@ -61,7 +60,7 @@ let remove_element tbl k v =
   let lr = Hashtbl.find tbl k in
   match !lr with
   | [] -> assert false
-  | [h] -> Hashtbl.remove tbl k;
+  | [_] -> Hashtbl.remove tbl k;
   | h::t when Expr.equal h v -> lr := t;
   | _ -> ()
 ;;
@@ -72,8 +71,8 @@ let act_head action tbl key v =
   try
     match get_head key with
     | Sym s -> action tbl s v
-    | Tau e -> action tbl "t." v
-    | Meta e -> action tbl "" v
+    | Tau _ -> action tbl "t." v
+    | Meta _ -> action tbl "" v
   with No_head -> ()
 ;;
 
@@ -111,7 +110,7 @@ type trans_table = (expr * head, expr list ref) Hashtbl.t;;
 let pos_trans_left = (Hashtbl.create tblsize : trans_table);;
 let pos_trans_right = (Hashtbl.create tblsize : trans_table);;
 
-let rec do_trans action e =
+let do_trans action e =
   match e with
   | Eapp (r, [e1; e2], _) ->
       action pos_trans_left (r, get_head e1) e;
@@ -128,12 +127,11 @@ let try_find tbl k =
   with Not_found -> []
 ;;
 
-let find_all_rel tbl rel =
+(*let find_all_rel tbl rel =
   let f (r, _) elr accu =
     if string_equal r rel then !elr @@ accu else accu
   in
-  Hashtbl.fold f tbl []
-;;
+  Hashtbl.fold f tbl []*)
 
 let find_trans_left rel head =
   List.map add_g (try_find pos_trans_left (rel, head))
@@ -143,7 +141,7 @@ let find_trans_right rel head =
   List.map add_g (try_find pos_trans_right (rel, head))
 ;;
 
-let find_all_head tbl head =
+(* let find_all_head tbl head =
   let f (_, h) elr accu =
     match head, h with
     | Meta e1, Meta e2 when e1 == e2 -> !elr @@ accu
@@ -151,8 +149,7 @@ let find_all_head tbl head =
     | Tau t1, Tau t2 when t1 === t2 -> !elr @@ accu
     | _, _ -> accu
   in
-  Hashtbl.fold f tbl []
-;;
+  Hashtbl.fold f tbl [] *)
 
 let remove_trans e =
   match e with
@@ -269,21 +266,19 @@ let find_neq e =
 
 let meta_set = (HE.create tblsize : unit HE.t);;
 
-let add_meta_set e =
+(* let add_meta_set e =
   match e with
   | Eapp (Evar("TLA.in",_), [Emeta _; e1], _)
   | Enot (Eapp (Evar("TLA.in",_), [Emeta _; e1], _), _)
     -> HE.add meta_set e1 ()
-  | _ -> ()
-;;
+  | _ -> () *)
 
-let remove_meta_set e =
+(* let remove_meta_set e =
   match e with
   | Eapp (Evar("=",_), [Emeta _; e1], _)
   | Enot (Eapp (Evar("=",_), [Emeta _; e1], _), _)
     -> HE.remove meta_set e1
-  | _ -> ()
-;;
+  | _ -> () *)
 
 let is_meta_set e = HE.mem meta_set e;;
 
@@ -303,9 +298,9 @@ let add_str e =
 
 let remove_str e =
   match e with
-  | Eapp (Evar("=",_), [e1; Eapp (Evar("$string",_), [Evar (str, _)], _)], _) ->
+  | Eapp (Evar("=",_), [_; Eapp (Evar("$string",_), [Evar (_, _)], _)], _) ->
      eq_str := (match !eq_str with _ :: t -> t | _ -> assert false)
-  | Eapp (Evar("=",_), [Eapp (Evar("$string",_), [Evar (str, _)], _); e2], _) ->
+  | Eapp (Evar("=",_), [Eapp (Evar("$string",_), [Evar (_, _)], _); _], _) ->
      str_eq := (match !str_eq with _ :: t -> t | _ -> assert false)
   | _ -> ()
 ;;
@@ -418,9 +413,9 @@ let has_def s = Hashtbl.mem defs s;;
 let get_def s =
   let d = Hashtbl.find defs s in
   match d with
-  | DefReal (_, s, ty, params, body, _) -> (d, ty, params, body)
-  | DefPseudo (hyp, s, ty, params, body) -> (d, ty, params, body)
-  | DefRec (_, s, ty, params, body) -> (d, ty, params, body)
+  | DefReal (_, _, ty, params, body, _) -> (d, ty, params, body)
+  | DefPseudo (_, _, ty, params, body) -> (d, ty, params, body)
+  | DefRec (_, _, ty, params, body) -> (d, ty, params, body)
 ;;
 
 (* ==== *)
@@ -451,7 +446,7 @@ let ext_set tbl i x =
 
 let rec expr o ex =
   let pr = eprintf in
-  let print_var b v =
+  let print_var _ v =
     match v with
     | Evar (s, _) -> eprintf "%s" s
     | _ -> assert false
@@ -459,7 +454,7 @@ let rec expr o ex =
   match ex with
   | Evar (v, _) -> pr "%s" v;
 
-  | Emeta (e, _) -> pr "%s#" Namespace.meta_prefix;
+  | Emeta (_, _) -> pr "%s#" Namespace.meta_prefix;
   | Earrow _ -> assert false
   | Eapp (s, es, _) ->
       pr "(%s" (get_name s); List.iter (fun x -> pr " "; expr o x) es; pr ")";

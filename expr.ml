@@ -5,8 +5,8 @@ open Misc;;
 open Namespace;;
 
 let ( =%= ) = ( = );;
-let ( = ) = ();;
-let ( <> ) = ();;
+(*let ( = ) = ();;*)
+(*let ( <> ) = ();;*)
 
 type expr =
   | Evar of string * private_info
@@ -90,7 +90,7 @@ let k_true  = 0xb063cd7
 and k_false = 0xd5ab9f0
 and k_meta  = 0x33d092c
 and k_app   = 0x33b9c25
-and k_arrow = 0x0123456 (* TODO: fixme *)
+(*and k_arrow = 0x0123456 (* TODO: fixme *)*)
 and k_not   = 0x7c3e7d2
 and k_and   = 0xccdc15b
 and k_or    = 0x49b55b9
@@ -118,7 +118,7 @@ let mkpriv skel fv sz taus metas submetas typ = {
 (* Base types *)
 (* Variables version of the types should not be used (nor exported) as these
  * types should be considered constants*)
-let rec v_type_type = Evar("$tType", {
+let v_type_type = Evar("$tType", {
     hash = Hashtbl.hash (0, ["$tType"]);
     skel_hash  = 0;
     free_vars = [];
@@ -239,10 +239,10 @@ let rec remove x l =
   | _, h::t -> h :: (remove x t)
 ;;
 
-let rec make_list c acc = function
+(*let rec make_list c acc = function
     | 0 -> acc
     | n when n > 0 -> make_list c (c :: acc) (n - 1)
-    | _ -> assert false
+    | _ -> assert false*)
 
 let prop_app l =
     let aux l =
@@ -262,7 +262,7 @@ let prop_app l =
 let priv_var s t =
   mkpriv 0 [s] 1 0 [] [] t
 ;;
-let rec priv_arrow args ret =
+let priv_arrow args ret =
   let l = ret :: args in
   let comb_skel accu e = combine (get_skel e) accu in
   let skel = combine k_app (List.fold_left comb_skel (get_hash ret) args) in
@@ -367,7 +367,7 @@ let rec print b ex =
       Printf.bprintf b "(All.(%a : %a): %a)" print v print (get_type v) print e
   | Eex (v, e, _) ->
       Printf.bprintf b "(Exi.(%a : %a): %a)" print v print (get_type v) print e
-  | Etau (v, e, _) ->
+  | Etau (v, _, _) ->
       Printf.bprintf b "(Tau.(%a : %a): _)" print v print (get_type v) (*print e*)
   | Elam (v, e, _) ->
       Printf.bprintf b "(Lam.(%a : %a): %a)" print v print (get_type v) print e
@@ -669,7 +669,7 @@ let rec rm_binding v map =
 let conflict v map =
   match v with
   | Evar (vv, _) ->
-      List.exists (fun (w, e) -> List.mem vv (get_fv e)) map
+      List.exists (fun (_, e) -> List.mem vv (get_fv e)) map
   | _ -> assert false
 ;;
 
@@ -761,7 +761,7 @@ and substitute_unsafe map e =
   in
   match e with
   | _ when disj (get_fv e) map -> e
-  | Evar (v, _) -> (try List.assq e map with Not_found -> e)
+  | Evar (_, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
   | Earrow(args, ret, _) ->
      earrow (List.map (substitute_unsafe map) args) (substitute_unsafe map ret)
@@ -803,7 +803,7 @@ let substitute = substitute_unsafe;;
 
 let rec substitute_meta map e =
   match e with
-  | Evar (v, _) -> e
+  | Evar (_, _) -> e
   | Emeta (e', _) -> let (meta, v) = map in if e' == meta then v else e
   | Earrow(args, ret, _) -> earrow (List.map (substitute_meta map) args) (substitute_meta map ret)
   | Eapp (s, args, _) -> eapp (s, List.map (substitute_meta map) args)
@@ -842,7 +842,7 @@ let rec substitute_expr map e =
 
 let rec substitute_2nd_unsafe map e =
   match e with
-  | Evar (v, _) -> (try List.assq e map with Not_found -> e)
+  | Evar (_, _) -> (try List.assq e map with Not_found -> e)
   | Emeta _ -> e
   | Earrow _ -> assert false
   | Eapp (s, args, _) ->
@@ -851,7 +851,7 @@ let rec substitute_2nd_unsafe map e =
       let lam = List.assq s map in
       match lam, acts with
       | Elam (v, body, _), [a] -> substitute [(v,a)] body
-      | Evar (v, _), _ -> eapp (lam, acts)
+      | Evar (_, _), _ -> eapp (lam, acts)
       | Eapp (s1, args1, _), _ -> eapp (s1, args1 @ acts)
       | _ -> raise Higher_order
      with Not_found -> eapp (s, acts)
@@ -914,16 +914,16 @@ let apply f a =
 let add_argument f a =
   match f with
   | Elam _ -> apply f a
-  | Evar (s, _) -> eapp (f, [a])
+  | Evar (_, _) -> eapp (f, [a])
   | Eapp (s, args, _) -> eapp (s, args @ [a])
   | _ -> raise Higher_order
 ;;
 
 let rec remove_scope e =
   match e with
-  | Eapp (f, e1 :: t :: vals, _) when get_name f =%= "$scope" -> remove_scope (apply e1 t)
+  | Eapp (f, e1 :: t :: _, _) when get_name f =%= "$scope" -> remove_scope (apply e1 t)
   | Earrow _ -> assert false
-  | Eapp (f, args, _) -> e
+  | Eapp (_, _, _) -> e
   | Enot (e1, _) -> enot (remove_scope e1)
   | Eand (e1, e2, _) -> eand (remove_scope e1, remove_scope e2)
   | Eor (e1, e2, _) -> eor (remove_scope e1, remove_scope e2)

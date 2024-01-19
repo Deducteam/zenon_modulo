@@ -356,7 +356,7 @@ let print_record kind n oc =
 
 (* ===================== test functions ================== *)
 
-let print_case_up_to n file =
+(*let print_case_up_to n file =
   let oc = open_out file in
   for i = 1 to n do
     print_case "lemma" i false oc;
@@ -364,10 +364,9 @@ let print_case_up_to n file =
     print_case "lemma" i true oc;
     fprintf oc "\n";
   done;
-  close_out oc;
-;;
+  close_out oc;*)
 
-let test_case n other =
+(*let test_case n other =
   let oc = open_out "/tmp/testcase.thy" in
   fprintf oc "theory testcase\n";
   fprintf oc "imports Zenon\n";
@@ -379,19 +378,17 @@ let test_case n other =
   fprintf stderr "time isabelle-process -r \
                        -e \"(use_thy \\\"/tmp/testcase\\\"; \
                              OS.Process.exit OS.Process.success);\" TLA+\n";
-  flush stderr;
-;;
+  flush stderr;*)
 
-let print_record_up_to n file =
+(*let print_record_up_to n file =
   let oc = open_out file in
   for i = 1 to n do
     print_record "lemma" i oc;
     fprintf oc "\n";
   done;
-  close_out oc;
-;;
+  close_out oc;*)
 
-let test_record n =
+(*let test_record n =
   let oc = open_out "/tmp/testrecord.thy" in
   fprintf oc "theory testrecord\n";
   fprintf oc "imports Zenon\n";
@@ -403,5 +400,4 @@ let test_record n =
   fprintf stderr "time isabelle-process -r \
                        -e \"(use_thy \\\"/tmp/testrecord\\\"; \
                              OS.Process.exit OS.Process.success);\" TLA+\n";
-  flush stderr;
-;;
+  flush stderr;*)

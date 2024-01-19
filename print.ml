@@ -13,7 +13,7 @@ let mybuf = Buffer.create 100;;
 let mychan = ref stdout;;
 let flush () = Buffer.output_buffer !mychan mybuf; Buffer.clear mybuf;;
 
-let printf = ();; (* FIXME DEBUG *)
+(* let printf = ();; (* FIXME DEBUG *) *)
 
 let oprintf o fmt (* ... *) =
   match o with
@@ -27,7 +27,7 @@ let oprintf o fmt (* ... *) =
 let buf o =
   match o with
   | Buff b -> b
-  | Chan c -> mybuf
+  | Chan _ -> mybuf
 ;;
 
 let is_letter c =
@@ -85,7 +85,7 @@ and expr o ex =
 (*  | Etau (v, e, _) when get_type v == type_iota ->
       (*pr "(t. ((%a) " print_var v; expr o e; pr "))";*)
      pr "Tau_%d" (Index.get_number e);*)
-  | Etau (v, e, _) ->
+  | Etau (_, e, _) ->
       (*pr "(t. ((%a \"" print_var v; expr o (get_type v); pr "\") "; expr o e; pr "))";*)
      pr "Tau_%d" (Index.get_number e);
 (*  | Elam (v, e, _) when get_type v == type_iota ->
@@ -103,7 +103,7 @@ let is_infix_op s =
     (s <> "" && not (is_letter s.[0]) && s.[0] <> '$' && s.[0] <> '_' ) || (match s with
     | "$less" | "$lesseq" | "$greater" | "$greatereq" | "="
     | "$sum" | "$product" | "$difference" -> true
-    | s -> false)
+    | _ -> false)
 
 let to_infix = function
     | "$less" -> "<"
@@ -184,19 +184,19 @@ let phrase o ph =
   let pro f = oprintf o f in
   begin match ph with
   | Phrase.Hyp (n, e, p) -> pro "# %s:\n$%d " n p; expr o e; pro "\n";
-  | Phrase.Def (DefReal (name, s, ty, args, e, None)) ->
+  | Phrase.Def (DefReal (name, s, _, args, e, None)) ->
       pro "$def \"%s\" %s (" name s;
       print_list (buf o) print_var " " args;
       pro ") ";
       expr o e;
       pro "\n";
-  | Phrase.Def (DefReal (name, s, ty, args, e, Some v)) ->
+  | Phrase.Def (DefReal (name, s, _, args, e, Some v)) ->
       pro "$fixpoint \"%s\" %s %s (" name s v;
       print_list (buf o) print_var " " args;
       pro ") ";
       expr o e;
       pro "\n";
-  | Phrase.Def (DefRec (eqn, s, ty, args, e)) ->
+  | Phrase.Def (DefRec (eqn, s, _, args, e)) ->
       pro "$defrec %s (" s;
       print_list (buf o) print_var " " args;
       pro ") ";
@@ -207,7 +207,7 @@ let phrase o ph =
         | Some eqn -> pro " "; expr o eqn
       end;
       pro "\n";
-  | Phrase.Def (DefPseudo ((hyp, prio), s, ty, args, e)) ->
+  | Phrase.Def (DefPseudo ((hyp, _), s, _, args, e)) ->
       pro "#pseudo-def: ";
       expr o hyp;
       pro "\n$def %s (" s;
@@ -257,8 +257,8 @@ let get_rule_name = function
   | Definition (DefRec (_, s, _, _, _), e, _) -> "Definition-Rec("^s^")", [e]
   | ConjTree e -> "ConjTree", [e]
   | DisjTree e -> "DisjTree", [e]
-  | AllPartial (e1, s, n) -> "All-Partial", [e1]
-  | NotExPartial (e1, s, n) -> "NotEx-Partial", [e1]
+  | AllPartial (e1, _, _) -> "All-Partial", [e1]
+  | NotExPartial (e1, _, _) -> "NotEx-Partial", [e1]
   | Refl (s, e1, e2) -> "Refl("^(get_name s)^")", [e1; e2]
   | Trans (e1, e2) -> "Trans", [e1; e2]
   | Trans_sym (e1, e2) -> "Trans-sym", [e1; e2]
@@ -291,7 +291,7 @@ let mlproof_rule_soft o r =
 ;;
 
 let mlrule_short o r =
-  let rname, args = get_rule_name r in
+  let rname, _ = get_rule_name r in
   oprintf o "%s" rname;
 ;;
 
@@ -334,8 +334,8 @@ let hlrule_name = function
   | NotAll (e) -> "NotAll", [e]
   | NotAllEx (e) -> "NotAllEx", [e]
   | Ex (e) -> "Exists", [e]
-  | All (e1, e2) -> "All", [e1]
-  | NotEx (e1, e2) -> "NotExists", [e1]
+  | All (e1, _) -> "All", [e1]
+  | NotEx (e1, _) -> "NotExists", [e1]
   | Or (e1, e2) -> "Or", [eor (e1, e2)]
   | Impl (e1, e2) -> "Imply", [eimply (e1, e2)]
   | NotAnd (e1, e2) -> "NotAnd", [enot (eand (e1, e2))]
@@ -350,8 +350,8 @@ let hlrule_name = function
   -> "Definition("^s^")", [e]
   | ConjTree (e) -> "ConjTree", [e]
   | DisjTree (e) -> "DisjTree", [e]
-  | AllPartial (e1, s, n) -> "All", [e1]
-  | NotExPartial (e1, s, n) -> "NotExists", [e1]
+  | AllPartial (e1, _, _) -> "All", [e1]
+  | NotExPartial (e1, _, _) -> "NotExists", [e1]
   | Refl (s, e1, e2) -> "Refl("^(get_name s)^")", [enot (eapp (s, [e1; e2]))]
   | Trans (e1, e2) -> "Trans", [e1; e2]
   | Trans_sym (e1, e2) -> "Trans-sym", [e1; e2]
@@ -427,7 +427,7 @@ let hlproof o depth p =
 
 open Llproof;;
 
-let indent o i = for j = 0 to i do oprintf o "  "; done;;
+let indent o i = for _ = 0 to i do oprintf o "  "; done;;
 
 let rec llproof_expr o e =
   let pro f = oprintf o f in
@@ -571,9 +571,9 @@ let llproof_rule o r =
       pr ", ";
       llproof_expr o b;
       pr ")";
-  | Rdefinition (name, sym, args, body, decarg, folded, unfolded) ->
+  | Rdefinition (name, sym, _, _, _, _, _) ->
       pr "---definition \"%s\" (%s)" name sym;
-  | Rextension (ext, name, args, c, hyps) ->
+  | Rextension (ext, name, args, _, _) ->
       pr "---extension (%s/%s" ext name;
       List.iter (fun x -> pr " "; llproof_expr o x) args;
       pr ")";
@@ -633,7 +633,7 @@ let is_infix_op s =
     (s <> "" && not (is_letter s.[0]) && s.[0] <> '$' && s.[0] <> '_' ) || (match s with
     | "$less" | "$lesseq" | "$greater" | "$greatereq" | "="
     | "$sum" | "$product" | "$difference" -> true
-    | s -> false)
+    | _ -> false)
 
 let to_infix = function
     | "$less" -> "&lt;"
@@ -732,8 +732,8 @@ let dot_rule_name = function
   | Definition (DefRec (_, s, _, _, _), e, _) -> "Definition-Rec("^s^")", [e]
   | ConjTree e -> "ConjTree", [e]
   | DisjTree e -> "DisjTree", [e]
-  | AllPartial (e1, s, n) -> "All-Partial", [e1]
-  | NotExPartial (e1, s, n) -> "NotEx-Partial", [e1]
+  | AllPartial (e1, _, _) -> "All-Partial", [e1]
+  | NotExPartial (e1, _, _) -> "NotEx-Partial", [e1]
   | Refl (s, e1, e2) -> "Refl("^(sexpr_esc s)^")", [e1; e2]
   | Trans (e1, e2) -> "Trans", [e1; e2]
   | Trans_sym (e1, e2) -> "Trans-sym", [e1; e2]
@@ -850,8 +850,8 @@ let rec expr_type o ex =
     expr_soft o (get_type ex);
     pr "'\n";
     match ex with
-    | Evar (v, _) -> ()
-    | Emeta (e, _) -> ()
+    | Evar (_, _) -> ()
+    | Emeta (_, _) -> ()
     | Eapp(s, l, _) -> List.iter (expr_type o) (s :: l)
     | Enot (e, _) -> expr_type o e
     | Eand (e1, e2, _)
@@ -861,9 +861,9 @@ let rec expr_type o ex =
        expr_type o e1; expr_type o e2
     | Etrue
     | Efalse -> ()
-    | Eall (Evar (v, _), e, _)
-    | Eex (Evar (v, _), e, _)
-    | Elam (Evar (v, _), e, _) ->
+    | Eall (Evar (_, _), e, _)
+    | Eex (Evar (_, _), e, _)
+    | Elam (Evar (_, _), e, _) ->
        expr_type o e
     | Etau _  -> ()
     | _ -> assert false)

@@ -1,7 +1,3 @@
-open Printf
-open Expr
-
-
 type var = string
 
 type dkterm =
@@ -82,14 +78,14 @@ let newname () =
 let get_var_newname var =
   try
     match var with
-    | Dkvar (v, _) ->
+    | Dkvar (_, _) ->
        let nv = Hashtbl.find !tbl_var_newname var in
        nv
     | _ -> assert false
   with Not_found ->
     begin
       match var with
-      | Dkvar (v, _) ->
+      | Dkvar (_, _) ->
 	 let nv = newname () in
 	 Hashtbl.add !tbl_var_newname var nv;
 	 nv
@@ -194,7 +190,7 @@ let get_var_list ty =
 
 let mk_vertex d =
   match d with
-  | Dkdecl (v, ty) ->
+  | Dkdecl (_, ty) ->
      let var_list = get_var_list ty in
      {decl = Some d;
       edge = var_list;}
@@ -215,7 +211,7 @@ let add_none_dep gr v =
 
 let add_sym_graph gr d =
   match d with
-  | Dkdecl (v, ty) ->
+  | Dkdecl (v, _) ->
      begin
        Log.debug 13 " |- Add Sym Graph %s" v;
        try
@@ -242,7 +238,7 @@ let get_vertex_name v =
 ;;
 
 let select_no_incoming gr =
-  let f x y z =
+  let f _ y z =
     let is_some a =
       match a with
       | {decl = Some _; edge = _;} -> true
@@ -263,21 +259,20 @@ let select_no_incoming gr =
   Hashtbl.fold f gr []
 ;;
 
-let test_graph gr =
-  let f x y =
+(*let test_graph gr =
+  let f _ y =
     match y with
     | {decl = Some _; edge = _;} -> ()
     | {decl = None; edge = _;} -> assert false
   in
-  Hashtbl.iter f gr
-;;
+  Hashtbl.iter f gr*)
 
 let topo_sort gr =
 (*  test_graph gr; *)
   let rec f accu gr =
     match select_no_incoming gr with
     | [] -> accu
-    | h :: tl ->
+    | h :: _ ->
        let name = get_vertex_name h in
        rm_sym_graph gr name;
        let dec = match h.decl with
