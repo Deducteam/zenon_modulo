@@ -514,11 +514,11 @@ let main () =
     eprintf "max branch formulas: %d\n" !Globals.top_num_forms;
     eprintf "proof nodes created: %d\n" !Globals.proof_nodes;
     eprintf "formulas created: %d\n" !Globals.num_expr;
+    let nb_term, nb_prop = Rewrite.nb_rewrite () in
+    printf "Number of rewrites on terms: %d\nNumber of rewrites on props: %d\n" nb_term nb_prop;
     eprintf "\n";
     (*Gc.print_stat stderr;*)
   end;
-  let nb_term, nb_prop = Rewrite.nb_rewrite () in
-  printf "Number of rewrites on terms: %d\nNumber of rewrites on props: %d\n" nb_term nb_prop;
   do_exit !retcode
 ;;
 
