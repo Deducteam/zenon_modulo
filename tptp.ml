@@ -125,7 +125,10 @@ let process_annotations forms =
 
 let rec translate_one dirs accu p =
   match p with
-  | Include (f, None) -> try_incl dirs f accu
+  | Include (f, None) -> 
+    assert (f.[0] = '\'' && f.[String.length f - 1] = '\'');
+    let file = String.sub f 1 (String.length f - 2) in
+    try_incl dirs file accu
   | Include (_, Some _) ->
       (* FIXME change try_incl and incl to implement selective include *)
       (* for the moment, we just ignore the include *)
