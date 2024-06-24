@@ -215,7 +215,7 @@ clean:
 	rm -rf dist zenon_modulo.tar.gz
 
 .PHONY: depend
-depend: $(IMPL) $(INTF) $(COQSRC)
+.depend depend: $(IMPL) $(INTF) $(COQSRC)
 	$(CAMLDEP) $(IMPL) $(INTF) >.depend
 	$(COQDEP) $(COQSRC) >>.depend
 
