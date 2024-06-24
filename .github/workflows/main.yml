@@ -25,7 +25,8 @@ jobs:
       - name: installing dependencies ...
         run: |
           opam pin add -n -k path zenon_modulo .
-          opam install --deps-only -d -t zenon_modulo
+          opam install --deps-only zenon_modulo
       - name: running tests ...
         run: |
-          eval $(opam env)
+          make zenon_modulo.bin
+          
