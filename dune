@@ -1,0 +1,20 @@
+(env
+ (dev     (flags :standard))
+ (release (flags :standard)))
+
+(ocamllex lexzen lextptp lexsmtlib lexcoq lexdk)
+(ocamlyacc parsezen parsetptp parsecoq parsedk)
+
+(executable
+ (name main)
+ (public_name zenon_modulo)
+ (modes byte native)
+ (libraries str unix zarith)
+)
+
+(rule
+ (targets checksum.ml)
+ (action
+  (with-stdout-to checksum.ml
+    (run echo "let v = \"\"")))
+ (mode fallback))
