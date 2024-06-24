@@ -28,6 +28,7 @@ jobs:
           opam install --deps-only zenon_modulo
       - name: running tests ...
         run: |
+          eval `opam env`
           ./configure
           make zenon_modulo.bin
           
