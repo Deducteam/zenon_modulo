@@ -12,9 +12,11 @@ license: "BSD-3-Clause"
 homepage: "https://github.com/Deducteam/zenon_modulo"
 bug-reports: "https://github.com/Deducteam/zenon_modulo/issues"
 depends: [
-  "dune" {>= "3.6" & >= "3.6"}
-  "ocaml" {>= "4.09.0"}
+  "dune" {>= "3.6"}
+  "ocaml" {>= "4.08.0"}
   "odoc" {with-doc}
+  "ocamlfind"
+  "zarith"
 ]
 build: [
   ["dune" "subst"] {dev}
