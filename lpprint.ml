@@ -1,15 +1,77 @@
 open Printf
 open Dkterm
 
-let forbidden_idents = ["abort";"admit";"admitted";"apply";"as";"assert";"assertnot";
-                        "associative";"assume";"begin";"builtin";"commutative";"compute";
-                        "constant";"debug";"end";"fail";"flag";"focus";"have";"generalize";
-                        "in";"induction";"inductive";"infix";"injective";"left";"let";
-                        "notation";"off";"on";"opaque";"open";"prefix";"print";"private";
-                        "proofterm";"protected";"prover";"prover_timeout";"quantifier";
-                        "refine";"reflexivity";"require";"rewrite";"right";"rule";"sequential";
-                        "simplify";"solve";"symbol";"symmetry";"type";"TYPE";"unif_rule";
-                        "verbose";"why3";"with"; "_"]
+(* taken on 25/06/24 from
+https://github.com/Deducteam/lambdapi/blob/master/src/parsing/lpLexer.ml *)
+let forbidden_idents = [
+  "abort"
+  ; "admit"
+  ; "admitted"
+  ; "apply"
+  ; "as"
+  ; "assert"
+  ; "assertnot"
+  ; "associative"
+  ; "assume"
+  ; "begin"
+  ; "builtin"
+  ; "coerce_rule"
+  ; "commutative"
+  ; "compute"
+  ; "constant"
+  ; "debug"
+  ; "end"
+  ; "fail"
+  ; "flag"
+  ; "generalize"
+  ; "have"
+  ; "in"
+  ; "induction"
+  ; "inductive"
+  ; "infix"
+  ; "injective"
+  ; "left"
+  ; "let"
+  ; "notation"
+  ; "off"
+  ; "on"
+  ; "opaque"
+  ; "open"
+  ; "postfix"
+  ; "prefix"
+  ; "print"
+  ; "private"
+  ; "proofterm"
+  ; "protected"
+  ; "prover"
+  ; "prover_timeout"
+  ; "quantifier"
+  ; "refine"
+  ; "reflexivity"
+  ; "remove"
+  ; "require"
+  ; "rewrite"
+  ; "right"
+  ; "rule"
+  ; "search"
+  ; "sequential"
+  ; "simplify"
+  ; "solve"
+  ; "symbol"
+  ; "symmetry"
+  ; "try"
+  ; "type"
+  ; "TYPE"
+  ; "unif_rule"
+  ; "verbose"
+  ; "why3"
+  ; "with"
+  ; "`"
+  ; ","
+  ; ":"
+  ; "|"
+  ; "_"
+  ]
 
 let escape_name s =
   let id_regex = Str.regexp "^[a-zA-Z_][a-zA-Z0-9_]*$" in
