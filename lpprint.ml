@@ -1,15 +1,77 @@
 open Printf
 open Dkterm
 
-let forbidden_idents = ["abort";"admit";"admitted";"apply";"as";"assert";"assertnot";
-                        "associative";"assume";"begin";"builtin";"commutative";"compute";
-                        "constant";"debug";"end";"fail";"flag";"focus";"have";"generalize";
-                        "in";"induction";"inductive";"infix";"injective";"left";"let";
-                        "notation";"off";"on";"opaque";"open";"prefix";"print";"private";
-                        "proofterm";"protected";"prover";"prover_timeout";"quantifier";
-                        "refine";"reflexivity";"require";"rewrite";"right";"rule";"sequential";
-                        "simplify";"solve";"symbol";"symmetry";"type";"TYPE";"unif_rule";
-                        "verbose";"why3";"with"; "_"]
+(* taken on 25/06/24 from
+https://github.com/Deducteam/lambdapi/blob/master/src/parsing/lpLexer.ml *)
+let forbidden_idents = [
+  "abort"
+  ; "admit"
+  ; "admitted"
+  ; "apply"
+  ; "as"
+  ; "assert"
+  ; "assertnot"
+  ; "associative"
+  ; "assume"
+  ; "begin"
+  ; "builtin"
+  ; "coerce_rule"
+  ; "commutative"
+  ; "compute"
+  ; "constant"
+  ; "debug"
+  ; "end"
+  ; "fail"
+  ; "flag"
+  ; "generalize"
+  ; "have"
+  ; "in"
+  ; "induction"
+  ; "inductive"
+  ; "infix"
+  ; "injective"
+  ; "left"
+  ; "let"
+  ; "notation"
+  ; "off"
+  ; "on"
+  ; "opaque"
+  ; "open"
+  ; "postfix"
+  ; "prefix"
+  ; "print"
+  ; "private"
+  ; "proofterm"
+  ; "protected"
+  ; "prover"
+  ; "prover_timeout"
+  ; "quantifier"
+  ; "refine"
+  ; "reflexivity"
+  ; "remove"
+  ; "require"
+  ; "rewrite"
+  ; "right"
+  ; "rule"
+  ; "search"
+  ; "sequential"
+  ; "simplify"
+  ; "solve"
+  ; "symbol"
+  ; "symmetry"
+  ; "try"
+  ; "type"
+  ; "TYPE"
+  ; "unif_rule"
+  ; "verbose"
+  ; "why3"
+  ; "with"
+  ; "`"
+  ; ","
+  ; ":"
+  ; "|"
+  ; "_"
+  ]
 
 let escape_name s =
   let id_regex = Str.regexp "^[a-zA-Z_][a-zA-Z0-9_]*$" in
@@ -45,14 +107,15 @@ and print_dk_cst o t =
   match t with
   | "Is_true" -> fprintf o "dk_logic.ebP"
   | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
-  | s -> if !Globals.signature_name = "" then fprintf o "%s" (escape_name s) else
-    if Mltoll.is_meta s then fprintf o "select ι" else
-    if s = !Globals.neg_conj then fprintf o "%s" s else
-      begin
-        fprintf o "S.%s" (escape_name s);
-        if not !Globals.check_axiom && Typetptp.is_axiom s then
-          fprintf o " %s" !Globals.neg_conj
-      end
+  | s ->
+     if !Globals.signature_name = "" then fprintf o "%s" (escape_name s)
+     else if Mltoll.is_meta s then fprintf o "select ι"
+     else
+       begin
+         fprintf o "S.%s" (escape_name s);
+         if !Globals.neg_conj <> "" && not !Globals.check_axiom
+            && Typetptp.is_axiom s then fprintf o "%s" !Globals.neg_conj
+       end
 
 and print_dk_term_aux o (t, var_context) =
   match t with
