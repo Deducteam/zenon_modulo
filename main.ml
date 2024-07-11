@@ -126,7 +126,7 @@ let argspec = [
   "-icoq", Arg.Unit (fun () -> input_format := I_focal),
         "              read input file in Coq format";
   "-idk", Arg.Unit (fun () -> input_format := I_dk),
-            "          read input file in Dedukti format";
+            "               read input file in Dedukti format";
   "-ifocal", Arg.Unit (fun () -> input_format := I_focal),
           "            read input file in Focal format";
   "-itptp", Arg.Unit (fun () -> input_format := I_tptp),
@@ -167,7 +167,7 @@ let argspec = [
 			      Globals.output_dk := true),
         "               print the proof in Dk script format (force -rename)";
   "-sig", Arg.String (fun s -> Globals.signature_name := s),
-              "              print the proof using a signature name for each symbol";
+              "<n>            set the module path of the signature";
   "-odkterm", Arg.Unit (fun () -> proof_level := Proof_dkterm;
 				  opt_level := 0;
 				  Globals.output_dk := true),
@@ -182,10 +182,12 @@ let argspec = [
 				  opt_level := 0;
 				  Globals.output_lp := true),
             "           print the proof in lambdapi term format";
-  "-neg-conj", Arg.String (fun s -> Globals.neg_conj := s),
-      "<n>             set the negated conjecture name";
+  "-conj", Arg.Unit (fun () -> Globals.neg_conj :=
+                                 (* keep space at the beginning *)
+                                 " __dummy_var__"),
+      "              indicate whether there is an explicit conjecture";
   "-check-axiom", Arg.Unit (fun () -> Globals.check_axiom := true),
-      "<n>             indicate whether this is a GDV leaf problem";
+      "       indicate whether this is a GDV leaf problem";
   "-oh", Arg.Int (fun n -> proof_level := Proof_h n),
       "<n>             print the proof in high-level format up to depth <n>";
   "-oisar", Arg.Unit (fun () -> proof_level := Proof_isar),
@@ -241,13 +243,13 @@ let argspec = [
   "-x", Arg.String Extension.activate,
      "<ext>            activate extension <ext>";
   "-modulo", Arg.Set modulo,
-     "             build the rewrite system from TPTP meta info";
+     "            build the rewrite system from TPTP meta info";
   "-modulo-heuri", Arg.Set modulo_heuri,
-     "             build the rewrite system from heuristic";
+     "      build the rewrite system from heuristic";
   "-modulo-heuri-simple", Arg.Set modulo_heuri_simple,
-     "             build the rewrite system from heuristic simple";
+     "build the rewrite system from heuristic simple";
   "-dbg-rwrt", Arg.Set debug_rwrt,
-     "             debug mode for rewriting"
+     "          debug mode for rewriting"
 ];;
 
 (*let print_usage () =
