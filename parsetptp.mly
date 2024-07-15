@@ -99,27 +99,63 @@ phrase:
   | INCLUDE OPEN LIDENT CLOSE DOT  { Phrase.Include ($3, None) }
   | INCLUDE OPEN LIDENT COMMA LBRACKET name_list RBRACKET CLOSE DOT
                                    { Phrase.Include ($3, Some ($6)) }
-  | INPUT_FORMULA OPEN name COMMA LIDENT COMMA formula extra CLOSE DOT
+  | INPUT_FORMULA OPEN name COMMA LIDENT COMMA formula annotations CLOSE DOT
                                    { Phrase.Formula (ns_hyp $3, $5, $7, None) }
-  | INPUT_CLAUSE OPEN name COMMA LIDENT COMMA cnf_formula extra CLOSE DOT
+  | INPUT_CLAUSE OPEN name COMMA LIDENT COMMA cnf_formula annotations CLOSE DOT
      { Phrase.Formula (ns_hyp $3, $5, cnf_to_formula $7, None) }
-  | INPUT_TFF_FORMULA OPEN name COMMA LIDENT COMMA formula COMMA LIDENT extra CLOSE DOT
+  | INPUT_TFF_FORMULA OPEN name COMMA LIDENT COMMA formula COMMA LIDENT annotations CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, Some $9) }
-  | INPUT_TFF_FORMULA OPEN name COMMA LIDENT COMMA formula extra CLOSE DOT
+  | INPUT_TFF_FORMULA OPEN name COMMA LIDENT COMMA formula annotations CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, None) }
-  | INPUT_TFF_FORMULA OPEN name COMMA LIDENT COMMA type_def extra CLOSE DOT
+  | INPUT_TFF_FORMULA OPEN name COMMA LIDENT COMMA type_def annotations CLOSE DOT
      { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, None) }
   | ANNOT                          { Phrase.Annotation $1 }
 ;
-extra:
+annotations:
   | {}
-  | COMMA extra_expr extra {}
+  | COMMA source optional_info {}
 ;
-extra_expr:
-  | expr {}
-  | LBRACKET extra_expr extra RBRACKET {}
-  | LIDENT OPEN LIDENT extra CLOSE {}
+
+source:
+general_term {}
 ;
+
+general_term:
+general_data {}
+  | general_data COLON general_term {}
+  | general_list {}
+;
+
+general_data:
+LIDENT {}
+  | general_function {}
+  | UIDENT {}
+  | INT {}
+  | RAT {}
+  | REAL {}
+  | STRING {}
+/* | formula_data {} unsupported */
+;
+
+general_function:
+LIDENT OPEN general_terms CLOSE {}
+;
+
+general_terms:
+general_term {}
+  | general_term COMMA general_terms {}
+;
+
+general_list:
+LBRACKET RBRACKET {}
+  | LBRACKET general_terms RBRACKET {}
+;
+
+optional_info:
+COMMA general_list {}
+  | {}
+;
+
 expr:
   | UIDENT                             { tvar_none (ns_var $1) }
   | LIDENT arguments                   { eapp (tvar_none @@ ns_fun $1, $2) }
