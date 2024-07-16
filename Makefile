@@ -210,12 +210,13 @@ clean:
 	rm -f parsezen.ml parsezen.mli lexzen.ml
 	rm -f parsetptp.ml parsetptp.mli lextptp.ml
 	rm -f parsecoq.ml parsecoq.mli lexcoq.ml
+	rm -f parsedk.ml parsedk.mli lexdk.ml
 	rm -f checksum.ml
 	rm -f zenon_modulo *.bin *.byt
 	rm -rf dist zenon_modulo.tar.gz
 
 .PHONY: depend
-depend: $(IMPL) $(INTF) $(COQSRC)
+.depend depend: $(IMPL) $(INTF) $(COQSRC)
 	$(CAMLDEP) $(IMPL) $(INTF) >.depend
 	$(COQDEP) $(COQSRC) >>.depend
 
