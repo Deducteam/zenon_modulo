@@ -82,7 +82,7 @@ let escape_name s =
 
 let rec print_dk_type_aux o (t, var_context) =
   match t with
-  | Dktypetype -> fprintf o "Type"
+  | Dktypetype -> fprintf o "Set"
   | Dktypeprop -> fprintf o "Prop"
   | Dkarrow (l, r) ->
      begin
@@ -95,7 +95,7 @@ let rec print_dk_type_aux o (t, var_context) =
 	      pvar print_dk_type_aux (t1, var_context) print_dk_type_aux (t2, pvar::var_context)
   | Dkpi _ -> assert false
   | Dkproof (t) ->
-     fprintf o "ϵ (%a)" print_dk_term_aux (t, var_context)
+     fprintf o "π (%a)" print_dk_term_aux (t, var_context)
   | t -> fprintf o "τ (%a)" print_dk_zentype_aux (t, var_context)
 and print_dk_type o t = print_dk_type_aux o (t, [])
 and print_dk_zentype_aux o (t, l) =
@@ -140,7 +140,7 @@ and print_dk_term_aux o (t, var_context) =
        List.iter (fun x -> fprintf o " (%a)" print_dk_term_aux (x, var_context)) l;
 (*       fprintf o "\n ";*)
      end
-  | Dkseq -> fprintf o "ϵ ⊥"
+  | Dkseq -> fprintf o "π ⊥"
   | Dknot (t) ->
      fprintf o "¬\n (%a)" print_dk_term_aux  (t, var_context)
   | Dkand (t1, t2) ->
@@ -152,10 +152,10 @@ and print_dk_term_aux o (t, var_context) =
   | Dkequiv (t1, t2) ->
      fprintf o "(%a)\n⇔\n(%a)\n" print_dk_term_aux (t1, var_context) print_dk_term_aux (t2, var_context)
   | Dkforall (_, t2) ->
-     fprintf o "∀α (%a)" print_dk_term_aux (t2, var_context)
+     fprintf o "∀ (%a)" print_dk_term_aux (t2, var_context)
      (* fprintf o "@∀ (%a)\n (%a)" print_dk_zentype_aux (t1, var_context) print_dk_term_aux (t2, var_context) *)
   | Dkexists (_, t2) ->
-     fprintf o "∃α (%a)" print_dk_term_aux (t2, var_context)
+     fprintf o "∃ (%a)" print_dk_term_aux (t2, var_context)
      (* fprintf o "@∃ (%a)\n (%a)" print_dk_zentype_aux  (t1, var_context) print_dk_term_aux (t2, var_context) *)
   | Dkforalltype (t) ->
      fprintf o "foralltype\n (%a)" print_dk_term_aux (t, var_context)
@@ -164,7 +164,7 @@ and print_dk_term_aux o (t, var_context) =
   | Dktrue -> fprintf o "⊤"
   | Dkfalse -> fprintf o "⊥"
   | Dkequal (_, t2, t3) ->
-     fprintf o "(%a) =α (%a)"
+     fprintf o "(%a) = (%a)"
 	     print_dk_term_aux (t2, var_context)
 	     print_dk_term_aux (t3, var_context)
   | DkRfalse (pr) -> fprintf o "Rfalse\n (%a)" print_dk_term_aux (pr, var_context)
