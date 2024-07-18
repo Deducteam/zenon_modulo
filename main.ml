@@ -184,7 +184,7 @@ let argspec = [
             "           print the proof in lambdapi term format";
   "-conj", Arg.Unit (fun () -> Globals.neg_conj :=
                                  (* keep space at the beginning *)
-                                 " __dummy_var__"),
+                                 " __negated_conjecture__"),
       "              indicate whether there is an explicit conjecture";
   "-check-axiom", Arg.Unit (fun () -> Globals.check_axiom := true),
       "       indicate whether this is a GDV leaf problem";
