@@ -1067,9 +1067,9 @@ let output_term oc phrases _ llp =
       fprintf oc "\n[] %s.%s --> " !Globals.signature_name goal_name
     end
   else fprintf oc "\n[] %s --> " goal_name;
-  let n = !Globals.conjecture in
-  if n <> "" then
-    fprintf oc "__negated_conjecture_proof__ : proof (not %s) =>\n" n;
+  if !Globals.conjecture <> "" then
+    fprintf oc "__negated_conjecture_proof__ : \
+                zenon.proof (zenon.not Signature.conjecture) =>\n";
   fprintf oc "zenon.nnpp (%a)\n(%a)"
     print_dk_term dkgoal print_dk_term dkproof;
   if !Globals.signature_name <> "" then fprintf oc ".";
