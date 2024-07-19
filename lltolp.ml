@@ -1064,15 +1064,15 @@ let output_term oc phrases _ llp =
   if !Globals.signature_name <> "" then
     fprintf oc "require %s as S;\n" !Globals.signature_name;
   fprintf oc "\nrule S.%s ↪ " goal_name;
-  let n = !Globals.neg_conj in
-  if n <> "" then fprintf oc "λ %s,\n" n;
+  if !Globals.conjecture <> "" then
+    fprintf oc "λ __negated_conjecture_proof__,";
   begin
     match dkgoal with
-    | Some g -> fprintf oc "\n  nnpp (%a)\n    (%a);\n"
-	          print_dk_term g
-	          print_dk_term dkproof
-    | None -> fprintf oc "\n %a;\n"
-	        print_dk_term dkproof
+    | Some g ->
+       fprintf oc "\n  nnpp (%a)\n    (%a);\n"
+         print_dk_term g print_dk_term dkproof
+    | None ->
+       fprintf oc "\n %a;\n" print_dk_term dkproof
   end;
   []
 

@@ -1033,7 +1033,7 @@ let output oc phrases llp =
   let dkname = List.hd name in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-
+  fprintf oc "#REQUIRE zenon;\n\n";
   if !Globals.signature_name = "" then List.iter (print_line oc) dksigs;
   fprintf oc "\n";
   if !Globals.signature_name = "" then List.iter (print_line oc) dkctx;
@@ -1059,9 +1059,14 @@ let output_term oc phrases _ llp =
   let dkgoal = translate_expr ngoal in
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
-  if !Globals.signature_name = "" then () else fprintf oc "def delta : zen.proof (%a) \n := \n " print_dk_term dkgoal;
-  fprintf oc "zen.nnpp (%a)\n\n(%a)"
-	  print_dk_term dkgoal
-	  print_dk_term dkproof;
-    if !Globals.signature_name = "" then () else fprintf oc ".";
+  fprintf oc "#REQUIRE zenon.\n";
+  if !Globals.signature_name <> "" then
+    fprintf oc "#REQUIRE %s.\n" !Globals.signature_name;
+  fprintf oc "\n[] S.%s ↪ " goal_name;
+  let n = !Globals.conjecture in
+  if n <> "" then
+    fprintf oc "__negated_conjecture_proof__ : proof (not %s) =>\n" n;
+  fprintf oc "zenon.nnpp (%a)\n(%a)"
+    print_dk_term dkgoal print_dk_term dkproof;
+  if !Globals.signature_name <> "" then fprintf oc ".";
   []

@@ -182,9 +182,7 @@ let argspec = [
 				  opt_level := 0;
 				  Globals.output_lp := true),
             "           print the proof in lambdapi term format";
-  "-conj", Arg.Unit (fun () -> Globals.neg_conj :=
-                                 (* keep space at the beginning *)
-                                 " __negated_conjecture__"),
+  "-conj", Arg.String (fun s -> Globals.conjecture := s),
       "              indicate whether there is an explicit conjecture";
   "-check-axiom", Arg.Unit (fun () -> Globals.check_axiom := true),
       "       indicate whether this is a GDV leaf problem";
