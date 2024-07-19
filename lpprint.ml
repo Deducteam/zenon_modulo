@@ -79,7 +79,6 @@ let escape_name s =
     && List.for_all ((<>) s) forbidden_idents
     then s else "{|" ^ s ^ "|}"
 
-
 let rec print_dk_type_aux o (t, var_context) =
   match t with
   | Dktypetype -> fprintf o "Set"
@@ -108,13 +107,14 @@ and print_dk_cst o t =
   | "Is_true" -> fprintf o "dk_logic.ebP"
   | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
   | s ->
-     if !Globals.signature_name = "" then fprintf o "%s" (escape_name s)
-     else if Mltoll.is_meta s then fprintf o "select ι"
+     if Mltoll.is_meta s then fprintf o "select ι"
      else
        begin
-         fprintf o "S.%s" (escape_name s);
-         if !Globals.neg_conj <> "" && not !Globals.check_axiom
-            && Typetptp.is_axiom s then fprintf o "%s" !Globals.neg_conj
+         if !Globals.signature_name = "" then fprintf o "%s" (escape_name s)
+         else fprintf o "S.%s" (escape_name s);
+         if !Globals.conjecture <> ""
+            && not !Globals.check_axiom && Typetptp.is_axiom s then
+           fprintf o " __negated_conjecture_proof__"
        end
 
 and print_dk_term_aux o (t, var_context) =
