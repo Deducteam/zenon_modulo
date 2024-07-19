@@ -1058,6 +1058,7 @@ let output_term oc phrases _ llp =
   in
   let dkgoal = translate_expr ngoal in
   let prooftree = extract_prooftree llp in
+  let goal_name = (List.hd llp).name in
   let dkproof = make_proof_term (List.hd goal) prooftree in
   fprintf oc "#REQUIRE zenon.\n";
   if !Globals.signature_name <> "" then
