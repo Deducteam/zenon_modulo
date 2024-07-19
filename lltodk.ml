@@ -1062,8 +1062,11 @@ let output_term oc phrases _ llp =
   let dkproof = make_proof_term (List.hd goal) prooftree in
   fprintf oc "#REQUIRE zenon.\n";
   if !Globals.signature_name <> "" then
-    fprintf oc "#REQUIRE %s.\n" !Globals.signature_name;
-  fprintf oc "\n[] S.%s --> " goal_name;
+    begin
+      fprintf oc "#REQUIRE %s.\n" !Globals.signature_name;
+      fprintf oc "\n[] %s.%s --> " !Globals.signature_name goal_name
+    end
+  else fprintf oc "\n[] %s --> " goal_name;
   let n = !Globals.conjecture in
   if n <> "" then
     fprintf oc "__negated_conjecture_proof__ : proof (not %s) =>\n" n;
