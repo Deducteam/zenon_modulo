@@ -1062,7 +1062,7 @@ let output_term oc phrases _ llp =
   fprintf oc "#REQUIRE zenon.\n";
   if !Globals.signature_name <> "" then
     fprintf oc "#REQUIRE %s.\n" !Globals.signature_name;
-  fprintf oc "\n[] S.%s ↪ " goal_name;
+  fprintf oc "\n[] S.%s --> " goal_name;
   let n = !Globals.conjecture in
   if n <> "" then
     fprintf oc "__negated_conjecture_proof__ : proof (not %s) =>\n" n;

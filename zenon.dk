@@ -1,0 +1,169 @@
+(; propositions ;)
+prop : Type.
+True : prop.
+False : prop.
+imp : prop -> prop -> prop.
+def not : prop -> prop := p : prop => imp p False.
+and : prop -> prop -> prop.
+or : prop -> prop -> prop.
+def eqv : prop -> prop -> prop := p : prop => q : prop => and (imp p q) (imp q p).
+
+(; sorts ;)
+type : Type.
+def iota : type.
+
+(; interpretation of sorts as types ;)
+injective term : type -> Type.
+
+(; axiom saying that every sort is inhabited ;)
+def select : a : type -> term a.
+
+(; sorted equality and quantifiers ;)
+equal : a : type -> term a -> term a -> prop.
+forall : a : type -> (term a -> prop) -> prop.
+exists : a : type -> (term a -> prop) -> prop.
+
+(; interpretation of propositions as types ;)
+injective proof : prop -> Type.
+[p, q] proof (imp p q) --> proof p -> proof q.
+[a, p] proof (forall a p) --> x : term a -> proof (p x).
+
+(; axiom equivalent to the excluded middle ;)
+def nnpp : p : prop -> proof (not (not p)) -> proof p.
+
+(; epsilon ;)
+def epsilon : a : type -> p : (term a -> prop) -> term a.
+def epsilon_intro : a : type -> p : (term a -> prop) -> proof (exists a p) -> proof (p (epsilon a p)).
+
+(; Zenon rules ;)
+
+def Rfalse : proof False -> proof False.
+
+def Rnottrue : proof (not True) -> proof False.
+
+def Raxiom : p : prop -> proof p -> proof (not p) -> proof False.
+
+def Rnoteq : a : type -> t : term a -> proof (not (equal a t t)) -> proof False.
+
+def Reqsym : a : type ->
+             t : term a ->
+             u : term a ->
+             proof (equal a t u) ->
+             proof (not (equal a u t)) ->
+             proof False.
+
+def Rcut : p : prop ->
+           (proof p -> proof False) ->
+           (proof (not p) -> proof False) ->
+           proof False.
+
+def Rnotnot : p : prop ->
+              (proof p -> proof False) ->
+              proof (not (not p)) ->
+              proof False.
+
+def Rand : p : prop ->
+           q : prop ->
+           (proof p -> proof q -> proof False) ->
+           proof (and p q) ->
+           proof False.
+
+def Ror : p : prop ->
+          q : prop ->
+          (proof p -> proof False) ->
+          (proof q -> proof False) ->
+          proof (or p q) ->
+          proof False.
+
+def Rimply : p : prop ->
+             q : prop ->
+             (proof (not p) -> proof False) ->
+             (proof q -> proof False) ->
+             proof (imp p q) ->
+             proof False.
+
+def Requiv : p : prop ->
+             q : prop ->
+             (proof (not p) -> proof (not q) -> proof False) ->
+             (proof p -> proof q -> proof False) ->
+             proof (eqv p q) ->
+             proof False.
+
+def Rnotand : p : prop ->
+              q : prop ->
+              (proof (not p) -> proof False) ->
+              (proof (not q) -> proof False) ->
+              proof (not (and p q)) ->
+              proof False.
+
+def Rnotor : p : prop ->
+             q : prop ->
+             (proof (not p) -> proof (not q) -> proof False) ->
+             proof (not (or p q)) ->
+             proof False.
+
+def Rnotimply : p : prop ->
+                q : prop ->
+                (proof p -> proof (not q) -> proof False) ->
+                proof (not (imp p q)) ->
+                proof False.
+
+def Rnotequiv : p : prop ->
+                q : prop ->
+                (proof (not p) -> proof q -> proof False) ->
+                (proof p -> proof (not q) -> proof False) ->
+                proof (not (eqv p q)) ->
+                proof False.
+
+def Rex : a : type ->
+          p : (term a -> prop) ->
+          (t : term a -> proof (p t) -> proof False) ->
+          proof (exists a p) ->
+          proof False.
+
+def Rall : a : type ->
+           p : (term a -> prop) ->
+           t : term a ->
+           (proof (p t) -> proof False) ->
+           proof (forall a p) ->
+           proof False.
+
+def Rnotex : a : type ->
+             p : (term a -> prop) ->
+             t : term a ->
+             (proof (not (p t)) -> proof False) ->
+             proof (not (exists a p)) ->
+             proof False.
+
+def Rnotall : a : type ->
+              p : (term a -> prop) ->
+              (t : term a -> proof (not (p t)) -> proof False) ->
+              proof (not (forall a p)) ->
+              proof False.
+
+def Rsubst : a : type ->
+             p : (term a -> prop) ->
+             t1 : term a ->
+             t2 : term a ->
+             (proof (not (equal a t1 t2)) -> proof False) ->
+             (proof (p t2) -> proof False) ->
+             proof (p t1) ->
+             proof False.
+
+def Rconglr : a : type ->
+              p : (term a -> prop) ->
+              t1 : term a ->
+              t2 : term a ->
+              (proof (p t2) -> proof False) ->
+              proof (p t1) ->
+              proof (equal a t1 t2) ->
+              proof False.
+
+def Rcongrl : a : type ->
+              p : (term a -> prop) ->
+              t1 : term a ->
+              t2 : term a ->
+              (proof (p t2) -> proof False) ->
+              proof (p t1) ->
+              proof (equal a t2 t1) ->
+              proof False.
