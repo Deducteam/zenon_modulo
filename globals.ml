@@ -31,7 +31,7 @@ let debug_rwrt = ref false;;
 
 let output_sig = ref false;;
 let signature_name = ref "";;
-let neg_conj = ref "";;
+let conjecture = ref "";;
 let check_axiom = ref false;;
 
 let begin_comment() =
