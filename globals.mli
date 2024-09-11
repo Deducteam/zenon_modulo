@@ -36,3 +36,6 @@ val check_axiom : bool ref;;
 
 val begin_comment : unit -> string;;
 val end_comment : unit -> string;;
+
+(* Has a conjecture, useful for SZS output *)
+val has_a_conjecture : bool ref;;
