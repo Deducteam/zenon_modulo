@@ -7,6 +7,53 @@ open Globals;;
 open Namespace;;
 open Expr;;
 
+(* part of SZS ontology, see
+   https://tptp.org/cgi-bin/SeeTPTP?Category=Documents&File=SZSOntology
+*)
+type szs_success =
+    Success
+  | Theorem
+  | Unsatisfiable
+
+type szs_error =
+    NoSuccess
+  | Unknown
+  | ResourceOut
+
+type szs_status =
+    Suc of szs_success
+  | Err of szs_error
+
+let szs_status out (status, file) =
+  fprintf out "%% SZS status %a for %s"
+    (fun out -> function
+      | Suc Success -> fprintf out "Success"
+      | Suc Theorem -> fprintf out "Theorem"
+      | Suc Unsatisfiable -> fprintf out "Unsatisfiable"
+      | Err NoSuccess -> fprintf out "NoSuccess"
+      | Err Unknown -> fprintf out "Unknown"
+      | Err ResourceOut -> fprintf out "ResourceOut"
+    )
+    status file
+
+let get_status found =
+  if found then
+    if !Globals.has_a_conjecture then
+      Suc Theorem
+    else
+      Suc Unsatisfiable
+  else
+    Err Unknown
+
+let print_status status file =
+  printf "%s %s\n%a\n%s\n"
+    (begin_comment ())
+    (match status with Suc _ -> " PROOF-FOUND "
+                     | Err _ ->  "NO-PROOF")
+    szs_status (status, file)
+    (end_comment())
+
+
 type proof_level =
   | Proof_none
   | Proof_h of int
@@ -457,14 +504,9 @@ let main () =
     if is_open then
         retcode := 12;
     if not !quiet_flag then begin
-      if is_open then
-        if !Globals.signature_name <> "" then ()
-        else printf "%s" (begin_comment() ^ " NO-PROOF " ^ end_comment() ^ "\n")
-      else
-        if !Globals.signature_name <> "" then ()
-        else printf "%s" (begin_comment() ^ " PROOF-FOUND " ^ end_comment() ^ "\n");
+      print_status (get_status @@ not is_open) file;
       flush stdout
-      end;
+    end;
     let llp = lazy (optim (Extension.postprocess
                              (Mltoll.translate th_name ppphrases proof)))
     in
@@ -504,10 +546,12 @@ let main () =
   with
   | Prove.NoProof ->
      retcode := 12;
-     if not !quiet_flag then (if !Globals.signature_name <> "" then () else printf "(* NO-PROOF *)\n");
+     if not !quiet_flag then
+       print_status (Err Unknown) file
   | Prove.LimitsExceeded ->
      retcode := 13;
-     if not !quiet_flag then (if !Globals.signature_name <> "" then () else printf "(* NO-PROOF *)\n");
+     if not !quiet_flag then
+       print_status (Err ResourceOut) file
   end;
   if !stats_flag then begin
     eprintf "nodes searched: %d\n" !Globals.inferences;

@@ -141,11 +141,12 @@ let rec translate_one dirs accu p =
   | Formula (name, ("lemma"|"theorem"), body, None) ->
       Hyp (name, body, 1) :: accu
   | Formula (name, "conjecture", body, None) ->
-      tptp_thm_name := name;
-      Hyp (goal_name, enot (body), 0) :: accu
+    tptp_thm_name := name;
+    Globals.has_a_conjecture := true;
+    Hyp (goal_name, enot (body), 0) :: accu
   | Formula (name, "negated_conjecture", body, None) ->
-      tptp_thm_name := "negation_of_" ^ name;
-      Hyp (name, body, 0) :: accu
+    tptp_thm_name := "negation_of_" ^ name;
+    Hyp (name, body, 0) :: accu
   (* TFF formulas *)
   | Formula (name, "tff_type", body, None) ->
       Hyp (name, body, 13) :: accu
@@ -162,10 +163,11 @@ let rec translate_one dirs accu p =
   | Formula (name, ("tff_lemma"|"tff_theorem"), body, None) ->
       Hyp (name, body, 11) :: accu
   | Formula (name, "tff_conjecture", body, None) ->
-      tptp_thm_name := name;
-      Hyp (goal_name, enot (body), 10) :: accu
+    tptp_thm_name := name;
+    Globals.has_a_conjecture := true;
+    Hyp (goal_name, enot (body), 10) :: accu
   | Formula (name, "tff_negated_conjecture", body, None) ->
-      Hyp (name, body, 10) :: accu
+    Hyp (name, body, 10) :: accu
   (* Fallback *)
   | Formula (name, k, body, _) ->
       Error.warn ("unknown formula kind: " ^ k);

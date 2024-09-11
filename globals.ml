@@ -43,3 +43,5 @@ let end_comment() =
   if !output_dk then ";)"
   else if !output_lp then "*/"
   else "*)"
+
+let has_a_conjecture = ref true

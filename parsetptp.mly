@@ -93,7 +93,7 @@ let cnf_to_formula l =
 
 file:
   | EOF             { [] }
-  | phrase file     { $1 :: $2 }
+  | phrase file     { Globals.has_a_conjecture := false; $1 :: $2 }
 ;
 phrase:
   | INCLUDE OPEN LIDENT CLOSE DOT  { Phrase.Include ($3, None) }
