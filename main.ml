@@ -52,7 +52,7 @@ let print_status status file =
                      | Err _ ->  "NO-PROOF")
     (end_comment());
   if !szs then szs_status stdout (status, file)
-  
+
 
 type proof_level =
   | Proof_none
