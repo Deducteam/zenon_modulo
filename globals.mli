@@ -33,6 +33,7 @@ val output_sig : bool ref;;
 val signature_name : string ref;;
 val conjecture : string ref;;
 val check_axiom : bool ref;;
+val szs : bool ref;;
 
 val begin_comment : unit -> string;;
 val end_comment : unit -> string;;
