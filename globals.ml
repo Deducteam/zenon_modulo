@@ -33,6 +33,7 @@ let output_sig = ref false;;
 let signature_name = ref "";;
 let conjecture = ref "";;
 let check_axiom = ref false;;
+let szs = ref false;;
 
 let begin_comment() =
   if !output_dk then "(;"

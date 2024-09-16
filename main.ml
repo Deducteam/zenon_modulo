@@ -25,7 +25,7 @@ type szs_status =
   | Err of szs_error
 
 let szs_status out (status, file) =
-  fprintf out "%% SZS status %a for %s"
+  fprintf out "%% SZS status %a for %s\n"
     (fun out -> function
       | Suc Success -> fprintf out "Success"
       | Suc Theorem -> fprintf out "Theorem"
@@ -46,12 +46,12 @@ let get_status found =
     Err Unknown
 
 let print_status status file =
-  printf "%s %s\n%a\n%s\n"
+  printf "%s %s %s\n"
     (begin_comment ())
     (match status with Suc _ -> " PROOF-FOUND "
                      | Err _ ->  "NO-PROOF")
-    szs_status (status, file)
-    (end_comment())
+    (end_comment());
+  if !szs then szs_status stdout (status, file)
 
 
 type proof_level =
@@ -271,6 +271,8 @@ let argspec = [
          "             print statistics";
   "-short", Arg.Set short_flag,
          "             output a less detailed proof";
+  "-szs", Arg.Set szs,
+         "             print SZS status and dataform markers";
   "-use-all", Arg.Set use_all_flag,
            "           output a proof that uses all the hypotheses";
   "-v", Arg.Unit short_version,
@@ -510,6 +512,8 @@ let main () =
     let llp = lazy (optim (Extension.postprocess
                              (Mltoll.translate th_name ppphrases proof)))
     in
+    if !szs && !proof_level <> Proof_none then
+      printf "%% SZS output start Proof for %s\n" file;
     begin match !proof_level with
     | Proof_none -> ()
     | Proof_h n -> Print.hlproof (Print.Chan stdout) n proof;
@@ -543,6 +547,8 @@ let main () =
     | Proof_dot (b, n) ->
         Print.dots ~full_output:b ~max_depth:n (Print.Chan stdout) (List.rev proofs);
     end;
+    if !szs && !proof_level <> Proof_none then
+      printf "%% SZS output end Proof for %s\n" file;
   with
   | Prove.NoProof ->
      retcode := 12;
