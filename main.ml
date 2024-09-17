@@ -19,6 +19,7 @@ type szs_error =
     NoSuccess
   | Unknown
   | ResourceOut
+  | GaveUp
 
 type szs_status =
     Suc of szs_success
@@ -33,6 +34,7 @@ let szs_status out (status, file) =
       | Err NoSuccess -> fprintf out "NoSuccess"
       | Err Unknown -> fprintf out "Unknown"
       | Err ResourceOut -> fprintf out "ResourceOut"
+      | Err GaveUp -> fprintf out "GaveUp"
     )
     status file
 
@@ -553,7 +555,7 @@ let main () =
   | Prove.NoProof ->
      retcode := 12;
      if not !quiet_flag then
-       print_status (Err Unknown) file
+       print_status (Err GaveUp) file
   | Prove.LimitsExceeded ->
      retcode := 13;
      if not !quiet_flag then
