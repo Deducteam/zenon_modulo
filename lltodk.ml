@@ -1073,4 +1073,5 @@ let output_term oc phrases _ llp =
   fprintf oc "zenon.nnpp (%a)\n(%a)"
     print_dk_term dkgoal print_dk_term dkproof;
   if !Globals.signature_name <> "" then fprintf oc ".";
+  fprintf oc "\n";
   []
