@@ -217,6 +217,8 @@ let argspec = [
         "               print the proof in Dk script format (force -rename)";
   "-sig", Arg.String (fun s -> Globals.signature_name := s),
               "<n>            set the module path of the signature";
+  "-lp-package", Arg.String (fun s -> Globals.lp_package := s),
+              "<n>            set the module path for lambdapi";
   "-odkterm", Arg.Unit (fun () -> proof_level := Proof_dkterm;
 				  opt_level := 0;
 				  Globals.output_dk := true),

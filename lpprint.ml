@@ -102,7 +102,7 @@ and print_dk_zentype_aux o (t, l) =
   | Dktypeiota -> fprintf o "ι"
   | t -> print_dk_term_aux o (t, l)
 (* and print_dk_zentype o t = print_dk_zentype_aux o (t, []) *)
-and print_dk_cst o t =
+and print_dk_cst is_formula o t =
   match t with
   | "Is_true" -> fprintf o "dk_logic.ebP"
   | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
@@ -110,8 +110,10 @@ and print_dk_cst o t =
      if Mltoll.is_meta s then fprintf o "select ι"
      else
        begin
-         if !Globals.signature_name = "" then fprintf o "%s" (escape_name s)
-         else fprintf o "S.%s" (escape_name s);
+         fprintf o (if !Globals.lp_package = "" then "%s"
+                    else if is_formula then "F.%s"
+                    else "S.%s")
+           (escape_name s);
          if !Globals.conjecture <> ""
             && not !Globals.check_axiom && Typetptp.is_axiom s then
            fprintf o " __negated_conjecture_proof__"
@@ -134,9 +136,9 @@ and print_dk_term_aux o (t, var_context) =
      fprintf o "λ (%s : %a),\n %a"
 	     pvar print_dk_type_aux (t1, var_context) print_dk_term_aux (t2, (pvar::var_context))
   | Dklam _ -> assert false
-  | Dkapp (v, _, l) ->
+  | Dkapp (v, t, l) ->
      begin
-       print_dk_cst o v;
+       print_dk_cst (match t with Dkproof _ -> true | _ -> false) o v;
        List.iter (fun x -> fprintf o " (%a)" print_dk_term_aux (x, var_context)) l;
 (*       fprintf o "\n ";*)
      end
