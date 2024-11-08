@@ -1063,9 +1063,11 @@ let output_term oc phrases _ llp =
               Logic.Zenon.Main;\n";
   if !Globals.lp_package <> "" then begin
     fprintf oc "require %s.Signature as S;\n" !Globals.lp_package;
-    fprintf oc "require %s.Formulae as F;\n" !Globals.lp_package
-  end;
-  fprintf oc "\nrule S.%s ↪ " goal_name;
+    fprintf oc "require %s.Formulae as F;\n" !Globals.lp_package;
+    fprintf oc "\nrule F.%s ↪ " goal_name
+  end
+  else
+  fprintf oc "\nsymbol %s ≔ " goal_name;
   if !Globals.conjecture <> "" then
     fprintf oc "λ __negated_conjecture_proof__,";
   begin
@@ -1077,4 +1079,3 @@ let output_term oc phrases _ llp =
        fprintf oc "\n %a;\n" print_dk_term dkproof
   end;
   []
-
