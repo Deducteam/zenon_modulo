@@ -114,7 +114,7 @@ and print_dk_cst is_formula o t =
                     else if is_formula then "F.%s"
                     else "S.%s")
            (escape_name s);
-         if !Globals.conjecture <> ""
+         if !Globals.conjecture <> "" && is_formula
             && not !Globals.check_axiom && Typetptp.is_axiom s then
            fprintf o " __negated_conjecture_proof__"
        end
