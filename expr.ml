@@ -490,10 +490,25 @@ module HE = Weak.Make (HashedExpr);;
 let tbl = HE.create 999997;;
 
 let he_merge k =
-  try HE.find tbl k
+  try let r = HE.find tbl k in
+    if Log.get_debug () >= 12 then begin 
+      let b = Buffer.create 16 in
+      print b k;
+      Buffer.add_string b " existing as ";
+      print b r;
+      Log.debug 12 "Hash-consed term %s"
+        (Bytes.to_string (Buffer.to_bytes b))
+    end;
+    r
   with Not_found ->
     incr Globals.num_expr;
     HE.add tbl k;
+    if Log.get_debug () >= 10 then begin
+      let b = Buffer.create 16 in
+      print b k;
+      Log.debug 10 "New hash-consed term %s"
+        (Bytes.to_string (Buffer.to_bytes b))
+    end;
     k
 ;;
 
