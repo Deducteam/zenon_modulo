@@ -102,14 +102,15 @@ and print_dk_zentype_aux o (t, l) =
   | Dktypeiota -> fprintf o "ι"
   | t -> print_dk_term_aux o (t, l)
 (* and print_dk_zentype o t = print_dk_zentype_aux o (t, []) *)
-and print_dk_cst typ o t =
+
+and print_dk_cst typ o (t, var_context) =
   let is_formula = match typ with Dkproof _ -> true | _ -> false in
   match t with
   | "Is_true" -> fprintf o "dk_logic.ebP"
   | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
   | s ->
-     if Mltoll.is_meta s then fprintf o "select (%a)" print_dk_term typ
-     else
+    if Mltoll.is_meta s then fprintf o "select (%a)" print_dk_zentype_aux (typ, var_context)
+    else
        begin
          fprintf o (if !Globals.lp_package = "" then "%s"
                     else if is_formula then "F.%s"
@@ -125,7 +126,7 @@ and print_dk_term_aux o (t, var_context) =
   | Dkvar (v, t) as var ->
     let pvar = (escape_name (get_var_newname var)) in
     if not (List.mem pvar var_context)
-    then fprintf o "select (%a)" print_dk_term t
+    then fprintf o "select (%a)" print_dk_zentype_aux (t, var_context)
     else fprintf o "%s" pvar
  | Dklam (Dkvar (_, t1) as var, t2) ->
       let pvar = (escape_name (get_var_newname var)) in
@@ -139,7 +140,7 @@ and print_dk_term_aux o (t, var_context) =
   | Dklam _ -> assert false
   | Dkapp (v, t, l) ->
      begin
-       print_dk_cst t o v;
+       print_dk_cst t o (v, var_context);
        List.iter (fun x -> fprintf o " (%a)" print_dk_term_aux (x, var_context)) l;
 (*       fprintf o "\n ";*)
      end
