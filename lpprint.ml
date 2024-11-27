@@ -102,14 +102,15 @@ and print_dk_zentype_aux o (t, l) =
   | Dktypeiota -> fprintf o "ι"
   | t -> print_dk_term_aux o (t, l)
 (* and print_dk_zentype o t = print_dk_zentype_aux o (t, []) *)
+
 and print_dk_cst typ o (t, var_context) =
   let is_formula = match typ with Dkproof _ -> true | _ -> false in
   match t with
   | "Is_true" -> fprintf o "dk_logic.ebP"
   | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
   | s ->
-     if Mltoll.is_meta s then fprintf o "select (%a)" print_dk_zentype_aux (typ, var_context)
-     else
+    if Mltoll.is_meta s then fprintf o "select (%a)" print_dk_zentype_aux (typ, var_context)
+    else
        begin
          fprintf o (if !Globals.lp_package = "" then "%s"
                     else if is_formula then "F.%s"
