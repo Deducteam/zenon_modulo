@@ -13,8 +13,6 @@ depends: [
   "dune" {>= "3.7"}
   "ocaml" {>= "4.08.0"}
   "odoc" {with-doc}
-  "ocamlfind"
-  "zarith"
 ]
 build: [
   ["dune" "subst"] {dev}
