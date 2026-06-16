@@ -16,4 +16,6 @@
 method, generating Coq, Dedukti or Lambdapi proofs.")
  (depends
   (ocaml (>= 4.08.0))
+  ocamlfind
+  zarith
 ))

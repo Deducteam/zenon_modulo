@@ -12,6 +12,8 @@ bug-reports: "https://github.com/Deducteam/zenon_modulo/issues"
 depends: [
   "dune" {>= "3.7"}
   "ocaml" {>= "4.08.0"}
+  "ocamlfind"
+  "zarith"
   "odoc" {with-doc}
 ]
 build: [
