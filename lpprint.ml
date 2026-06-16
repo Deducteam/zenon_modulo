@@ -123,7 +123,7 @@ and print_dk_cst typ o (t, var_context) =
 
 and print_dk_term_aux o (t, var_context) =
   match t with
-  | Dkvar (v, t) as var ->
+  | Dkvar (_, t) as var ->
     let pvar = (escape_name (get_var_newname var)) in
     if not (List.mem pvar var_context)
     then fprintf o "select (%a)" print_dk_zentype_aux (t, var_context)

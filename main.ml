@@ -11,12 +11,12 @@ open Expr;;
    https://tptp.org/cgi-bin/SeeTPTP?Category=Documents&File=SZSOntology
 *)
 type szs_success =
-    Success
+    Success [@warning "-37"]
   | Theorem
   | Unsatisfiable
 
 type szs_error =
-    NoSuccess
+    NoSuccess [@warning "-37"]
   | Unknown
   | ResourceOut
   | GaveUp
