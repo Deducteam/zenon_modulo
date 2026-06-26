@@ -102,27 +102,31 @@ and print_dk_zentype_aux o (t, l) =
   | Dktypeiota -> fprintf o "ι"
   | t -> print_dk_term_aux o (t, l)
 (* and print_dk_zentype o t = print_dk_zentype_aux o (t, []) *)
-and print_dk_cst o t =
+
+and print_dk_cst typ o (t, var_context) =
+  let is_formula = match typ with Dkproof _ -> true | _ -> false in
   match t with
   | "Is_true" -> fprintf o "dk_logic.ebP"
   | "FOCAL.ifthenelse" -> fprintf o "dk_bool.ite"
   | s ->
-     if Mltoll.is_meta s then fprintf o "select ι"
-     else
+    if Mltoll.is_meta s then fprintf o "select (%a)" print_dk_zentype_aux (typ, var_context)
+    else
        begin
-         if !Globals.signature_name = "" then fprintf o "%s" (escape_name s)
-         else fprintf o "S.%s" (escape_name s);
-         if !Globals.conjecture <> ""
+         fprintf o (if !Globals.lp_package = "" then "%s"
+                    else if is_formula then "F.%s"
+                    else "S.%s")
+           (escape_name s);
+         if !Globals.conjecture <> "" && is_formula
             && not !Globals.check_axiom && Typetptp.is_axiom s then
            fprintf o " __negated_conjecture_proof__"
        end
 
 and print_dk_term_aux o (t, var_context) =
   match t with
-  | Dkvar (v, _) as var ->
+  | Dkvar (_, t) as var ->
     let pvar = (escape_name (get_var_newname var)) in
     if not (List.mem pvar var_context)
-    then fprintf o "select ι"
+    then fprintf o "select (%a)" print_dk_zentype_aux (t, var_context)
     else fprintf o "%s" pvar
  | Dklam (Dkvar (_, t1) as var, t2) ->
       let pvar = (escape_name (get_var_newname var)) in
@@ -134,9 +138,9 @@ and print_dk_term_aux o (t, var_context) =
      fprintf o "λ (%s : %a),\n %a"
 	     pvar print_dk_type_aux (t1, var_context) print_dk_term_aux (t2, (pvar::var_context))
   | Dklam _ -> assert false
-  | Dkapp (v, _, l) ->
+  | Dkapp (v, t, l) ->
      begin
-       print_dk_cst o v;
+       print_dk_cst t o (v, var_context);
        List.iter (fun x -> fprintf o " (%a)" print_dk_term_aux (x, var_context)) l;
 (*       fprintf o "\n ";*)
      end

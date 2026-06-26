@@ -205,9 +205,9 @@ unit_formula:
   | atom                           { $1 }
 ;
 var_list:
-  | UIDENT COMMA var_list             { (tvar (ns_var $1) type_iota) :: $3 }
+  | UIDENT COMMA var_list             { (tvar (ns_var $1) type_none) :: $3 }
   | UIDENT COLON expr COMMA var_list  { (tvar (ns_var $1) $3) :: $5 }
-  | UIDENT                            { [tvar (ns_var $1) type_iota] }
+  | UIDENT                            { [tvar (ns_var $1) type_none] }
   | UIDENT COLON expr                 { [tvar (ns_var $1) $3] }
 ;
 tff_type_arrow:

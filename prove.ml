@@ -216,12 +216,17 @@ let make_notequiv st sym (p, g) (np, ng) =
              if s1 =%= "=" then Arity_eq else Arity
            else Inst p
          in
+         let nbranches = make_inequals myargs1 argsvar2 in
+         Log.debug 6 "new branches (%d):" (Array.length nbranches);
+         Array.iter (fun l -> Log.debug 6 "begin branch";
+                     Log.debug 6 "%a" (Print.pp_lst Print.pp_expr "; ") l;
+                     Log.debug 6 "end branch") nbranches;
          add_node st {
 		    nconc = [p; np];
 		    nrule = myrule;
 		    nprio = prio;
 		    ngoal = min g ng;
-		    nbranches = make_inequals myargs1 argsvar2;
+		    nbranches
 		  }
        end
      else
@@ -1531,6 +1536,7 @@ and params = {
 
 let rec refute_aux prm stk st forms =
   prm.progress ();
+  Log.debug 6 "::   %a\n" (Log.pp_list ~sep:"\n  ::" (fun b x -> Print.pp_expr b (fst x))) forms;
   match forms with
   | [] ->
     if good_head st.queue then begin
@@ -1555,6 +1561,7 @@ let rec refute_aux prm stk st forms =
 
 and refute prm stk st forms =
   Step.forms "refute" forms;
+  Log.debug 6 "queue %s" (Node.size st.queue);
   refute_aux prm stk st forms
 
 and next_node prm stk st =
