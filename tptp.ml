@@ -154,10 +154,10 @@ let rec translate_one dirs accu p =
       Hyp (name, body, 12) :: accu
   | Formula (name, "tff_hypothesis", body, None) ->
       Hyp (name, body, 11) :: accu
-  | Formula (name, ("tff_axiom" | "tff_definition"), body, Some "rewrite") ->
+  | Formula (name, ("tff_axiom" | "tff_definition" | "axiom" | "definition"), body, Some (Atom "rewrite")) ->
      if !Globals.modulo then Rew (name, body, 12) :: accu
      else Hyp (name, body, 12) :: accu
-  | Formula (name, "tff_hypothesis", body, Some "rewrite") ->
+  | Formula (name, ("tff_hypothesis" | "hypothesis"), body, Some (Atom "rewrite")) ->
      if !Globals.modulo then Rew (name, body, 11) :: accu
      else Hyp (name, body, 11) :: accu
   | Formula (name, ("tff_lemma"|"tff_theorem"), body, None) ->
@@ -168,6 +168,15 @@ let rec translate_one dirs accu p =
     Hyp (goal_name, enot (body), 10) :: accu
   | Formula (name, "tff_negated_conjecture", body, None) ->
     Hyp (name, body, 10) :: accu
+  (* Dealing with annotations *)
+  | Formula(name, t, body, Some annot) ->
+     begin
+       match annot with
+       | Fun(_inference, [_Skolemization; List([_statusesa; Fun(_new_symbols, [Atom "skolem"; List [Atom sk]]); _skolemize]); List parents]) ->
+         Log.debug 6 "Found a skolem symbol %s for %s\n" sk name
+      | _ -> Log.debug 6 "Ignoring annotation for %s." name
+     end;
+     translate_one dirs accu (Formula(name, t, body, None))
   (* Fallback *)
   | Formula (name, k, body, _) ->
       Error.warn ("unknown formula kind: " ^ k);

@@ -112,7 +112,7 @@ and print_dk_cst typ o (t, var_context) =
     if Mltoll.is_meta s then fprintf o "select (%a)" print_dk_zentype_aux (typ, var_context)
     else
        begin
-         fprintf o (if !Globals.lp_package = "" then "%s"
+         fprintf o (if !Globals.gdv then "%s"
                     else if is_formula then "F.%s"
                     else "S.%s")
            (escape_name s);

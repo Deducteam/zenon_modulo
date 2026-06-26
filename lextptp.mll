@@ -57,6 +57,7 @@ rule token = parse
   | "."              { DOT }
   | "?"              { EX }
   | "!"              { ALL }
+  | "#"              { HASH }
   | "~"              { NOT }
   | "|"              { OR }
   | "&"              { AND }

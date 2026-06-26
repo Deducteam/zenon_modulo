@@ -22,7 +22,7 @@ VERSION = $(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_BUGFIX)
 # modules in linking order.
 
 SOURCES = log.ml version.ml config.dummy misc.ml heap.ml globals.ml error.ml \
-          progress.ml namespace.ml expr.ml \
+          progress.ml namespace.ml annotation.ml expr.ml \
           phrase.ml llproof.ml mlproof.ml index.ml print.ml \
 	  watch.ml eqrel.ml \
 	  rewrite.ml typer.ml \

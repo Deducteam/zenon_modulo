@@ -4,6 +4,7 @@
 Version.add "$Id: parsetptp.mly,v 1.9 2012-04-24 17:32:04 doligez Exp $";;
 
 open Expr;;
+open Annotation
 
 let ns pre s = (if !Globals.namespace_flag then pre else "") ^ s;;
 (* Renaming is now done during typechecking *)
@@ -73,6 +74,7 @@ let cnf_to_formula l =
 %token XOR
 %token NOR
 %token NAND
+%token HASH
 %token <string> ANNOT
 
 %nonassoc OPEN
@@ -100,55 +102,53 @@ phrase:
   | INCLUDE OPEN LIDENT COMMA LBRACKET name_list RBRACKET CLOSE DOT
                                    { Phrase.Include ($3, Some ($6)) }
   | INPUT_FORMULA OPEN name COMMA LIDENT COMMA formula annotations CLOSE DOT
-                                   { Phrase.Formula (ns_hyp $3, $5, $7, None) }
+                                   { Phrase.Formula (ns_hyp $3, $5, $7, $8) }
   | INPUT_CLAUSE OPEN name COMMA LIDENT COMMA cnf_formula annotations CLOSE DOT
-     { Phrase.Formula (ns_hyp $3, $5, cnf_to_formula $7, None) }
-  | INPUT_TFF_FORMULA OPEN name COMMA LIDENT COMMA formula COMMA LIDENT annotations CLOSE DOT
-     { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, Some $9) }
+      { Phrase.Formula (ns_hyp $3, $5, cnf_to_formula $7, $8) }
   | INPUT_TFF_FORMULA OPEN name COMMA LIDENT COMMA formula annotations CLOSE DOT
-     { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, None) }
+     { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, $8) }
   | INPUT_TFF_FORMULA OPEN name COMMA LIDENT COMMA type_def annotations CLOSE DOT
-     { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, None) }
+     { Phrase.Formula (ns_hyp $3, "tff_" ^ $5, $7, $8) }
   | ANNOT                          { Phrase.Annotation $1 }
 ;
 annotations:
-  | {}
-  | COMMA source optional_info {}
+  | {None}
+  | COMMA source optional_info {Some $2}
 ;
 
 source:
-general_term {}
+general_term {$1}
 ;
 
 general_term:
-general_data {}
-  | general_data COLON general_term {}
-  | general_list {}
+general_data {$1}
+  | general_data COLON general_term {Colon ($1, $3)}
+  | general_list {List $1}
 ;
 
 general_data:
-LIDENT {}
-  | general_function {}
-  | UIDENT {}
-  | INT {}
-  | RAT {}
-  | REAL {}
-  | STRING {}
+LIDENT {Atom $1}
+  | general_function {$1}
+  | UIDENT {Atom $1}
+  | INT {Atom $1}
+  | RAT {Atom $1}
+  | REAL {Atom $1}
+  | STRING {Atom $1}
 /* | formula_data {} unsupported */
 ;
 
 general_function:
-LIDENT OPEN general_terms CLOSE {}
+LIDENT OPEN general_terms CLOSE {Fun ($1, $3)}
 ;
 
 general_terms:
-general_term {}
-  | general_term COMMA general_terms {}
+general_term { [$1] }
+  | general_term COMMA general_terms {$1::$3}
 ;
 
 general_list:
-LBRACKET RBRACKET {}
-  | LBRACKET general_terms RBRACKET {}
+LBRACKET RBRACKET {[]}
+  | LBRACKET general_terms RBRACKET {$2}
 ;
 
 optional_info:
@@ -168,6 +168,7 @@ expr:
   | expr EQSYM expr                    { eeq $1 $3 }
   | expr NEQSYM expr                   { enot (eeq $1 $3) }
   | OPEN expr CLOSE                    { $2 }
+  | HASH LBRACKET var_list RBRACKET COLON unit_formula { etau (List.hd $3, $6) }
 ;
 arguments:
   | OPEN expr_list CLOSE         { $2 }
