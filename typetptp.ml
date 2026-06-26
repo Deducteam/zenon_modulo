@@ -264,7 +264,9 @@ and type_tff_quant k mk_quant env e =
   match e with
   | Eex(Evar(s, _) as v, body, _)
   | Eall(Evar(s, _) as v, body, _)
-  | Elam(Evar(s, _) as v, body, _) ->
+  | Elam(Evar(s, _) as v, body, _)
+  | Etau(Evar(s, _) as v, body, _)
+    ->
     let t, env' = type_tff_type env (get_type v) in
     let v' = tvar (var_name s) t in
     let map' = rm_binding v env'.map in
@@ -289,6 +291,7 @@ and type_tff_term env e =
   | Evar(_, _) -> type_tff_var type_tff_i env e
   | Eapp(_) -> type_tff_app env type_tff_i e
   | Elam(_) -> type_tff_quant type_tff_term elam env e
+  | Etau(_) -> type_tff_quant type_tff_prop etau env e
   | _ -> raise (Type_error ("Ill-formed expression"))
 
 and type_tff_type env e = match e with
