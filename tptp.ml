@@ -168,6 +168,15 @@ let rec translate_one dirs accu p =
     Hyp (goal_name, enot (body), 10) :: accu
   | Formula (name, "tff_negated_conjecture", body, None) ->
     Hyp (name, body, 10) :: accu
+  (* Dealing with annotations *)
+  | Formula(name, t, body, Some annot) ->
+     begin
+       match annot with
+       | Fun(_inference, [_Skolemization; List([_statusesa; Fun(_new_symbols, [Atom "skolem"; List [Atom sk]]); _skolemize]); List parents]) ->
+         Log.debug 6 "Found a skolem symbol %s for %s\n" sk name
+      | _ -> Log.debug 6 "Ignoring annotation for %s." name
+     end;
+     translate_one dirs accu (Formula(name, t, body, None))
   (* Fallback *)
   | Formula (name, k, body, _) ->
       Error.warn ("unknown formula kind: " ^ k);
