@@ -77,8 +77,13 @@ and print_dk_cst o t =
      if Mltoll.is_meta s then fprintf o "zenon.select (zenon.iota)"
      else
        begin
-         if !Globals.signature_name = "" then fprintf o "%s" (escape_name s)
-         else fprintf o "%s.%s" !Globals.signature_name (escape_name s);
+         let prefix =
+         if !Globals.signature_name = "" then
+           if !Globals.gdv then "Signature."
+           else ""
+         else !Globals.signature_name ^ "."
+         in
+         fprintf o "%s%s" prefix  (escape_name s);
          if !Globals.conjecture <> ""
             && not !Globals.check_axiom && Typetptp.is_axiom s then
            fprintf o " __negated_conjecture_proof__"

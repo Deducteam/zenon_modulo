@@ -1059,13 +1059,12 @@ let output_term oc phrases _ llp =
   let prooftree = extract_prooftree llp in
   let goal_name = (List.hd llp).name in
   let dkproof = make_proof_term (List.hd goal) prooftree in
+  fprintf oc "require open Stdlib.Prop Stdlib.Set Stdlib.Eq Stdlib.FOL \
+              Logic.Zenon.Main;\n";
   if !Globals.gdv then
     fprintf oc "\nrule F.%s ↪ " goal_name
-  else begin
-      fprintf oc "require open Stdlib.Prop Stdlib.Set Stdlib.Eq Stdlib.FOL \
-                  Logic.Zenon.Main;\n";
-      fprintf oc "\nsymbol %s ≔ " goal_name
-    end;
+  else
+      fprintf oc "\nsymbol %s ≔ " goal_name;
   if !Globals.conjecture <> "" then
     fprintf oc "λ __negated_conjecture_proof__,";
   begin
