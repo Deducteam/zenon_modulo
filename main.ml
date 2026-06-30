@@ -218,7 +218,7 @@ let argspec = [
   "-sig", Arg.String (fun s -> Globals.signature_name := s),
               "<n>            set the module path of the signature";
   "-gdv", Arg.Set Globals.gdv,
-              " use the format expected by GDV for the lambdapi output";
+              " use the format expected by GDV for the lambdapi and dedukti outputs";
   "-odkterm", Arg.Unit (fun () -> proof_level := Proof_dkterm;
 				  opt_level := 0;
 				  Globals.output_dk := true),
