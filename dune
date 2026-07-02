@@ -21,6 +21,6 @@
 
 (rule
  (targets config.ml)
- (deps (:src Makefile ext_focal.ml ext_tla.ml ext_recfun.ml ext_equiv.ml ext_arith.ml))
+ (deps (:src configure Makefile ext_focal.ml ext_tla.ml ext_recfun.ml ext_equiv.ml ext_arith.ml))
  (action  (bash "./configure"))
 )
