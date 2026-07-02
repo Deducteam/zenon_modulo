@@ -41,3 +41,5 @@ val end_comment : unit -> string;;
 
 (* Has a conjecture, useful for SZS output *)
 val has_a_conjecture : bool ref;;
+
+val epsilon_on_input : bool ref (* has an epsilon-term been read on the input? *)
