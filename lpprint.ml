@@ -171,7 +171,6 @@ and print_dk_term_aux o (t, var_context) =
      fprintf o "(%a) = (%a)"
 	     print_dk_term_aux (t2, var_context)
 	     print_dk_term_aux (t3, var_context)
-  | Dkeps t -> fprintf o "ε (%a)" print_dk_term_aux (t, var_context)
   | DkRfalse (pr) -> fprintf o "Rfalse\n (%a)" print_dk_term_aux (pr, var_context)
   | DkRnottrue (pr) -> fprintf o "Rnottrue\n (%a)" print_dk_term_aux (pr, var_context)
   | DkRaxiom (p, pr1, pr2) ->
@@ -329,12 +328,6 @@ and print_dk_term_aux o (t, var_context) =
 	     print_dk_term_aux (pr1, var_context)
 	     print_dk_term_aux (pr2, var_context)
 	     print_dk_term_aux (pr3, var_context)
-  | DkReps (a, p, pr1, pr2) ->
-     fprintf o "Reps\n (%a)\n (%a)\n (%a)\n (%a)\n"
-       print_dk_zentype_aux (a, var_context)
-       print_dk_term_aux (p, var_context)
-       print_dk_term_aux (pr1, var_context)
-       print_dk_term_aux (pr2, var_context)
   | _ -> assert false
  and print_dk_term o t = print_dk_term_aux o (t, [])
 

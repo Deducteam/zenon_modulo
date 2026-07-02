@@ -47,5 +47,3 @@ let end_comment() =
   else "*)"
 
 let has_a_conjecture = ref true
-
-let epsilon_on_input = ref false

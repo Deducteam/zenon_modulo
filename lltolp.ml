@@ -206,16 +206,10 @@ and translate_expr e =
      let p' = translate_expr p in
      mk_exists (ty, mk_lam (nv, p'))
   | Eex _ -> assert false
-  | Etau (Evar (v, _) as v', p, _) ->
-     if !Globals.epsilon_on_input then
-       let ty = translate_type (get_type v') in
-       let nv = mk_var (v, ty) in
-       let p' = translate_expr p in
-       mk_eps (mk_lam (nv, p'))
-     else
-       let v = Index.make_tau_name e in
-       let ty = translate_type (get_type e) in
-       mk_var (v, ty)
+  | Etau _ as e ->
+     let v = Index.make_tau_name e in
+     let ty = translate_type (get_type e) in
+     mk_var (v, ty)
   | Elam (Evar (v, _) as v', p, _) ->
      let ty = translate_type (get_type v') in
      let nv = mk_var (v, ty) in
@@ -537,13 +531,9 @@ let rec trproof_dk p =
 	  let pzz = substitute [(vx, zz)] px in
 	  let prpzz = mk_pr_var pzz in
 	  let sub = trproof_dk (List.nth phyps 0) in
+	  let lam = mk_lam (dkzz, mk_lam (prpzz, sub)) in
 	  let conc = get_pr_var exp in
-	  if !Globals.epsilon_on_input then
-            let lam = mk_lam (prpzz, sub) in
-	    mk_DkReps (a, dkp, lam, conc)
-          else
-            let lam = mk_lam (dkzz, mk_lam (prpzz, sub)) in
-            mk_DkRex (a, dkp, lam, conc)
+	  mk_DkRex (a, dkp, lam, conc)
      | Rall (Eall (Evar (_, _) as vx, px, _) as allp, t) ->
 	if (is_binder_of_type_var allp) then
 	  let dkp = translate_quant_to_dklam allp in
