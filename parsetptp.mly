@@ -168,7 +168,8 @@ expr:
   | expr EQSYM expr                    { eeq $1 $3 }
   | expr NEQSYM expr                   { enot (eeq $1 $3) }
   | OPEN expr CLOSE                    { $2 }
-  | HASH LBRACKET var_list RBRACKET COLON unit_formula { etau (List.hd $3, $6) }
+  | HASH LBRACKET var_list RBRACKET COLON unit_formula { Globals.epsilon_on_input := true;
+                                                         etau (List.hd $3, $6) }
 ;
 arguments:
   | OPEN expr_list CLOSE         { $2 }
