@@ -335,6 +335,12 @@ and print_dk_term_aux o (t, var_context) =
        print_dk_term_aux (p, var_context)
        print_dk_term_aux (pr1, var_context)
        print_dk_term_aux (pr2, var_context)
+  | DkRnoteps (a, p, pr1, pr2) ->
+     fprintf o "Rnoteps\n (%a)\n (%a)\n (%a)\n (%a)\n"
+       print_dk_zentype_aux (a, var_context)
+       print_dk_term_aux (p, var_context)
+       print_dk_term_aux (pr1, var_context)
+       print_dk_term_aux (pr2, var_context)
   | _ -> assert false
  and print_dk_term o t = print_dk_term_aux o (t, [])
 

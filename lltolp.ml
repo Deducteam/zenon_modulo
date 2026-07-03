@@ -603,9 +603,13 @@ let rec trproof_dk p =
 	  let pzz = substitute [(vx, zz)] px in
 	  let prpzz = mk_pr_var (enot pzz) in
 	  let sub = trproof_dk (List.nth phyps 0) in
-	  let lam = mk_lam (dkzz, mk_lam (prpzz, sub)) in
 	  let conc = get_pr_var (enot allp) in
-	  mk_DkRnotall (a, dkp, lam, conc)
+	  if !Globals.epsilon_on_input then
+            let lam = mk_lam (prpzz, sub) in
+	    mk_DkRnoteps (a, dkp, lam, conc)
+          else
+            let lam = mk_lam (dkzz, mk_lam (prpzz, sub)) in
+	    mk_DkRnotall (a, dkp, lam, conc)
      | Rpnotp ((Eapp (Evar (p, _), args1, _) as pp),
 	       (Enot (Eapp (Evar (q, _), args2, _) as qq, _))) ->
 	assert (p == q);
@@ -1041,7 +1045,10 @@ let output oc phrases llp =
   let prooftree = extract_prooftree llp in
   let dkproof = make_proof_term (List.hd goal) prooftree in
   fprintf oc "require open Stdlib.Prop Stdlib.Set Stdlib.Eq Stdlib.FOL \
-              Logic.Zenon.Main;\n\n";
+              Logic.Zenon.Main;\n";
+  if !Globals.epsilon_on_input then
+    fprintf oc "require open Logic.Zenon.Main_Epsilon;\n";
+  fprintf oc "\n";
   if !Globals.signature_name = "" then List.iter (print_line oc) dksigs;
   fprintf oc "\n";
   if !Globals.signature_name = "" then List.iter (print_line oc) dkctx;
@@ -1071,6 +1078,8 @@ let output_term oc phrases _ llp =
   let dkproof = make_proof_term (List.hd goal) prooftree in
   fprintf oc "require open Stdlib.Prop Stdlib.Set Stdlib.Eq Stdlib.FOL \
               Logic.Zenon.Main;\n";
+  if !Globals.epsilon_on_input then
+    fprintf oc "require open Logic.Zenon.Main_Epsilon;\n";
   if !Globals.gdv then
     fprintf oc "\nrule F.%s ↪ " goal_name
   else

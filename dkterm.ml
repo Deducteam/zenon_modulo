@@ -55,6 +55,7 @@ type dkterm =
   | DkRconglr       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
   | DkRcongrl       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
   | DkReps          of dkterm * dkterm * dkterm * dkterm
+  | DkRnoteps       of dkterm * dkterm * dkterm * dkterm
 ;;
 
 type line =
@@ -147,6 +148,7 @@ let mk_DkRsubst        (a, p, t1, t2, pr1, pr2, pr3)  = DkRsubst (a, p, t1, t2, 
 let mk_DkRconglr       (a, p, t1, t2, pr1, pr2, pr3)  = DkRconglr (a, p, t1, t2, pr1, pr2, pr3)
 let mk_DkRcongrl       (a, p, t1, t2, pr1, pr2, pr3)  = DkRcongrl (a, p, t1, t2, pr1, pr2, pr3)
 let mk_DkReps          (a, p, pr1, pr2)  = DkReps (a, p, pr1, pr2)
+let mk_DkRnoteps       (a, p, pr1, pr2)  = DkRnoteps (a, p, pr1, pr2)
 
 let mk_decl       (v, t)       = Dkdecl (v, t)
 let mk_rwrt       (l, t1, t2)  = Dkrwrt (l, t1, t2)
