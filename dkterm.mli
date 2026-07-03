@@ -56,6 +56,7 @@ type dkterm =
   | DkRconglr       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
   | DkRcongrl       of dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm
   | DkReps          of dkterm * dkterm * dkterm * dkterm (* type, predicate, proof of eps, proof of ex *)
+  | DkRnoteps          of dkterm * dkterm * dkterm * dkterm (* type, predicate, proof of eps, proof of ex *)
 
 type line =
   | Dkdecl of var * dkterm                     (* declaration of symbols *)
@@ -87,7 +88,7 @@ val mk_existstype       : dkterm -> dkterm
 val mk_true             : dkterm
 val mk_false            : dkterm
 val mk_equal            : dkterm * dkterm * dkterm -> dkterm
-val mk_eps       : dkterm -> dkterm
+val mk_eps              : dkterm -> dkterm
 
 val mk_DkRfalse         : dkterm -> dkterm
 val mk_DkRnottrue       : dkterm -> dkterm
@@ -115,7 +116,8 @@ val mk_DkRnotalltype    : dkterm * dkterm * dkterm -> dkterm
 val mk_DkRsubst         : dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRconglr        : dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
 val mk_DkRcongrl        : dkterm * dkterm * dkterm * dkterm * dkterm * dkterm * dkterm -> dkterm
-val mk_DkReps            : dkterm * dkterm * dkterm * dkterm -> dkterm
+val mk_DkReps           : dkterm * dkterm * dkterm * dkterm -> dkterm
+val mk_DkRnoteps        : dkterm * dkterm * dkterm * dkterm -> dkterm
 
 val mk_decl             : var * dkterm -> line
 val mk_rwrt             : dkterm list * dkterm * dkterm -> line
