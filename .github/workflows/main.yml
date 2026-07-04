@@ -29,6 +29,4 @@ jobs:
       - name: compiling zenon_modulo ...
         run: |
           eval `opam env`
-          ./configure
-          make zenon_modulo.bin
-          
+          dune build
