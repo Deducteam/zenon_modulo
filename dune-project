@@ -1,5 +1,5 @@
-(lang dune 3.7)
-
+(lang dune 3.18)
+(maintenance_intent "(latest)")
 (generate_opam_files true)
 
 (name zenon_modulo)
