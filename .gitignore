@@ -29,8 +29,6 @@ lexsmtlib.ml
 lexzen.ml
 lexdk.ml
 checksum.ml
-config.ml
-.svn
 .zenon*.aux
 *~
 _build/
