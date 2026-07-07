@@ -15,7 +15,7 @@
 "Automated theorem prover for typed first-order logic based on the tableau
 method, generating Coq, Dedukti or Lambdapi proofs.")
  (depends
-  (ocaml (>= 5.2.1))
+  (ocaml (>= 4.14.4))
   ocamlfind
   zarith
 ))
