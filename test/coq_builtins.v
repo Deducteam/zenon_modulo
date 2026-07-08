@@ -399,16 +399,16 @@ Unset Implicit Arguments.
 
 (* A simple wf relation on Z *)
 Require Import ZArith.
-Definition Z_lt_wf (x y : Z) := Zabs_nat x < Zabs_nat y.
+Definition Z_lt_wf (x y : Z) := Z.abs_nat x < Z.abs_nat y.
 Lemma wf_Z_lt_wf : well_founded Z_lt_wf.
 Require Import Wf_nat.
 unfold Z_lt_wf in |- *.
-cut (well_founded (ltof _ Zabs_nat)).
+cut (well_founded (ltof _ Z.abs_nat)).
 intros H.
 simpl in H.
 unfold ltof in H.
 trivial.
-exact (well_founded_ltof Z Zabs_nat).
+exact (well_founded_ltof Z Z.abs_nat).
 Qed.
 
 (** The weak proof !!! Give it a Prop, and abracadabra ... it's proved ! *)
@@ -449,10 +449,10 @@ Definition prop__t := Prop.
 (* Basic operators on booleans. Need to be written the same way that the     *)
 (* one used in Coq and Zenon !!!                                             *)
 (* ************************************************************************* *)
-Let bi__and_b := fun b1 b2 : bool => ifb b1 b2 false.
-Let bi__or_b := fun b1 b2 : bool => ifb b1 true b2.
-Let bi__not_b := fun b : bool => if b then false else true.
-Let bi__xor_b :=
+Definition bi__and_b := fun b1 b2 : bool => ifb b1 b2 false.
+Definition bi__or_b := fun b1 b2 : bool => ifb b1 true b2.
+Definition bi__not_b := fun b : bool => if b then false else true.
+Definition bi__xor_b :=
   fun b1 b2 : bool =>
     if b1 then if b2 then false else true else if b2 then true else false.
 
@@ -463,46 +463,48 @@ Let bi__xor_b :=
 Open Scope Z_scope.
 
 (* The modulo function on Z * Z. *)
-Let bi__int_mod (x : Z) (y : Z) := x mod y.
+Definition bi__int_mod (x : Z) (y : Z) := x mod y.
 
 (* The predecessor function on Z. *)
-Let bi__int_pred (x : Z) := x - 1.
+Definition bi__int_pred (x : Z) := x - 1.
 
 (* The addition function on Z * Z . *)
-Let bi__int_plus (x : Z) (y : Z) := x + y.
+Definition bi__int_plus (x : Z) (y : Z) := x + y.
 
 (* The opposite function on Z. *)
-Let bi__int_opposite (x : Z) := - x.
+Definition bi__int_opposite (x : Z) := - x.
 
 (* The multiplication function on Z * Z . *)
-Let bi__int_mult (x : Z) (y : Z) := x + y.
+Definition bi__int_mult (x : Z) (y : Z) := x + y.
 
 (* The division function on Z * Z . *)
-Let bi__int_div (x : Z) (y : Z) := x / y.
+Definition bi__int_div (x : Z) (y : Z) := x / y.
 
 (* The subtraction function on Z * Z . *)
-Let bi__int_minus (x : Z) (y : Z) := x - y.
+Definition bi__int_minus (x : Z) (y : Z) := x - y.
 
 (* The upper bound on Z * Z . *)
-Let bi__int_max (x : Z) (y : Z) := if (Z_lt_dec y x) then x else y.
+Definition bi__int_max (x : Z) (y : Z) := if (Z_lt_dec y x) then x else y.
 
 (* The lower bound on Z * Z . *)
-Let bi__int_min (x : Z) (y : Z) := if (Z_lt_dec x y) then x else y.
+Definition bi__int_min (x : Z) (y : Z) := if (Z_lt_dec x y) then x else y.
 
 (* The equality on Z * Z. *)
-Let bi__int_eq (x : Z) (y : Z) := dec_to_bool (Z_eq_dec x y).
+Definition bi__int_eq (x : Z) (y : Z) := dec_to_bool (Z.eq_dec x y).
+
+Import ZArith_dec.
 
 (* The < on Z * Z. *)
-Let bi__int_lt (x : Z) (y : Z) := dec_to_bool (Z_lt_dec x y).
+Definition bi__int_lt (x : Z) (y : Z) := dec_to_bool (Z_lt_dec x y).
 
 (* The <= on Z * Z. *)
-Let bi__int_leq (x : Z) (y : Z) := dec_to_bool (Z_le_dec x y).
+Definition bi__int_leq (x : Z) (y : Z) := dec_to_bool (Z_le_dec x y).
 
 (* The >= on Z * Z. *)
-Let bi__int_geq (x : Z) (y : Z) := dec_to_bool (Z_ge_dec x y).
+Definition bi__int_geq (x : Z) (y : Z) := dec_to_bool (Z_ge_dec x y).
 
 (* The > on Z * Z. *)
-Let bi__int_gt (x : Z) (y : Z)  := dec_to_bool (Z_gt_dec x y).
+Definition bi__int_gt (x : Z) (y : Z)  := dec_to_bool (Z_gt_dec x y).
 
 (* The absolute value on Z. *)
-Let bi__int_abs (x : Z) := Zabs x.
+Definition bi__int_abs (x : Z) := Z.abs x.

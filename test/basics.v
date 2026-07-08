@@ -26,113 +26,113 @@ Definition bool__t :=  bool .
 
 Definition list__t (__var_a : Set) :=  (List.list __var_a) .
 
-Let _amper__amper_ : bool__t -> bool__t -> bool__t :=
+Definition _amper__amper_ : bool__t -> bool__t -> bool__t :=
    coq_builtins.bi__and_b .
 
-Let _bar__bar_ : bool__t -> bool__t -> bool__t :=
+Definition _bar__bar_ : bool__t -> bool__t -> bool__t :=
    coq_builtins.bi__or_b .
 
-Let _tilda__tilda_ : bool__t -> bool__t :=
+Definition _tilda__tilda_ : bool__t -> bool__t :=
    coq_builtins.bi__not_b .
 
-Let _bar__lt__gt__bar_ :
+Definition _bar__lt__gt__bar_ :
   bool__t -> bool__t -> bool__t :=
    coq_builtins.bi__xor_b .
 
-Let pair (__var_a : Set) (__var_b : Set) (x : __var_b) (y : __var_a) :
+Definition pair (__var_a : Set) (__var_b : Set) (x : __var_b) (y : __var_a) :
   ((__var_b * __var_a)%type) :=
   (x, y).
 
-Let fst (__var_a : Set) (__var_b : Set) (x : ((__var_b * __var_a)%type)) :
+Definition fst (__var_a : Set) (__var_b : Set) (x : ((__var_b * __var_a)%type)) :
   __var_b :=
   match x with
    | (v, _) =>
        v
    end.
 
-Let snd (__var_a : Set) (__var_b : Set) (x : ((__var_b * __var_a)%type)) :
+Definition snd (__var_a : Set) (__var_b : Set) (x : ((__var_b * __var_a)%type)) :
   __var_a :=
   match x with
    | (_, v) =>
        v
    end.
 
-Let _hat_ : string__t -> string__t -> string__t :=
+Definition _hat_ : string__t -> string__t -> string__t :=
    String.append .
 
-Let _lt__hat_ :
+Definition _lt__hat_ :
   string__t -> string__t -> bool__t :=
    fun (x : string__t) (y : string__t) => true .
 
-Let _equal_0x : int__t -> int__t -> bool__t :=
+Definition _equal_0x : int__t -> int__t -> bool__t :=
    coq_builtins.bi__int_eq .
 
-Let _lt_0x : int__t -> int__t -> bool__t :=
+Definition _lt_0x : int__t -> int__t -> bool__t :=
    coq_builtins.bi__int_lt .
 
-Let _lt__equal_0x : int__t -> int__t -> bool__t :=
+Definition _lt__equal_0x : int__t -> int__t -> bool__t :=
    coq_builtins.bi__int_leq .
 
-Let _gt__equal_0x : int__t -> int__t -> bool__t :=
+Definition _gt__equal_0x : int__t -> int__t -> bool__t :=
    coq_builtins.bi__int_geq .
 
-Let _gt_0x : int__t -> int__t -> bool__t :=
+Definition _gt_0x : int__t -> int__t -> bool__t :=
    coq_builtins.bi__int_gt .
 
-Let _plus_ : int__t -> int__t -> int__t :=
+Definition _plus_ : int__t -> int__t -> int__t :=
    coq_builtins.bi__int_plus .
 
-Let _dash_ : int__t -> int__t -> int__t :=
+Definition _dash_ : int__t -> int__t -> int__t :=
    coq_builtins.bi__int_minus .
 
-Let _tilda_0x : int__t -> int__t :=
+Definition _tilda_0x : int__t -> int__t :=
    coq_builtins.bi__int_opposite .
 
-Let _star_ : int__t -> int__t -> int__t :=
+Definition _star_ : int__t -> int__t -> int__t :=
    coq_builtins.bi__int_mult .
 
-Let _slash_ : int__t -> int__t -> int__t :=
+Definition _slash_ : int__t -> int__t -> int__t :=
    coq_builtins.bi__int_div .
 
-Let _percent_ : int__t -> int__t -> int__t :=
+Definition _percent_ : int__t -> int__t -> int__t :=
    coq_builtins.bi__int_mod .
 
-Let succ0x (x : int__t) : int__t :=
+Definition succ0x (x : int__t) : int__t :=
   (_plus_ x 1).
 
-Let pred0x (x : int__t) : int__t :=
+Definition pred0x (x : int__t) : int__t :=
   (_dash_ x 1).
 
-Let max0x : int__t -> int__t -> int__t :=
+Definition max0x : int__t -> int__t -> int__t :=
    coq_builtins.bi__int_max .
 
-Let min0x : int__t -> int__t -> int__t :=
+Definition min0x : int__t -> int__t -> int__t :=
    coq_builtins.bi__int_min .
 
-Let abs0x : int__t -> int__t :=
+Definition abs0x : int__t -> int__t :=
    coq_builtins.bi__int_abs .
 
-Let string_of_int : int__t -> string__t :=
+Definition string_of_int : int__t -> string__t :=
    fun (x : int__t) => "42"%string .
 
-Let int_of_string : string__t -> int__t :=
+Definition int_of_string : string__t -> int__t :=
    fun (x : string__t) => 42 .
 
-Let _equal_ (__var_a : Set) :
+Definition _equal_ (__var_a : Set) :
   __var_a -> __var_a -> bool__t :=
    coq_builtins.bi__syntactic_equal _ .
 
-Let syntactic_equal (__var_a : Set) : __var_a -> __var_a -> bool__t :=
+Definition syntactic_equal (__var_a : Set) : __var_a -> __var_a -> bool__t :=
   _equal_ _.
 
-Let print_int : int__t -> unit__t :=
+Definition print_int : int__t -> unit__t :=
    fun (x : int__t) => coq_builtins.Void .
 
-Let print_newline :
+Definition print_newline :
   unit__t -> unit__t :=
    fun (x : unit__t) => coq_builtins.Void .
 
-Let print_string :
+Definition print_string :
   string__t -> unit__t :=
    fun (x : string__t) => coq_builtins.Void .
 
@@ -343,7 +343,7 @@ Theorem int_lt_le_trans :
     elim (Z_lt_dec x y). elim (Z_le_dec y z).
     intros Hle Hlt foo bar; clear foo bar.
     elim (Z_lt_dec x z). intros H; compute in |- *; trivial.
-    intros H; absurd (x < z)%Z; trivial. apply (Zlt_le_trans x y z); trivial.
+    intros H; absurd (x < z)%Z; trivial. apply (Z.lt_le_trans x y z); trivial.
     intros b a H Habs; compute in |- *; contradiction.
     intros b H; compute in H; contradiction. Qed.
     
@@ -406,8 +406,8 @@ Theorem int_lt_irrefl :
     intros x y. unfold _lt_0x. unfold bi__int_lt. elim Z_lt_dec. intros.
     compute in H. intro. unfold _equal_ in H0.
     apply zenon_syntactic_equal with (S := int__t) (x := x) (y := y).
-    intro. apply zenon_focal_eqdec. auto with zarith. apply Zlt_not_eq.
-    trivial. trivial. intro. compute. intros. trivial. Qed.
+    intro. apply zenon_focal_eqdec. auto with zarith.
+    trivial. intro. compute. intros. trivial. Qed.
     
 
 
@@ -447,8 +447,8 @@ Theorem int_diff_ge_is_pos :
     intros x y. unfold _gt_0x, _gt__equal_0x, _dash_.
     unfold bi__int_gt, bi__int_geq, bi__int_minus. elim (Z_ge_dec x y).
     intros. compute in H. elim (Z_ge_dec (x - y) 0). intros. compute. auto.
-    intros. compute. apply Zge_le in a.  (* n <= m -> m >= n *)
-    elim b. apply Zle_ge. apply Zle_minus_le_0.  (* m <= n -> 0 <= n - m *)
+    intros. compute. apply Z.ge_le in a.  (* n <= m -> m >= n *)
+    elim b. apply Z.le_ge. apply Zle_minus_le_0.  (* m <= n -> 0 <= n - m *)
     assumption. intro. intro. elim (Z_ge_dec (x - y) 0). intros. compute.
     auto. intros. compute. compute in H. assumption. Qed.
     
@@ -463,7 +463,7 @@ Theorem int_0_plus :
       unfold bi__int_plus in |- *; intros x y Hxz;
       unfold _equal_, syntactic_equal;
       apply EQ_syntactic_equal; replace x with 0%Z; eauto with zarith.
-      symmetry  in |- *. apply decidable. apply Z_eq_dec. assumption. Qed.
+      symmetry  in |- *. apply decidable. apply Z.eq_dec. assumption. Qed.
     
 
 
@@ -475,7 +475,7 @@ Theorem int_lt_le_S :
 
       unfold _lt_0x, _lt__equal_0x, _plus_ in |- *; intros x y Hlt;
       unfold bi__int_lt, bi__int_leq, bi__int_plus;
-      apply dec_IsTrue; fold (Zsucc x) in |- *; apply Zlt_le_succ;
+      apply dec_IsTrue; fold (Z.succ x) in |- *; apply Zlt_le_succ;
       trivial. exact (IsTrue_dec Hlt). Qed.
     
 
@@ -512,8 +512,8 @@ Theorem int_plus_plus :
       intros x y z t H1 H2;
       unfold _equal_;
       apply EQ_syntactic_equal; replace y with x. replace t with z. reflexivity.
-      apply decidable. apply Z_eq_dec. assumption.
-      apply decidable. apply Z_eq_dec. assumption. Qed.
+      apply decidable. apply Z.eq_dec. assumption.
+      apply decidable. apply Z.eq_dec. assumption. Qed.
     
 
 
@@ -575,7 +575,7 @@ Theorem int_plus_minus :
       intros H;
       unfold bi__int_minus, _equal_, syntactic_equal;
       apply EQ_syntactic_equal; apply Zplus_minus_eq;
-      symmetry  in |- *; apply (decidable _ _ _ (Z_eq_dec (x + y) z) H). Qed.
+      symmetry  in |- *; apply (decidable _ _ _ (Z.eq_dec (x + y) z) H). Qed.
     
 
 
@@ -590,11 +590,11 @@ Theorem int_minus_plus :
       intros H;
       unfold bi__int_minus, _equal_, syntactic_equal;
       apply EQ_syntactic_equal; rewrite <- (Zplus_minus y x);
-      apply Zplus_eq_compat; trivial; apply decidable. apply Z_eq_dec. assumption.      Qed.
+      apply Zplus_eq_compat; trivial; apply decidable. apply Z.eq_dec. assumption.      Qed.
     
 
 
-Let focalize_error (__var_a : Set) :
+Definition focalize_error (__var_a : Set) :
   string__t -> __var_a :=
    coq_builtins.focalize_error .
 
@@ -610,21 +610,20 @@ Inductive partiel__t (__var_a : Set) : Set :=
   | Failed : ((partiel__t __var_a))
   | Unfailed : (__var_a -> (partiel__t __var_a)).
 
-Let is_failed (__var_a : Set) (x : (partiel__t __var_a)) :
+Definition is_failed (__var_a : Set) (x : (partiel__t __var_a)) :
   bool__t :=
   match x with
-   | Failed  =>
+   | Failed _ =>
        true
-   | (Unfailed _) =>
+   | Unfailed _ _ =>
        false
    end.
 
-Let non_failed (__var_a : Set) (x : (partiel__t __var_a)) :
+Definition non_failed (__var_a : Set) (x : (partiel__t __var_a)) :
   __var_a :=
   match x with
-   | Failed  =>
+   | Failed _ =>
        (focalize_error _ "partial function"%string)
-   | (Unfailed a) =>
+   | Unfailed _ a =>
        a
    end.
-

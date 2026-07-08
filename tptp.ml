@@ -172,7 +172,7 @@ let rec translate_one dirs accu p =
   | Formula(name, t, body, Some annot) ->
      begin
        match annot with
-       | Fun(_inference, [_Skolemization; List([_statusesa; Fun(_new_symbols, [Atom "skolem"; List [Atom sk]]); _skolemize]); List parents]) ->
+       | Fun(_inference, [_Skolemization; List([_statusesa; Fun(_new_symbols, [Atom "skolem"; List [Atom sk]]); _skolemize]); List _parents]) ->
          Log.debug 6 "Found a skolem symbol %s for %s\n" sk name
       | _ -> Log.debug 6 "Ignoring annotation for %s." name
      end;

@@ -1,5 +1,5 @@
-(lang dune 3.7)
-
+(lang dune 3.18)
+(maintenance_intent "(latest)")
 (generate_opam_files true)
 
 (name zenon_modulo)
@@ -15,7 +15,7 @@
 "Automated theorem prover for typed first-order logic based on the tableau
 method, generating Coq, Dedukti or Lambdapi proofs.")
  (depends
-  (ocaml (>= 4.08.0))
+  (ocaml (>= 4.14.4))
   ocamlfind
   zarith
 ))

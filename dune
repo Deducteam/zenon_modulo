@@ -10,6 +10,7 @@
  (public_name zenon_modulo)
  (modes byte native)
  (libraries str unix zarith)
+ (flags (:standard -w -37))
 )
 
 (rule

@@ -1,0 +1,6 @@
+_CoqProject
+vo.mk
+vo.mk.conf
+*.vo*
+.*.aux
+*.glob
